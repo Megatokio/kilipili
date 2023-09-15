@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
  * SPDX-License-Identifier: BSD-3-Clause
- * Copyright (c) 2022 - 2022 kio@little-bat.de
+ * Copyright (c) 2022 - 2023 kio@little-bat.de
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
