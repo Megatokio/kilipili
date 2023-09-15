@@ -55,6 +55,7 @@ pico_generate_pio_header(kipili_video ${CMAKE_CURRENT_LIST_DIR}/scanvideo.pio)
 # dependencies:
 target_link_libraries(kipili_video PRIVATE
 	kipili_common
+	kipili_utilities
 	kipili_graphics
 	kipili_usb_host
 	pico_stdlib

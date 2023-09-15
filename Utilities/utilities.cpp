@@ -4,7 +4,6 @@
 
 #include "utilities.h"
 #include "PwmLoadSensor.h"
-#include <functional>
 #include <hardware/clocks.h>
 #include <hardware/vreg.h>
 

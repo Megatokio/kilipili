@@ -5,10 +5,9 @@
 #pragma once
 #include "Pixmap.h"
 #include "Pixmap_wAttr.h"
-#include "cdefs.h"
 #include "geometry.h"
 #include "graphics_types.h"
-#include <pico/stdlib.h>
+#include "kipili_common.h"
 
 /*
 	Basic 2D Graphics

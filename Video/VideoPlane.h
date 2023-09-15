@@ -6,8 +6,8 @@
 #include "Graphics/geometry.h"
 #include "VBlankAction.h"
 #include "VideoQueue.h"
-#include "cdefs.h"
 #include "errors.h"
+#include <new>
 
 namespace kipili::Video
 {

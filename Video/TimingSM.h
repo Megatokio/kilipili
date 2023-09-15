@@ -5,7 +5,6 @@
 #pragma once
 #include "VgaMode.h"
 #include "VgaTiming.h"
-#include "cdefs.h"
 #include <hardware/dma.h>
 
 namespace kipili::Video

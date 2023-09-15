@@ -3,7 +3,6 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "cdefs.h"
 
 
 namespace kipili::Video
@@ -28,4 +27,4 @@ public:
 	virtual void vblank() noexcept = 0;
 };
 
-} // namespace
+} // namespace kipili::Video

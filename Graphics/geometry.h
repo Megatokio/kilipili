@@ -3,7 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "cdefs.h"
+#include "basic_math.h"
+#include "kipili_cdefs.h"
+#include <utility>
 
 
 namespace kipili::Graphics

@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "cdefs.h"
+#include "standard_types.h"
 
 
 #ifndef USE_WIDECHARS

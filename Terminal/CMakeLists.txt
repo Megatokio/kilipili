@@ -16,7 +16,8 @@ target_include_directories(kipili_terminal PUBLIC
 	)
 
 # dependencies:
-target_link_libraries(kipili_terminal PRIVATE
+target_link_libraries(kipili_terminal PUBLIC
+	pico_stdlib
 	kipili_common
 	kipili_graphics
 	kipili_usb_host

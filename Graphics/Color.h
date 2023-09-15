@@ -4,7 +4,6 @@
 
 #pragma once
 #include "standard_types.h"
-//#include "settings.h"
 
 
 // the vgaboard doesn't define these

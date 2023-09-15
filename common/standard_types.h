@@ -3,11 +3,29 @@
 // https://spdx.org/licenses/BSD-2-Clause.html
 
 #pragma once
-
 #include <cctype>
 #include <cstdint>
 
 
+// ######################################
+// boolean aliases:
+
+static constexpr bool on	   = true;
+static constexpr bool off	   = false;
+static constexpr bool enabled  = true;
+static constexpr bool disabled = false;
+
+
+// ######################################
+// multiplier #defines:
+
+#define kB	*0x400u
+#define MB	*0x100000u
+#define GB	*0x40000000ul
+#define MHz *1000000u
+
+
+// ######################################
 // exact size defs:
 
 using uint8	 = uint8_t;
@@ -47,6 +65,7 @@ using cint32ptr	 = const int32*;
 using cint64ptr	 = const int64*;
 
 
+// ######################################
 // minimum width defs:
 
 // ISO: min. sizeof(char)   =  undefined !
@@ -77,6 +96,7 @@ using ulongptr	= ulong*;
 using ullongptr = ullong*;
 
 
+// ######################################
 // character pointers and strings:
 
 using str  = char*;
@@ -87,3 +107,7 @@ using cptr = const char*;
 
 using uptr	= uchar*;
 using cuptr = const uchar*;
+
+using Error = cstr;
+
+//

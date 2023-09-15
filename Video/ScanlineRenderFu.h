@@ -4,6 +4,8 @@
 
 #pragma once
 #include "graphics_types.h"
+#include <type_traits>
+
 
 namespace kipili::Video
 {

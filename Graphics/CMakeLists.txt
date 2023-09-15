@@ -26,20 +26,17 @@ target_compile_definitions(kipili_graphics PRIVATE
 # add current dir to 'include search path':
 target_include_directories(kipili_graphics PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
-	)
-#target_include_directories(Graphics PRIVATE
-#	${PROJECT_SOURCE_DIR}/Video
-#	)
-target_include_directories(kipili_graphics PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}/..
 	)
 
 # dependencies:
 target_link_libraries(kipili_graphics PRIVATE
 	kipili_common
+	kipili_utilities
+	kipili_usb_host
 	pico_stdlib
 	hardware_dma
-	kipili_usb_host
+	hardware_pwm
 	)
 
 

@@ -4,7 +4,7 @@
 
 #pragma once
 #include "Color.h"
-#include "cdefs.h"
+#include "kipili_cdefs.h"
 
 /*	This file defines some enum types used in the Pixmap and graphics engine.
 	- ColorDepth: enumeration for 1, 2, 4, 8 and 16 bit per pixel

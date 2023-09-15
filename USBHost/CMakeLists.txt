@@ -30,18 +30,14 @@ target_compile_definitions(kipili_usb_host PRIVATE
 # Make sure TinyUSB can find tusb_config.h
 target_include_directories(kipili_usb_host PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
-	)
-target_include_directories(kipili_usb_host PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}/..
 	)
 
 # additional dependencies on tinyusb_host for TinyUSB device support
-target_link_libraries(kipili_usb_host PRIVATE
-	kipili_common
-	)
-
 target_link_libraries(kipili_usb_host PUBLIC
 	tinyusb_host
+	kipili_common
+	kipili_terminal
 	)
 
 

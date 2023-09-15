@@ -23,7 +23,7 @@
  *
  */
 
-#include "cdefs.h"
+#include "standard_types.h"
 #include <tusb.h>
 
 #if CFG_TUH_MSC

@@ -2,9 +2,14 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "cdefs.h"
+#include <cstdlib>
+#include <cstring>
 #include <pico/malloc.h>
 #include <pico/mutex.h>
+
+#define unlikely(x) __builtin_expect(!!(x), 0)
+using uint32 = uint32_t;
+using int32	 = int32_t;
 
 // defined by linker:
 extern uint32 end;
@@ -31,18 +36,18 @@ extern uint32 __StackTop;
 
 
 constexpr uint32* heap_start = &end;
-constexpr uint32* heap_end = &__StackLimit;
+constexpr uint32* heap_end	 = &__StackLimit;
 
-static uint32* first_free = nullptr;			// (before) first free chunk
+static uint32* first_free = nullptr; // (before) first free chunk
 
 
 // Values for Raspberry Pico RP2040:
-constexpr uint32 size_mask = 0x0000ffff;		// uint32 words
-constexpr uint32 flag_mask = 0xffff0000;		// the other bits
-constexpr uint32 flag_used = 0xA53C0000;		// magic number, msb set
-constexpr uint32 flag_free = 0x00000000;		// all bits cleared
+constexpr uint32 size_mask = 0x0000ffff; // uint32 words
+constexpr uint32 flag_mask = 0xffff0000; // the other bits
+constexpr uint32 flag_used = 0xA53C0000; // magic number, msb set
+constexpr uint32 flag_free = 0x00000000; // all bits cleared
 
-constexpr size_t max_size  = (size_mask<<2)-4;	// bytes
+constexpr size_t max_size = (size_mask << 2) - 4; // bytes
 
 
 // helper:
@@ -75,17 +80,17 @@ void* malloc(size_t size)
 	if (unlikely(first_free == nullptr))
 	{
 		uint32 free_size = uint32(heap_end - heap_start);
-		assert (free_size <= size_mask);
+		assert(free_size <= size_mask);
 
-		first_free = heap_start;
-		*first_free = free_size | flag_free;	// define one big free chunk
+		first_free	= heap_start;
+		*first_free = free_size | flag_free; // define one big free chunk
 	}
 
 	// calc. required size in words, incl. header:
 	if (unlikely(size > max_size)) return nullptr;
 	size = (size + 7) >> 2;
 
-	uint32* p = first_free = skip_used(first_free);	// find 1st free chunk
+	uint32* p = first_free = skip_used(first_free); // find 1st free chunk
 
 	while (p < heap_end)
 	{
@@ -93,14 +98,14 @@ void* malloc(size_t size)
 
 		if (gap >= size)
 		{
-			if (gap > size) { *(p+size) = (gap - size) | flag_free; }  // split
+			if (gap > size) { *(p + size) = (gap - size) | flag_free; } // split
 			*p = size | flag_used;
-			return p+1;
+			return p + 1;
 		}
 
 		// gap too small:
 		*p = gap | flag_free;
-		p = skip_used(p + gap);  // find next free chunk
+		p  = skip_used(p + gap); // find next free chunk
 	}
 
 	return nullptr;
@@ -113,7 +118,7 @@ void* calloc(size_t count, size_t size)
 	// If nmemb or size is 0, then calloc() returns either NULL, or a unique pointer value
 	// that can later be successfully passed to free().
 
-	if (unlikely(__builtin_clz(count|1) + __builtin_clz(size|1) < 38))
+	if (unlikely(__builtin_clz(count | 1) + __builtin_clz(size | 1) < 38))
 		return nullptr; // size has 25 or 26 bits => more than 24 bits => size > 0x00ff.ffff
 
 	size *= count;
@@ -122,7 +127,7 @@ void* calloc(size_t count, size_t size)
 	return p;
 }
 
-void* realloc(void *mem, size_t size)
+void* realloc(void* mem, size_t size)
 {
 	// The realloc() function changes the size of the memory block pointed to by ptr to size bytes.
 	// The contents will be unchanged in the range from the start of the region up to the minimum
@@ -138,12 +143,16 @@ void* realloc(void *mem, size_t size)
 	// If realloc() fails the original block is left untouched; it is not freed or moved.
 
 	if (mem == nullptr) return malloc(size);
-	if (size == 0) { free(mem); return nullptr; }
+	if (size == 0)
+	{
+		free(mem);
+		return nullptr;
+	}
 
-	size = (size+7) >> 2;
+	size	  = (size + 7) >> 2;
 	uint32* p = reinterpret_cast<uint32*>(mem) - 1;
 	assert(is_valid_used(p));
-	uint32  old_size = *p & size_mask;
+	uint32 old_size = *p & size_mask;
 
 	if (size < old_size) // shrinked
 	{
@@ -164,12 +173,15 @@ void* realloc(void *mem, size_t size)
 			if (avail > size) *p = (avail - size) | flag_free;
 			if (p < first_free) first_free = p;
 			return mem;
-
 		}
 
 		// can't grow in place, must relocate:
-		void* z = malloc((size-1) << 2);
-		if (z) { memcpy(z,mem,(old_size-1)<<2); free(mem); }
+		void* z = malloc((size - 1) << 2);
+		if (z)
+		{
+			memcpy(z, mem, (old_size - 1) << 2);
+			free(mem);
+		}
 		return z;
 	}
 
@@ -194,25 +206,3 @@ void free(void* mem)
 		if (p < first_free) first_free = p;
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

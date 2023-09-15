@@ -7,7 +7,6 @@
 #include "Graphics/Pixmap.h"
 #include "ScanlineRenderFu.h"
 #include "VideoPlane.h"
-#include "cdefs.h"
 
 
 #define WRAP(X)	 #X

@@ -4,7 +4,6 @@
 
 #pragma once
 #include "Graphics/DrawEngine.h"
-#include <functional>
 
 namespace kipili
 {

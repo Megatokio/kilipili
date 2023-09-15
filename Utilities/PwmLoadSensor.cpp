@@ -4,8 +4,6 @@
 
 #include "PwmLoadSensor.h"
 #include "utilities.h"
-#include <hardware/pwm.h>
-#include <pico/multicore.h>
 
 
 namespace kipili

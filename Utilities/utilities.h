@@ -3,15 +3,16 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "cdefs.h"
 #include "errors.h"
+#include "kipili_common.h"
+#include <hardware/timer.h>
 
 #ifndef SYSCLOCK_fMAX
   #define SYSCLOCK_fMAX (290 MHz)
 #endif
 
-extern "C" uint32 time_us_32(void);
-extern "C" uint64 time_us_64(void);
+//extern "C" uint32 time_us_32(void);
+//extern "C" uint64 time_us_64(void);
 
 extern "C" void sleep_ms(uint32);
 extern "C" void sleep_us(uint64);
@@ -20,7 +21,7 @@ extern "C" void sleep_us(uint64);
 namespace kipili
 {
 
-inline float now() noexcept { return time_us_64() * 1e6f; }
+inline float now() noexcept { return float(time_us_64()) / 1e6f; }
 inline void	 sleep(float d) noexcept { sleep_us(uint64(d * 1e6f)); }
 
 extern size_t flash_size();
@@ -51,8 +52,6 @@ extern uint calc_stack_guard_min_free(uint core);
 
 extern int sm_print_load(); // state machine
 
-
-#define MHz *1000000
 
 extern uint32 system_clock;
 

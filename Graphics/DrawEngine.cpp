@@ -3,13 +3,12 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "DrawEngine.h"
-#include "common/PwmLoadSensor.h"
-#include "common/utilities.h"
-#include "fixint.h"
-//#include "Scanvideo.h"
 #include "BitBlit.h"
 #include "Pixmap.h"
 #include "Pixmap_wAttr.h"
+#include "Utilities/PwmLoadSensor.h"
+#include "Utilities/utilities.h"
+#include "fixint.h"
 #include <functional>
 #include <pico/stdlib.h>
 #include <string.h>

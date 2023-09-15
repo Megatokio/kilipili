@@ -3,10 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "cdefs.h"
-#include <hardware/pio.h>
-#include "VgaMode.h"
 #include "Scanline.h"
+#include "VgaMode.h"
+#include <hardware/pio.h>
 
 
 namespace kipili::Video
@@ -14,26 +13,20 @@ namespace kipili::Video
 
 struct ScanlinePioProgram
 {
-	pio_program_t	program;
-	uint16			wait_index;
-	Scanline*		missing_scanline;
+	pio_program_t program;
+	uint16		  wait_index;
+	Scanline*	  missing_scanline;
 
 	virtual pio_sm_config configure_pio(pio_hw_t* pio, uint sm, uint offset) const;
-	virtual void adapt_for_mode(const VgaMode*, uint16 modifiable_instructions[]) const; // modifiable_instructions is of size program->length
+	virtual void		  adapt_for_mode(
+				 const VgaMode*, uint16 modifiable_instructions[]) const; // modifiable_instructions is of size program->length
 
 	virtual ~ScanlinePioProgram() = default;
 
-	ScanlinePioProgram(pio_program_t p,uint16 e, Scanline* s) noexcept : program(p), wait_index(e), missing_scanline(s) {}
+	ScanlinePioProgram(pio_program_t p, uint16 e, Scanline* s) noexcept : program(p), wait_index(e), missing_scanline(s)
+	{}
 };
 
 extern const ScanlinePioProgram video_24mhz_composable;
 
-} // namespace
-
-
-
-
-
-
-
-
+} // namespace kipili::Video

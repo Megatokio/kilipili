@@ -7,7 +7,6 @@
 #include "Scanline.h"
 #include "scanvideo_options.h"
 #include <atomic>
-#include <functional>
 
 namespace kipili::Video
 {
@@ -21,9 +20,9 @@ class VideoQueue : BucketList<Scanline, PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT>
 public:
 	using T = Scanline;
 
-	using BucketList::SIZE;
-	using BucketList::MASK;
 	using BucketList::buckets;
+	using BucketList::MASK;
+	using BucketList::SIZE;
 
 	// Are there scanlines available for the __isr?
 	uint full_avail() const noexcept { return hs_avail(); }
@@ -32,7 +31,7 @@ public:
 	T& get_full() noexcept { return hs_get(); }
 
 	// Push back free scanline from __isr:
-	void push_free() noexcept     { hs_push(); /*__sev();*/ }
+	void push_free() noexcept { hs_push(); /*__sev();*/ }
 	void push_free(T& s) noexcept { hs_push(s); /*__sev();*/ } // with assert
 
 
@@ -40,12 +39,12 @@ public:
 	uint free_avail() const noexcept { return ls_avail(); }
 
 	// Get next free scanline:
-	T& get_free() noexcept 	      { return ls_get(); }	// get next
-	T& get_free(uint i) noexcept  { return ls_get(i); }	// get ahead
+	T& get_free() noexcept { return ls_get(); }		   // get next
+	T& get_free(uint i) noexcept { return ls_get(i); } // get ahead
 
 	// Push back full scanline:
-	void push_full() noexcept     { ls_push(); }
-	void push_full(T& s) noexcept { ls_push(s); }  // with assert
+	void push_full() noexcept { ls_push(); }
+	void push_full(T& s) noexcept { ls_push(s); } // with assert
 
 
 	// clear uphill list.
@@ -55,43 +54,13 @@ public:
 
 	// wait for uphill list to drain.
 	// call only on same core as __isr while __isr is active:
-	void drain() noexcept { while(full_avail()) __wfi(); }
+	void drain() noexcept
+	{
+		while (full_avail()) __wfi();
+	}
 };
 
 
 extern VideoQueue video_queue;
 
-} // namespace
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+} // namespace kipili::Video

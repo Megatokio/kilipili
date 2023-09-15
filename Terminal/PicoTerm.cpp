@@ -4,8 +4,8 @@
 
 #include "PicoTerm.h"
 #include "Graphics/DrawEngine.h"
-#include "common/utilities.h"
-#include "pico/printf.h"
+#include "Utilities/utilities.h"
+#include <pico/printf.h>
 #include <pico/stdio.h>
 
 // https://k1.spdns.de/Develop/Hardware/Projekte/LM641541%20-%20LCD%20Display%20640x480/

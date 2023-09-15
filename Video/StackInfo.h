@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "cdefs.h"
+#include "kipili_common.h"
 
 
 namespace kipili::Video
@@ -11,9 +11,9 @@ namespace kipili::Video
 
 //#ifdef DEBUG
 
-constexpr int maxstackdepth = 8;
+constexpr int		 maxstackdepth = 8;
 extern volatile cstr stackinfo[maxstackdepth];
-extern volatile int stackdepth;
+extern volatile int	 stackdepth;
 
 class StackInfo
 {
@@ -28,15 +28,19 @@ public:
 	}
 	~StackInfo()
 	{
-		if (get_core_num()==1) stackdepth = stackdepth - 1;
+		if (get_core_num() == 1) stackdepth = stackdepth - 1;
 	}
 };
 
-#define debuginfo() StackInfo _stackinfo {__func__}
+#define debuginfo()    \
+  StackInfo _stackinfo \
+  {                    \
+	__func__           \
+  }
 
 //#else
 //#define debuginfo() (void)0
 //#endif
 
 
-} // namespace
+} // namespace kipili::Video

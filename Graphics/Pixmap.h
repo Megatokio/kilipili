@@ -5,10 +5,7 @@
 #pragma once
 #include "BitBlit.h"
 #include "ColorMap.h"
-#include "cdefs.h"
 #include "geometry.h"
-#include "graphics_types.h"
-#include <type_traits>
 
 
 #ifndef PIXMAP_ALIGN_TO_INT32

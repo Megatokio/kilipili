@@ -3,12 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "cdefs.h"
-
 
 class USBGamePad
 {
 public:
 	USBGamePad();
 };
-

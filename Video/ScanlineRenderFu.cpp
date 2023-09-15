@@ -11,12 +11,14 @@
 */
 
 #include "ScanlineRenderFu.h"
-#include <pico/stdlib.h>
+#include "kipili_common.h"
 #include <hardware/interp.h>
 
 
 // silence warnings:
+// clang-format off
 #define interp_hw_array ((interp_hw_t *)(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET))
+// clang-format on
 #undef interp_hw_array
 #define interp_hw_array reinterpret_cast<interp_hw_t*>(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET)
 
@@ -25,10 +27,10 @@
 // also, there should be no const data accessed in hot video code for the same reason.
 // the most timecritical things should go into core1 stack page because it is not contended.
 
-#define WRAP(X) #X
+#define WRAP(X)	 #X
 #define XWRAP(X) WRAP(X)
-#define XRAM __attribute__((section(".scratch_x.SRFu" XWRAP(__LINE__))))	 // the 4k page with the core1 stack
-#define RAM  __attribute__((section(".time_critical.SRFu" XWRAP(__LINE__)))) // general ram
+#define XRAM	 __attribute__((section(".scratch_x.SRFu" XWRAP(__LINE__))))	 // the 4k page with the core1 stack
+#define RAM		 __attribute__((section(".time_critical.SRFu" XWRAP(__LINE__)))) // general ram
 
 
 // ============================================================================================
@@ -41,8 +43,8 @@ using namespace Graphics;
 constexpr uint lane0 = 0;
 constexpr uint lane1 = 1;
 
-static XRAM Color* video_colormap;	// for old (non-interp) scanline renderers
-static XRAM Color  temp_colors[4];	// for scanline renderers with attribute modes
+static XRAM Color* video_colormap; // for old (non-interp) scanline renderers
+static XRAM Color  temp_colors[4]; // for scanline renderers with attribute modes
 
 
 /*  the interpolators are used for look-ups like
@@ -81,38 +83,38 @@ template<ColorMode CM>
 void setupScanlineRenderer(const Color* colormap)
 {
 	constexpr ColorDepth cd = get_colordepth(CM);
-	constexpr AttrMode   am = get_attrmode(CM);
+	constexpr AttrMode	 am = get_attrmode(CM);
 
 	// setup interp0:
 	if (cd != colordepth_16bpp)
 	{
-		interp_config cfg = interp_default_config();	// configure lane0
-		interp_config_set_shift(&cfg,1<<cd);			// shift right by 1 .. 8 bit
+		interp_config cfg = interp_default_config(); // configure lane0
+		interp_config_set_shift(&cfg, 1 << cd);		 // shift right by 1 .. 8 bit
 		interp_set_config(interp0, lane0, &cfg);
 
-		cfg = interp_default_config();					// configure lane1
-		interp_config_set_cross_input(&cfg,true);		// read from accu lane0
-		interp_config_set_mask(&cfg,1,1<<cd);			// mask lowest bits (shifted by 1 bit for sizeof(VgaColor))
+		cfg = interp_default_config();			   // configure lane1
+		interp_config_set_cross_input(&cfg, true); // read from accu lane0
+		interp_config_set_mask(&cfg, 1, 1 << cd);  // mask lowest bits (shifted by 1 bit for sizeof(VgaColor))
 		interp_set_config(interp0, lane1, &cfg);
 
-		interp_set_base(interp0,lane0,0);				// lane0: add nothing
-		interp_set_base(interp0,lane1,uint32(colormap));// lane1: add color table base
+		interp_set_base(interp0, lane0, 0);				   // lane0: add nothing
+		interp_set_base(interp0, lane1, uint32(colormap)); // lane1: add color table base
 	}
 
 	// setup interp1:
 	if (am != attrmode_none)
 	{
-		interp_config cfg = interp_default_config();	// configure lane0
-		interp_config_set_shift(&cfg,1<<am);			// shift right by 1 or 2 bit
+		interp_config cfg = interp_default_config(); // configure lane0
+		interp_config_set_shift(&cfg, 1 << am);		 // shift right by 1 or 2 bit
 		interp_set_config(interp1, lane0, &cfg);
 
-		cfg = interp_default_config();					// configure lane1
-		interp_config_set_cross_input(&cfg,true);		// read from accu lane0
-		interp_config_set_mask(&cfg,1,1<<am);			// mask lowest 1 or 2 bit (shifted by 1 bit for sizeof(VgaColor))
+		cfg = interp_default_config();			   // configure lane1
+		interp_config_set_cross_input(&cfg, true); // read from accu lane0
+		interp_config_set_mask(&cfg, 1, 1 << am);  // mask lowest 1 or 2 bit (shifted by 1 bit for sizeof(VgaColor))
 		interp_set_config(interp1, lane1, &cfg);
 
-		interp_set_base(interp1,lane0,0);					// lane0: add nothing
-		interp_set_base(interp1,lane1,uint32(temp_colors));	// lane1: add base of temp_colors[]
+		interp_set_base(interp1, lane0, 0);					  // lane0: add nothing
+		interp_set_base(interp1, lane1, uint32(temp_colors)); // lane1: add base of temp_colors[]
 	}
 }
 
@@ -120,7 +122,7 @@ template<ColorMode CM>
 void teardownScanlineRenderer() noexcept
 {
 	constexpr ColorDepth cd = get_colordepth(CM);
-	constexpr AttrMode   am = get_attrmode(CM);
+	constexpr AttrMode	 am = get_attrmode(CM);
 
 	// teardown interp0:
 	if (cd != colordepth_16bpp)
@@ -137,7 +139,7 @@ void teardownScanlineRenderer() noexcept
 
 static inline const Color* next_color(interp_hw_t* interp)
 {
-	return reinterpret_cast<const Color*>(interp_pop_lane_result(interp,lane1));
+	return reinterpret_cast<const Color*>(interp_pop_lane_result(interp, lane1));
 }
 
 
@@ -145,41 +147,40 @@ static inline const Color* next_color(interp_hw_t* interp)
 // direct 1-bit indexed color mode:
 // this version uses no interp but a pre-computed 4k colormap.
 
-template<> void XRAM scanlineRenderFunction<colormode_i1>
-	(uint32* dest, uint width, const uint8* pixels)
+template<>
+void XRAM scanlineRenderFunction<colormode_i1>(uint32* dest, uint width, const uint8* pixels)
 {
 	const uint32* colors = reinterpret_cast<const uint32*>(video_colormap);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
 		uint byte = *pixels++ * 4;
-		*dest++ = colors[byte];
-		*dest++ = colors[byte+1];
-		*dest++ = colors[byte+2];
-		*dest++ = colors[byte+3];
+		*dest++	  = colors[byte];
+		*dest++	  = colors[byte + 1];
+		*dest++	  = colors[byte + 2];
+		*dest++	  = colors[byte + 3];
 	}
 }
 
-template<> void setupScanlineRenderer<colormode_i1> (const Color* colormap)
+template<>
+void setupScanlineRenderer<colormode_i1>(const Color* colormap)
 {
 	assert(video_colormap == nullptr);
-	video_colormap = new Color[256*8];
+	video_colormap = new Color[256 * 8];
 
 	// for all values for bytes from pixmap
 	// which contain 8 pixels
 	// create corresponding stripe of 8 colors:
 
 	Color* p = video_colormap;
-	for (uint byte=0; byte<256; byte++)
+	for (uint byte = 0; byte < 256; byte++)
 	{
-		for (uint bit=0; bit<8; bit++)
-		{
-			*p++ = colormap[(byte>>bit)&1];
-		}
+		for (uint bit = 0; bit < 8; bit++) { *p++ = colormap[(byte >> bit) & 1]; }
 	}
 }
 
-template<> void teardownScanlineRenderer<colormode_i1> () noexcept
+template<>
+void teardownScanlineRenderer<colormode_i1>() noexcept
 {
 	delete[] video_colormap;
 	video_colormap = nullptr;
@@ -189,43 +190,42 @@ template<> void teardownScanlineRenderer<colormode_i1> () noexcept
 // direct 2-bit indexed color mode:
 // this version uses no interp but a pre-computed 2k colormap.
 
-template<> void XRAM scanlineRenderFunction<colormode_i2>
-	(uint32* dest, uint width, const uint8* pixels)
+template<>
+void XRAM scanlineRenderFunction<colormode_i2>(uint32* dest, uint width, const uint8* pixels)
 {
 	const uint32* colors = reinterpret_cast<const uint32*>(video_colormap);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
 		uint byte = *pixels++ * 2;
-		*dest++ = colors[byte];
-		*dest++ = colors[byte+1];
+		*dest++	  = colors[byte];
+		*dest++	  = colors[byte + 1];
 
-		byte = *pixels++ * 2;
+		byte	= *pixels++ * 2;
 		*dest++ = colors[byte];
-		*dest++ = colors[byte+1];
+		*dest++ = colors[byte + 1];
 	}
 }
 
-template<> void setupScanlineRenderer<colormode_i2> (const Color* colormap)
+template<>
+void setupScanlineRenderer<colormode_i2>(const Color* colormap)
 {
 	assert(video_colormap == nullptr);
-	video_colormap = new Color[256*4];
+	video_colormap = new Color[256 * 4];
 
 	// for all values for bytes from pixmap
 	// which contain 4 pixels
 	// create corresponding stripe of 4 colors:
 
 	Color* p = video_colormap;
-	for (uint byte=0; byte<256; byte++)
+	for (uint byte = 0; byte < 256; byte++)
 	{
-		for (uint bit=0; bit<8; bit+=2)
-		{
-			*p++ = colormap[(byte>>bit)&3];
-		}
+		for (uint bit = 0; bit < 8; bit += 2) { *p++ = colormap[(byte >> bit) & 3]; }
 	}
 }
 
-template<> void teardownScanlineRenderer<colormode_i2> () noexcept
+template<>
+void teardownScanlineRenderer<colormode_i2>() noexcept
 {
 	delete[] video_colormap;
 	video_colormap = nullptr;
@@ -234,10 +234,10 @@ template<> void teardownScanlineRenderer<colormode_i2> () noexcept
 // ============================================================================================
 // direct 4-bit indexed color mode:
 
-template<> void XRAM scanlineRenderFunction<colormode_i4>
-	(uint32* _dest, uint width, const uint8* _pixels)
+template<>
+void XRAM scanlineRenderFunction<colormode_i4>(uint32* _dest, uint width, const uint8* _pixels)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest	 = reinterpret_cast<uint16*>(_dest);
 	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);
 
 	for (uint i = 0; i < width / 4; i++)
@@ -250,17 +250,17 @@ template<> void XRAM scanlineRenderFunction<colormode_i4>
 	}
 }
 
-template void setupScanlineRenderer<colormode_i4> (const Color* colormap);
+template void setupScanlineRenderer<colormode_i4>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_i4> () noexcept;
+template void teardownScanlineRenderer<colormode_i4>() noexcept;
 
 // ============================================================================================
 // direct 8-bit indexed color mode:
 
-template<> void XRAM scanlineRenderFunction<colormode_i8>
-	(uint32* _dest, uint width, const uint8* _pixels)
+template<>
+void XRAM scanlineRenderFunction<colormode_i8>(uint32* _dest, uint width, const uint8* _pixels)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest	 = reinterpret_cast<uint16*>(_dest);
 	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);
 
 	for (uint i = 0; i < width / 4; i++)
@@ -275,92 +275,129 @@ template<> void XRAM scanlineRenderFunction<colormode_i8>
 	}
 }
 
-template void setupScanlineRenderer<colormode_i8> (const Color* colormap);
+template void setupScanlineRenderer<colormode_i8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_i8> () noexcept;
+template void teardownScanlineRenderer<colormode_i8>() noexcept;
 
 // ============================================================================================
 // direct true color mode:
 // this version copies the pixels.
 // a VideoPlane which uses nested dma should be implemented separately.
 
-template<> void RAM scanlineRenderFunction<colormode_rgb>
-	(uint32* dest, uint width, const uint8* pixels)
+template<>
+void RAM scanlineRenderFunction<colormode_rgb>(uint32* dest, uint width, const uint8* pixels)
 {
 	memcpy(dest, pixels, width * sizeof(Color));
 }
 
-template<> void setupScanlineRenderer<colormode_rgb> (const Color*) {}
+template<>
+void setupScanlineRenderer<colormode_rgb>(const Color*)
+{}
 
-template<> void teardownScanlineRenderer<colormode_rgb> () noexcept {}
+template<>
+void teardownScanlineRenderer<colormode_rgb>() noexcept
+{}
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 1 pixel wide attributes and 4-bit indexed colors:
 
-template<> void RAM scanlineRenderFunction<colormode_a1w1_i4>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* attributes)
+template<>
+void RAM
+scanlineRenderFunction<colormode_a1w1_i4>(uint32* _dest, uint width, const uint8* pixels, const uint8* attributes)
 {
 	uint16* dest = reinterpret_cast<uint16*>(_dest);
 
 	constexpr uint bits_per_color = 4;
-	constexpr uint colormask = (1 << bits_per_color) - 1;
+	constexpr uint colormask	  = (1 << bits_per_color) - 1;
 
 	for (uint i = 0; i < width / 8; i++)
 	{
 		uint byte = *pixels++;
 		uint attr;
 
-		attr = *attributes++; *dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask]; byte >>= 1;
-		attr = *attributes++; *dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask]; byte >>= 1;
-		attr = *attributes++; *dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask]; byte >>= 1;
-		attr = *attributes++; *dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask]; byte >>= 1;
-		attr = *attributes++; *dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask]; byte >>= 1;
-		attr = *attributes++; *dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask]; byte >>= 1;
-		attr = *attributes++; *dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask]; byte >>= 1;
-		attr = *attributes++; *dest++ = video_colormap[byte     ? attr >> bits_per_color : attr & colormask];
+		attr	= *attributes++;
+		*dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask];
+		byte >>= 1;
+		attr	= *attributes++;
+		*dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask];
+		byte >>= 1;
+		attr	= *attributes++;
+		*dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask];
+		byte >>= 1;
+		attr	= *attributes++;
+		*dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask];
+		byte >>= 1;
+		attr	= *attributes++;
+		*dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask];
+		byte >>= 1;
+		attr	= *attributes++;
+		*dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask];
+		byte >>= 1;
+		attr	= *attributes++;
+		*dest++ = video_colormap[byte & 1 ? attr >> bits_per_color : attr & colormask];
+		byte >>= 1;
+		attr	= *attributes++;
+		*dest++ = video_colormap[byte ? attr >> bits_per_color : attr & colormask];
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w1_i4> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w1_i4>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w1_i4> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w1_i4>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 1 pixel wide attributes and 8-bit indexed colors:
 
-template<> void RAM scanlineRenderFunction<colormode_a1w1_i8>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* attributes)
+template<>
+void RAM
+scanlineRenderFunction<colormode_a1w1_i8>(uint32* _dest, uint width, const uint8* pixels, const uint8* attributes)
 {
 	uint16* dest = reinterpret_cast<uint16*>(_dest);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
 		uint byte = *pixels++;
-		*dest++ = video_colormap[attributes[byte & 1]]; byte >>= 1; attributes += 2;
-		*dest++ = video_colormap[attributes[byte & 1]]; byte >>= 1; attributes += 2;
-		*dest++ = video_colormap[attributes[byte & 1]]; byte >>= 1; attributes += 2;
-		*dest++ = video_colormap[attributes[byte & 1]]; byte >>= 1; attributes += 2;
-		*dest++ = video_colormap[attributes[byte & 1]]; byte >>= 1; attributes += 2;
-		*dest++ = video_colormap[attributes[byte & 1]]; byte >>= 1; attributes += 2;
-		*dest++ = video_colormap[attributes[byte & 1]]; byte >>= 1; attributes += 2;
-		*dest++ = video_colormap[attributes[byte]];					attributes += 2;
+		*dest++	  = video_colormap[attributes[byte & 1]];
+		byte >>= 1;
+		attributes += 2;
+		*dest++ = video_colormap[attributes[byte & 1]];
+		byte >>= 1;
+		attributes += 2;
+		*dest++ = video_colormap[attributes[byte & 1]];
+		byte >>= 1;
+		attributes += 2;
+		*dest++ = video_colormap[attributes[byte & 1]];
+		byte >>= 1;
+		attributes += 2;
+		*dest++ = video_colormap[attributes[byte & 1]];
+		byte >>= 1;
+		attributes += 2;
+		*dest++ = video_colormap[attributes[byte & 1]];
+		byte >>= 1;
+		attributes += 2;
+		*dest++ = video_colormap[attributes[byte & 1]];
+		byte >>= 1;
+		attributes += 2;
+		*dest++ = video_colormap[attributes[byte]];
+		attributes += 2;
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w1_i8> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w1_i8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w1_i8> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w1_i8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 1 pixel wide attributes and true colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a1w1_rgb>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a1w1_rgb>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
 
-	for (uint i = 0; i < width/8; i++)
+	for (uint i = 0; i < width / 8; i++)
 	{
 		interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
 
@@ -390,17 +427,18 @@ template<> void XRAM scanlineRenderFunction<colormode_a1w1_rgb>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w1_rgb> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w1_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w1_rgb> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w1_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 2 pixel wide attributes and 4-bit indexed colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a1w2_i4>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a1w2_i4>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -435,17 +473,18 @@ template<> void XRAM scanlineRenderFunction<colormode_a1w2_i4>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w2_i4> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w2_i4>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w2_i4> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w2_i4>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 2 pixel wide attributes and 8-bit indexed colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a1w2_i8>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a1w2_i8>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -482,17 +521,18 @@ template<> void XRAM scanlineRenderFunction<colormode_a1w2_i8>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w2_i8> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w2_i8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w2_i8> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w2_i8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 2 pixel wide attributes and true colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a1w2_rgb>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a1w2_rgb>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -521,17 +561,18 @@ template<> void XRAM scanlineRenderFunction<colormode_a1w2_rgb>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w2_rgb> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w2_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w2_rgb> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w2_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 4 pixel wide attributes and 4-bit indexed colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a1w4_i4>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a1w4_i4>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -557,17 +598,18 @@ template<> void XRAM scanlineRenderFunction<colormode_a1w4_i4>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w4_i4> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w4_i4>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w4_i4> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w4_i4>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 4 pixel wide attributes and 8-bit indexed colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a1w4_i8>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a1w4_i8>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -594,17 +636,18 @@ template<> void XRAM scanlineRenderFunction<colormode_a1w4_i8>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w4_i8> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w4_i8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w4_i8> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w4_i8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 4 pixel wide attributes and true colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a1w4_rgb>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a1w4_rgb>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -627,15 +670,16 @@ template<> void XRAM scanlineRenderFunction<colormode_a1w4_rgb>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w4_rgb> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w4_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w4_rgb> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w4_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 8 pixel wide attributes and 4-bit indexed colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a1w8_i4>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a1w8_i4>(uint32* _dest, uint width, const uint8* pixels, const uint8* attributes)
 {
 	uint16* dest = reinterpret_cast<uint16*>(_dest);
 
@@ -658,17 +702,18 @@ template<> void XRAM scanlineRenderFunction<colormode_a1w8_i4>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w8_i4> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w8_i4>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w8_i4> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w8_i4>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 8 pixel wide attributes and 8-bit indexed colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a1w8_i8>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a1w8_i8>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -698,17 +743,18 @@ template<> void XRAM scanlineRenderFunction<colormode_a1w8_i8>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w8_i8> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w8_i8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w8_i8> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w8_i8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 8 pixel wide attributes and true colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a1w8_rgb>
-	(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -727,21 +773,22 @@ template<> void XRAM scanlineRenderFunction<colormode_a1w8_rgb>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w8_rgb> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w8_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w8_rgb> () noexcept;
+template void teardownScanlineRenderer<colormode_a1w8_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 1 pixel wide attributes and true colors:
 
-template<> void RAM scanlineRenderFunction<colormode_a2w1_rgb>
-	(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+template<>
+void RAM
+scanlineRenderFunction<colormode_a2w1_rgb>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint64* attributes = reinterpret_cast<const uint64*>(_attributes);
-	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);		// 16 bit for 8 pixel
+	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
 
-	for (uint i = 0; i < width/8; i++)
+	for (uint i = 0; i < width / 8; i++)
 	{
 		interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
 
@@ -771,19 +818,20 @@ template<> void RAM scanlineRenderFunction<colormode_a2w1_rgb>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w1_rgb> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w1_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w1_rgb> () noexcept;
+template void teardownScanlineRenderer<colormode_a2w1_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 2 pixel wide attributes and true colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a2w2_rgb>
-	(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a2w2_rgb>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint64* attributes = reinterpret_cast<const uint64*>(_attributes);
-	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);		// 16 bit for 8 pixel
+	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -811,19 +859,20 @@ template<> void XRAM scanlineRenderFunction<colormode_a2w2_rgb>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w2_rgb> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w2_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w2_rgb> () noexcept;
+template void teardownScanlineRenderer<colormode_a2w2_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 4 pixel wide attributes and 4-bit indexed colors:
 
-template<> void RAM scanlineRenderFunction<colormode_a2w4_i4>
-	(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+template<>
+void RAM
+scanlineRenderFunction<colormode_a2w4_i4>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
-	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);		// 16 bit for 8 pixel
+	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -854,19 +903,20 @@ template<> void RAM scanlineRenderFunction<colormode_a2w4_i4>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w4_i4> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w4_i4>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w4_i4> () noexcept;
+template void teardownScanlineRenderer<colormode_a2w4_i4>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 4 pixel wide attributes and 8-bit indexed colors:
 
-template<> void RAM scanlineRenderFunction<colormode_a2w4_i8>
-	(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+template<>
+void RAM
+scanlineRenderFunction<colormode_a2w4_i8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
-	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);		// 16 bit for 8 pixel
+	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -896,19 +946,20 @@ template<> void RAM scanlineRenderFunction<colormode_a2w4_i8>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w4_i8> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w4_i8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w4_i8> () noexcept;
+template void teardownScanlineRenderer<colormode_a2w4_i8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 4 pixel wide attributes and true colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a2w4_rgb>
-	(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a2w4_rgb>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint64* attributes = reinterpret_cast<const uint64*>(_attributes);
-	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);		// 16 bit for 8 pixel
+	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -930,19 +981,20 @@ template<> void XRAM scanlineRenderFunction<colormode_a2w4_rgb>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w4_rgb> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w4_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w4_rgb> () noexcept;
+template void teardownScanlineRenderer<colormode_a2w4_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 8 pixel wide attributes and 4-bit indexed colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a2w8_i4>
-	(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a2w8_i4>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes); // 2 bytes for 4 colors
-	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);		 // 16 bit for 8 pixel
+	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels);	 // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -965,19 +1017,20 @@ template<> void XRAM scanlineRenderFunction<colormode_a2w8_i4>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w8_i4> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w8_i4>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w8_i4> () noexcept;
+template void teardownScanlineRenderer<colormode_a2w8_i4>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 8 pixel wide attributes and 8-bit indexed colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a2w8_i8>
-	(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a2w8_i8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes); // 4 bytes for 4 colors
-	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);		 // 16 bit for 8 pixel
+	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels);	 // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -1000,19 +1053,20 @@ template<> void XRAM scanlineRenderFunction<colormode_a2w8_i8>
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w8_i8> (const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w8_i8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w8_i8> () noexcept;
+template void teardownScanlineRenderer<colormode_a2w8_i8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 8 pixel wide attributes and true colors:
 
-template<> void XRAM scanlineRenderFunction<colormode_a2w8_rgb>
-	(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+template<>
+void XRAM
+scanlineRenderFunction<colormode_a2w8_rgb>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint64* attributes = reinterpret_cast<const uint64*>(_attributes); // 8 bytes for 4 colors
-	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);		 // 16 bit for 8 pixel
+	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels);	 // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -1032,41 +1086,4 @@ template<> void XRAM scanlineRenderFunction<colormode_a2w8_rgb>
 	}
 }
 
-} // namespace
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+} // namespace kipili::Video

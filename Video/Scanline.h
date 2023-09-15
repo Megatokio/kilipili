@@ -3,9 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "common/standard_types.h"
 #include "scanvideo_options.h"
-//#include "Errors.h"
+#include "standard_types.h"
 
 namespace kipili::Video
 {

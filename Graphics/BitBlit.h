@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "cdefs.h"
 #include "graphics_types.h"
+#include "kipili_common.h"
 
 
 /*
