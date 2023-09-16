@@ -94,9 +94,9 @@ public:
 
 
 	// allocating, throws:
-	Pixmap(const Size& size) : Pixmap(size.width, size.height) {}
+	Pixmap(const Size& size, AttrHeight = attrheight_none) : Pixmap(size.width, size.height) {}
 
-	Pixmap(coord w, coord h) :
+	Pixmap(coord w, coord h, AttrHeight = attrheight_none) :
 		width(w),
 		height(h),
 		row_offset(calc_row_offset(w)),
