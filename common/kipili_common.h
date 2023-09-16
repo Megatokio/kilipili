@@ -7,7 +7,6 @@
 #include "basic_math.h"
 #include "kipili_cdefs.h"
 #include "no_copy_move.h"
-#include "on_init.h"
 #include "standard_types.h"
 #include <cassert>
 #include <cerrno>
@@ -20,6 +19,5 @@
 #include <exception>
 #include <functional>
 #include <new>
-#include <pico/stdlib.h>
 #include <type_traits>
 #include <utility>

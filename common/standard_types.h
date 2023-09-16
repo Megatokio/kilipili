@@ -26,6 +26,14 @@ static constexpr bool disabled = false;
 
 
 // ######################################
+// throwable cstring errors:
+
+using Error					  = const char*;
+constexpr Error NO_ERROR	  = nullptr;
+constexpr Error OUT_OF_MEMORY = "out of memory";
+
+
+// ######################################
 // exact size defs:
 
 using uint8	 = uint8_t;
@@ -108,6 +116,5 @@ using cptr = const char*;
 using uptr	= uchar*;
 using cuptr = const uchar*;
 
-using Error = cstr;
 
 //

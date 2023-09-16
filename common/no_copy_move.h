@@ -5,9 +5,6 @@
 #pragma once
 
 
-// class helper:
-
-
 #define DEFAULT_COPY(T)             \
   T(const T&)			 = default; \
   T& operator=(const T&) = default

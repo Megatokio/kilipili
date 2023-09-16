@@ -6,7 +6,6 @@
 #include "Graphics/geometry.h"
 #include "VBlankAction.h"
 #include "VideoQueue.h"
-#include "errors.h"
 #include <new>
 
 namespace kio::Video

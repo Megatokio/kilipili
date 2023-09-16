@@ -1,8 +1,10 @@
 
 cmake_minimum_required(VERSION 3.13)
 
+
 ####################################
-# common/CMakeLists.txt 
+# utilities/CMakeLists.txt 
+
 
 add_library(kipili_utilities STATIC
 	PwmLoadSensor.h

@@ -5,6 +5,7 @@
 #pragma once
 #include "kipili_common.h"
 #include <hardware/pwm.h>
+#include <pico/stdlib.h>
 
 
 #ifndef PWM_LOAD_SENSOR_SLICE_NUM_BASE

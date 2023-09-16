@@ -3,19 +3,17 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "errors.h"
 #include "kipili_common.h"
 #include <hardware/timer.h>
+#include <pico/stdlib.h>
+
 
 #ifndef SYSCLOCK_fMAX
   #define SYSCLOCK_fMAX (290 MHz)
 #endif
 
-//extern "C" uint32 time_us_32(void);
-//extern "C" uint64 time_us_64(void);
 
-extern "C" void sleep_ms(uint32);
-extern "C" void sleep_us(uint64);
+constexpr Error UNSUPPORTED_SYSTEM_CLOCK = "requested system clock is not supported";
 
 
 namespace kio

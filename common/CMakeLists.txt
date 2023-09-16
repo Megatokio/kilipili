@@ -1,8 +1,10 @@
 
 cmake_minimum_required(VERSION 3.13)
 
+
 ####################################
 # common/CMakeLists.txt 
+
 
 add_library(kipili_common STATIC
 	kipili_common.h
@@ -10,14 +12,13 @@ add_library(kipili_common STATIC
 	standard_types.h
 	no_copy_move.h
 	basic_math.h
-	on_init.h
-	errors.cpp
-	errors.h
 	)
 
 
 option(USE_WIDECHARS "use wide chars (UCS2) in PicoTerm and for USB keyboard" ON)
 option(USE_STDIO_UTF8 "use UTF-8 on serial line ((TODO))" ON)
+
+set(ENABLE_USB_HOST NOT ${PICO_STDIO_USB})
 
 
 target_compile_definitions(kipili_common PUBLIC
@@ -29,7 +30,7 @@ target_compile_definitions(kipili_common PUBLIC
 	#
 	USE_WIDECHARS=${USE_WIDECHARS}
 	USE_STDIO_UTF8=${USE_STDIO_UTF8}
-	ENABLE_USB_HOST=!${PICO_STDIO_USB}
+	ENABLE_USB_HOST=${ENABLE_USB_HOST}
 	)
 
 # add current dir to 'include search path':
@@ -39,7 +40,6 @@ target_include_directories(kipili_common PUBLIC
 
 # dependencies:
 target_link_libraries(kipili_common PUBLIC
-	pico_stdlib
 	)
 
 

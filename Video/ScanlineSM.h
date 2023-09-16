@@ -7,7 +7,6 @@
 #include "ScanlinePioProgram.h"
 #include "VgaMode.h"
 #include "VideoQueue.h"
-#include "errors.h"
 #include "scanvideo_options.h"
 #include <atomic>
 #include <pico/sem.h>

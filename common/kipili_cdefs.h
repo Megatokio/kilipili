@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include <cstdlib>		   // __CONCAT
 #include <pico/platform.h> // panic()
 
 

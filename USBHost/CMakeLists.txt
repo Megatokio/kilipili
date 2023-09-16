@@ -1,6 +1,10 @@
 
 cmake_minimum_required(VERSION 3.13)
 
+###############################################
+# USBHost/CMakeLists.txt
+
+
 set(FAMILY rp2040)
 set(BOARD pico_sdk)
 set(TINYUSB_FAMILY_PROJECT_NAME_PREFIX "tinyusb_host_")

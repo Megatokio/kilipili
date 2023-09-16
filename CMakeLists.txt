@@ -23,7 +23,6 @@ target_include_directories(kipili PUBLIC
 
 # Add all libraries. this also adds the include paths:
 target_link_libraries(kipili PUBLIC
-	kipili_common
 	kipili_utilities
 	kipili_graphics
 	kipili_video

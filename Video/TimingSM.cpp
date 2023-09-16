@@ -8,7 +8,6 @@
 
 #include "TimingSM.h"
 #include "VgaTiming.h"
-#include "errors.h"
 #include "hardware/clocks.h"
 #include "hardware/dma.h"
 #include "scanvideo_options.h"

@@ -27,7 +27,7 @@ add_library(kipili_graphics STATIC
 	PicoTerm.cpp
 	)
 
-target_compile_definitions(kipili_graphics PRIVATE
+target_compile_definitions(kipili_graphics PUBLIC
 	)
 
 # add current dir to 'include search path':
@@ -36,7 +36,7 @@ target_include_directories(kipili_graphics PUBLIC
 	)
 
 # dependencies:
-target_link_libraries(kipili_graphics PRIVATE
+target_link_libraries(kipili_graphics PUBLIC
 	kipili_common
 	kipili_utilities
 	kipili_usb_host

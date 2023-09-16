@@ -2,6 +2,10 @@
 cmake_minimum_required(VERSION 3.13)
 
 
+###############################################
+# Video/CMakeLists.txt
+
+
 add_library(kipili_video STATIC
 	FrameBuffer.cpp
 	FrameBuffer.h
@@ -53,15 +57,15 @@ pico_generate_pio_header(kipili_video ${CMAKE_CURRENT_LIST_DIR}/timing.pio)
 pico_generate_pio_header(kipili_video ${CMAKE_CURRENT_LIST_DIR}/scanvideo.pio)
 
 # dependencies:
-target_link_libraries(kipili_video PRIVATE
+target_link_libraries(kipili_video PUBLIC 
 	kipili_common
 	kipili_utilities
 	kipili_graphics
 	kipili_usb_host
 	pico_stdlib
-	pico_multicore
 	hardware_pio
 	hardware_dma
+	pico_multicore
 	hardware_interp
 )
 
