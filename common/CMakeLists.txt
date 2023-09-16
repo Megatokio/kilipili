@@ -18,8 +18,6 @@ add_library(kipili_common STATIC
 option(USE_WIDECHARS "use wide chars (UCS2) in PicoTerm and for USB keyboard" ON)
 option(USE_STDIO_UTF8 "use UTF-8 on serial line ((TODO))" ON)
 
-set(ENABLE_USB_HOST NOT ${PICO_STDIO_USB})
-
 
 target_compile_definitions(kipili_common PUBLIC
 	ON=1 OFF=0
@@ -30,7 +28,7 @@ target_compile_definitions(kipili_common PUBLIC
 	#
 	USE_WIDECHARS=${USE_WIDECHARS}
 	USE_STDIO_UTF8=${USE_STDIO_UTF8}
-	ENABLE_USB_HOST=${ENABLE_USB_HOST}
+	ENABLE_USB_HOST=!${PICO_STDIO_USB}
 	)
 
 # add current dir to 'include search path':
@@ -43,5 +41,5 @@ target_link_libraries(kipili_common PUBLIC
 	)
 
 
-
+ 
 
