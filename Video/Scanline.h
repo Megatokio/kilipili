@@ -6,7 +6,7 @@
 #include "scanvideo_options.h"
 #include "standard_types.h"
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 union ScanlineID
@@ -59,4 +59,4 @@ struct Scanline
 	//void purge();
 };
 
-} // namespace kipili::Video
+} // namespace kio::Video

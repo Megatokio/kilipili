@@ -4,7 +4,7 @@
 
 #include "StackInfo.h"
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 //#ifdef DEBUG

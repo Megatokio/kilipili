@@ -14,7 +14,7 @@
 #include <string.h>
 
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 
@@ -590,4 +590,4 @@ template class DrawEngine<colormode_a2w8_i8>;
 template class DrawEngine<colormode_a2w8_rgb>;
 
 
-} // namespace kipili::Graphics
+} // namespace kio::Graphics

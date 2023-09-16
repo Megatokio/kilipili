@@ -5,7 +5,7 @@
 #pragma once
 #include "Graphics/DrawEngine.h"
 
-namespace kipili
+namespace kio
 {
 
 #ifndef USE_WIDECHARS
@@ -194,4 +194,4 @@ extern template class PicoTerm<Graphics::colormode_a2w8_i4>;
 extern template class PicoTerm<Graphics::colormode_a2w8_i8>;
 extern template class PicoTerm<Graphics::colormode_a2w8_rgb>;
 
-} // namespace kipili
+} // namespace kio

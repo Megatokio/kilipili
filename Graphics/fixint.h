@@ -6,7 +6,7 @@
 #include "standard_types.h"
 #include <cmath>
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 struct fixint
@@ -125,4 +125,4 @@ constexpr fixint one  = 1;
 inline fixint abs(fixint v) { return v < null ? null - v : v; }
 
 
-} // namespace kipili::Graphics
+} // namespace kio::Graphics

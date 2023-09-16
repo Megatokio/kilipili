@@ -6,7 +6,7 @@
 #include "VgaTiming.h"
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 struct VgaMode

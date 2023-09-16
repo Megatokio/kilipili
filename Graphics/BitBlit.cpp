@@ -4,7 +4,7 @@
 
 #include "BitBlit.h"
 
-namespace kipili::Graphics::bitblit
+namespace kio::Graphics::bitblit
 {
 
 // #############################################################
@@ -1144,4 +1144,4 @@ void draw_chr_4bpp(uint8* zp0, int zx, int z_row_offs, const uint8* qp, int heig
 }
 
 
-} // namespace kipili::Graphics::bitblit
+} // namespace kio::Graphics::bitblit

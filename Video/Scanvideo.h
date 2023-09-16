@@ -16,7 +16,7 @@
 #include <pico/sem.h>
 #include <pico/types.h>
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 /*
@@ -99,4 +99,4 @@ private:
 extern std::atomic<uint32> scanlines_missed;
 
 
-} // namespace kipili::Video
+} // namespace kio::Video

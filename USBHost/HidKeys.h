@@ -6,7 +6,7 @@
 #include "standard_types.h"
 
 
-namespace kipili::USB
+namespace kio::USB
 {
 
 enum HIDKey : uint8 {
@@ -185,7 +185,7 @@ enum HIDKey : uint8 {
 	KEY_GUI_RIGHT,	   // 0xE7
 };
 
-} // namespace kipili::USB
+} // namespace kio::USB
 
 
-extern cstr tostr(kipili::USB::HIDKey key);
+extern cstr tostr(kio::USB::HIDKey key);

@@ -17,7 +17,7 @@ using Char = uchar;
 #endif
 
 
-namespace kipili::USB
+namespace kio::USB
 {
 
 constexpr uint KEY_TRANSLATION_TABLE_SIZE = 0x68;
@@ -30,4 +30,4 @@ extern const KeyTable key_table_us_shift;
 extern const KeyTable key_table_ger;
 extern const KeyTable key_table_ger_shift;
 
-} // namespace kipili::USB
+} // namespace kio::USB

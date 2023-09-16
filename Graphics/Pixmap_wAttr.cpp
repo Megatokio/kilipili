@@ -5,7 +5,7 @@
 
 #include "Pixmap_wAttr.h"
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 
@@ -37,4 +37,4 @@ template class Pixmap<colormode_a2w8_rgb>;
 #endif
 
 
-} // namespace kipili::Graphics
+} // namespace kio::Graphics

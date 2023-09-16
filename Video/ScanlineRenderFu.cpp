@@ -35,7 +35,7 @@
 
 // ============================================================================================
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 using namespace Graphics;
@@ -1086,4 +1086,4 @@ scanlineRenderFunction<colormode_a2w8_rgb>(uint32* _dest, uint width, const uint
 	}
 }
 
-} // namespace kipili::Video
+} // namespace kio::Video

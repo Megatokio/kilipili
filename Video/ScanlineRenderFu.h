@@ -7,7 +7,7 @@
 #include <type_traits>
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 using ColorMode = Graphics::ColorMode;
 using Color		= Graphics::Color;
@@ -26,4 +26,4 @@ template<ColorMode>
 void teardownScanlineRenderer() noexcept;
 
 
-} // namespace kipili::Video
+} // namespace kio::Video

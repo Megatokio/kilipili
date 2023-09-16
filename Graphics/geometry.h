@@ -8,7 +8,7 @@
 #include <utility>
 
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 using coord = int;
@@ -130,4 +130,4 @@ struct Rect
 };
 
 
-} // namespace kipili::Graphics
+} // namespace kio::Graphics

@@ -6,7 +6,7 @@
 #include "kipili_common.h"
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 //#ifdef DEBUG
@@ -43,4 +43,4 @@ public:
 //#endif
 
 
-} // namespace kipili::Video
+} // namespace kio::Video

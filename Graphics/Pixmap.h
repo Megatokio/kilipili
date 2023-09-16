@@ -13,7 +13,7 @@
 #endif
 
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 /*
@@ -624,4 +624,4 @@ bool Pixmap<CM, typename std::enable_if_t<is_direct_color(CM)>>::operator==(cons
 }
 
 
-} // namespace kipili::Graphics
+} // namespace kio::Graphics

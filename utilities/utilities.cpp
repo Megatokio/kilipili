@@ -32,7 +32,7 @@ extern char __data_start__; // TODO: ram_vector_table
 
 // =========================================
 
-namespace kipili
+namespace kio
 {
 
 size_t flash_size() { return PICO_FLASH_SIZE_BYTES; }
@@ -357,4 +357,4 @@ Error setSystemClock(uint32 new_clock)
 	return NO_ERROR;
 }
 
-} // namespace kipili
+} // namespace kio

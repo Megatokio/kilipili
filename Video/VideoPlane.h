@@ -9,7 +9,7 @@
 #include "errors.h"
 #include <new>
 
-namespace kipili::Video
+namespace kio::Video
 {
 using coord = Graphics::coord;
 using Size	= Graphics::Size;
@@ -78,4 +78,4 @@ public:
 	virtual uint renderScanline(int row, uint32* buffer) noexcept = 0;
 };
 
-} // namespace kipili::Video
+} // namespace kio::Video

@@ -6,7 +6,7 @@
 #include "kipili_common.h"
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 enum ScreenSize : uint8 // screen size in pixels: width x height
@@ -181,4 +181,4 @@ constexpr const VgaTiming* getVgaTiming()
 }
 
 
-} // namespace kipili::Video
+} // namespace kio::Video

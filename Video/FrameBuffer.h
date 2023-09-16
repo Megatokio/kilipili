@@ -15,7 +15,7 @@
 #define RAM		 __attribute__((section(".time_critical." XWRAP(__LINE__)))) // general ram
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 extern void framebuffer_setup_helper(uint plane, coord width, VideoQueue& vq);
 
@@ -168,4 +168,4 @@ public:
 	}
 };
 
-} // namespace kipili::Video
+} // namespace kio::Video

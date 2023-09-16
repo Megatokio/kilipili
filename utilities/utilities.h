@@ -18,7 +18,7 @@ extern "C" void sleep_ms(uint32);
 extern "C" void sleep_us(uint64);
 
 
-namespace kipili
+namespace kio
 {
 
 inline float now() noexcept { return float(time_us_64()) / 1e6f; }
@@ -59,4 +59,4 @@ extern Error checkSystemClock(uint32 new_clock);
 extern Error checkSystemClock(uint32 new_clock, uint* f_vco, uint* div1, uint* div2);
 extern Error setSystemClock(uint32 sys_clock = 125 MHz);
 
-} // namespace kipili
+} // namespace kio

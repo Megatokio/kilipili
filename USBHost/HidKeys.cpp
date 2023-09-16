@@ -186,7 +186,7 @@ const char* const modifier[8] = {
 };
 
 
-cstr tostr(kipili::USB::HIDKey key)
+cstr tostr(kio::USB::HIDKey key)
 {
 	if (key <= 0xA4) return hidkey[key];
 	if (key >= 0xE0 && key < 0xE8) return modifier[key - 0xE0];

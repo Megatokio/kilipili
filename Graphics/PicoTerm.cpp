@@ -11,10 +11,10 @@
 // https://k1.spdns.de/Develop/Hardware/Projekte/LM641541%20-%20LCD%20Display%20640x480/
 
 
-namespace kipili
+namespace kio
 {
 
-using namespace kipili::Graphics;
+using namespace kio::Graphics;
 
 
 // ------------------------------------------------------------
@@ -922,4 +922,4 @@ template class PicoTerm<colormode_a2w8_rgb>;
 #endif
 
 
-} // namespace kipili
+} // namespace kio

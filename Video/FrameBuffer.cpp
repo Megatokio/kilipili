@@ -5,7 +5,7 @@
 #include "FrameBuffer.h"
 #include "composable_scanline.h"
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 void framebuffer_setup_helper(uint plane, coord width, VideoQueue& vq)
@@ -28,4 +28,4 @@ void framebuffer_setup_helper(uint plane, coord width, VideoQueue& vq)
 	}
 }
 
-} // namespace kipili::Video
+} // namespace kio::Video

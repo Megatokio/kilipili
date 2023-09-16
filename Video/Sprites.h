@@ -17,13 +17,13 @@
 #endif
 
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 template<ColorMode CM, typename>
 class Pixmap;
 }
 
-namespace kipili::Video
+namespace kio::Video
 {
 class Sprite;
 using coord		= Graphics::coord;
@@ -257,4 +257,4 @@ inline void Sprites::add(Sprite* s) noexcept { s->show(); }
 inline void Sprites::remove(Sprite* s, bool wait) noexcept { s->hide(wait); }
 
 
-} // namespace kipili::Video
+} // namespace kio::Video

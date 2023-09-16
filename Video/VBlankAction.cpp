@@ -4,7 +4,7 @@
 
 #include "VBlankAction.h"
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 

@@ -7,7 +7,7 @@
 #include "graphics_types.h"
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 using ColorDepth = Graphics::ColorDepth;	// bits per color (in the pixmap or attributes)

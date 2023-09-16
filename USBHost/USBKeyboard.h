@@ -14,7 +14,7 @@
 using UCS2Char = uint16;
 
 
-namespace kipili::USB
+namespace kio::USB
 {
 // Modifier key masks in KeyboardReport.modifiers:
 enum Modifiers : uint8 {
@@ -102,4 +102,4 @@ extern const KeyboardReport& getKeyboardReport(); // get latest USB report with 
 extern KeyEvent				 getKeyEvent();		  // get serialized key up/down event
 extern int					 getChar();			  // get serialized char. TODO: auto repeat
 
-} // namespace kipili::USB
+} // namespace kio::USB

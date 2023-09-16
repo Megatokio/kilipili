@@ -12,7 +12,7 @@
 #endif
 
 
-namespace kipili
+namespace kio
 {
 
 class PwmLoadSensor
@@ -93,4 +93,4 @@ inline void sleepy_us(int32 usec) noexcept
 	}
 }
 
-} // namespace kipili
+} // namespace kio

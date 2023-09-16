@@ -7,7 +7,7 @@
 #include "Sprites.h"
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 using coord = Graphics::coord;
@@ -108,4 +108,4 @@ extern void enableMouseMoveEvents(bool = true) noexcept;
 extern void setMouseEventHandler(MouseEventHandler&, bool enable_mouse_move_events) noexcept;
 
 
-} // namespace kipili::Video
+} // namespace kio::Video

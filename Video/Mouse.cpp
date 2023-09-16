@@ -20,7 +20,7 @@
 #define RAM		 __attribute__((section(".time_critical.mouse" XWRAP(__LINE__)))) // general ram
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 using namespace Graphics;
@@ -368,7 +368,7 @@ void setMouseEventHandler(MouseEventHandler& handler, bool enable_mouse_move_eve
 	enableMouseMoveEvents(enable_mouse_move_events);
 }
 
-} // namespace kipili::Video
+} // namespace kio::Video
 
 
 // ====================================================================
@@ -377,7 +377,7 @@ void handle_hid_mouse_event(const hid_mouse_report_t* report) noexcept
 {
 	// callback for USB Host events from `tuh_hid_report_received_cb()`:
 
-	using namespace kipili::Video;
+	using namespace kio::Video;
 	assert(get_core_num() == 0);
 
 	static_assert(sizeof(hid_mouse_report_t) == sizeof(MouseReport)); // minimal checking

@@ -30,7 +30,7 @@
 #endif
 
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 #if PICO_SCANVIDEO_PIXEL_RCOUNT == 5 && PICO_SCANVIDEO_PIXEL_GCOUNT == 5 && PICO_SCANVIDEO_PIXEL_BCOUNT == 5 && \
@@ -106,4 +106,4 @@ constexpr Color bright_white   = Color::fromRGB8(0xFF, 0xFF, 0xFF);
 constexpr Color grey		   = Color::fromRGB8(0x88, 0x88, 0x88);
 //}
 
-} // namespace kipili::Graphics
+} // namespace kio::Graphics

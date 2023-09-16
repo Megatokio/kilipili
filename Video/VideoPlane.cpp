@@ -5,7 +5,7 @@
 #include "VideoPlane.h"
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 } // namespace

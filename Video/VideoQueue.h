@@ -8,7 +8,7 @@
 #include "scanvideo_options.h"
 #include <atomic>
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 /*
@@ -63,4 +63,4 @@ public:
 
 extern VideoQueue video_queue;
 
-} // namespace kipili::Video
+} // namespace kio::Video

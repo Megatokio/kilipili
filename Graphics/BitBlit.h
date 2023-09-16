@@ -16,7 +16,7 @@
 */
 
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 /* Helper: calculate mask for n bits:
@@ -57,10 +57,10 @@ constexpr uint32 flood_filled_color<colordepth_16bpp>(uint color) noexcept
 {
 	return uint16(color) * 0x00010001u;
 }
-} // namespace kipili::Graphics
+} // namespace kio::Graphics
 
 
-namespace kipili::Graphics::bitblit
+namespace kio::Graphics::bitblit
 {
 
 inline constexpr uint32 bitmask(uint n) noexcept { return (1 << n) - 1; }
@@ -695,4 +695,4 @@ int compare_row(const uint8* zp, const uint8* qp, int width) noexcept
 }
 
 
-} // namespace kipili::Graphics::bitblit
+} // namespace kio::Graphics::bitblit

@@ -7,7 +7,7 @@
 #include <hardware/timer.h>
 
 
-namespace kipili
+namespace kio
 {
 
 #ifdef PICO_DEFAULT_LED_PIN
@@ -38,4 +38,4 @@ int sm_blink_onboard_led()
 
 #endif
 
-} // namespace kipili
+} // namespace kio

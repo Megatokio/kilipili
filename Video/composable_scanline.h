@@ -37,7 +37,7 @@
 #endif
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 enum CMD : uint16

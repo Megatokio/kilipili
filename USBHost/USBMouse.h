@@ -8,7 +8,7 @@
 #include <functional>
 
 
-namespace kipili::USB
+namespace kio::USB
 {
 
 enum MouseButtons : uint8 {
@@ -68,4 +68,4 @@ extern void setMouseEventHandler(MouseEventHandler&, bool btn_up, bool move_w_bt
 // callback for USB Host events from `tuh_hid_report_received_cb()`:
 extern void handle_hid_mouse_event(const hid_mouse_report_t* report) noexcept;
 
-} // namespace kipili::USB
+} // namespace kio::USB

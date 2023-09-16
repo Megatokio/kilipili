@@ -13,7 +13,7 @@
 #include <pico/sem.h>
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 class ScanlineSM
@@ -65,4 +65,4 @@ extern VideoQueue		   video_queue;
 extern ScanlineSM		   scanline_sm;
 extern std::atomic<uint32> scanlines_missed;
 
-} // namespace kipili::Video
+} // namespace kio::Video

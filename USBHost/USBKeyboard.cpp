@@ -8,7 +8,7 @@
 #include "utilities/BucketList.h"
 
 
-namespace kipili::USB
+namespace kio::USB
 {
 
 static KeyboardReportHandler* kbd_report_cb = nullptr;
@@ -190,7 +190,7 @@ static void handle_key_event(const KeyboardReport& new_report, void (*handler)(b
 	handle_key_event(new_report, old_report, true, handler);  // find & handle key down events
 }
 
-} // namespace kipili::USB
+} // namespace kio::USB
 
 
 void handle_hid_keyboard_event(const hid_keyboard_report_t* report) noexcept
@@ -198,7 +198,7 @@ void handle_hid_keyboard_event(const hid_keyboard_report_t* report) noexcept
 	// this handler is called by `tuh_hid_report_received_cb()`
 	// which receives the USB Host events
 
-	using namespace kipili::USB;
+	using namespace kio::USB;
 
 	assert(report);
 	static_assert(sizeof(KeyboardReport) == sizeof(hid_keyboard_report_t));

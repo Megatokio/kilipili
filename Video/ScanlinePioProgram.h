@@ -8,7 +8,7 @@
 #include <hardware/pio.h>
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 struct ScanlinePioProgram
@@ -29,4 +29,4 @@ struct ScanlinePioProgram
 
 extern const ScanlinePioProgram video_24mhz_composable;
 
-} // namespace kipili::Video
+} // namespace kio::Video

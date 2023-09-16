@@ -8,7 +8,7 @@
 #include "scanvideo_options.h"
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 using namespace Graphics;
@@ -158,4 +158,4 @@ const ScanlinePioProgram video_24mhz_composable {
 };
 
 
-} // namespace kipili::Video
+} // namespace kio::Video

@@ -6,7 +6,7 @@
 #include "Pixmap.h"
 
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 
@@ -593,4 +593,4 @@ void Pixmap<CM, typename std::enable_if_t<is_attribute_mode(CM)>>::drawChar(
 }
 
 
-} // namespace kipili::Graphics
+} // namespace kio::Graphics

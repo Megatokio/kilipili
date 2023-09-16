@@ -6,7 +6,7 @@
 
 // see https://deskthority.net/wiki/Scancode
 
-namespace kipili::USB
+namespace kio::USB
 {
 
 const KeyTable key_table_us =

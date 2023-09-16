@@ -11,7 +11,7 @@
 #include <pico/sync.h>
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 using namespace Graphics;
@@ -981,4 +981,4 @@ void RAM Sprites::vblank() noexcept
 	hotlist.next_sprite = displaylist;
 }
 
-} // namespace kipili::Video
+} // namespace kio::Video

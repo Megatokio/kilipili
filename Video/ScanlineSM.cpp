@@ -17,7 +17,7 @@
 #include <hardware/clocks.h>
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 #define pio0_hw ((pio_hw_t *)PIO0_BASE)					// assert definition hasn't changed

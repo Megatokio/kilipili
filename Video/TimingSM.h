@@ -7,7 +7,7 @@
 #include "VgaTiming.h"
 #include <hardware/dma.h>
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 struct TimingSM
@@ -48,4 +48,4 @@ struct TimingSM
 
 extern TimingSM timing_sm;
 
-} // namespace kipili::Video
+} // namespace kio::Video

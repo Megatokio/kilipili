@@ -5,7 +5,7 @@
 #pragma once
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 /*
@@ -27,4 +27,4 @@ public:
 	virtual void vblank() noexcept = 0;
 };
 
-} // namespace kipili::Video
+} // namespace kio::Video

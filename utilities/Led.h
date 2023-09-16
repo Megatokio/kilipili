@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 
-namespace kipili
+namespace kio
 {
 
 template<unsigned int pin>
@@ -27,4 +27,4 @@ public:
 
 extern int sm_blink_onboard_led(); // state machine
 
-} // namespace kipili
+} // namespace kio

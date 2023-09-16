@@ -33,7 +33,7 @@ Info: What are attributes?
 */
 
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 
@@ -217,10 +217,10 @@ static_assert(get_colordepth(colormode_a1w1_i4) == colordepth_4bpp);
 static_assert(get_colordepth(colormode_a1w4_i4) == colordepth_4bpp);
 static_assert(get_colordepth(colormode_a1w4_i8) == colordepth_8bpp);
 
-} // namespace kipili::Graphics
+} // namespace kio::Graphics
 
 
-inline cstr tostr(kipili::Graphics::ColorDepth cd)
+inline cstr tostr(kio::Graphics::ColorDepth cd)
 {
 	static constexpr char id[][4] = {"i1", "i2", "i4", "i8", "rgb"};
 	return id[cd];

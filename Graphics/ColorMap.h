@@ -7,7 +7,7 @@
 #include "graphics_types.h"
 #include "kipili_common.h"
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 template<ColorDepth CD>
@@ -63,4 +63,4 @@ inline void resetColorMap<colordepth_16bpp, void>(Color*) noexcept
 //}
 
 
-} // namespace kipili::Graphics
+} // namespace kio::Graphics

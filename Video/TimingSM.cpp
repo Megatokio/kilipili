@@ -16,7 +16,7 @@
 #include <hardware/pio.h>
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 // clang-format off
@@ -285,4 +285,4 @@ void TimingSM::stop()
 }
 
 
-} // namespace kipili::Video
+} // namespace kio::Video

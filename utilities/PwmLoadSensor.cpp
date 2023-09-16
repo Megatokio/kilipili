@@ -6,7 +6,7 @@
 #include "utilities.h"
 
 
-namespace kipili
+namespace kio
 {
 
 static constexpr uint pwm0 = PWM_LOAD_SENSOR_SLICE_NUM_BASE + 0;
@@ -129,4 +129,4 @@ void PwmLoadSensor::printLoad(uint core)
 		avg / 10, avg % 10, max / 10, max % 10);
 }
 
-} // namespace kipili
+} // namespace kio

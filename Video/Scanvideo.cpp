@@ -27,7 +27,7 @@
 #include <string.h>
 
 
-namespace kipili::Video
+namespace kio::Video
 {
 
 // clang-format off
@@ -290,4 +290,4 @@ void Scanvideo::waitForVBlank() noexcept { scanline_sm.waitForVBlank(); }
 void Scanvideo::waitForScanline(ScanlineID n) noexcept { scanline_sm.waitForScanline(n); }
 
 
-} // namespace kipili::Video
+} // namespace kio::Video

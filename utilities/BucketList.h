@@ -74,7 +74,7 @@
 */
 
 
-namespace kipili
+namespace kio
 {
 
 template<typename T, uint SZ, typename UINT = uint>
@@ -161,4 +161,4 @@ public:
 	//	void ls_drain_downhill() noexcept { while(ls_avail()) ls_push(); }
 };
 
-} // namespace kipili
+} // namespace kio

@@ -25,7 +25,7 @@
 			then the solid rectangle is 10 x 10 pixels in size.
 */
 
-namespace kipili::Graphics
+namespace kio::Graphics
 {
 
 static constexpr uint DONT_CLEAR = ~0u;
@@ -203,4 +203,4 @@ extern template class DrawEngine<colormode_a2w8_i8>;
 extern template class DrawEngine<colormode_a2w8_rgb>;
 
 
-} // namespace kipili::Graphics
+} // namespace kio::Graphics
