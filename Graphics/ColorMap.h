@@ -43,24 +43,15 @@ const Color* getDefaultColorMap() noexcept
 }
 
 
-template<ColorDepth CD, typename = std::enable_if_t<is_indexed_color(CD)>>
+template<ColorDepth CD>
 void resetColorMap(Color* table) noexcept
 {
 	memcpy(table, default_colormaps[CD], sizeof(Color) << (1 << CD));
 }
 
 template<>
-inline void resetColorMap<colordepth_16bpp, void>(Color*) noexcept
+inline void resetColorMap<colordepth_16bpp>(Color*) noexcept
 {}
-
-
-// unluckily automatic template parameter deduction doesn't work:
-
-//template<ColorDepth CD>
-//void resetColorMap(ColorMap<CD> table) noexcept
-//{
-//	memcpy(table, default_colors[CD], sizeof(Color) << (1<<CD));
-//}
 
 
 } // namespace kio::Graphics
