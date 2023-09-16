@@ -881,15 +881,6 @@ char* PicoTerm<CM>::identify(char* txt)
 // instantiate them all, unless modified they are only compiled once:
 // otherwise we'll need to define which to implement which leads to idiotic problems.
 
-#if 0
-template class PicoTerm<DEFAULT_COLORMODE>;
-//template class PicoTerm<colormode_i8>;
-//template class PicoTerm<colormode_rgb>;
-//template class PicoTerm<colormode_a1w8_i8>;
-//template class PicoTerm<colormode_a1w8_rgb>;
-//template class PicoTerm<colormode_a2w8_i8>;
-//template class PicoTerm<colormode_a2w8_rgb>;
-#else
 template class PicoTerm<colormode_i1>;
 template class PicoTerm<colormode_i2>;
 template class PicoTerm<colormode_i4>;
@@ -919,7 +910,6 @@ template class PicoTerm<colormode_a2w4_rgb>;
 template class PicoTerm<colormode_a2w8_i4>;
 template class PicoTerm<colormode_a2w8_i8>;
 template class PicoTerm<colormode_a2w8_rgb>;
-#endif
 
 
 } // namespace kio
