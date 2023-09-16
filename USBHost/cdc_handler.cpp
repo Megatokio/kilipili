@@ -9,9 +9,9 @@
 	CDC = Communications Device Class
  */
 
-//  #include "Utilities/Led.h"
-//  #include "Utilities/PwmLoadSensor.h"
-//  #include "Utilities/utilities.h"
+//  #include "utilities/Led.h"
+//  #include "utilities/PwmLoadSensor.h"
+//  #include "utilities/utilities.h"
 //  #include "main.h"
   #include <tusb.h>
 

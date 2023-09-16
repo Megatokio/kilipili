@@ -6,8 +6,8 @@
 #include "BitBlit.h"
 #include "Pixmap.h"
 #include "Pixmap_wAttr.h"
-#include "Utilities/PwmLoadSensor.h"
-#include "Utilities/utilities.h"
+#include "utilities/PwmLoadSensor.h"
+#include "utilities/utilities.h"
 #include "fixint.h"
 #include <functional>
 #include <pico/stdlib.h>

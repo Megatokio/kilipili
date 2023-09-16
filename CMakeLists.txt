@@ -1,11 +1,18 @@
 
 cmake_minimum_required(VERSION 3.13)
 
+
+#########################################
+# kipili/CMakeLists.txt
+#
+# all kipili subdirectories except USBHost
+
+
 add_library(kipili STATIC
 	)
 
 add_subdirectory(common)
-add_subdirectory(Utilities)
+add_subdirectory(utilities)
 add_subdirectory(Graphics)
 add_subdirectory(Video)
 

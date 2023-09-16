@@ -4,7 +4,7 @@
 
 #include "PicoTerm.h"
 #include "Graphics/DrawEngine.h"
-#include "Utilities/utilities.h"
+#include "utilities/utilities.h"
 #include <pico/printf.h>
 #include <pico/stdio.h>
 

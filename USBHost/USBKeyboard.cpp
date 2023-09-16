@@ -3,9 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "USBKeyboard.h"
-#include "Utilities/BucketList.h"
 #include "hid_handler.h"
 #include "kipili_cdefs.h"
+#include "utilities/BucketList.h"
 
 
 namespace kipili::USB
