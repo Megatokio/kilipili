@@ -2,6 +2,10 @@
 cmake_minimum_required(VERSION 3.13)
 
 
+###############################################
+# Graphics/CMakeLists.txt
+
+
 add_library(kipili_graphics STATIC
 	DrawEngine.cpp
 	DrawEngine.h
@@ -18,6 +22,9 @@ add_library(kipili_graphics STATIC
 	Color.h
 	BitBlit.h
 	BitBlit.cpp
+	rsrc/font_12x8.h
+	PicoTerm.h
+	PicoTerm.cpp
 	)
 
 target_compile_definitions(kipili_graphics PRIVATE
@@ -26,7 +33,6 @@ target_compile_definitions(kipili_graphics PRIVATE
 # add current dir to 'include search path':
 target_include_directories(kipili_graphics PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
-	${CMAKE_CURRENT_LIST_DIR}/..
 	)
 
 # dependencies:

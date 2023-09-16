@@ -37,7 +37,6 @@ target_include_directories(kipili_usb_host PUBLIC
 target_link_libraries(kipili_usb_host PUBLIC
 	tinyusb_host
 	kipili_common
-	kipili_terminal
 	)
 
 

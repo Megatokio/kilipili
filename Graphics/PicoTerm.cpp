@@ -29,7 +29,7 @@ using namespace kipili::Graphics;
 // The Character Set and Font:
 //
 static constexpr const uchar font[(256 - 32 - 32) * 12] = {
-#include "font_12x8.h"
+#include "rsrc/font_12x8.h"
 };
 
 // convert nibble -> double width byte:
@@ -349,13 +349,13 @@ void PicoTerm<CM>::getGraphicsCharMatrix(CharMatrix charmatrix, Char c)
 	}
 	else if (c < 0x78) // Balkengrafik von oben
 	{
-		n = c - 0x6B;
+		n = uint8(c - 0x6B);
 		b = 0xFF;
 		c = 0x00;
 	b:
 		while (i < n) charmatrix[i++] = b;
 	c:
-		while (i < 12) charmatrix[i++] = c;
+		while (i < 12) charmatrix[i++] = uint8(c);
 	}
 
 	//	else if (c<0x80)	// 8 unused
@@ -368,10 +368,10 @@ void PicoTerm<CM>::getGraphicsCharMatrix(CharMatrix charmatrix, Char c)
 	{				   // total: 3^4 = 81, aber 4 x ohne => use 'space' oder Grafik '\0'
 		uint8 a, d;
 		c += 1 - 0xB0;
-		a = c / 27;		 // a=0/1/2 => Strich links ohne/dünn/dick
-		b = (c / 9) % 3; // b				 oben
-		d = c % 3;		 // d				 unten
-		c = (c / 3) % 3; // c				 rechts
+		a = uint8(c / 27); // a=0/1/2 => Strich links ohne/dünn/dick
+		b = (c / 9) % 3;   // b				 oben
+		d = c % 3;		   // d				 unten
+		c = (c / 3) % 3;   // c				 rechts
 
 		n = b == 1 ? 0x08 : b ? 0x18 : 0; // vert. Strich oben
 		while (i < 6) charmatrix[i++] = n;
@@ -445,6 +445,8 @@ void PicoTerm<CM>::setWindow(int row, int col, int rows, int cols)
 
 	validateCursorPosition();
 
+	(void)row;
+	(void)col;
 	if (rows > 0 && cols > 0) { TODO(); }
 	else // reset to full screen
 	{}

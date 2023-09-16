@@ -8,7 +8,6 @@ add_subdirectory(common)
 add_subdirectory(Utilities)
 add_subdirectory(Graphics)
 add_subdirectory(Video)
-add_subdirectory(Terminal)
 
 # add current dir to 'include search path':
 target_include_directories(kipili PUBLIC
@@ -21,7 +20,6 @@ target_link_libraries(kipili PUBLIC
 	kipili_utilities
 	kipili_graphics
 	kipili_video
-	kipili_terminal
 	)
 
 
