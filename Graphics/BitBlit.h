@@ -57,6 +57,11 @@ constexpr uint32 flood_filled_color<colordepth_16bpp>(uint color) noexcept
 {
 	return uint16(color) * 0x00010001u;
 }
+template<ColorMode CM>
+constexpr uint32 flood_filled_color(uint color) noexcept
+{
+	return flood_filled_color<get_colordepth(CM)>(color);
+}
 } // namespace kio::Graphics
 
 

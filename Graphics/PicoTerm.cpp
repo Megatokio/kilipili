@@ -68,7 +68,7 @@ void PicoTerm<CM>::show_cursor(bool show)
 		if (show) cursorXorValue = fgcolor ^ bgcolor;
 		Graphics::bitblit::xor_rect_of_bits(
 			start, x << bits_per_color, pixmap.row_offset, CHAR_WIDTH << bits_per_color, CHAR_HEIGHT,
-			Graphics::flood_filled_color<ColorDepth(CM)>(cursorXorValue));
+			Graphics::flood_filled_color<CM>(cursorXorValue));
 	}
 	else
 	{
@@ -94,7 +94,7 @@ void PicoTerm<CM>::show_cursor(bool show)
 		uint8* start = pixmap.attributes.pixmap + y * pixmap.attributes.row_offset;
 		Graphics::bitblit::xor_rect_of_bits(
 			start, x << bits_per_color, pixmap.attributes.row_offset, (x2 - x1) << bits_per_color, (y2 - y1),
-			Graphics::flood_filled_color<ColorDepth(CM)>(cursorXorValue));
+			Graphics::flood_filled_color<CM>(cursorXorValue));
 	}
 
 	cursorVisible = show;
