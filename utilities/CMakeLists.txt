@@ -17,9 +17,6 @@ add_library(kipili_utilities STATIC
 	BucketList.h
 	)
 
-#option(USE_WIDECHARS "use wide chars (UCS2) in PicoTerm and for USB keyboard" ON)
-#option(USE_STDIO_UTF8 "use UTF-8 on serial line" ON)
-
 #target_compile_definitions(kipili_utilities PUBLIC
 #	ON=1 OFF=0
 #	)

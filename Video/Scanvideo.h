@@ -6,10 +6,10 @@
 #pragma once
 
 #include "Scanline.h"
+#include "VBlankAction.h"
 #include "VgaMode.h"
 #include "VgaTiming.h"
-#include "Video/VBlankAction.h"
-#include "Video/VideoPlane.h"
+#include "VideoPlane.h"
 #include "VideoQueue.h"
 #include "geometry.h"
 #include "scanvideo_options.h"

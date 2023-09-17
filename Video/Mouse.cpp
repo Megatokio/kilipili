@@ -3,10 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Mouse.h"
+#include "BucketList.h"
 #include "Scanvideo.h"
 #include "Sprites.h"
 #include "USBHost/hid_handler.h"
-#include "utilities/BucketList.h"
 #include "vga_types.h"
 #include <memory>
 

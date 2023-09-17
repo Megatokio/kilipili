@@ -22,6 +22,7 @@ add_library(kipili_usb_host STATIC
 	HidKeys.cpp
 	HidKeyTables.cpp
 	HidKeyTables.h
+	tusb_config.h
 	)
 
 target_compile_definitions(kipili_usb_host PRIVATE
@@ -34,7 +35,6 @@ target_compile_definitions(kipili_usb_host PRIVATE
 # Make sure TinyUSB can find tusb_config.h
 target_include_directories(kipili_usb_host PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
-	${CMAKE_CURRENT_LIST_DIR}/..
 	)
 
 # additional dependencies on tinyusb_host for TinyUSB device support

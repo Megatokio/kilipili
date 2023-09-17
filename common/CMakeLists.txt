@@ -34,6 +34,7 @@ target_compile_definitions(kipili_common PUBLIC
 # add current dir to 'include search path':
 target_include_directories(kipili_common PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
+	${CMAKE_CURRENT_LIST_DIR}/..
 	)
 
 # dependencies:

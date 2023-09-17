@@ -3,8 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "PicoTerm.h"
-#include "Graphics/DrawEngine.h"
-#include "utilities/utilities.h"
+#include "utilities.h"
 #include <pico/printf.h>
 #include <pico/stdio.h>
 
