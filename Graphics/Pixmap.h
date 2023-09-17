@@ -87,10 +87,9 @@ public:
 	//static constexpr ColorDepth pixeldepth = CD;
 
 	// compatibility definitions:
-	static constexpr AttrMode	attrmode		= attrmode_none;
-	static constexpr AttrWidth	attrwidth		= attrwidth_none;
-	static constexpr AttrHeight attrheight		= attrheight_none;
-	static constexpr int		attr_row_offset = 0;
+	static constexpr AttrMode	attrmode   = attrmode_none;
+	static constexpr AttrWidth	attrwidth  = attrwidth_none;
+	static constexpr AttrHeight attrheight = attrheight_none;
 
 
 	// allocating, throws:

@@ -28,7 +28,7 @@ class FrameBuffer;
 
 
 /*
-	Partial specialization for direct color modes without color attributes
+	Partial specialization for direct color modes (color modes without attributes):
 */
 template<ColorMode CM>
 class FrameBuffer<CM, std::enable_if_t<is_direct_color(CM)>> final : public VideoPlane
@@ -96,7 +96,7 @@ public:
 	Partial specialization is meant to drive people crazy.
 */
 template<ColorMode CM>
-class FrameBuffer<CM, std::enable_if_t<!is_direct_color(CM)>> final : public VideoPlane
+class FrameBuffer<CM, std::enable_if_t<is_attribute_mode(CM)>> final : public VideoPlane
 {
 public:
 	using Pixmap   = Graphics::Pixmap<CM>;
@@ -134,7 +134,7 @@ public:
 			if (unlikely(++arow == pixmap.attrheight))
 			{
 				arow = 0;
-				attributes += pixmap.attr_row_offset;
+				attributes += pixmap.attributes.row_offset;
 			}
 		}
 
@@ -153,7 +153,7 @@ public:
 		if (unlikely(++arow == pixmap.attrheight))
 		{
 			arow = 0;
-			attributes += pixmap.attr_row_offset;
+			attributes += pixmap.attributes.row_offset;
 		}
 
 		return (width + 4) / 2; // count of uint32 values
@@ -162,7 +162,7 @@ public:
 	virtual void RAM vblank() noexcept override final
 	{
 		pixels	   = pixmap.pixmap;
-		attributes = pixmap.attributes;
+		attributes = pixmap.attributes.pixmap;
 		row		   = 0;
 		arow	   = 0;
 	}
