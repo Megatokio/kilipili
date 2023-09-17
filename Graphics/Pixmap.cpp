@@ -9,13 +9,14 @@ namespace kio::Graphics
 {
 
 
-#if 0
+// instantiate everything.
+// the linker will know what we need:
+
 template class Pixmap<colormode_i1>;
 template class Pixmap<colormode_i2>;
 template class Pixmap<colormode_i4>;
 template class Pixmap<colormode_i8>;
 template class Pixmap<colormode_rgb>;
-#endif
 
 
 } // namespace kio::Graphics
