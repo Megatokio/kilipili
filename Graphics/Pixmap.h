@@ -78,7 +78,7 @@ public:
 
 	static constexpr ColorDepth colordepth = CD;
 
-	// compatibility definitions:
+	// for compatibility with Pixmap_wAttr:
 	static constexpr AttrMode	attrmode   = attrmode_none;
 	static constexpr AttrWidth	attrwidth  = attrwidth_none;
 	static constexpr AttrHeight attrheight = attrheight_none;
@@ -112,18 +112,21 @@ public:
 	uint getPixel(coord x, coord y) const noexcept;
 	uint getPixel(const Point& p) const noexcept;
 
-	void setPixel(coord x, coord y, uint color) noexcept;
-	void setPixel(const Point& p, uint color) noexcept;
+	uint getColor(coord x, coord y) const noexcept { return getPixel(x, y); }
+	uint getColor(const Point& p) const noexcept { return getPixel(p); }
 
-	void drawHorLine(coord x, coord y, coord x2, uint color) noexcept;
-	void drawHorLine(const Point& p, coord x2, uint color) noexcept;
+	void setPixel(coord x, coord y, uint color, uint = 0) noexcept;
+	void setPixel(const Point& p, uint color, uint = 0) noexcept;
 
-	void drawVertLine(coord x, coord y, coord y2, uint color) noexcept;
-	void drawVertLine(const Point& p, coord y2, uint color) noexcept;
+	void drawHorLine(coord x, coord y, coord x2, uint color, uint = 0) noexcept;
+	void drawHorLine(const Point& p, coord x2, uint color, uint = 0) noexcept;
+
+	void drawVertLine(coord x, coord y, coord y2, uint color, uint = 0) noexcept;
+	void drawVertLine(const Point& p, coord y2, uint color, uint = 0) noexcept;
 
 	void clear(uint color) noexcept; // whole pixmap
-	void fillRect(coord x, coord y, coord w, coord h, uint color) noexcept;
-	void fillRect(const Rect& r, uint color) noexcept;
+	void fillRect(coord x, coord y, coord w, coord h, uint color, uint = 0) noexcept;
+	void fillRect(const Rect& r, uint color, uint = 0) noexcept;
 
 	void copy(const Pixmap& source) noexcept;
 	void copyRect(coord x, coord y, const Pixmap& q) noexcept;
@@ -134,32 +137,10 @@ public:
 	void copyRect(const Point& z, const Rect& r) noexcept;
 	void copyRect(const Point& z, const Point& q, const Size& s) noexcept;
 
-	void drawBmp(coord x, coord y, const Bitmap& bmp, uint color) noexcept;
-	void drawBmp(const Point& z, const Bitmap& bmp, uint color) noexcept;
-	void drawChar(coord x, coord y, const uint8* bmp, int h, uint color) noexcept;
-	void drawChar(const Point& z, const uint8* bmp, int h, uint color) noexcept;
-
-	// 	compatibility methods:
-
-	uint getColor(coord x, coord y) const noexcept { return getPixel(x, y); }
-	uint getColor(const Point& p) const noexcept { return getPixel(p); }
-
-	void setPixel(coord x, coord y, uint color, uint /*pixel*/) noexcept { setPixel(x, y, color); }
-	void setPixel(const Point& p, uint color, uint /*pixel*/) noexcept { setPixel(p, color); }
-
-	void drawHorLine(coord x, coord y, coord x2, uint color, uint /*pixel*/) noexcept { drawHorLine(x, y, x2, color); }
-	void drawHorLine(const Point& p, coord x2, uint color, uint) noexcept { drawHorLine(p.x, p.y, x2, color); }
-
-	void drawVertLine(coord x, coord y, coord y2, uint color, uint) noexcept { drawVertLine(x, y, y2, color); }
-	void drawVertLine(const Point& p, coord y2, uint color, uint) noexcept { drawVertLine(p.x, p.y, y2, color); }
-
-	void fillRect(coord x, coord y, coord w, coord h, uint color, uint) noexcept { fillRect(x, y, w, h, color); }
-	void fillRect(const Rect& r, uint color, uint /*pixel*/) noexcept { fillRect(r, color); }
-
-	void drawBmp(const Point& p, const Bitmap& bmp, uint color, uint /*pixel*/) noexcept { drawBmp(p, bmp, color); }
-	void drawBmp(coord x, coord y, const Bitmap& bmp, uint color, uint) noexcept { drawBmp(x, y, bmp, color); }
-	void drawChar(const Point& p, const uint8* bmp, int height, uint color, uint /*pixel*/) noexcept;
-	void drawChar(coord x, coord y, const uint8* bmp, int height, uint color, uint /*pixel*/) noexcept;
+	void drawBmp(coord x, coord y, const Bitmap& bmp, uint color, uint = 0) noexcept;
+	void drawBmp(const Point& z, const Bitmap& bmp, uint color, uint = 0) noexcept;
+	void drawChar(coord x, coord y, const uint8* bmp, int h, uint color, uint = 0) noexcept;
+	void drawChar(const Point& z, const uint8* bmp, int h, uint color, uint = 0) noexcept;
 
 	void calcRectForAttr(Rect& r) noexcept; // declared but never defined. only the PixmapWithAttr version is.
 
@@ -306,13 +287,13 @@ void DirectColorPixmap::set_pixel(coord x, coord y, uint color) noexcept
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::setPixel(coord x, coord y, uint color) noexcept
+void DirectColorPixmap::setPixel(coord x, coord y, uint color, uint) noexcept
 {
 	if (is_inside(x, y)) set_pixel(x, y, color);
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::setPixel(const Point& p, uint color) noexcept
+void DirectColorPixmap::setPixel(const Point& p, uint color, uint) noexcept
 {
 	setPixel(p.x, p.y, color);
 }
@@ -344,7 +325,7 @@ void DirectColorPixmap::draw_vline(coord x, coord y, coord y2, uint color) noexc
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::drawHorLine(int x, int y, int x2, uint color) noexcept
+void DirectColorPixmap::drawHorLine(int x, int y, int x2, uint color, uint) noexcept
 {
 	// draw hor line between x1 and x2.
 	// draws abs(x2-x1) pixels.
@@ -358,13 +339,13 @@ void DirectColorPixmap::drawHorLine(int x, int y, int x2, uint color) noexcept
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::drawHorLine(const Point& p, coord x2, uint color) noexcept
+void DirectColorPixmap::drawHorLine(const Point& p, coord x2, uint color, uint) noexcept
 {
 	drawHorLine(p.x, p.y, x2, color);
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::drawVertLine(coord x, coord y, coord y2, uint color) noexcept
+void DirectColorPixmap::drawVertLine(coord x, coord y, coord y2, uint color, uint) noexcept
 {
 	// draw vert line between y1 and y2.
 	// draws abs(y2-y1) pixels.
@@ -378,7 +359,7 @@ void DirectColorPixmap::drawVertLine(coord x, coord y, coord y2, uint color) noe
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::drawVertLine(const Point& p, coord y2, uint color) noexcept
+void DirectColorPixmap::drawVertLine(const Point& p, coord y2, uint color, uint) noexcept
 {
 	drawVertLine(p.x, p.y, y2, color);
 }
@@ -417,7 +398,7 @@ void DirectColorPixmap::fill_rect(int x, int y, int w, int h, uint color) noexce
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::fillRect(int x, int y, int w, int h, uint color) noexcept
+void DirectColorPixmap::fillRect(int x, int y, int w, int h, uint color, uint) noexcept
 {
 	// draw filled rectangle.
 	// nothing is drawn for empty rect!
@@ -438,7 +419,7 @@ void DirectColorPixmap::fillRect(int x, int y, int w, int h, uint color) noexcep
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::fillRect(const Rect& r, uint color) noexcept
+void DirectColorPixmap::fillRect(const Rect& r, uint color, uint) noexcept
 {
 	fillRect(r.left(), r.top(), r.width(), r.height(), color);
 }
@@ -594,7 +575,7 @@ void DirectColorPixmap::draw_bmp(coord x, coord y, const Bitmap& bmp, uint color
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::drawBmp(coord x, coord y, const Bitmap& q, uint color) noexcept
+void DirectColorPixmap::drawBmp(coord x, coord y, const Bitmap& q, uint color, uint) noexcept
 {
 	const uint8* qp = q.pixmap;
 	coord		 w	= q.width;
@@ -622,7 +603,7 @@ void DirectColorPixmap::drawBmp(coord x, coord y, const Bitmap& q, uint color) n
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::drawBmp(const Point& z, const Bitmap& bmp, uint color) noexcept
+void DirectColorPixmap::drawBmp(const Point& z, const Bitmap& bmp, uint color, uint) noexcept
 {
 	drawBmp(z.x, z.y, bmp, color);
 }
@@ -634,7 +615,7 @@ void DirectColorPixmap::draw_char(coord x, coord y, const uint8* bmp, int height
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::drawChar(coord x, coord y, const uint8* bmp, int h, uint color) noexcept
+void DirectColorPixmap::drawChar(coord x, coord y, const uint8* bmp, int h, uint color, uint) noexcept
 {
 	constexpr int bmp_row_offs = 1;
 	constexpr int w			   = 8;
@@ -659,21 +640,9 @@ void DirectColorPixmap::drawChar(coord x, coord y, const uint8* bmp, int h, uint
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::drawChar(const Point& z, const uint8* bmp, int h, uint color) noexcept
+void DirectColorPixmap::drawChar(const Point& z, const uint8* bmp, int h, uint color, uint) noexcept
 {
 	drawChar(z.x, z.y, bmp, h, color);
-}
-
-template<ColorMode CM>
-void DirectColorPixmap::drawChar(const Point& p, const uint8* bmp, int height, uint color, uint) noexcept
-{
-	drawChar(p, bmp, height, color);
-}
-
-template<ColorMode CM>
-void DirectColorPixmap::drawChar(coord x, coord y, const uint8* bmp, int height, uint color, uint) noexcept
-{
-	drawChar(x, y, bmp, height, color);
 }
 
 

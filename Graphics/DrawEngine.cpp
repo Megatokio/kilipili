@@ -6,9 +6,9 @@
 #include "BitBlit.h"
 #include "Pixmap.h"
 #include "Pixmap_wAttr.h"
+#include "fixint.h"
 #include "utilities/PwmLoadSensor.h"
 #include "utilities/utilities.h"
-#include "fixint.h"
 #include <functional>
 #include <pico/stdlib.h>
 #include <string.h>
@@ -60,13 +60,13 @@ void DrawEngine<CM>::scrollScreen(coord dx, coord dy, uint bgcolor)
 
 	if (dx)
 	{
-		if (dx < 0) pixmap.fillRect(w, 0, width() - w, height(), bgcolor);
-		else pixmap.fillRect(0, 0, dx, height(), bgcolor);
+		if (dx < 0) pixmap.fillRect(w, 0, width() - w, height(), bgcolor, 0);
+		else pixmap.fillRect(0, 0, dx, height(), bgcolor, 0);
 	}
 	if (dy)
 	{
-		if (dy < 0) pixmap.fillRect(0, h, width(), height() - h, bgcolor);
-		else pixmap.fillRect(0, 0, width(), dy, bgcolor);
+		if (dy < 0) pixmap.fillRect(0, h, width(), height() - h, bgcolor, 0);
+		else pixmap.fillRect(0, 0, width(), dy, bgcolor, 0);
 	}
 }
 
