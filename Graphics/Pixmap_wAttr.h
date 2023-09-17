@@ -89,6 +89,7 @@ public:
 
 	~Pixmap() noexcept = default;
 
+	bool operator==(const Pixmap& other) const noexcept;
 
 	// methods working on pixels[] and attributes[]:
 
@@ -627,4 +628,21 @@ void AttrModePixmap::drawChar(const Point& z, const uint8* bmp, coord h, uint co
 }
 
 
+// #############################################################
+// IMPLEMENTATIONS: operator ==
+
+template<ColorMode CM>
+bool AttrModePixmap::operator==(const Pixmap& other) const noexcept
+{
+	assert(size == other.size);
+	assert(attrheight == other.attrheight);
+
+	const super& base = *this;
+	return base == other && attributes == other.attributes;
+}
+
+
 } // namespace kio::Graphics
+
+
+//
