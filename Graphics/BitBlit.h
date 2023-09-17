@@ -688,15 +688,17 @@ template<ColorDepth CD>
 int compare_row(const uint8* zp, const uint8* qp, int width) noexcept
 {
 	if constexpr (CD == colordepth_16bpp) { return memcmp(zp, qp, uint(width) << 1); }
-	if constexpr (CD == colordepth_8bpp) { return memcmp(zp, qp, uint(width)); }
+	else if constexpr (CD == colordepth_8bpp) { return memcmp(zp, qp, uint(width)); }
+	else
+	{
+		constexpr uint ss = 3 - CD;
 
-	constexpr uint ss = 3 - CD;
+		int r = memcmp(zp, qp, width >> ss);
+		if (r != 0 || (width & bitmask(ss)) == 0) return r;
 
-	int r = memcmp(zp, qp, width >> ss);
-	if (r != 0 || (width & bitmask(ss)) == 0) return r;
-
-	uint mm = bitmask((width & bitmask(ss)) << CD);
-	return (zp[width >> ss] & mm) - (qp[width >> ss] & mm);
+		uint mm = bitmask((width & bitmask(ss)) << CD);
+		return (zp[width >> ss] & mm) - (qp[width >> ss] & mm);
+	}
 }
 
 
