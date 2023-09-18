@@ -128,7 +128,7 @@ public:
 
 	// helper:
 	using super::is_inside;
-	void calcRectForAttr(Rect& r) noexcept;
+	void calc_rect_for_attr(Rect& r) noexcept;
 
 	// no checking and ordered coordinates only
 
@@ -216,7 +216,7 @@ AttrModePixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
 // ########################################################
 
 template<ColorMode CM>
-void AttrModePixmap::calcRectForAttr(Rect& r) noexcept
+void AttrModePixmap::calc_rect_for_attr(Rect& r) noexcept
 {
 	// calculates the rect
 	r.p1.x = calc_ax(r.p1.x);

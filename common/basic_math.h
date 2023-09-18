@@ -20,6 +20,18 @@ inline constexpr T max(T a, T2 b) noexcept
 	return a > b ? a : b;
 }
 
+template<class T, class T2, class T3>
+inline constexpr T min(T a, T2 b, T3 c) noexcept
+{
+	return min(min(a, b), c);
+}
+
+template<class T, class T2, class T3>
+inline constexpr T max(T a, T2 b, T3 c) noexcept
+{
+	return max(max(a, b), c);
+}
+
 template<class T>
 inline int sign(T a) noexcept
 {
