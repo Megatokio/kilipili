@@ -44,19 +44,20 @@ using PixMap_a2w8rgb = Pixmap<colormode_a2w8_rgb>;
 ************************************************************************** */
 
 template<ColorMode CM>
-class AttrModePixmap : public Pixmap<ColorMode(get_attrmode(CM))>
+class AttrModePixmap final : public Pixmap<ColorMode(get_attrmode(CM))>
 {
 public:
-	static constexpr int calc_ax(int x) noexcept { return x >> AW << bits_per_pixel; } // attributes[x] for pixel = 0
-	static constexpr int calc_ay(int y, int ah) noexcept { return y / ah; }
+	static constexpr int calc_ax(int x) noexcept { return x >> AW << bits_per_pixel; } // attributes[x] for ink = 0
 	static constexpr int calc_aw(int w) noexcept { return (w + (1 << AW) - 1) >> AW << bits_per_pixel; }
 	static constexpr int calc_ah(int h, int ah) noexcept { return (h + ah - 1) / ah; }
+	int					 calc_ay(int y) const noexcept { return y / attrheight; }
 
-	static constexpr ColorDepth CD			   = get_colordepth(CM); // 0 .. 4  log2 of bits per color in attributes[]
-	static constexpr AttrMode	AM			   = get_attrmode(CM);	 // 0 .. 2  log2 of bits per color in pixmap[]
-	static constexpr AttrWidth	AW			   = get_attrwidth(CM);	 // 0 .. 3  log2 of width of tiles
-	static constexpr int		bits_per_color = 1 << CD; // bits per color in pixmap[] (wAttr: in attributes[])
-	static constexpr int		bits_per_pixel = 1 << AM; // bits per pixel in pixmap[]
+	static constexpr ColorDepth CD				= get_colordepth(CM); // 0 .. 4  log2 of bits per color in attributes[]
+	static constexpr AttrMode	AM				= get_attrmode(CM);	  // 0 .. 2  log2 of bits per color in pixmap[]
+	static constexpr AttrWidth	AW				= get_attrwidth(CM);  // 0 .. 3  log2 of width of tiles
+	static constexpr int		bits_per_color	= 1 << CD; // bits per color in pixmap[] (wAttr: in attributes[])
+	static constexpr int		bits_per_pixel	= 1 << AM; // bits per pixel in pixmap[]
+	static constexpr int		colors_per_attr = 1 << bits_per_pixel;
 
 	static constexpr ColorDepth colordepth = CD; // 0 .. 4  log2 of bits per color in attributes[]
 	static constexpr AttrMode	attrmode   = AM; // 0 .. 2  log2 of bits per color in pixmap[]
@@ -70,6 +71,7 @@ public:
 	using super::width;
 
 	const AttrHeight attrheight; // rows per tile: 1 .. 16
+	char			 padding[2];
 
 	Pixmap<ColorMode(CD)> attributes;
 
@@ -87,75 +89,61 @@ public:
 	Pixmap(Pixmap& q, const Point& p, const Size& size) noexcept;
 	Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept;
 
-	~Pixmap() noexcept = default;
+	virtual ~Pixmap() noexcept override = default;
 
 	bool operator==(const Pixmap& other) const noexcept;
 
-	// methods working on pixels[] and attributes[]:
-
-	uint getPixel(coord x, coord y) const noexcept { return super::getPixel(x, y); }
-	uint getPixel(const Point& p) const noexcept { return super::getPixel(p); }
-
-	uint getColor(coord x, coord y) const noexcept;
-	uint getColor(const Point& p) const noexcept;
-
-	void setPixel(coord x, coord y, uint color, uint pixel) noexcept;
-	void setPixel(const Point& p, uint color, uint pixel) noexcept;
-
-	void drawHorLine(coord x, coord y, coord x2, uint color, uint pixel) noexcept;
-	void drawHorLine(const Point& p, coord x2, uint color, uint pixel) noexcept;
-
-	void drawVertLine(coord x, coord y, coord y2, uint color, uint pixel) noexcept;
-	void drawVertLine(const Point& p, coord y2, uint color, uint pixel) noexcept;
-
-	void clear(uint color) noexcept; // whole pixmap
-	void fillRect(coord x, coord y, coord w, coord h, uint color, uint pixel) noexcept;
-	void fillRect(const Rect& r, uint color, uint pixel) noexcept;
-
-	void copy(const Pixmap& source) noexcept;
-	void copyRect(coord x, coord y, const Pixmap& q) noexcept;
-	void copyRect(coord x, coord y, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept;
-	void copyRect(const Point& z, const Pixmap& q) noexcept;
-	void copyRect(const Point& z, const Pixmap& q, const Point& p, const Size& s) noexcept;
-	void copyRect(const Point& z, const Pixmap& q, const Rect& r) noexcept;
-	void copyRect(const Point& z, const Rect& r) noexcept;
-	void copyRect(const Point& z, const Point& q, const Size& s) noexcept;
-
-	void drawBmp(coord x, coord y, const Bitmap& bmp, uint color, uint pixel) noexcept;
-	void drawBmp(const Point& z, const Bitmap& bmp, uint color, uint pixel) noexcept;
-	void drawChar(coord x, coord y, const uint8* bmp, coord h, uint color, uint pixel) noexcept;
-	void drawChar(const Point& z, const uint8* bmp, coord h, uint color, uint pixel) noexcept;
-
 	// helper:
-	using super::is_inside;
-	void calc_rect_for_attr(Rect& r) noexcept;
+	using IPixmap::is_inside;
+	uint attr_get_color(coord x, coord y, uint ink) const noexcept;
+	void attr_set_color(coord x, coord y, uint color, uint ink) noexcept;
+	void attr_draw_hline(coord x, coord y, coord x2, uint color, uint ink) noexcept;
+	void attr_draw_vline(coord x, coord y, coord y2, uint color, uint ink) noexcept;
+	void attr_fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept;
+	void attr_copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept;
 
-	// no checking and ordered coordinates only
+	super&		 as_super() { return *this; }
+	const super& as_super() const { return *this; }
 
-	uint get_pixel(coord x, coord y) const noexcept { return super::get_pixel(x, y); } // get pixel value
-	uint get_color(coord x, coord y) const noexcept;								   // get color from attribute
 
-	void set_pixel(coord x, coord y, uint color, uint pixel) noexcept; // pixel + attribute
-	void set_color(coord x, coord y, uint color, uint pixel) noexcept; // attr only
+	// overrides for IPixmap virtual drawing methods:
 
-	void draw_hline(coord x, coord y, coord x2, uint color, uint pixel) noexcept;	   // pixel + attribute
-	void attr_draw_hline(coord x, coord y, coord x2, uint color, uint pixel) noexcept; // attr only
+	virtual void set_pixel(coord x, coord y, uint color, uint ink = 0) noexcept override;
+	virtual uint get_pixel(coord x, coord y, uint* ink) const noexcept override;
+	virtual uint get_color(coord x, coord y) const noexcept override;
+	virtual uint get_ink(coord x, coord y) const noexcept override;
 
-	void draw_vline(coord x, coord y, coord y2, uint color, uint pixel) noexcept;	   // pixel + attribute
-	void attr_draw_vline(coord x, coord y, coord y2, uint color, uint pixel) noexcept; // attr only
+	virtual void draw_hline(coord x, coord y, coord w, uint color, uint ink) noexcept override;
+	virtual void draw_vline(coord x, coord y, coord h, uint color, uint ink) noexcept override;
+	virtual void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept override;
+	virtual void copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept override;
+	virtual void copy_rect(coord x, coord y, const IPixmap& q, coord qx, coord qy, coord w, coord h) noexcept override;
+	virtual void draw_bmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint ink) noexcept override;
+	virtual void draw_char(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink) noexcept override;
 
-	void fill_rect(coord x, coord y, coord w, coord h, uint color, uint pixel) noexcept;	  // pixel + attribute
-	void attr_fill_rect(coord x, coord y, coord w, coord h, uint color, uint pixel) noexcept; // attr only
+	// non-overrides:
 
-	void copy_rect(coord x, coord y, const Pixmap& source) noexcept;
+	void copy_rect(coord x, coord y, const Pixmap& q) noexcept;
 	void copy_rect(coord x, coord y, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept;
 	void draw_bmp(coord x, coord y, const Bitmap&, uint color, uint pixel) noexcept;
-	void draw_bmp(coord x, coord y, const uint8* bmp, int bmp_row_offset, int w, int h, uint color, uint px) noexcept;
-	void draw_char(coord x, coord y, const uint8* bmp, int height, uint color, uint pixel) noexcept; // pixels + attr
+
+	void copyRect(coord x, coord y, const Pixmap& src) noexcept;
+	void copyRect(coord x, coord y, const Pixmap& src, coord qx, coord qy, coord w, coord h) noexcept;
+	void copyRect(const Point& z, const Pixmap& src) noexcept;
+	void copyRect(const Point& z, const Pixmap& src, const Point& q, const Size&) noexcept;
+	void copyRect(const Point& z, const Pixmap& src, const Rect& q) noexcept;
+
+	void drawBmp(coord x, coord y, const Bitmap& q, uint color, uint /*ink*/ = 0) noexcept;
+	void drawBmp(const Point& z, const Bitmap& bmp, uint color, uint /*ink*/ = 0) noexcept;
 };
 
 
-// #############################################################
+// ####################################################################
+//							Implementations
+// ####################################################################
+
+
+// __________________________________________________________________
 // IMPLEMENTATIONS: ctor, dtor
 
 // allocating, throws:
@@ -205,7 +193,7 @@ template<ColorMode CM>
 AttrModePixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
 	super(q, x, y, w, h),
 	attrheight(q.attrheight),
-	attributes(q.attributes, calc_ax(x), calc_ay(y, q.attrheight), calc_aw(w), calc_ah(h, q.attrheight))
+	attributes(q.attributes, calc_ax(x), calc_ay(y), calc_aw(w), calc_ah(h, q.attrheight))
 {
 	assert(x % (1 << AW) == 0);	  // x must be a multiple of the attribute cell width
 	assert(y % attrheight == 0);  // y must be a multiple of the attribute cell height
@@ -213,101 +201,205 @@ AttrModePixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
 }
 
 
-// ########################################################
+// __________________________________________________________________
+// IMPLEMENTATIONS: helpers
 
 template<ColorMode CM>
-void AttrModePixmap::calc_rect_for_attr(Rect& r) noexcept
+void AttrModePixmap::attr_set_color(coord x, coord y, uint color, uint ink) noexcept
 {
-	// calculates the rect
-	r.p1.x = calc_ax(r.p1.x);
-	r.p2.x = calc_ax(r.p2.x - 1) + 1;
-	r.p1.y = calc_ay(r.p1.y, attrheight);
-	r.p2.y = calc_ay(r.p2.y - 1, attrheight) + 1;
+	// set color in attributes[]
+
+	assert((ink & ~pixelmask<super::CD>) == 0);
+
+	x = calc_ax(x);
+	y = calc_ay(y);
+	attributes.set_pixel(x + ink, y, color);
+}
+
+template<ColorMode CM>
+uint AttrModePixmap::attr_get_color(coord x, coord y, uint ink) const noexcept
+{
+	// get color from attributes[]
+
+	assert((ink & ~pixelmask<super::CD>) == 0);
+
+	x = calc_ax(x);
+	y = calc_ay(y);
+	return attributes.get_ink(x + ink, y);
+}
+
+template<ColorMode CM>
+void AttrModePixmap::attr_draw_hline(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
+{
+	assert((ink & ~pixelmask<super::CD>) == 0);
+
+	x1 = calc_ax(x1);
+	x2 = calc_ax(x2 - 1) + 1;
+	y1 = calc_ay(y1);
+
+	bitblit::attr_draw_hline<AM, CD>(attributes.pixmap + y1 * attributes.row_offset, x1 + ink, x2 - x1, color);
+}
+
+template<ColorMode CM>
+void AttrModePixmap::attr_draw_vline(coord x1, coord y1, coord y2, uint color, uint ink) noexcept
+{
+	assert((ink & ~pixelmask<super::CD>) == 0);
+
+	x1 = calc_ax(x1);
+	y1 = calc_ay(y1);
+	y2 = calc_ay(y2 - 1) + 1;
+
+	attributes.draw_vline(x1 + ink, y1, y2, color);
+}
+
+template<ColorMode CM>
+void AttrModePixmap::attr_fill_rect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
+{
+	assert((ink & ~pixelmask<super::CD>) == 0);
+
+	w = calc_ax(x1 + w - 1) - x1 + 1;
+	h = calc_ay(y1 + h - 1) - y1 + 1;
+
+	x1 = calc_ax(x1);
+	y1 = calc_ay(y1);
+
+	bitblit::attr_clear_rect<AM, CD>(
+		attributes.pixmap + y1 * attributes.row_offset, attributes.row_offset, x1 + ink, w, h, color);
+}
+
+template<ColorMode CM>
+void AttrModePixmap::attr_copy_rect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
+{
+	w = calc_ax(zx + w - 1) - zx + colors_per_attr;
+	h = calc_ay(zy + h - 1) - zy + 1;
+
+	zx = calc_ax(zx);
+	zy = calc_ay(zy);
+	qx = calc_ax(qx);
+	qy = calc_ay(qy);
+
+	bitblit::copy_rect<CD>(
+		attributes.pixmap + zy * attributes.row_offset, attributes.row_offset, zx, //
+		attributes.pixmap + qy * attributes.row_offset, attributes.row_offset, qx, //
+		w, h);
+}
+
+
+// __________________________________________________________________
+// IMPLEMENTATIONS: operator ==
+
+template<ColorMode CM>
+bool AttrModePixmap::operator==(const Pixmap& other) const noexcept
+{
+	assert(size == other.size);
+	assert(attrheight == other.attrheight);
+
+	const super& base = *this;
+	return base == other && attributes == other.attributes;
+}
+
+
+// __________________________________________________________________
+// IMPLEMENTATIONS: set pixel, get pixel
+
+template<ColorMode CM>
+void AttrModePixmap::set_pixel(coord x, coord y, uint color, uint ink) noexcept
+{
+	attr_set_color(x, y, color, ink);
+	super::set_pixel(x, y, ink);
+}
+
+template<ColorMode CM>
+uint AttrModePixmap::get_ink(coord x, coord y) const noexcept
+{
+	// get ink from pixels[]
+	// same as in Pixmap.getInk()
+	assert(is_inside(x, y));
+	return bitblit::get_pixel<colordepth>(pixmap + y * row_offset, x);
 }
 
 template<ColorMode CM>
 uint AttrModePixmap::get_color(coord x, coord y) const noexcept
 {
-	uint pixel = super::get_pixel(x, y);
-	x		   = calc_ax(x) + pixel;
-	y		   = calc_ay(y, attrheight);
-	return attributes.get_pixel(x, y);
+	// get color from attributes[]
+	uint ink = get_ink(x, y);
+	return attr_get_color(x, y, ink);
 }
 
 template<ColorMode CM>
-void AttrModePixmap::set_color(coord x, coord y, uint color, uint pixel) noexcept
+uint AttrModePixmap::get_pixel(coord x, coord y, uint* ink) const noexcept
 {
-	assert((pixel & ~pixelmask<super::CD>) == 0);
+	// get color and ink
+	return attr_get_color(x, y, *ink = get_ink(x, y));
+}
 
-	x = calc_ax(x) + pixel;
-	y = calc_ay(y, attrheight);
-	attributes.set_pixel(x, y, color);
+
+// __________________________________________________________________
+// IMPLEMENTATIONS: draw line, fill rect
+
+template<ColorMode CM>
+void AttrModePixmap::draw_hline(coord x, coord y, coord x2, uint color, uint ink) noexcept
+{
+	attr_draw_hline(x, y, x2, color, ink);
+	super::draw_hline(x, y, x2, ink);
 }
 
 template<ColorMode CM>
-void AttrModePixmap::set_pixel(coord x, coord y, uint color, uint pixel) noexcept
+void AttrModePixmap::draw_vline(coord x, coord y, coord y2, uint color, uint ink) noexcept
 {
-	set_color(x, y, color, pixel);
-	super::set_pixel(x, y, pixel);
+	attr_draw_vline(x, y, y2, color, ink);
+	super::draw_vline(x, y, y2, ink);
 }
 
 template<ColorMode CM>
-void AttrModePixmap::attr_draw_hline(coord x, coord y, coord x2, uint color, uint pixel) noexcept
+void AttrModePixmap::fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept
 {
-	assert((pixel & ~pixelmask<super::CD>) == 0);
+	attr_fill_rect(x, y, w, h, color, ink);
+	super::fill_rect(x, y, w, h, ink);
+}
 
-	x  = calc_ax(x) + pixel;
-	x2 = calc_ax(x2 - 1) + 1 + pixel;
-	y  = calc_ay(y, attrheight);
 
-	bitblit::attr_draw_hline<AM, CD>(attributes.pixmap + y * attributes.row_offset, x, x2 - x, color);
+// __________________________________________________________________
+// IMPLEMENTATIONS: copy rect areas, draw image & bitmap
+
+template<ColorMode CM>
+void AttrModePixmap::copy_rect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
+{
+	attr_copy_rect(zx, zy, qx, qy, w, h);
+	super::copy_rect(zx, zy, qx, qy, w, h);
 }
 
 template<ColorMode CM>
-void AttrModePixmap::draw_hline(coord x, coord y, coord x2, uint color, uint pixel) noexcept
+void AttrModePixmap::copy_rect(coord zx, coord zy, const IPixmap& q, coord qx, coord qy, coord w, coord h) noexcept
 {
-	attr_draw_hline(x, y, x2, color, pixel);
-	super::draw_hline(x, y, x2, pixel);
+	assert(CM == q.colormode); // must be same type
+	const Pixmap& src = static_cast<const Pixmap&>(q);
+	assert(attrheight == src.attrheight);
+
+	copy_rect(zx, zy, src, qx, qy, w, h);
 }
 
 template<ColorMode CM>
-void AttrModePixmap::attr_draw_vline(coord x, coord y, coord y2, uint color, uint pixel) noexcept
+void AttrModePixmap::draw_bmp(
+	coord x, coord y, const uint8* bmp, int bmp_row_offset, int w, int h, uint color, uint ink) noexcept
 {
-	assert((pixel & ~pixelmask<super::CD>) == 0);
-
-	x  = calc_ax(x) + pixel;
-	y  = calc_ay(y, attrheight);
-	y2 = calc_ay(y2 - 1, attrheight) + 1;
-
-	attributes.draw_vline(x, y, y2, color);
+	attr_fill_rect(x, y, w, h, color, ink);
+	super::draw_bmp(x, y, bmp, bmp_row_offset, w, h, ink);
 }
 
 template<ColorMode CM>
-void AttrModePixmap::draw_vline(coord x, coord y, coord y2, uint color, uint pixel) noexcept
+void AttrModePixmap::draw_bmp(coord x, coord y, const Bitmap& bmp, uint color, uint ink) noexcept
 {
-	attr_draw_vline(x, y, y2, color, pixel);
-	super::draw_vline(x, y, y2, pixel);
+	attr_fill_rect(x, y, bmp.width, bmp.height, color, ink);
+	super::draw_bmp(x, y, bmp, ink);
 }
 
 template<ColorMode CM>
-void AttrModePixmap::attr_fill_rect(coord x, coord y, coord w, coord h, uint color, uint pixel) noexcept
+void AttrModePixmap::draw_char(coord x, coord y, const uint8* bmp, int height, uint color, uint ink) noexcept
 {
-	assert((pixel & ~pixelmask<super::CD>) == 0);
-
-	x = calc_ax(x) + pixel;
-	w = calc_ax(x + w - 1) + 1 - x;
-	y = calc_ay(y, attrheight);
-	h = calc_ay(y + h - 1, attrheight) + 1 - h;
-
-	bitblit::attr_clear_rect<AM, CD>(
-		attributes.pixmap + y * attributes.row_offset, attributes.row_offset, x, w, h, color);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::fill_rect(coord x, coord y, coord w, coord h, uint color, uint pixel) noexcept
-{
-	attr_fill_rect(x, y, w, h, color, pixel);
-	super::fill_rect(x, y, w, h, pixel);
+	constexpr int width = 8;
+	attr_fill_rect(x, y, width, height, color, ink);
+	super::draw_char(x, y, bmp, height, ink);
 }
 
 template<ColorMode CM>
@@ -317,9 +409,9 @@ void AttrModePixmap::copy_rect(coord x, coord y, const Pixmap& source) noexcept
 	assert(y % attrheight == 0);  // y must be a multiple of the attribute cell height
 	assert(((x << AM) & 7) == 0); // x must be a multiple of full bytes in pixmap[]
 
-	super::copy_rect(x, y, source);
+	super::copy_rect(x, y, source.as_super());
 	x = calc_ax(x);
-	y = calc_ay(y, attrheight);
+	y = calc_ay(y);
 	attributes.copy_rect(x, y, source.attributes);
 }
 
@@ -334,138 +426,14 @@ void AttrModePixmap::copy_rect(coord zx, coord zy, const Pixmap& source, coord q
 	assert(qy % attrheight == 0);  // y must be a multiple of the attribute cell height
 	assert(((qx << AM) & 7) == 0); // x must be a multiple of full bytes in pixmap[]
 
-	super::copy_rect(zx, zy, source, qx, qy, w, h);
+	super::copy_rect(zx, zy, source.as_super(), qx, qy, w, h);
 	zx = calc_ax(zx);
-	zy = calc_ay(zy, attrheight);
+	zy = calc_ay(zy);
 	qx = calc_ax(qx);
-	qy = calc_ay(qy, attrheight);
+	qy = calc_ay(qy);
 	w  = calc_ax(zx + w - 1) + 1 - zx;
-	h  = calc_ay(zy + h - 1, attrheight) + 1 - zy;
+	h  = calc_ay(zy + h - 1) + 1 - zy;
 	attributes.copy_rect(zx, zy, source.attributes, qx, qy, w, h);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::draw_bmp(coord x, coord y, const Bitmap& bmp, uint color, uint pixel) noexcept
-{
-	attr_fill_rect(x, y, bmp.width, bmp.height, color, pixel);
-	super::draw_bmp(x, y, bmp, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::draw_bmp(
-	coord x, coord y, const uint8* bmp, int bmp_row_offset, int w, int h, uint color, uint pixel) noexcept
-{
-	attr_fill_rect(x, y, w, h, color, pixel);
-	super::draw_bmp(x, y, bmp, bmp_row_offset, w, h, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::draw_char(coord x, coord y, const uint8* bmp, int height, uint color, uint pixel) noexcept
-{
-	constexpr int width = 8;
-	attr_fill_rect(x, y, width, height, color, pixel);
-	super::draw_char(x, y, bmp, height, pixel);
-}
-
-
-template<ColorMode CM>
-uint AttrModePixmap::getColor(coord x, coord y) const noexcept
-{
-	return is_inside(x, y) ? get_color(x, y) : 0;
-}
-
-template<ColorMode CM>
-uint AttrModePixmap::getColor(const Point& p) const noexcept
-{
-	return getColor(p.x, p.y);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::setPixel(coord x, coord y, uint color, uint pixel) noexcept
-{
-	if (is_inside(x, y)) set_pixel(x, y, color, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::setPixel(const Point& p, uint color, uint pixel) noexcept
-{
-	setPixel(p.x, p.y, color, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::drawHorLine(coord x, coord y, coord x2, uint color, uint pixel) noexcept
-{
-	// draw hor line between x1 and x2.
-	// draws abs(x2-x1) pixels.
-	// draws nothing if x1==x2.
-
-	if (uint(y) >= uint(height)) return;
-	sort(x, x2);
-	x  = max(x, 0);
-	x2 = min(x2, width);
-	draw_hline(x, y, x2, color, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::drawHorLine(const Point& p, coord x2, uint color, uint pixel) noexcept
-{
-	drawHorLine(p.x, p.y, x2, color, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::drawVertLine(coord x, coord y, coord y2, uint color, uint pixel) noexcept
-{
-	// draw vert line between y1 and y2.
-	// draws abs(y2-y1) pixels.
-	// draws nothing if y1==y2.
-
-	if (uint(x) >= uint(width)) return;
-	sort(y, y2);
-	y  = max(y, 0);
-	y2 = min(y2, height);
-	draw_vline(x, y, y2, color, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::drawVertLine(const Point& p, coord y2, uint color, uint pixel) noexcept
-{
-	drawVertLine(p.x, p.y, y2, color, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::clear(uint color) noexcept
-{
-	attributes.clear(color);
-	super::clear(0);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::fillRect(coord x, coord y, coord w, coord h, uint color, uint pixel) noexcept
-{
-	// draw filled rectangle.
-	// nothing is drawn for empty rect!
-
-	x = max(x, 0);
-	w = min(w, width - x);
-	y = max(y, 0);
-	h = min(h, height - y);
-
-	if (w > 0 && h > 0) fill_rect(x, y, w, h, color, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::fillRect(const Rect& r, uint color, uint pixel) noexcept
-{
-	fillRect(r.left(), r.top(), r.width(), r.height(), color, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::copy(const Pixmap& source) noexcept
-{
-	assert(source.attrheight == attrheight);
-
-	attributes.copy(source.attributes);
-	super::copy(source);
 }
 
 template<ColorMode CM>
@@ -554,19 +522,7 @@ void AttrModePixmap::copyRect(const Point& z, const Pixmap& q, const Rect& r) no
 }
 
 template<ColorMode CM>
-void AttrModePixmap::copyRect(const Point& z, const Rect& r) noexcept
-{
-	copyRect(z.x, z.y, *this, r.left(), r.top(), r.width(), r.height());
-}
-
-template<ColorMode CM>
-void AttrModePixmap::copyRect(const Point& z, const Point& q, const Size& s) noexcept
-{
-	copyRect(z.x, z.y, *this, q.x, q.y, s.width, s.height);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::drawBmp(coord x, coord y, const Bitmap& q, uint color, uint pixel) noexcept
+void AttrModePixmap::drawBmp(coord x, coord y, const Bitmap& q, uint color, uint ink) noexcept
 {
 	const uint8* qp = q.pixmap;
 	coord		 w	= q.width;
@@ -589,57 +545,40 @@ void AttrModePixmap::drawBmp(coord x, coord y, const Bitmap& q, uint color, uint
 	if (unlikely(w > width - x)) { w = width - x; }
 	if (unlikely(h > height - y)) { h = height - y; }
 
-	if (w > 0 && h > 0) draw_bmp(x, y, q, color, pixel);
+	if (w > 0 && h > 0) draw_bmp(x, y, q, color, ink);
 }
 
 template<ColorMode CM>
-void AttrModePixmap::drawBmp(const Point& z, const Bitmap& bmp, uint color, uint pixel) noexcept
+void AttrModePixmap::drawBmp(const Point& z, const Bitmap& bmp, uint color, uint ink) noexcept
 {
-	drawBmp(z.x, z.y, bmp, color, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::drawChar(coord x, coord y, const uint8* bmp, int h, uint color, uint pixel) noexcept
-{
-	constexpr int bmp_row_offs = 1;
-	constexpr int w			   = 8;
-
-	if (unlikely(x < 0 || x > width - w))
-	{
-		drawBmp(x, y, Bitmap(w, h, const_cast<uint8*>(bmp), bmp_row_offs), color, pixel);
-		return;
-	}
-
-	if (unlikely(h > height - y)) { h = height - y; }
-	if (unlikely(y < 0))
-	{
-		bmp -= y * bmp_row_offs;
-		h += y;
-		y = 0;
-	}
-
-	if (h > 0) draw_char(x, y, bmp, h, color, pixel);
-}
-
-template<ColorMode CM>
-void AttrModePixmap::drawChar(const Point& z, const uint8* bmp, coord h, uint color, uint pixel) noexcept
-{
-	drawChar(z.x, z.y, bmp, h, color, pixel);
+	drawBmp(z.x, z.y, bmp, color, ink);
 }
 
 
-// #############################################################
-// IMPLEMENTATIONS: operator ==
-
-template<ColorMode CM>
-bool AttrModePixmap::operator==(const Pixmap& other) const noexcept
-{
-	assert(size == other.size);
-	assert(attrheight == other.attrheight);
-
-	const super& base = *this;
-	return base == other && attributes == other.attributes;
-}
+extern template class Pixmap<colormode_a1w1_i4>;
+extern template class Pixmap<colormode_a1w1_i8>;
+extern template class Pixmap<colormode_a1w1_rgb>;
+extern template class Pixmap<colormode_a1w2_i4>;
+extern template class Pixmap<colormode_a1w2_i8>;
+extern template class Pixmap<colormode_a1w2_rgb>;
+extern template class Pixmap<colormode_a1w4_i4>;
+extern template class Pixmap<colormode_a1w4_i8>;
+extern template class Pixmap<colormode_a1w4_rgb>;
+extern template class Pixmap<colormode_a1w8_i4>;
+extern template class Pixmap<colormode_a1w8_i8>;
+extern template class Pixmap<colormode_a1w8_rgb>;
+extern template class Pixmap<colormode_a2w1_i4>;
+extern template class Pixmap<colormode_a2w1_i8>;
+extern template class Pixmap<colormode_a2w1_rgb>;
+extern template class Pixmap<colormode_a2w2_i4>;
+extern template class Pixmap<colormode_a2w2_i8>;
+extern template class Pixmap<colormode_a2w2_rgb>;
+extern template class Pixmap<colormode_a2w4_i4>;
+extern template class Pixmap<colormode_a2w4_i8>;
+extern template class Pixmap<colormode_a2w4_rgb>;
+extern template class Pixmap<colormode_a2w8_i4>;
+extern template class Pixmap<colormode_a2w8_i8>;
+extern template class Pixmap<colormode_a2w8_rgb>;
 
 
 } // namespace kio::Graphics
