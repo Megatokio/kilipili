@@ -79,14 +79,14 @@ void PicoTerm<CM>::show_cursor(bool show)
 
 		// TODO: this should be easier to do...
 		int x2 = pixmap.calc_ax(x + CHAR_WIDTH - 1) + (1 << bits_per_color) - 1 + 1;
-		int y2 = pixmap.calc_ay(y + CHAR_HEIGHT - 1, pixmap.attrheight) + 1;
+		int y2 = pixmap.calc_ay(y + CHAR_HEIGHT - 1) + 1;
 		int x1 = pixmap.calc_ax(x);
-		int y1 = pixmap.calc_ay(y, pixmap.attrheight);
+		int y1 = pixmap.calc_ay(y);
 
 		if (show)
 		{
-			uint fg_color  = pixmap.attributes.get_pixel(x1 + int(fgcolor), y1);
-			uint bg_color  = pixmap.attributes.get_pixel(x1 + int(bgcolor), y1);
+			uint fg_color  = pixmap.attributes.get_color(x1 + int(fgcolor), y1);
+			uint bg_color  = pixmap.attributes.get_color(x1 + int(bgcolor), y1);
 			cursorXorValue = fg_color ^ bg_color;
 			if (cursorXorValue == 0) cursorXorValue = ~0u;
 		}
