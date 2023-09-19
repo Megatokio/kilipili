@@ -57,66 +57,71 @@ public:
 	void clearScreen(uint bgcolor);
 	void scrollScreen(coord dx, coord dy, uint bgcolor);
 
-	uint getPixel(coord x, coord y) const noexcept
+	uint getPixel(coord x, coord y, uint* ink) const noexcept // if attr mode then return the pixels[]
 	{
-		return pixmap.getPixel(x, y);
-	} // if attr mode then return the pixel
-	uint getPixel(const Point& p) { return pixmap.getPixel(p); }
-	uint getColor(coord x, coord y) const noexcept
+		return pixmap.getPixel(x, y, ink);
+	}
+	uint getInk(coord x, coord y) const noexcept // return value from pixels[]
+	{
+		return pixmap.getInk(x, y);
+	}
+	uint getColor(coord x, coord y) const noexcept // if attr mode then return the color
 	{
 		return pixmap.getColor(x, y);
-	} // if attr mode then return the color
+	}
+	uint getInk(const Point& p) { return pixmap.getInk(p); }
+	uint getPixel(const Point& p, uint* ink) { return pixmap.getPixel(p, ink); }
 	uint getColor(const Point& p) { return pixmap.getColor(p); }
 
-	void setPixel(coord x, coord y, uint color, uint pixel = 1) noexcept { pixmap.setPixel(x, y, color, pixel); }
-	void setPixel(const Point& p, uint color, uint pixel = 1) noexcept { pixmap.setPixel(p, color, pixel); }
+	void setPixel(coord x, coord y, uint color, uint ink = 1) noexcept { pixmap.setPixel(x, y, color, ink); }
+	void setPixel(const Point& p, uint color, uint ink = 1) noexcept { pixmap.setPixel(p, color, ink); }
 
-	void drawHorLine(coord x, coord y, coord x2, uint color, uint pixel = 1) noexcept
+	void drawHorLine(coord x, coord y, coord x2, uint color, uint ink = 1) noexcept
 	{
-		pixmap.drawHorLine(x, y, x2, color, pixel);
+		pixmap.drawHLine(x, y, x2, color, ink);
 	}
-	void drawHorLine(const Point& p, coord x2, uint color, uint pixel = 1) noexcept
+	void drawHorLine(const Point& p, coord x2, uint color, uint ink = 1) noexcept
 	{
-		pixmap.drawHorLine(p, x2, color, pixel);
-	}
-
-	void drawVertLine(coord x, coord y, coord y2, uint color, uint pixel = 1) noexcept
-	{
-		pixmap.drawVertLine(x, y, y2, color, pixel);
-	}
-	void drawVertLine(const Point& p, coord y2, uint color, uint pixel = 1) noexcept
-	{
-		pixmap.drawVertLine(p, y2, color, pixel);
+		pixmap.drawHLine(p, x2, color, ink);
 	}
 
-	void drawLine(coord x, coord y, coord x2, coord y2, uint color, uint pixel = 1);
-	void drawLine(const Point& p1, const Point& p2, uint color, uint pixel = 1)
+	void drawVertLine(coord x, coord y, coord y2, uint color, uint ink = 1) noexcept
 	{
-		drawLine(p1.x, p1.y, p2.x, p2.y, color, pixel);
+		pixmap.drawVLine(x, y, y2, color, ink);
+	}
+	void drawVertLine(const Point& p, coord y2, uint color, uint ink = 1) noexcept
+	{
+		pixmap.drawVLine(p, y2, color, ink);
+	}
+
+	void drawLine(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1);
+	void drawLine(const Point& p1, const Point& p2, uint color, uint ink = 1)
+	{
+		drawLine(p1.x, p1.y, p2.x, p2.y, color, ink);
 	}
 
 	void drawRect(
-		coord x, coord y, coord x2, coord y2, uint color, uint pixel = 1); // outline drawn is inset for rect and circle
-	void drawRect(const Rect& r, uint color, uint pixel = 1) { drawRect(r.p1.x, r.p1.y, r.p2.x, r.p2.y, color, pixel); }
+		coord x, coord y, coord x2, coord y2, uint color, uint ink = 1); // outline drawn is inset for rect and circle
+	void drawRect(const Rect& r, uint color, uint ink = 1) { drawRect(r.p1.x, r.p1.y, r.p2.x, r.p2.y, color, ink); }
 
-	void fillRect(coord x, coord y, coord w, coord h, uint color, uint pixel = 1) noexcept
+	void fillRect(coord x, coord y, coord w, coord h, uint color, uint ink = 1) noexcept
 	{
-		pixmap.fillRect(x, y, w, h, color, pixel);
+		pixmap.fillRect(x, y, w, h, color, ink);
 	}
-	void fillRect(const Rect& r, uint color, uint pixel = 1) noexcept { pixmap.fillRect(r, color, pixel); }
+	void fillRect(const Rect& r, uint color, uint ink = 1) noexcept { pixmap.fillRect(r, color, ink); }
 
 	void drawCircle(
-		coord x, coord y, coord x2, coord y2, uint color, uint pixel = 1); // outline drawn is inset for rect and circle
-	void drawCircle(const Rect&, uint color, uint pixel = 1);
+		coord x, coord y, coord x2, coord y2, uint color, uint ink = 1); // outline drawn is inset for rect and circle
+	void drawCircle(const Rect&, uint color, uint ink = 1);
 
-	void fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint pixel = 1);
-	void fillCircle(const Rect&, uint color, uint pixel = 1);
+	void fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1);
+	void fillCircle(const Rect&, uint color, uint ink = 1);
 
-	void drawPolygon(const Point*, uint cnt, uint color, uint pixel = 1);
-	void fillPolygon(const Point*, uint cnt, uint color, uint pixel = 1);
+	void drawPolygon(const Point*, uint cnt, uint color, uint ink = 1);
+	void fillPolygon(const Point*, uint cnt, uint color, uint ink = 1);
 
-	void fill(coord x, coord y, uint color, uint pixel = 1);
-	void fill(const Point& p, uint color, uint pixel = 1) { fill(p.x, p.y, color, pixel); }
+	void fill(coord x, coord y, uint color, uint ink = 1);
+	void fill(const Point& p, uint color, uint ink = 1) { fill(p.x, p.y, color, ink); }
 
 	void copyRect(coord zx, coord zy, const Pixmap<CM>& q) { pixmap.copyRect(zx, zy, q); }
 	void copyRect(coord zx, coord zy, const Pixmap<CM>& q, coord qx, coord qy, coord w, coord h)
@@ -156,19 +161,19 @@ public:
 
 	// helper:
 	static uint32 flood_filled_color(uint color) noexcept { return Graphics::flood_filled_color<colordepth>(color); }
-	void		  draw_hor_line(coord x, coord y, coord x2, uint color, uint pixel) noexcept
+	void		  draw_hor_line(coord x, coord y, coord x2, uint color, uint ink) noexcept
 	{
-		pixmap.draw_hline(x, y, x2, color, pixel);
+		pixmap.draw_hline(x, y, x2, color, ink);
 	}
-	void draw_vert_line(coord x, coord y, coord y2, uint color, uint pixel) noexcept
+	void draw_vert_line(coord x, coord y, coord y2, uint color, uint ink) noexcept
 	{
-		pixmap.draw_vline(x, y, y2, color, pixel);
+		pixmap.draw_vline(x, y, y2, color, ink);
 	}
 	bool in_screen(coord x, coord y) { return pixmap.is_inside(x, y); }
 
 private:
-	int adjust_l(coord l, coord r, coord y, uint px); // -> fill()
-	int adjust_r(coord l, coord r, coord y, uint px); // -> fill()
+	int adjust_l(coord l, coord r, coord y, uint ink); // -> fill()
+	int adjust_r(coord l, coord r, coord y, uint ink); // -> fill()
 };
 
 

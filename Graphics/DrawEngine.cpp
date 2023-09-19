@@ -71,7 +71,7 @@ void DrawEngine<CM>::scrollScreen(coord dx, coord dy, uint bgcolor)
 }
 
 template<ColorMode CM>
-void DrawEngine<CM>::drawLine(coord x, coord y, coord x2, coord y2, uint color, uint pixel)
+void DrawEngine<CM>::drawLine(coord x, coord y, coord x2, coord y2, uint color, uint ink)
 {
 	// draw arbitrary line from (x1,y1) to (x2,y2)
 	// draws at least 1 pixel
@@ -94,7 +94,7 @@ void DrawEngine<CM>::drawLine(coord x, coord y, coord x2, coord y2, uint color, 
 
 			while (x <= x2)
 			{
-				setPixel(x++, y, color, pixel);
+				setPixel(x++, y, color, ink);
 				dz += dy;
 				if (dz >= dx)
 				{
@@ -103,7 +103,7 @@ void DrawEngine<CM>::drawLine(coord x, coord y, coord x2, coord y2, uint color, 
 				}
 			}
 		}
-		else { drawHorLine(x, y, x2 + 1, color, pixel); }
+		else { drawHorLine(x, y, x2 + 1, color, ink); }
 	}
 	else // dy > dx => advance in y dir
 	{
@@ -120,7 +120,7 @@ void DrawEngine<CM>::drawLine(coord x, coord y, coord x2, coord y2, uint color, 
 
 			while (y <= y2)
 			{
-				setPixel(x, y++, color, pixel);
+				setPixel(x, y++, color, ink);
 				dz += dx;
 				if (dz >= dy)
 				{
@@ -129,12 +129,12 @@ void DrawEngine<CM>::drawLine(coord x, coord y, coord x2, coord y2, uint color, 
 				}
 			}
 		}
-		else { drawVertLine(x, y, y2 + 1, color, pixel); }
+		else { drawVertLine(x, y, y2 + 1, color, ink); }
 	}
 }
 
 template<ColorMode CM>
-void DrawEngine<CM>::drawRect(coord x, coord y, coord x2, coord y2, uint color, uint pixel)
+void DrawEngine<CM>::drawRect(coord x, coord y, coord x2, coord y2, uint color, uint ink)
 {
 	// draw outline of rectangle.
 	// outline is inset for rect and circle
@@ -144,20 +144,20 @@ void DrawEngine<CM>::drawRect(coord x, coord y, coord x2, coord y2, uint color, 
 	sort(y, y2);
 	if (x >= x2 || y >= y2) return;
 
-	drawHorLine(x, y, x2, color, pixel);
-	drawHorLine(x, y2 - 1, x2, color, pixel);
-	drawVertLine(x, y, y2 - 1, color, pixel);
-	drawVertLine(x2 - 1, y, y2 - 1, color, pixel);
+	drawHorLine(x, y, x2, color, ink);
+	drawHorLine(x, y2 - 1, x2, color, ink);
+	drawVertLine(x, y, y2 - 1, color, ink);
+	drawVertLine(x2 - 1, y, y2 - 1, color, ink);
 }
 
 template<ColorMode CM>
-void DrawEngine<CM>::drawCircle(coord x, coord y, coord x2, coord y2, uint color, uint pixel)
+void DrawEngine<CM>::drawCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink)
 {
-	drawCircle(Rect(x, y, x2, y2), color, pixel);
+	drawCircle(Rect(x, y, x2, y2), color, ink);
 }
 
 template<ColorMode CM>
-void DrawEngine<CM>::drawCircle(const Rect& rect, uint color, uint pixel)
+void DrawEngine<CM>::drawCircle(const Rect& rect, uint color, uint ink)
 {
 	// draw outline of circle.
 	// outline is inset for rect and circle
@@ -192,11 +192,11 @@ void DrawEngine<CM>::drawCircle(const Rect& rect, uint color, uint pixel)
 		const fixint r2 = r * r;								// r²
 
 		// colorful plotting routine:
-		auto setpixels = [this, x0, y0, color, pixel](fixint x, fixint y) {
-			setPixel(x0 - x, y0 + y, color, pixel);
-			setPixel(x0 + x, y0 + y, color, pixel);
-			setPixel(x0 - x, y0 - y, color, pixel);
-			setPixel(x0 + x, y0 - y, color, pixel);
+		auto setpixels = [this, x0, y0, color, ink](fixint x, fixint y) {
+			setPixel(x0 - x, y0 + y, color, ink);
+			setPixel(x0 + x, y0 + y, color, ink);
+			setPixel(x0 - x, y0 - y, color, ink);
+			setPixel(x0 + x, y0 - y, color, ink);
 		};
 
 		// if we have an odd number of lines (=> r is xxx.0), then there is a center line at y=0.0.
@@ -224,13 +224,13 @@ void DrawEngine<CM>::drawCircle(const Rect& rect, uint color, uint pixel)
 }
 
 template<ColorMode CM>
-void DrawEngine<CM>::fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint pixel)
+void DrawEngine<CM>::fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink)
 {
-	fillCircle(Rect(x, y, x2, y2), color, pixel);
+	fillCircle(Rect(x, y, x2, y2), color, ink);
 }
 
 template<ColorMode CM>
-void DrawEngine<CM>::fillCircle(const Rect& rect, uint color, uint pixel)
+void DrawEngine<CM>::fillCircle(const Rect& rect, uint color, uint ink)
 {
 	assert(rect.is_normalized());
 	if (rect.is_empty()) return;
@@ -260,9 +260,9 @@ void DrawEngine<CM>::fillCircle(const Rect& rect, uint color, uint pixel)
 		const fixint r	= fixint(rect.width() - 1) / 2; // radius
 		const fixint r2 = r * r;						// r²
 
-		auto drawlines = [this, x0, y0, color, pixel](fixint x, fixint y) {
-			drawHorLine(x0 - x, y0 + y, x0 + x + one, color, pixel);
-			drawHorLine(x0 - x, y0 - y, x0 + x + one, color, pixel);
+		auto drawlines = [this, x0, y0, color, ink](fixint x, fixint y) {
+			drawHorLine(x0 - x, y0 + y, x0 + x + one, color, ink);
+			drawHorLine(x0 - x, y0 - y, x0 + x + one, color, ink);
 		};
 
 		// if we have an odd number of lines (=> r is xxx.0), then there is a center line at y=0.0.
@@ -297,19 +297,19 @@ void DrawEngine<CM>::fillCircle(const Rect& rect, uint color, uint pixel)
 }
 
 template<ColorMode CM>
-void DrawEngine<CM>::drawPolygon(const Point* p, uint cnt, uint color, uint pixel)
+void DrawEngine<CM>::drawPolygon(const Point* p, uint cnt, uint color, uint ink)
 {
-	for (uint i = 0; i < cnt - 1; i++) { drawLine(p[i], p[i + 1], color, pixel); }
+	for (uint i = 0; i < cnt - 1; i++) { drawLine(p[i], p[i + 1], color, ink); }
 }
 
 template<ColorMode CM>
-void DrawEngine<CM>::fillPolygon(const Point*, uint cnt, uint color, uint pixel)
+void DrawEngine<CM>::fillPolygon(const Point*, uint cnt, uint color, uint ink)
 {
 	TODO();
 }
 
 template<ColorMode CM>
-int DrawEngine<CM>::adjust_l(coord l, coord r, coord y, uint pixel)
+int DrawEngine<CM>::adjust_l(coord l, coord r, coord y, uint ink)
 {
 	// returns x of the left border of unset pixels
 	// returns x == r if no unset pixel was found
@@ -317,20 +317,20 @@ int DrawEngine<CM>::adjust_l(coord l, coord r, coord y, uint pixel)
 	assert(uint(y) < uint(height()));
 	assert(0 <= l && l < r && r <= width());
 
-	if (getPixel(l, y) == pixel) // set => adjust to the right until first unset pixel found
+	if (getInk(l, y) == ink) // set => adjust to the right until first unset pixel found
 	{
-		while (++l < r && getPixel(l, y) == pixel) {}
+		while (++l < r && getInk(l, y) == ink) {}
 		return l;
 	}
 	else // unset => adjust to the left until first unset pixel found
 	{
-		while (--l >= 0 && getPixel(l, y) != pixel) {}
+		while (--l >= 0 && getInk(l, y) != ink) {}
 		return l + 1;
 	}
 }
 
 template<ColorMode CM>
-int DrawEngine<CM>::adjust_r(coord l, coord r, coord y, uint pixel)
+int DrawEngine<CM>::adjust_r(coord l, coord r, coord y, uint ink)
 {
 	// returns x of the right border of unset pixels
 	// returns x == l if no unset pixel was found
@@ -338,24 +338,24 @@ int DrawEngine<CM>::adjust_r(coord l, coord r, coord y, uint pixel)
 	assert(uint(y) < uint(height()));
 	assert(0 <= l && l < r && r <= width());
 
-	if (getPixel(r - 1, y) == pixel) // set => adjust to the left until first unset pixel found
+	if (getInk(r - 1, y) == ink) // set => adjust to the left until first unset pixel found
 	{
-		while (--r > l && getPixel(r - 1, y) == pixel) {}
+		while (--r > l && getInk(r - 1, y) == ink) {}
 		return r;
 	}
 	else // unset => adjust to the right until first unset pixel found
 	{
-		while (r < width() && getPixel(r, y) != pixel) { r++; }
+		while (r < width() && getInk(r, y) != ink) { r++; }
 		return r;
 	}
 }
 
 template<ColorMode CM>
-void DrawEngine<CM>::fill(coord x, coord y, uint color, uint pixel)
+void DrawEngine<CM>::fill(coord x, coord y, uint color, uint ink)
 {
 	if (!in_screen(x, y)) return;
-	if (is_direct_color(CM)) pixel = color;
-	if (getPixel(x, y) == pixel) return;
+	if (is_direct_color(CM)) ink = color;
+	if (getInk(x, y) == ink) return;
 
 	constexpr uint ssz = 1 << 9; // fill full screen 1024*768 filled with text: stack usage ~ 346
 	class Stack
@@ -404,9 +404,9 @@ void DrawEngine<CM>::fill(coord x, coord y, uint color, uint pixel)
 
 	uint32 start = time_us_32();
 
-	int x1 = adjust_l(x, x + 1, y, pixel);
-	int x2 = adjust_r(x, x + 1, y, pixel);
-	draw_hor_line(x1, y, x2, color, pixel); // fill between x1 and x2
+	int x1 = adjust_l(x, x + 1, y, ink);
+	int x2 = adjust_r(x, x + 1, y, ink);
+	draw_hor_line(x1, y, x2, color, ink); // fill between x1 and x2
 	if (y + 1 < height()) { stack.push(x1, x2, y, +1); }
 	if (y - 1 >= 0) { stack.push(x1, x2, y, -1); }
 
@@ -418,10 +418,9 @@ void DrawEngine<CM>::fill(coord x, coord y, uint color, uint pixel)
 		// the pixels between (l,y) and (r,y) have been filled in and we shall resume in line y+dy:
 		y += dy;
 
-		int x1 = adjust_l(l, r, y, pixel);
-		if (x1 == r) continue; // no unset pixel found
-		int x2 =
-			adjust_r(l, r, y, pixel); // note: x1 and x2 may refer to different ranges separated by some set pixels!
+		int x1 = adjust_l(l, r, y, ink);
+		if (x1 == r) continue;			 // no unset pixel found
+		int x2 = adjust_r(l, r, y, ink); // note: x1 and x2 may refer to different ranges separated by some set pixels!
 
 		// push ranges left & right of original range, if any:
 		if (x1 < l - 1) stack.push(x1, l - 1, y, -dy);
@@ -437,11 +436,11 @@ void DrawEngine<CM>::fill(coord x, coord y, uint color, uint pixel)
 
 			//int r1 = adjust_r(x1,x1+1,y,px);
 			// avoid testing known area pixels:
-			int r1 = adjust_r(x1, max(x1, l) + 1, y, pixel);
+			int r1 = adjust_r(x1, max(x1, l) + 1, y, ink);
 			if (r1 == r) r1 = x2;
 
 			// fill it:
-			draw_hor_line(x1, y, r1, color, pixel);
+			draw_hor_line(x1, y, r1, color, ink);
 
 			// push work in dy direction:
 			if (uint(y + dy) < uint(height())) stack.push(x1, r1, y, dy);
@@ -450,7 +449,7 @@ void DrawEngine<CM>::fill(coord x, coord y, uint color, uint pixel)
 			if (r1 >= x2) break;
 
 			// find l border of next area:
-			x1 = adjust_l(r1, r, y, pixel);
+			x1 = adjust_l(r1, r, y, ink);
 		}
 	}
 
@@ -554,6 +553,59 @@ void DrawEngine<CM>::restorePixels(const Pixmap<CM>& buffer, coord x, coord y, c
 
 	pixmap.copyRect(x, y, buffer, x_offs, y_offs, w, h);
 }
+
+
+#if 0
+void IPixmap::read_hline(coord x1, coord y1, coord w, Color* z) const noexcept
+{
+	// helper:
+
+	constexpr coord h = 1;
+	assert(x1 >= 0 && x1 + w <= width);
+	assert(y1 >= 0 && y1 + h <= height);
+
+	while (--w >= 0) *z++ = rgb_for_color(get_color(x1++, y1));
+}
+
+void IPixmap::draw_hline(coord x1, coord y1, coord w, const Color* q) noexcept
+{
+	// helper:
+	// draw a hline of pixels by reading them from a color buffer.
+	// works poorly / makes no sense with attributed pixmaps. therefore no `ink` argument.
+	// for attributed pixmaps the user will probably copy pixels and attributes separately.
+
+	constexpr coord h = 1;
+	assert(x1 >= 0 && x1 + w <= width);
+	assert(y1 >= 0 && y1 + h <= height);
+
+	while (--w >= 0) set_pixel(x1++, y1, color_for_rgb(*q++)); // set_color() ?
+}
+
+void IPixmap::copy_hline(coord zx, coord zy, coord w, const IPixmap& q, coord qx, coord qy) noexcept
+{
+	// helper:
+	// copy and convert a horizontal line of pixels.
+	// works poorly / makes no sense with attributed pixmaps.
+	// for attributed pixmaps the user will probably copy pixels and attributes separately.
+
+	constexpr coord h = 1;
+	assert(zx >= 0 && zx + w <= width);
+	assert(zy >= 0 && zy + h <= height);
+	assert(qx >= 0 && qx + w <= q.width);
+	assert(qy >= 0 && qy + h <= q.height);
+
+	Color buffer[200];
+	while (w > 0)
+	{
+		int n = min(w, 200);
+		q.read_hline(qx, qy, n, buffer);
+		draw_hline(zx, zy, n, buffer);
+		zx += n;
+		qx += n;
+		w -= n;
+	}
+}
+#endif
 
 
 // instantiate them all, unless modified they are only compiled once:
