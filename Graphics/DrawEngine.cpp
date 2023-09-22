@@ -18,8 +18,7 @@ namespace kio::Graphics
 {
 
 
-template<ColorMode CM>
-void DrawEngine<CM>::clearScreen(uint bgcolor)
+void DrawEngine::clearScreen(uint color, uint ink)
 {
 	// clear pixels and attributes to bgcolor
 	// bgcolor is true color or indexed color acc. to color mode
@@ -28,19 +27,19 @@ void DrawEngine<CM>::clearScreen(uint bgcolor)
 
 	// TODO: wait for ffb
 
-	pixmap.clear(bgcolor);
+	pixmap.clear(color, ink);
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::scrollScreen(coord dx, coord dy, uint bgcolor)
+
+void DrawEngine::scrollScreen(coord dx, coord dy, uint bgcolor, uint ink)
 {
 	// scroll with cpu power
 	// TODO: "hardware scroll" by moving the screen start address
 
-	int w = width() < abs(dx);
-	int h = height() < abs(dy);
+	int w = width < abs(dx);
+	int h = height < abs(dy);
 
-	if (w <= 0 || h <= 0) return clearScreen(bgcolor);
+	if (w <= 0 || h <= 0) return clearScreen(bgcolor, ink);
 
 	Point q {0, 0};
 	Point z {0, 0};
@@ -60,18 +59,18 @@ void DrawEngine<CM>::scrollScreen(coord dx, coord dy, uint bgcolor)
 
 	if (dx)
 	{
-		if (dx < 0) pixmap.fillRect(w, 0, width() - w, height(), bgcolor, 0);
-		else pixmap.fillRect(0, 0, dx, height(), bgcolor, 0);
+		if (dx < 0) pixmap.fillRect(w, 0, width - w, height, bgcolor, ink);
+		else pixmap.fillRect(0, 0, dx, height, bgcolor, ink);
 	}
 	if (dy)
 	{
-		if (dy < 0) pixmap.fillRect(0, h, width(), height() - h, bgcolor, 0);
-		else pixmap.fillRect(0, 0, width(), dy, bgcolor, 0);
+		if (dy < 0) pixmap.fillRect(0, h, width, height - h, bgcolor, ink);
+		else pixmap.fillRect(0, 0, width, dy, bgcolor, ink);
 	}
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::drawLine(coord x, coord y, coord x2, coord y2, uint color, uint ink)
+
+void DrawEngine::drawLine(coord x, coord y, coord x2, coord y2, uint color, uint ink) noexcept
 {
 	// draw arbitrary line from (x1,y1) to (x2,y2)
 	// draws at least 1 pixel
@@ -103,7 +102,7 @@ void DrawEngine<CM>::drawLine(coord x, coord y, coord x2, coord y2, uint color, 
 				}
 			}
 		}
-		else { drawHorLine(x, y, x2 + 1, color, ink); }
+		else { drawHLine(x, y, x2 + 1, color, ink); }
 	}
 	else // dy > dx => advance in y dir
 	{
@@ -129,12 +128,12 @@ void DrawEngine<CM>::drawLine(coord x, coord y, coord x2, coord y2, uint color, 
 				}
 			}
 		}
-		else { drawVertLine(x, y, y2 + 1, color, ink); }
+		else { drawVLine(x, y, y2 + 1, color, ink); }
 	}
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::drawRect(coord x, coord y, coord x2, coord y2, uint color, uint ink)
+
+void DrawEngine::drawRect(coord x, coord y, coord x2, coord y2, uint color, uint ink) noexcept
 {
 	// draw outline of rectangle.
 	// outline is inset for rect and circle
@@ -144,20 +143,20 @@ void DrawEngine<CM>::drawRect(coord x, coord y, coord x2, coord y2, uint color, 
 	sort(y, y2);
 	if (x >= x2 || y >= y2) return;
 
-	drawHorLine(x, y, x2, color, ink);
-	drawHorLine(x, y2 - 1, x2, color, ink);
-	drawVertLine(x, y, y2 - 1, color, ink);
-	drawVertLine(x2 - 1, y, y2 - 1, color, ink);
+	drawHLine(x, y, x2, color, ink);
+	drawHLine(x, y2 - 1, x2, color, ink);
+	drawVLine(x, y, y2 - 1, color, ink);
+	drawVLine(x2 - 1, y, y2 - 1, color, ink);
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::drawCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink)
+
+void DrawEngine::drawCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink) noexcept
 {
 	drawCircle(Rect(x, y, x2, y2), color, ink);
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::drawCircle(const Rect& rect, uint color, uint ink)
+
+void DrawEngine::drawCircle(const Rect& rect, uint color, uint ink) noexcept
 {
 	// draw outline of circle.
 	// outline is inset for rect and circle
@@ -223,14 +222,14 @@ void DrawEngine<CM>::drawCircle(const Rect& rect, uint color, uint ink)
 	}
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink)
+
+void DrawEngine::fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink) noexcept
 {
 	fillCircle(Rect(x, y, x2, y2), color, ink);
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::fillCircle(const Rect& rect, uint color, uint ink)
+
+void DrawEngine::fillCircle(const Rect& rect, uint color, uint ink) noexcept
 {
 	assert(rect.is_normalized());
 	if (rect.is_empty()) return;
@@ -261,8 +260,8 @@ void DrawEngine<CM>::fillCircle(const Rect& rect, uint color, uint ink)
 		const fixint r2 = r * r;						// r²
 
 		auto drawlines = [this, x0, y0, color, ink](fixint x, fixint y) {
-			drawHorLine(x0 - x, y0 + y, x0 + x + one, color, ink);
-			drawHorLine(x0 - x, y0 - y, x0 + x + one, color, ink);
+			drawHLine(x0 - x, y0 + y, x0 + x + one, color, ink);
+			drawHLine(x0 - x, y0 - y, x0 + x + one, color, ink);
 		};
 
 		// if we have an odd number of lines (=> r is xxx.0), then there is a center line at y=0.0.
@@ -296,26 +295,23 @@ void DrawEngine<CM>::fillCircle(const Rect& rect, uint color, uint ink)
 	}
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::drawPolygon(const Point* p, uint cnt, uint color, uint ink)
+
+void DrawEngine::drawPolygon(const Point* p, uint cnt, uint color, uint ink)
 {
 	for (uint i = 0; i < cnt - 1; i++) { drawLine(p[i], p[i + 1], color, ink); }
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::fillPolygon(const Point*, uint cnt, uint color, uint ink)
-{
-	TODO();
-}
 
-template<ColorMode CM>
-int DrawEngine<CM>::adjust_l(coord l, coord r, coord y, uint ink)
+void DrawEngine::fillPolygon(const Point*, uint cnt, uint color, uint ink) { TODO(); }
+
+
+int DrawEngine::adjust_l(coord l, coord r, coord y, uint ink)
 {
 	// returns x of the left border of unset pixels
 	// returns x == r if no unset pixel was found
 
-	assert(uint(y) < uint(height()));
-	assert(0 <= l && l < r && r <= width());
+	assert(uint(y) < uint(height));
+	assert(0 <= l && l < r && r <= width);
 
 	if (getInk(l, y) == ink) // set => adjust to the right until first unset pixel found
 	{
@@ -329,14 +325,14 @@ int DrawEngine<CM>::adjust_l(coord l, coord r, coord y, uint ink)
 	}
 }
 
-template<ColorMode CM>
-int DrawEngine<CM>::adjust_r(coord l, coord r, coord y, uint ink)
+
+int DrawEngine::adjust_r(coord l, coord r, coord y, uint ink)
 {
 	// returns x of the right border of unset pixels
 	// returns x == l if no unset pixel was found
 
-	assert(uint(y) < uint(height()));
-	assert(0 <= l && l < r && r <= width());
+	assert(uint(y) < uint(height));
+	assert(0 <= l && l < r && r <= width);
 
 	if (getInk(r - 1, y) == ink) // set => adjust to the left until first unset pixel found
 	{
@@ -345,13 +341,13 @@ int DrawEngine<CM>::adjust_r(coord l, coord r, coord y, uint ink)
 	}
 	else // unset => adjust to the right until first unset pixel found
 	{
-		while (r < width() && getInk(r, y) != ink) { r++; }
+		while (r < width && getInk(r, y) != ink) { r++; }
 		return r;
 	}
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::fill(coord x, coord y, uint color, uint ink)
+
+void DrawEngine::floodFill(coord x, coord y, uint color, uint ink)
 {
 	if (!in_screen(x, y)) return;
 	if (is_direct_color(CM)) ink = color;
@@ -406,15 +402,15 @@ void DrawEngine<CM>::fill(coord x, coord y, uint color, uint ink)
 
 	int x1 = adjust_l(x, x + 1, y, ink);
 	int x2 = adjust_r(x, x + 1, y, ink);
-	draw_hor_line(x1, y, x2, color, ink); // fill between x1 and x2
-	if (y + 1 < height()) { stack.push(x1, x2, y, +1); }
+	draw_hline(x1, y, x2, color, ink); // fill between x1 and x2
+	if (y + 1 < height) { stack.push(x1, x2, y, +1); }
 	if (y - 1 >= 0) { stack.push(x1, x2, y, -1); }
 
 	while (stack.avail())
 	{
 		int l, r, y, dy;
 		stack.pop(l, r, y, dy);
-		assert(l >= 0 && l < r && r <= width());
+		assert(l >= 0 && l < r && r <= width);
 		// the pixels between (l,y) and (r,y) have been filled in and we shall resume in line y+dy:
 		y += dy;
 
@@ -440,10 +436,10 @@ void DrawEngine<CM>::fill(coord x, coord y, uint color, uint ink)
 			if (r1 == r) r1 = x2;
 
 			// fill it:
-			draw_hor_line(x1, y, r1, color, ink);
+			draw_hline(x1, y, r1, color, ink);
 
 			// push work in dy direction:
-			if (uint(y + dy) < uint(height())) stack.push(x1, r1, y, dy);
+			if (uint(y + dy) < uint(height)) stack.push(x1, r1, y, dy);
 
 			// done?
 			if (r1 >= x2) break;
@@ -459,8 +455,7 @@ void DrawEngine<CM>::fill(coord x, coord y, uint color, uint ink)
 }
 
 
-template<ColorMode CM>
-void DrawEngine<CM>::writeBmpToScreen(coord x, coord y, coord w, coord h, const uint8 bmp[], uint fgcolor, uint bgcolor)
+void DrawEngine::writeBmpToScreen(coord x, coord y, coord w, coord h, const uint8 bmp[], uint fgcolor, uint bgcolor)
 {
 	for (int iy = 0; iy < h; iy++)
 	{
@@ -479,15 +474,12 @@ void DrawEngine<CM>::writeBmpToScreen(coord x, coord y, coord w, coord h, const 
 	}
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::readBmpFromScreen(coord x, coord y, coord w, coord h, uint8[], uint bgcolor)
-{
-	TODO();
-}
+
+void DrawEngine::readBmpFromScreen(coord x, coord y, coord w, coord h, uint8[], uint color, bool set) { TODO(); }
 
 
-template<ColorMode CM>
-void DrawEngine<CM>::savePixels(Pixmap<CM>& buffer, coord x, coord y, coord w, coord h)
+#if 0
+void DrawEngine::savePixels(Pixmap<CM>& buffer, coord x, coord y, coord w, coord h)
 {
 	// save rectangular region to buffer pixmap.
 	// use restorePixels() to restore the area.
@@ -524,8 +516,8 @@ void DrawEngine<CM>::savePixels(Pixmap<CM>& buffer, coord x, coord y, coord w, c
 	buffer.copyRect(x_offs, y_offs, pixmap, x, y, w, h);
 }
 
-template<ColorMode CM>
-void DrawEngine<CM>::restorePixels(const Pixmap<CM>& buffer, coord x, coord y, coord w, coord h)
+
+void DrawEngine::restorePixels(const Pixmap<CM>& buffer, coord x, coord y, coord w, coord h)
 {
 	// restore formerly saved pixel area to buffer
 
@@ -553,6 +545,7 @@ void DrawEngine<CM>::restorePixels(const Pixmap<CM>& buffer, coord x, coord y, c
 
 	pixmap.copyRect(x, y, buffer, x_offs, y_offs, w, h);
 }
+#endif
 
 
 #if 0
@@ -608,38 +601,45 @@ void IPixmap::copy_hline(coord zx, coord zy, coord w, const IPixmap& q, coord qx
 #endif
 
 
-// instantiate them all, unless modified they are only compiled once:
-// otherwise we'll need to define which to implement which leads to idiotic problems.
-
-template class DrawEngine<colormode_i1>;
-template class DrawEngine<colormode_i2>;
-template class DrawEngine<colormode_i4>;
-template class DrawEngine<colormode_i8>;
-template class DrawEngine<colormode_rgb>;
-template class DrawEngine<colormode_a1w1_i4>;
-template class DrawEngine<colormode_a1w1_i8>;
-template class DrawEngine<colormode_a1w1_rgb>;
-template class DrawEngine<colormode_a1w2_i4>;
-template class DrawEngine<colormode_a1w2_i8>;
-template class DrawEngine<colormode_a1w2_rgb>;
-template class DrawEngine<colormode_a1w4_i4>;
-template class DrawEngine<colormode_a1w4_i8>;
-template class DrawEngine<colormode_a1w4_rgb>;
-template class DrawEngine<colormode_a1w8_i4>;
-template class DrawEngine<colormode_a1w8_i8>;
-template class DrawEngine<colormode_a1w8_rgb>;
-template class DrawEngine<colormode_a2w1_i4>;
-template class DrawEngine<colormode_a2w1_i8>;
-template class DrawEngine<colormode_a2w1_rgb>;
-template class DrawEngine<colormode_a2w2_i4>;
-template class DrawEngine<colormode_a2w2_i8>;
-template class DrawEngine<colormode_a2w2_rgb>;
-template class DrawEngine<colormode_a2w4_i4>;
-template class DrawEngine<colormode_a2w4_i8>;
-template class DrawEngine<colormode_a2w4_rgb>;
-template class DrawEngine<colormode_a2w8_i4>;
-template class DrawEngine<colormode_a2w8_i8>;
-template class DrawEngine<colormode_a2w8_rgb>;
-
-
 } // namespace kio::Graphics
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
