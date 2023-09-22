@@ -45,6 +45,8 @@ struct VgaTiming
 };
 
 
+// clang-format off
+
 // VGA TIMING
 // no 2 sources use the same timing ...
 
@@ -62,9 +64,17 @@ constexpr VgaTiming vga_timing_640x480_60 = {
 
 	.pixel_clock = 25000000,
 
-	.h_active = 640,		 .h_front_porch = 16, .h_pulse = 96, .h_back_porch = 48, .h_sync_polarity = 0,
+	.h_active = 640,		 
+	.h_front_porch = 16, 
+	.h_pulse = 96, 
+	.h_back_porch = 48, 
+	.h_sync_polarity = 0,
 
-	.v_active = 480,		 .v_front_porch = 3,  .v_pulse = 2,	 .v_back_porch = 40, .v_sync_polarity = 0,
+	.v_active = 480,		 
+	.v_front_porch = 3,  
+	.v_pulse = 2,	 
+	.v_back_porch = 40, 
+	.v_sync_polarity = 0,
 };
 
 static_assert(vga_timing_640x480_60.h_total() == 800);
@@ -75,11 +85,15 @@ constexpr VgaTiming vga_timing_640x480_50 = {
 
 	.pixel_clock = 22000000,
 
-	.h_active = 640,		 .h_front_porch = 16, .h_pulse = 64,
+	.h_active = 640,		 
+	.h_front_porch = 16, 
+	.h_pulse = 64,
 	.h_back_porch	 = 80, // 80+64+16+640=800
 	.h_sync_polarity = 0,
 
-	.v_active = 480,		 .v_front_porch = 16, .v_pulse = 2,
+	.v_active = 480,		 
+	.v_front_porch = 16, 
+	.v_pulse = 2,
 	.v_back_porch	 = 52, // 52+480+16+2=550
 	.v_sync_polarity = 0,
 };
@@ -94,9 +108,17 @@ constexpr VgaTiming vga_timing_800x600_60 = {
 
 	.pixel_clock = 40000000,
 
-	.h_active = 800,		 .h_front_porch = 40, .h_pulse = 128, .h_back_porch = 88, .h_sync_polarity = 1,
+	.h_active = 800,		 
+	.h_front_porch = 40, 
+	.h_pulse = 128, 
+	.h_back_porch = 88, 
+	.h_sync_polarity = 1,
 
-	.v_active = 600,		 .v_front_porch = 1,  .v_pulse = 4,	  .v_back_porch = 23, .v_sync_polarity = 1,
+	.v_active = 600,		 
+	.v_front_porch = 1,  
+	.v_pulse = 4,	  
+	.v_back_porch = 23, 
+	.v_sync_polarity = 1,
 };
 
 static_assert(vga_timing_800x600_60.h_total() == 1056);
@@ -113,9 +135,17 @@ constexpr VgaTiming vga_timing_1024x768_60 = {
 
 	.pixel_clock = 65000000,
 
-	.h_active = 1024,		 .h_front_porch = 24, .h_pulse = 136, .h_back_porch = 160, .h_sync_polarity = 0,
+	.h_active = 1024,		 
+	.h_front_porch = 24, 
+	.h_pulse = 136, 
+	.h_back_porch = 160, 
+	.h_sync_polarity = 0,
 
-	.v_active = 768,		 .v_front_porch = 3,  .v_pulse = 6,	  .v_back_porch = 29,  .v_sync_polarity = 0,
+	.v_active = 768,		 
+	.v_front_porch = 3,  
+	.v_pulse = 6,	  
+	.v_back_porch = 29,  
+	.v_sync_polarity = 0,
 };
 
 static_assert(vga_timing_1024x768_60.h_total() == 1344);
@@ -149,12 +179,21 @@ constexpr VgaTiming vga_timing_1024x768_50 = {
 	// htotal=1376 => a1w8_rgb: clock=270MHz, avg=254.5MHz, max=267.8MHz
 	// htotal=1368 => a1w8_rgb: clock=270MHz, avg=256.9MHz, max=270.0MHz  <-- the current absolute limit!
 
-	.pixel_clock = 54000000, .h_active = 1024,	   .h_front_porch = 32,
+	.pixel_clock = 54000000, 
+	.h_active = 1024,	   
+	.h_front_porch = 32,
 	.h_pulse	  = 160, // right side of the pulse seemingly doesn't matter for my TV
-	.h_back_porch = 160 - 8, .h_sync_polarity = 0,
+	.h_back_porch = 160 - 8, 
+	.h_sync_polarity = 0,
 
-	.v_active = 768,		 .v_front_porch = 3,   .v_pulse = 6,		.v_back_porch = 29, .v_sync_polarity = 0,
+	.v_active = 768,		 
+	.v_front_porch = 3,   
+	.v_pulse = 6,		
+	.v_back_porch = 29, 
+	.v_sync_polarity = 0,
 };
+
+// clang-format on
 
 static_assert(vga_timing_1024x768_50.h_total() == 1368);
 static_assert(vga_timing_1024x768_50.v_total() == 806);
@@ -182,3 +221,47 @@ constexpr const VgaTiming* getVgaTiming()
 
 
 } // namespace kio::Video
+
+inline cstr tostr(kio::Video::ScreenSize ss)
+{
+	static constexpr char tbl[kio::Video::num_screensizes][9] = //
+		{"320*240", "400*300", "512*384", "640*480", "800*400", "1024*768"};
+	return tbl[ss];
+}
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

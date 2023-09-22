@@ -15,7 +15,7 @@ void framebuffer_setup_helper(uint plane, coord width, VideoQueue& vq)
 		auto& plane_data = vq.buckets[i].data[plane];
 
 		int size = (width + 4) / 2; // +4 = CMD, count, black, EOL;  /2 = uint16 -> uint32
-		assert(plane_data.max >= size);
+		assert_ge(plane_data.max, size);
 		plane_data.used = uint16(size);
 
 		uint16* p = uint16ptr(plane_data.data);

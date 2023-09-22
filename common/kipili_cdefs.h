@@ -64,7 +64,15 @@ __unused static constexpr const char* filenamefrompath(const char* path)
 
 #undef assert
 #ifdef DEBUG
-  #define assert(COND) (likely(COND) ? ((void)0) : panic("assert: %s:%u", filenamefrompath(__FILE__), __LINE__))
+// clang-format off
+  #define assert(COND) ((COND) ? (void)0 : panic("assert: %s:%u", filenamefrompath(__FILE__), __LINE__))
+  #define assert_eq(A, B) ((A) == (B) ? (void)0 : panic("failed: %s:%u: (%li) == (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert_ne(A, B) ((A) != (B) ? (void)0 : panic("failed: %s:%u: (%li) != (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert_lt(A, B) ((A) <  (B) ? (void)0 : panic("failed: %s:%u: (%li) < (%li)",  filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert_le(A, B) ((A) <= (B) ? (void)0 : panic("failed: %s:%u: (%li) <= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert_gt(A, B) ((A) >  (B) ? (void)0 : panic("failed: %s:%u: (%li) > (%li)",  filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert_ge(A, B) ((A) >= (B) ? (void)0 : panic("failed: %s:%u: (%li) >= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+// clang-format on
 #else
   #define assert(...) ((void)0)
 #endif
@@ -84,4 +92,4 @@ __unused static constexpr const char* filenamefrompath(const char* path)
   #define debug_break() __asm__ volatile("bkpt")
 #endif
 
-#define LOL printf("@%s:%u\n", filenamefrompath(__FILE__), __LINE__);
+#define LOL ::printf("@%s:%u\n", filenamefrompath(__FILE__), __LINE__);

@@ -9,11 +9,11 @@
 #include "ScanlineSM.h"
 #include "StackInfo.h"
 #include "TimingSM.h"
-#include "utilities/PwmLoadSensor.h"
-#include "utilities/utilities.h"
 #include "VideoPlane.h"
 #include "VideoQueue.h"
 #include "composable_scanline.h"
+#include "utilities/PwmLoadSensor.h"
+#include "utilities/utilities.h"
 #include <hardware/clocks.h>
 #include <hardware/dma.h>
 #include <hardware/gpio.h>

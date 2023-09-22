@@ -27,6 +27,8 @@ public:
 	static constexpr int  CHAR_WIDTH  = 8;
 	static constexpr bool INVERTED	  = true; // true => paper = 0xffff, pen = 0x0000
 
+	using CharMatrix = uint8[CHAR_HEIGHT];
+
 	// print attributes:
 	enum : uint8 {
 		ATTR_BOLD				 = 1 << 0,
@@ -63,18 +65,16 @@ public:
 		SCROLL_SCREEN		 = 21,
 	};
 
-	const ColorMode	 colormode;
-	const AttrHeight attrheight;
-	const ColorDepth colordepth		= get_colordepth(colormode); // 0 .. 4  log2 of bits per color in attributes[]
-	const AttrMode	 attrmode		= get_attrmode(colormode);	 // 0 .. 2  log2 of bits per color in pixmap[]
-	const AttrWidth	 attrwidth		= get_attrwidth(colormode);	 // 0 .. 3  log2 of width of tiles
-	const int		 bits_per_color = 1 << colordepth;			 // bits per color in pixmap[] or attributes[]
-	const int		 bits_per_pixel = is_attribute_mode(colormode) ? 1 << attrmode : bits_per_color; // bpp in pixmap[]
-
-	using CharMatrix = uint8[CHAR_HEIGHT];
-
 	IPixmap& pixmap;
 	Color*	 colormap;
+
+	const ColorMode	 colormode;
+	const AttrHeight attrheight;
+	const ColorDepth colordepth;	 // 0 .. 4  log2 of bits per color in attributes[]
+	const AttrMode	 attrmode;		 // 0 .. 2  log2 of bits per color in pixmap[]
+	const AttrWidth	 attrwidth;		 // 0 .. 3  log2 of width of tiles
+	const int		 bits_per_color; // bits per color in pixmap[] or attributes[]
+	const int		 bits_per_pixel; // bpp in pixmap[]
 
 	// Screen size:
 	int screen_width;  // [characters]
@@ -101,7 +101,7 @@ public:
 	bool   cursorVisible;  // currently visible?
 	uint32 cursorXorColor; // value used to xor the colors
 
-	explicit PicoTerm(IPixmap&, Color* colors);
+	PicoTerm(IPixmap&, Color* colors);
 
 	void reset();
 	void cls();

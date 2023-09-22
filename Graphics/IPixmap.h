@@ -6,6 +6,7 @@
 #include "Color.h"
 #include "geometry.h"
 #include "graphics_types.h"
+#include "no_copy_move.h"
 
 
 /* Interface class IPixmap 
@@ -45,6 +46,8 @@ namespace kio::Graphics
 
 class IPixmap
 {
+	NO_COPY_MOVE(IPixmap);
+
 public:
 	union
 	{

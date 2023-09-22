@@ -41,7 +41,7 @@ add_library(kipili_video STATIC
 	vga_types.h
 )
 
-target_compile_definitions(kipili_video PRIVATE
+target_compile_definitions(kipili_video PUBLIC
 	PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT=4
 	PICO_SCANVIDEO_PLANE_COUNT=2
 	PICO_SCANVIDEO_ENABLE_VIDEO_RECOVERY=1

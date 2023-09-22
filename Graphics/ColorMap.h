@@ -36,7 +36,11 @@ inline Color* newDefaultColorMap(ColorDepth CD) throws
 
 inline void resetColorMap(ColorDepth CD, Color* table) noexcept
 {
-	if (is_indexed_color(CD)) memcpy(table, default_colormaps[CD], sizeof(Color) << (1 << CD));
+	if (is_indexed_color(CD))
+	{
+		assert(table);
+		memcpy(table, default_colormaps[CD], sizeof(Color) << (1 << CD));
+	}
 }
 
 

@@ -47,10 +47,15 @@ static constexpr bool is_fup(Char c) noexcept { return schar(c) < schar(0xc0); }
 
 
 PicoTerm::PicoTerm(IPixmap& pixmap, Color* colors) :
+	pixmap(pixmap),
+	colormap(colors),
 	colormode(pixmap.colormode),
 	attrheight(pixmap.attrheight),
-	pixmap(pixmap),
-	colormap(colors)
+	colordepth(get_colordepth(colormode)), // 0 .. 4  log2 of bits per color in attributes[]
+	attrmode(get_attrmode(colormode)),	   // 0 .. 2  log2 of bits per color in pixmap[]
+	attrwidth(get_attrwidth(colormode)),   // 0 .. 3  log2 of width of tiles
+	bits_per_color(1 << colordepth),	   // bits per color in pixmap[] or attributes[]
+	bits_per_pixel(is_attribute_mode(colormode) ? 1 << attrmode : bits_per_color) // bpp in pixmap[]
 {
 	reset();
 }

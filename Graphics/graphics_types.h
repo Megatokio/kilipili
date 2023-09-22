@@ -229,10 +229,19 @@ inline cstr tostr(kio::Graphics::ColorDepth cd)
 
 inline cstr tostr(kio::Graphics::ColorMode cm)
 {
+	// clang-format off
 	static constexpr char id[kio::Graphics::num_colormodes][9] = {
-		"i1",	   "i2",	  "i4",		  "i8",		 "rgb",		"i4:aw1",	"i8:aw1",  "rgb:aw1", "i4:aw2",	 "i8:aw2",
-		"rgb:aw2", "i4:aw4",  "i8:aw4",	  "rgb:aw4", "i4:aw8",	"i8:aw8",	"rgb:aw8", "i4:a2w1", "i8a2w1",	 "rgb:a2w1",
-		"i4:a2w2", "i8:a2w2", "rgb:a2w2", "i4:a2w4", "i8:a2w4", "rgb:a2w4", "i4:a2w8", "i8:a2w8", "rgb:a2w8"};
+		"i1", "i2", "i4", "i8", "rgb",		
+		"aw1_i4",	"aw1_i8",  "aw1_rgb", 
+		"aw2_i4",	"aw2_i8",  "aw2_rgb", 		
+		"aw4_i4",	"aw4_i8",  "aw4_rgb", 
+		"aw8_i4",	"aw8_i8",  "aw8_rgb", 
+		"a2w1_i4",	"a2w1_i8",  "a2w1_rgb", 
+		"a2w2_i4",	"a2w2_i8",  "a2w2_rgb", 		
+		"a2w4_i4",	"a2w4_i8",  "a2w4_rgb", 
+		"a2w8_i4",	"a2w8_i8",  "a2w8_rgb", 
+	};
+	// clang-format on
 	return id[cm];
 }
 
