@@ -49,7 +49,7 @@ struct Size
 	coord width, height;
 
 	Size() noexcept = default;
-	Size(coord w, coord h) noexcept : width(w), height(h) {}
+	constexpr Size(coord w, coord h) noexcept : width(w), height(h) {}
 	Size(const Dist& d) noexcept : width(d.dx), height(d.dy) {}
 		 operator Dist() const noexcept { return Dist(width, height); }
 	bool operator==(const Size& other) const noexcept { return width == other.width && height == other.height; }

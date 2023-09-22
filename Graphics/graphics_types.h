@@ -184,6 +184,7 @@ constexpr ColorDepth get_colordepth(ColorMode cm) noexcept
 constexpr bool is_direct_color(ColorMode cm) noexcept { return cm <= colormode_rgb; }
 constexpr bool is_indexed_color(ColorDepth cd) noexcept { return cd != colordepth_16bpp; }
 constexpr bool is_indexed_color(ColorMode cm) noexcept { return is_indexed_color(get_colordepth(cm)); }
+constexpr bool is_true_color(ColorDepth cd) noexcept { return cd == colordepth_16bpp; }
 constexpr bool is_true_color(ColorMode cm) noexcept { return !is_indexed_color(cm); }
 constexpr bool is_attribute_mode(ColorMode cm) noexcept { return !is_direct_color(cm); }
 
@@ -225,3 +226,44 @@ inline cstr tostr(kio::Graphics::ColorDepth cd)
 	static constexpr char id[][4] = {"i1", "i2", "i4", "i8", "rgb"};
 	return id[cd];
 }
+
+inline cstr tostr(kio::Graphics::ColorMode cm)
+{
+	static constexpr char id[kio::Graphics::num_colormodes][9] = {
+		"i1",	   "i2",	  "i4",		  "i8",		 "rgb",		"i4:aw1",	"i8:aw1",  "rgb:aw1", "i4:aw2",	 "i8:aw2",
+		"rgb:aw2", "i4:aw4",  "i8:aw4",	  "rgb:aw4", "i4:aw8",	"i8:aw8",	"rgb:aw8", "i4:a2w1", "i8a2w1",	 "rgb:a2w1",
+		"i4:a2w2", "i8:a2w2", "rgb:a2w2", "i4:a2w4", "i8:a2w4", "rgb:a2w4", "i4:a2w8", "i8:a2w8", "rgb:a2w8"};
+	return id[cm];
+}
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

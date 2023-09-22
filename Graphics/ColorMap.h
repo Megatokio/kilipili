@@ -22,13 +22,25 @@ extern const ColorMap<colordepth_8bpp> default_colormap_i8;
 extern const Color* const default_colormaps[5]; // ColorMode -> colormap
 
 
+// ---------------------- inline functions --------------------------
+
 inline const Color* getDefaultColorMap(ColorDepth CD) noexcept { return default_colormaps[CD]; }
+
+inline Color* newDefaultColorMap(ColorDepth CD) throws
+{
+	if (is_true_color(CD)) return nullptr;
+	Color* table = new Color[1 << (1 << CD)];
+	memcpy(table, default_colormaps[CD], sizeof(Color) << (1 << CD));
+	return table;
+}
 
 inline void resetColorMap(ColorDepth CD, Color* table) noexcept
 {
 	if (is_indexed_color(CD)) memcpy(table, default_colormaps[CD], sizeof(Color) << (1 << CD));
 }
 
+
+// ------------------- templates -------------------------------
 
 template<ColorDepth CD, typename = std::enable_if_t<is_indexed_color(CD)>>
 const Color* getDefaultColorMap() noexcept
