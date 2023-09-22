@@ -113,8 +113,10 @@ public:
 	virtual void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept override;
 	virtual void copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept override;
 	virtual void copy_rect(coord x, coord y, const IPixmap& q, coord qx, coord qy, coord w, coord h) noexcept override;
+	//virtual void read_bmp(coord x, coord y, uint8*, int roffs, coord w, coord h, uint c, uint = 0) noexcept override;
 	virtual void draw_bmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint = 0) noexcept override;
 	virtual void draw_char(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink = 0) noexcept override;
+	virtual void xor_rect(coord x, coord y, coord w, coord h, uint xor_color) noexcept override;
 
 	// non-overrides:
 
@@ -161,7 +163,7 @@ DirectColorPixmap::Pixmap(const Size& size, AttrHeight) throws : Pixmap(size.wid
 
 template<ColorMode CM>
 DirectColorPixmap::Pixmap(coord w, coord h, AttrHeight) throws :
-	IPixmap(CM, w, h),
+	IPixmap(CM, attrheight_none, w, h),
 	row_offset(calc_row_offset(CD, w)),
 	pixmap(new uint8[uint(h * row_offset)]),
 	allocated(true)
@@ -175,7 +177,7 @@ DirectColorPixmap::Pixmap(const Size& size, uint8* pixels, int row_offset) noexc
 
 template<ColorMode CM>
 DirectColorPixmap::Pixmap(coord w, coord h, uint8* pixels, int row_offset) noexcept :
-	IPixmap(CM, w, h),
+	IPixmap(CM, attrheight_none, w, h),
 	row_offset(row_offset),
 	pixmap(pixels),
 	allocated(false)
@@ -193,7 +195,7 @@ DirectColorPixmap::Pixmap(Pixmap& q, const Point& p, const Size& size) noexcept 
 
 template<ColorMode CM>
 DirectColorPixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
-	IPixmap(CM, w, h),
+	IPixmap(CM, attrheight_none, w, h),
 	row_offset(q.row_offset),
 	pixmap(q.pixmap + y * q.row_offset + (bits_for_pixels(CD, x) >> 3)),
 	allocated(false)
@@ -318,6 +320,25 @@ void DirectColorPixmap::fill_rect(coord x, coord y, coord w, coord h, uint color
 		w << colordepth,		 // width measured in bits
 		h,						 // height measured in rows
 		flood_filled_color<colordepth>(color));
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::xor_rect(coord x, coord y, coord w, coord h, uint xor_color) noexcept
+{
+	// draw nothing if w <= 0 or h <= 0!
+
+	if (unlikely(w <= 0 || h <= 0)) return;
+
+	assert(is_inside(x, y));
+	assert(is_inside(x + w - 1, y + h - 1));
+
+	bitblit::xor_rect_of_bits(
+		pixmap + y * row_offset, // start of top row
+		x << colordepth,		 // x-offset measured in bits
+		row_offset,				 // row offset
+		w << colordepth,		 // width measured in bits
+		h,						 // height measured in rows
+		flood_filled_color<colordepth>(xor_color));
 }
 
 //template<ColorMode CM>

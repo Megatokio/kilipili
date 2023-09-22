@@ -9,8 +9,16 @@ namespace kio::Graphics
 {
 
 
-IPixmap::IPixmap(ColorMode cm, coord w, coord h) noexcept : width(w), height(h), colormode(cm) {};
-IPixmap::IPixmap(ColorMode cm, const Size& sz) noexcept : size(sz), colormode(cm) {};
+IPixmap::IPixmap(ColorMode CM, AttrHeight AH, coord w, coord h) noexcept :
+	width(w),
+	height(h),
+	colormode(CM),
+	attrheight(AH) {};
+
+IPixmap::IPixmap(ColorMode CM, AttrHeight AH, const Size& size) noexcept : //
+	size(size),
+	colormode(CM),
+	attrheight(AH) {};
 
 void IPixmap::draw_hline(coord x1, coord y1, coord w, uint color, uint ink) noexcept
 {
@@ -36,6 +44,21 @@ void IPixmap::fill_rect(coord x1, coord y1, coord w, coord h, uint color, uint i
 	assert(y1 >= 0 && y1 + h <= height);
 
 	while (--h >= 0) draw_hline(x1, y1++, w, color, ink);
+}
+
+void IPixmap::xor_rect(coord zx, coord zy, coord w, coord h, uint xor_color) noexcept
+{
+	assert(zx >= 0 && zx + w <= width);
+	assert(zy >= 0 && zy + h <= height);
+
+	while (--h >= 0)
+	{
+		for (coord i = 0; i < w; i++)
+		{
+			uint ink, color = get_pixel(zx + i, zy++, &ink);
+			set_pixel(zx + i, zy++, color ^ xor_color, ink);
+		}
+	}
 }
 
 void IPixmap::copy_rect(coord zx, coord zy, const IPixmap& q, coord qx, coord qy, coord w, coord h) noexcept
@@ -134,21 +157,22 @@ void IPixmap::draw_hline_bmp(coord x, coord y, coord w, const uint8* q, uint col
 	}
 }
 
-void IPixmap::draw_bmp(coord x, coord y, const uint8* q, int row_offs, coord w, coord h, uint color, uint ink) noexcept
+void IPixmap::draw_bmp(
+	coord x, coord y, const uint8* bmp, int row_offs, coord w, coord h, uint color, uint ink) noexcept
 {
 	assert(x >= 0 && x + w <= width);
 	assert(y >= 0 && y + h <= height);
 
 	while (--h >= 0)
 	{
-		draw_hline_bmp(x, y++, w, q, color, ink);
-		q += row_offs;
+		draw_hline_bmp(x, y++, w, bmp, color, ink);
+		bmp += row_offs;
 	}
 }
 
 void IPixmap::draw_char(coord x, coord y, const uint8* q, coord h, uint color, uint ink) noexcept
 {
-	// optimized version of draw_bmp:
+	// possibly optimized version of draw_bmp:
 	//   row_offset is always 1
 	//   width is always 8
 
@@ -156,7 +180,22 @@ void IPixmap::draw_char(coord x, coord y, const uint8* q, coord h, uint color, u
 	assert(x >= 0 && x + w <= width);
 	assert(y >= 0 && y + h <= height);
 
-	while (--h >= 0) { draw_hline_bmp(x, y++, 8, q++, color, ink); }
+	while (--h >= 0) //
+	{
+		draw_hline_bmp(x, y++, 8, q++, color, ink);
+	}
+}
+
+void IPixmap::read_bmp(coord x, coord y, uint8* bmp, int row_offset, coord w, coord h, uint color, bool set) noexcept
+{
+	assert(x >= 0 && x + w <= width);
+	assert(y >= 0 && y + h <= height);
+
+	while (--h >= 0)
+	{
+		read_hline_bmp(x, y++, w, bmp, color, set);
+		bmp += row_offset;
+	}
 }
 
 
@@ -304,7 +343,7 @@ void IPixmap::copyRect(coord zx, coord zy, const IPixmap& q) noexcept
 }
 
 void IPixmap::drawBmp(
-	coord zx, coord zy, const uint8* bmp, int row_offs, coord w, coord h, uint color, uint ink) noexcept
+	coord zx, coord zy, const uint8* bmp, int row_offset, coord w, coord h, uint color, uint ink) noexcept
 {
 	if (zx < 0)
 	{
@@ -315,16 +354,18 @@ void IPixmap::drawBmp(
 	if (zy < 0)
 	{
 		h += zy;
-		bmp -= zy * row_offs;
+		bmp -= zy * row_offset;
 		zy -= zy;
 	}
 	w = min(w, width - zx);
 	h = min(h, height - zy);
 
+	draw_bmp(zx, zy, bmp, row_offset, w, h, color, ink);
+
 	while (--h >= 0)
 	{
 		draw_hline_bmp(zx, zy++, w, bmp, color, ink);
-		bmp += row_offs;
+		bmp += row_offset;
 	}
 }
 
@@ -346,6 +387,26 @@ void IPixmap::drawChar(coord x, coord y, const uint8* bmp, coord h, uint color, 
 	h = min(h, height - y);
 
 	while (--h >= 0) { draw_hline_bmp(x, y++, 8, bmp++, color, ink); }
+}
+
+void IPixmap::readBmp(coord zx, coord zy, uint8* bmp, int row_offset, coord w, coord h, uint color, bool set) noexcept
+{
+	if (zx < 0)
+	{
+		w += zx;
+		bmp -= zx / 8; // TODO: need x0 offset in draw_hline_bmp()
+		zx -= zx;
+	}
+	if (zy < 0)
+	{
+		h += zy;
+		bmp -= zy * row_offset;
+		zy -= zy;
+	}
+	w = min(w, width - zx);
+	h = min(h, height - zy);
+
+	read_bmp(zx, zy, bmp, row_offset, w, h, color, set);
 }
 
 

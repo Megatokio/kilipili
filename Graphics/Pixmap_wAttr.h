@@ -100,6 +100,7 @@ public:
 	void attr_draw_hline(coord x, coord y, coord x2, uint color, uint ink) noexcept;
 	void attr_draw_vline(coord x, coord y, coord y2, uint color, uint ink) noexcept;
 	void attr_fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept;
+	void attr_xor_rect(coord x, coord y, coord w, coord h, uint color) noexcept;
 	void attr_copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept;
 
 	super&		 as_super() { return *this; }
@@ -118,8 +119,10 @@ public:
 	virtual void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept override;
 	virtual void copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept override;
 	virtual void copy_rect(coord x, coord y, const IPixmap& q, coord qx, coord qy, coord w, coord h) noexcept override;
+	//virtual void read_bmp(coord x, coord y, uint8*, int roffs, coord w, coord h, uint c, uint = 0) noexcept override;
 	virtual void draw_bmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint ink) noexcept override;
 	virtual void draw_char(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink) noexcept override;
+	virtual void xor_rect(coord x, coord y, coord w, coord h, uint xor_color) noexcept override;
 
 	// non-overrides:
 
@@ -268,6 +271,18 @@ void AttrModePixmap::attr_fill_rect(coord x1, coord y1, coord w, coord h, uint c
 }
 
 template<ColorMode CM>
+void AttrModePixmap::attr_xor_rect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
+{
+	w = calc_ax(x1 + w - 1) - x1 + colors_per_attr;
+	h = calc_ay(y1 + h - 1) - y1 + 1;
+
+	x1 = calc_ax(x1);
+	y1 = calc_ay(y1);
+
+	attributes.xor_rect(x1, y1, w, h, xor_color);
+}
+
+template<ColorMode CM>
 void AttrModePixmap::attr_copy_rect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
 {
 	w = calc_ax(zx + w - 1) - zx + colors_per_attr;
@@ -356,6 +371,12 @@ void AttrModePixmap::fill_rect(coord x, coord y, coord w, coord h, uint color, u
 {
 	attr_fill_rect(x, y, w, h, color, ink);
 	super::fill_rect(x, y, w, h, ink);
+}
+
+template<ColorMode CM>
+void AttrModePixmap::xor_rect(coord x, coord y, coord w, coord h, uint color) noexcept
+{
+	attr_xor_rect(x, y, w, h, color);
 }
 
 

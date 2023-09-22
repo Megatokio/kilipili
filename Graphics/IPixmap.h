@@ -55,11 +55,24 @@ public:
 		};
 	};
 
-	const ColorMode colormode;
-	char			padding[3];
+	const ColorMode	 colormode;
+	const AttrHeight attrheight; // = attrheight_none;
+	char			 padding[2];
 
-	IPixmap(ColorMode CM, coord w, coord h) noexcept;
-	IPixmap(ColorMode CM, const Size& sz) noexcept;
+	// const ColorDepth colordepth		= get_colordepth(colormode); // 0 .. 4  log2 of bits per color in attributes[]
+	// const AttrMode	 attrmode		= get_attrmode(colormode);	 // 0 .. 2  log2 of bits per color in pixmap[]
+	// const AttrWidth	 attrwidth		= get_attrwidth(colormode);	 // 0 .. 3  log2 of width of tiles
+	// const int		 bits_per_color = 1 << colordepth;			 // bits per color in pixmap[] or attributes[]
+	// const int		 bits_per_pixel = is_attribute_mode(colormode) ? 1 << attrmode : bits_per_color; // bpp in pixmap[]
+
+	ColorDepth colordepth() const noexcept { return get_colordepth(colormode); }
+	AttrMode   attrmode() const noexcept { return get_attrmode(colormode); }
+	AttrWidth  attrwidth() const noexcept { return get_attrwidth(colormode); }
+	int		   bits_per_color() const noexcept { return 1 << colordepth(); }
+	int bits_per_pixel() const noexcept { return is_attribute_mode(colormode) ? 1 << attrmode() : 1 << colordepth(); }
+
+	IPixmap(ColorMode CM, AttrHeight AH, coord w, coord h) noexcept;
+	IPixmap(ColorMode CM, AttrHeight AH, const Size& size) noexcept;
 	virtual ~IPixmap() = default;
 
 
@@ -108,6 +121,7 @@ public:
 		clear():    paint entire pixmap. 
 	*/
 	virtual void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept;
+	virtual void xor_rect(coord x, coord y, coord w, coord h, uint color) noexcept;
 
 	void fillRect(Rect zrect, uint color, uint ink = 0) noexcept;
 	void fillRect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept;
@@ -129,6 +143,7 @@ public:
 	void copyRect(coord zx, coord zy, const IPixmap& src, coord qx, coord qy, coord w, coord h) noexcept;
 	void copyRect(const Point& zpos, const IPixmap& src) noexcept;
 	void copyRect(const Point& zpos, const IPixmap& src, const Rect& qrect) noexcept;
+	void copyRect(const Point& zpos, const IPixmap& src, const Point& qpos, const Size& size) noexcept;
 
 
 	/* copy bitmaps:
@@ -138,12 +153,15 @@ public:
 			  note: direct color pixmaps: argument `ink` is not needed and ignored.
 			  note: attribute pixmaps: the ink value in pixels[] is also set from `ink`.
 	*/
+	virtual void read_bmp(coord x, coord y, uint8* bmp, int row_offs, coord w, coord h, uint color, bool set) noexcept;
 	virtual void draw_bmp(coord zx, coord zy, const uint8* bmp, int roffs, coord w, coord h, uint color, uint) noexcept;
 	virtual void draw_char(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint ink) noexcept;
 
+	void readBmp(coord zx, coord zy, uint8* bmp, int row_offset, coord w, coord h, uint color, bool set) noexcept;
 	void drawBmp(coord zx, coord zy, const uint8* bmp, int row_offs, coord w, coord h, uint color, uint = 0) noexcept;
 	void drawChar(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint ink = 0) noexcept;
 
+	void readBmp(const Point& zpos, uint8* bmp, int row_offset, const Size& size, uint color, bool set) noexcept;
 	void drawBmp(const Point& zpos, const uint8* bmp, int row_offset, const Size& size, uint color, uint = 0) noexcept;
 	void drawChar(const Point& z, const uint8* bmp, coord h, uint color, uint ink = 0) noexcept;
 
@@ -191,7 +209,18 @@ inline void IPixmap::copyRect(const Point& z, const Point& q, const Size& s) noe
 inline void IPixmap::copyRect(const Point& z, const IPixmap& q) noexcept { copyRect(z.x, z.y, q); }
 inline void IPixmap::copyRect(const Point& z, const IPixmap& pm, const Rect& q) noexcept
 {
-	copyRect(z.x, z.y, pm, q.left(), q.top(), q.width(), q.right());
+	copyRect(z.x, z.y, pm, q.left(), q.top(), q.width(), q.height());
+}
+inline void IPixmap::copyRect(const Point& zpos, const IPixmap& src, const Point& qpos, const Size& size) noexcept
+{
+	copyRect(zpos.x, zpos.y, src, qpos.x, qpos.y, size.width, size.height);
+}
+
+
+inline void
+IPixmap::readBmp(const Point& z, uint8* bmp, int row_offset, const Size& size, uint color, bool set) noexcept
+{
+	drawBmp(z.x, z.y, bmp, row_offset, size.width, size.height, color, set);
 }
 inline void
 IPixmap::drawBmp(const Point& z, const uint8* bmp, int row_offs, const Size& size, uint color, uint ink) noexcept
