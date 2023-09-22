@@ -9,16 +9,12 @@ namespace kio::Graphics
 {
 
 
-IPixmap::IPixmap(ColorMode CM, AttrHeight AH, coord w, coord h) noexcept :
+IPixmap::IPixmap(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept :
 	width(w),
 	height(h),
 	colormode(CM),
-	attrheight(AH) {};
-
-IPixmap::IPixmap(ColorMode CM, AttrHeight AH, const Size& size) noexcept : //
-	size(size),
-	colormode(CM),
-	attrheight(AH) {};
+	attrheight(AH),
+	allocated(allocated) {};
 
 void IPixmap::draw_hline(coord x1, coord y1, coord w, uint color, uint ink) noexcept
 {

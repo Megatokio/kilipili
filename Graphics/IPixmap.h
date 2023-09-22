@@ -48,6 +48,9 @@ class IPixmap
 {
 	NO_COPY_MOVE(IPixmap);
 
+protected:
+	IPixmap(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept;
+
 public:
 	union
 	{
@@ -59,23 +62,19 @@ public:
 	};
 
 	const ColorMode	 colormode;
-	const AttrHeight attrheight; // = attrheight_none;
-	char			 padding[2];
+	const AttrHeight attrheight;
+	const bool		 allocated; // whether pixmap[] was allocated and will be deleted in dtor
+	char			 padding[1];
 
-	// const ColorDepth colordepth		= get_colordepth(colormode); // 0 .. 4  log2 of bits per color in attributes[]
-	// const AttrMode	 attrmode		= get_attrmode(colormode);	 // 0 .. 2  log2 of bits per color in pixmap[]
-	// const AttrWidth	 attrwidth		= get_attrwidth(colormode);	 // 0 .. 3  log2 of width of tiles
-	// const int		 bits_per_color = 1 << colordepth;			 // bits per color in pixmap[] or attributes[]
-	// const int		 bits_per_pixel = is_attribute_mode(colormode) ? 1 << attrmode : bits_per_color; // bpp in pixmap[]
-
-	ColorDepth colordepth() const noexcept { return get_colordepth(colormode); }
-	AttrMode   attrmode() const noexcept { return get_attrmode(colormode); }
-	AttrWidth  attrwidth() const noexcept { return get_attrwidth(colormode); }
-	int		   bits_per_color() const noexcept { return 1 << colordepth(); }
+	ColorDepth colordepth() const noexcept
+	{
+		return get_colordepth(colormode);
+	}																	   // 0 .. 4  log2 of bits per color in attr[]
+	AttrMode attrmode() const noexcept { return get_attrmode(colormode); } // 0 .. 2  log2 of bits per color in pixmap[]
+	AttrWidth attrwidth() const noexcept { return get_attrwidth(colormode); } // 0 .. 3  log2 of width of tiles
+	int		  bits_per_color() const noexcept { return 1 << colordepth(); }	  // bits per color in pixmap[] or attr[]
 	int bits_per_pixel() const noexcept { return is_attribute_mode(colormode) ? 1 << attrmode() : 1 << colordepth(); }
 
-	IPixmap(ColorMode CM, AttrHeight AH, coord w, coord h) noexcept;
-	IPixmap(ColorMode CM, AttrHeight AH, const Size& size) noexcept;
 	virtual ~IPixmap() = default;
 
 

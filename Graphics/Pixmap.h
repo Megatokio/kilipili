@@ -60,7 +60,6 @@ class DirectColorPixmap : public IPixmap
 public:
 	const int	 row_offset; // in pixmap[]
 	uint8* const pixmap;
-	const bool	 allocated; // whether pixmap[] was allocated and will be deleted in dtor
 
 	static constexpr ColorDepth CD			   = get_colordepth(CM); // 0 .. 4  log2 of bits per color
 	static constexpr AttrMode	AM			   = attrmode_none;		 // 0 .. 2  log2 of bits per color (dummy)
@@ -133,6 +132,10 @@ public:
 
 	void drawBmp(coord x, coord y, const Bitmap& q, uint color, uint /*ink*/ = 0) noexcept;
 	void drawBmp(const Point& z, const Bitmap& q, uint color, uint /*ink*/ = 0) noexcept;
+
+protected:
+	Pixmap(coord w, coord h, ColorMode, AttrHeight) throws;
+	Pixmap(coord w, coord h, ColorMode, AttrHeight, uint8* pixels, int row_offset) noexcept;
 };
 
 
@@ -158,52 +161,66 @@ inline constexpr int calc_row_offset(ColorDepth CD, int w) noexcept // ctor help
 
 // allocating, throws:
 template<ColorMode CM>
-DirectColorPixmap::Pixmap(const Size& size, AttrHeight) throws : Pixmap(size.width, size.height)
+DirectColorPixmap::Pixmap(coord w, coord h, ColorMode cm, AttrHeight ah) throws :
+	IPixmap(w, h, cm, ah, true /*allocated*/),
+	row_offset(calc_row_offset(CD, w)),
+	pixmap(new uint8[uint(h * row_offset)])
 {}
 
 template<ColorMode CM>
-DirectColorPixmap::Pixmap(coord w, coord h, AttrHeight) throws :
-	IPixmap(CM, attrheight_none, w, h),
-	row_offset(calc_row_offset(CD, w)),
-	pixmap(new uint8[uint(h * row_offset)]),
-	allocated(true)
-{}
+DirectColorPixmap::Pixmap(coord w, coord h, AttrHeight ah) throws : Pixmap(w, h, CM, attrheight_none)
+{
+	// attrheight argument is only for signature compatibility with Pixmap_wAttr version:
+	assert(ah == attrheight_none);
+}
+
+template<ColorMode CM>
+DirectColorPixmap::Pixmap(const Size& sz, AttrHeight ah) throws : Pixmap(sz.width, sz.height, CM, attrheight_none)
+{
+	// attrheight argument is only for signature compatibility with Pixmap_wAttr version:
+	assert(ah == attrheight_none);
+}
+
 
 // not allocating: wrap existing pixels:
 template<ColorMode CM>
-DirectColorPixmap::Pixmap(const Size& size, uint8* pixels, int row_offset) noexcept :
-	Pixmap(size.width, size.height, pixels, row_offset)
+DirectColorPixmap::Pixmap(coord w, coord h, ColorMode cm, AttrHeight ah, uint8* pixels, int row_offset) noexcept :
+	IPixmap(w, h, cm, ah, false /*not allocated*/),
+	row_offset(row_offset),
+	pixmap(pixels)
 {}
 
 template<ColorMode CM>
 DirectColorPixmap::Pixmap(coord w, coord h, uint8* pixels, int row_offset) noexcept :
-	IPixmap(CM, attrheight_none, w, h),
-	row_offset(row_offset),
-	pixmap(pixels),
-	allocated(false)
+	Pixmap(w, h, CM, attrheight_none, pixels, row_offset)
+{}
+
+template<ColorMode CM>
+DirectColorPixmap::Pixmap(const Size& sz, uint8* pixels, int row_offset) noexcept :
+	Pixmap(sz.width, sz.height, CM, attrheight_none, pixels, row_offset)
 {}
 
 // window into other pixmap:
 template<ColorMode CM>
-DirectColorPixmap::Pixmap(Pixmap& q, const Rect& r) noexcept : Pixmap(q, r.left(), r.top(), r.width(), r.height())
+DirectColorPixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
+	IPixmap(w, h, q.IPixmap::colormode, q.IPixmap::attrheight, false /*not allocated*/),
+	row_offset(q.row_offset),
+	pixmap(q.pixmap + y * q.row_offset + (bits_for_pixels(CD, x) >> 3))
+{
+	assert(x >= 0 && w >= 0 && x + w <= q.width);
+	assert(y >= 0 && h >= 0 && y + h <= q.height);
+	assert(bits_for_pixels(CD, x) % 8 == 0);
+}
+
+template<ColorMode CM>
+DirectColorPixmap::Pixmap(Pixmap& q, const Rect& r) noexcept : //
+	Pixmap(q, r.left(), r.top(), r.width(), r.height())
 {}
 
 template<ColorMode CM>
 DirectColorPixmap::Pixmap(Pixmap& q, const Point& p, const Size& size) noexcept :
 	Pixmap(q, p.x, p.y, size.width, size.height)
 {}
-
-template<ColorMode CM>
-DirectColorPixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
-	IPixmap(CM, attrheight_none, w, h),
-	row_offset(q.row_offset),
-	pixmap(q.pixmap + y * q.row_offset + (bits_for_pixels(CD, x) >> 3)),
-	allocated(false)
-{
-	assert(x >= 0 && w >= 0 && x + w <= q.width);
-	assert(y >= 0 && h >= 0 && y + h <= q.height);
-	assert(bits_for_pixels(CD, x) % 8 == 0);
-}
 
 // create Bitmap from Pixmap:
 template<ColorMode CM>

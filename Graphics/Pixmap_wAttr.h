@@ -36,6 +36,7 @@ using PixMap_a2w8i8	 = Pixmap<colormode_a2w8_i8>;
 using PixMap_a2w8rgb = Pixmap<colormode_a2w8_rgb>;
 
 
+// how ugly can it be?
 #define AttrModePixmap Pixmap<CM, typename std::enable_if_t<is_attribute_mode(CM)>>
 
 
@@ -64,16 +65,15 @@ public:
 	static constexpr AttrWidth	attrwidth  = AW; // 0 .. 3  log2 of width of tiles
 
 	using super = Pixmap<ColorMode(AM)>;
-	using super::height;
+	using IPixmap::attrheight;
+	using IPixmap::height;
+	using IPixmap::size;
+	using IPixmap::width;
 	using super::pixmap;
 	using super::row_offset; // in pixels[]
-	using super::size;
-	using super::width;
 
-	const AttrHeight attrheight; // rows per tile: 1 .. 16
-	char			 padding[2];
 
-	Pixmap<ColorMode(CD)> attributes;
+	Pixmap<ColorMode(CD)> attributes; // pixmap with color attributes
 
 
 	// allocating ctor:
@@ -155,12 +155,8 @@ AttrModePixmap::Pixmap(const Size& size, AttrHeight ah) : Pixmap(size.width, siz
 {}
 
 template<ColorMode CM>
-AttrModePixmap::Pixmap(coord w, coord h, AttrHeight ah) :
-	super(w, h),
-	attrheight(ah),
-	attributes(calc_aw(w), calc_ah(h, ah))
+AttrModePixmap::Pixmap(coord w, coord h, AttrHeight ah) : super(w, h, CM, ah), attributes(calc_aw(w), calc_ah(h, ah))
 {
-	assert(AM != attrmode_none);
 	assert(attrheight != attrheight_none);
 }
 
@@ -174,8 +170,7 @@ AttrModePixmap::Pixmap(
 template<ColorMode CM>
 AttrModePixmap::Pixmap(
 	coord w, coord h, uint8* pixels, int row_offs, uint8* attr, int attr_row_offs, AttrHeight ah) noexcept :
-	super(w, h, pixels, row_offs),
-	attrheight(ah),
+	super(w, h, CM, ah, pixels, row_offs),
 	attributes(calc_aw(w), calc_ah(h, ah), attr, attr_row_offs)
 {
 	assert(AM != attrmode_none);
@@ -188,20 +183,19 @@ AttrModePixmap::Pixmap(Pixmap& q, const Rect& r) noexcept : Pixmap(q, r.left(), 
 {}
 
 template<ColorMode CM>
-AttrModePixmap::Pixmap(Pixmap& q, const Point& p, const Size& size) noexcept :
-	Pixmap(q, p.x, p.y, size.width, size.height)
-{}
-
-template<ColorMode CM>
 AttrModePixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
 	super(q, x, y, w, h),
-	attrheight(q.attrheight),
 	attributes(q.attributes, calc_ax(x), calc_ay(y), calc_aw(w), calc_ah(h, q.attrheight))
 {
 	assert(x % (1 << AW) == 0);	  // x must be a multiple of the attribute cell width
 	assert(y % attrheight == 0);  // y must be a multiple of the attribute cell height
 	assert(((x << AM) & 7) == 0); // x must be a multiple of full bytes in pixmap[]  ((tested in super too))
 }
+
+template<ColorMode CM>
+AttrModePixmap::Pixmap(Pixmap& q, const Point& p, const Size& size) noexcept :
+	Pixmap(q, p.x, p.y, size.width, size.height)
+{}
 
 
 // __________________________________________________________________
