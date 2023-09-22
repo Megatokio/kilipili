@@ -3,17 +3,12 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "PicoTerm.h"
+#include "ColorMap.h"
 #include "utilities.h"
-#include <pico/printf.h>
-#include <pico/stdio.h>
-
-// https://k1.spdns.de/Develop/Hardware/Projekte/LM641541%20-%20LCD%20Display%20640x480/
 
 
-namespace kio
+namespace kio::Graphics
 {
-
-using namespace kio::Graphics;
 
 
 // ------------------------------------------------------------
@@ -39,69 +34,29 @@ static constexpr const uint8 dblw[16] = {
 };
 
 
+// ------------------------------------------------------------
+// 				Helper:
+// ------------------------------------------------------------
+
+static constexpr bool is_fup(Char c) noexcept { return schar(c) < schar(0xc0); }
+
+
 // =============================================================================
 //							F U N C T I O N S
 // =============================================================================
 
-template<ColorMode CM>
-PicoTerm<CM>::PicoTerm(Pixmap<CM>& pixmap, Color* colors) :
+
+PicoTerm::PicoTerm(IPixmap& pixmap, Color* colors) :
+	colormode(pixmap.colormode),
+	attrheight(pixmap.attrheight),
 	pixmap(pixmap),
-	colormap(colors),
-	draw_engine(pixmap, colors)
+	colormap(colors)
 {
 	reset();
 }
 
 
-template<ColorMode CM>
-void PicoTerm<CM>::show_cursor(bool show)
-{
-	int x = col * CHAR_WIDTH;
-	int y = row * CHAR_HEIGHT;
-
-	if constexpr (is_direct_color(CM))
-	{
-		// direct color:
-		// for all pixels: pixel ^= fgcolor ^ bgcolor
-
-		uint8* start = pixmap.pixmap + y * pixmap.row_offset;
-		if (show) cursorXorValue = fgcolor ^ bgcolor;
-		Graphics::bitblit::xor_rect_of_bits(
-			start, x << bits_per_color, pixmap.row_offset, CHAR_WIDTH << bits_per_color, CHAR_HEIGHT,
-			Graphics::flood_filled_color<CM>(cursorXorValue));
-	}
-	else
-	{
-		// with attributes:
-		// for all attr.colors: color ^= attr.color[fgcolor] ^ attr.color[bgcolor]
-		// if those colors are the same then xor colors with 0xffff.
-		// if tiles are smaller than a char then the xor is based on the first (top left) tile.
-
-		// TODO: this should be easier to do...
-		int x2 = pixmap.calc_ax(x + CHAR_WIDTH - 1) + (1 << bits_per_color) - 1 + 1;
-		int y2 = pixmap.calc_ay(y + CHAR_HEIGHT - 1) + 1;
-		int x1 = pixmap.calc_ax(x);
-		int y1 = pixmap.calc_ay(y);
-
-		if (show)
-		{
-			uint fg_color  = pixmap.attributes.get_color(x1 + int(fgcolor), y1);
-			uint bg_color  = pixmap.attributes.get_color(x1 + int(bgcolor), y1);
-			cursorXorValue = fg_color ^ bg_color;
-			if (cursorXorValue == 0) cursorXorValue = ~0u;
-		}
-
-		uint8* start = pixmap.attributes.pixmap + y * pixmap.attributes.row_offset;
-		Graphics::bitblit::xor_rect_of_bits(
-			start, x << bits_per_color, pixmap.attributes.row_offset, (x2 - x1) << bits_per_color, (y2 - y1),
-			Graphics::flood_filled_color<CM>(cursorXorValue));
-	}
-
-	cursorVisible = show;
-}
-
-template<ColorMode CM>
-void PicoTerm<CM>::showCursor()
+void PicoTerm::showCursor()
 {
 	if (cursorVisible) return;
 
@@ -109,44 +64,84 @@ void PicoTerm<CM>::showCursor()
 	show_cursor(true);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::scrollScreenUp(int rows /*char*/)
+
+inline void PicoTerm::hideCursor()
+{
+	if (unlikely(cursorVisible)) show_cursor(false);
+}
+
+
+void PicoTerm::scrollScreen(coord dx, coord dy)
+{
+	hideCursor();
+
+	int w = screen_width < abs(dx);
+	int h = screen_height < abs(dy);
+
+	if (w <= 0 || h <= 0) return pixmap.clear(bgcolor, bg_ink);
+
+	Point q {0, 0};
+	Point z {0, 0};
+
+	if (dx)
+	{
+		if (dx < 0) q.x -= dx;
+		else z.x += dx;
+	}
+	if (dy)
+	{
+		if (dy < 0) q.y -= dy;
+		else z.y += dy;
+	}
+
+	pixmap.copyRect(z, pixmap, Rect(q.x, q.y, w, h));
+
+	if (dx)
+	{
+		if (dx < 0) pixmap.fillRect(w, 0, screen_width - w, screen_height, bgcolor, bg_ink);
+		else pixmap.fillRect(0, 0, dx, screen_height, bgcolor, bg_ink);
+	}
+	if (dy)
+	{
+		if (dy < 0) pixmap.fillRect(0, h, screen_width, screen_height - h, bgcolor, bg_ink);
+		else pixmap.fillRect(0, 0, screen_width, dy, bgcolor, bg_ink);
+	}
+}
+
+
+void PicoTerm::scrollScreenUp(int rows /*char*/)
 {
 	// doesn't update the cursor position
 
-	hideCursor();
-	if (rows > 0) draw_engine.scrollScreen(0, -rows * CHAR_HEIGHT, bgcolor);
+	if (rows > 0) scrollScreen(0, -rows * CHAR_HEIGHT);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::scrollScreenDown(int rows /*char*/)
+
+void PicoTerm::scrollScreenDown(int rows /*char*/)
 {
 	// doesn't update the cursor position
 
-	hideCursor();
-	if (rows > 0) draw_engine.scrollScreen(0, +rows * CHAR_HEIGHT, bgcolor);
+	if (rows > 0) scrollScreen(0, +rows * CHAR_HEIGHT);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::scrollScreenLeft(int cols)
+
+void PicoTerm::scrollScreenLeft(int cols)
 {
 	// scroll screen left
 
-	hideCursor();
-	if (cols > 0) draw_engine.scrollScreen(-cols * int(CHAR_WIDTH), 0, bgcolor);
+	if (cols > 0) scrollScreen(-cols * int(CHAR_WIDTH), 0);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::scrollScreenRight(int cols)
+
+void PicoTerm::scrollScreenRight(int cols)
 {
 	// scroll screen right
 
-	hideCursor();
-	if (cols > 0) draw_engine.scrollScreen(+cols * int(CHAR_WIDTH), 0, bgcolor);
+	if (cols > 0) scrollScreen(+cols * int(CHAR_WIDTH), 0);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::validateCursorPosition()
+
+void PicoTerm::validateCursorPosition()
 {
 	// validate cursor position
 	// moves cursor into previous/next line if the column is out of screen
@@ -189,23 +184,24 @@ void PicoTerm<CM>::validateCursorPosition()
 	}
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::readBmp(CharMatrix bmp)
+
+void PicoTerm::readBmp(CharMatrix bmp, bool use_fgcolor)
 {
 	// read BMP of character cell from screen.
-	// all pixels which are not the bgcolor will be set in the bmp[].
 	// read character cell at cursor position.
 	// increment col (as for printing, except no double width/height attribute)
+	// use_fgcolor=1: set bits for pixels in fgcolor
+	// use_fgcolor=0: clr bits for pixels in bgcolor
 
 	validateCursorPosition();
 
 	int x = col++ * CHAR_WIDTH;
 	int y = row * CHAR_HEIGHT;
-	draw_engine.readBmpFromScreen(x, y, CHAR_WIDTH, CHAR_HEIGHT, bmp, bgcolor);
+	pixmap.readBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, use_fgcolor ? fgcolor : bgcolor, use_fgcolor);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::writeBmp(CharMatrix bmp, uint8 attr)
+
+void PicoTerm::writeBmp(CharMatrix bmp, uint8 attr)
 {
 	// write BMP to screen applying the 'late' attributes:
 	//	+ double width
@@ -256,12 +252,13 @@ void PicoTerm<CM>::writeBmp(CharMatrix bmp, uint8 attr)
 
 	int x = col++ * CHAR_WIDTH;
 	int y = row * CHAR_HEIGHT;
-	draw_engine.writeBmpToScreen(
-		x, y, CHAR_WIDTH, CHAR_HEIGHT, bmp, fgcolor, attr & ATTR_OVERPRINT ? DONT_CLEAR : bgcolor);
+
+	if (!(attr & ATTR_OVERPRINT)) pixmap.fillRect(x, y, CHAR_WIDTH, CHAR_HEIGHT, bgcolor, bg_ink);
+	pixmap.drawBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, fgcolor, fg_ink);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::getCharMatrix(CharMatrix charmatrix, Char c)
+
+void PicoTerm::getCharMatrix(CharMatrix charmatrix, Char c)
 {
 	// get character matrix of character c
 	// returns ASCII, UDG or LATIN-1 characters
@@ -290,8 +287,8 @@ void PicoTerm<CM>::getCharMatrix(CharMatrix charmatrix, Char c)
 	}
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::getGraphicsCharMatrix(CharMatrix charmatrix, Char c)
+
+void PicoTerm::getGraphicsCharMatrix(CharMatrix charmatrix, Char c)
 {
 	// calculate graphics character c
 	// returns various block or line graphics
@@ -363,8 +360,8 @@ void PicoTerm<CM>::getGraphicsCharMatrix(CharMatrix charmatrix, Char c)
 	//	else if (c<0xB0)	// 48 unused
 	//	{}
 
-	else if (c < 0xF0) // 80 Liniengrafiken: dünne und dicke Linien
-	{				   // total: 3^4 = 81, aber 4 x ohne => use 'space' oder Grafik '\0'
+	else // if (c < 0xF0)   // 80 Liniengrafiken: dünne und dicke Linien
+	{	 // total: 3^4 = 81, aber 4 x ohne => use 'space' oder Grafik '\0'
 		uint8 a, d;
 		c += 1 - 0xB0;
 		a = uint8(c / 27); // a=0/1/2 => Strich links ohne/dünn/dick
@@ -388,10 +385,12 @@ void PicoTerm<CM>::getGraphicsCharMatrix(CharMatrix charmatrix, Char c)
 			charmatrix[5] |= 0x1F;
 		}
 	}
+
+	// else {} // 16 unused
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::applyAttributes(CharMatrix bmp)
+
+void PicoTerm::applyAttributes(CharMatrix bmp)
 {
 	// apply the simple attributes to a character matrix
 	// - BOLD
@@ -421,8 +420,8 @@ void PicoTerm<CM>::applyAttributes(CharMatrix bmp)
 	}
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::eraseRect(int row, int col, int rows, int cols)
+
+void PicoTerm::eraseRect(int row, int col, int rows, int cols)
 {
 	// erase a rectangular area on the screen
 
@@ -432,60 +431,42 @@ void PicoTerm<CM>::eraseRect(int row, int col, int rows, int cols)
 	{
 		int x = col * CHAR_WIDTH;
 		int y = row * CHAR_HEIGHT;
-		draw_engine.fillRect(Rect(x, y, cols * CHAR_WIDTH, rows * CHAR_HEIGHT), bgcolor, 0);
+		pixmap.fillRect(Rect(x, y, cols * CHAR_WIDTH, rows * CHAR_HEIGHT), bgcolor, bg_ink);
 	}
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::setWindow(int row, int col, int rows, int cols)
-{
-	// limit terminal to a rectangular area on the screen
-	// top,left = cursor position
 
-	validateCursorPosition();
-
-	(void)row;
-	(void)col;
-	if (rows > 0 && cols > 0) { TODO(); }
-	else // reset to full screen
-	{}
-	this->row = 0;
-	this->col = 0;
-}
-
-template<ColorMode CM>
-void PicoTerm<CM>::copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols)
+void PicoTerm::copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols)
 {
 	hideCursor();
 
 	if (rows > 0 && cols > 0)
 	{
-		draw_engine.copyRect(
-			Point(src_col * CHAR_WIDTH, src_row * CHAR_HEIGHT), Point(dest_col * CHAR_WIDTH, dest_row * CHAR_HEIGHT),
-			Dist(cols * CHAR_WIDTH, rows * CHAR_HEIGHT));
+		pixmap.copyRect(
+			src_col * CHAR_WIDTH, src_row * CHAR_HEIGHT, dest_col * CHAR_WIDTH, dest_row * CHAR_HEIGHT,
+			cols * CHAR_WIDTH, rows * CHAR_HEIGHT);
 	}
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::reset()
-{
-	draw_engine.~DrawEngine();
-	new (&draw_engine) DrawEngine<CM>(pixmap, colormap);
 
+void PicoTerm::reset()
+{
 	// ALL SETTINGS := DEFAULT, CLS, HOME CURSOR
 
 	screen_width  = pixmap.width / CHAR_WIDTH;
 	screen_height = pixmap.height / CHAR_HEIGHT;
 
+	bg_ink	= 0;
+	fg_ink	= 1;
 	bgcolor = INVERTED ? 0x00ffffff : 0;
 	fgcolor = INVERTED ? 0 : 0x00ffffff;
 
-	resetColorMap(get_colordepth(CM), colormap);
+	resetColorMap(colordepth, colormap);
 	cls();
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::cls()
+
+void PicoTerm::cls()
 {
 	// CLS, HOME CURSOR, RESET ATTR
 
@@ -494,26 +475,26 @@ void PicoTerm<CM>::cls()
 	attributes	  = 0;
 	cursorVisible = false;
 
-	draw_engine.clearScreen(bgcolor);
+	pixmap.clear(bgcolor, bg_ink);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::moveToPosition(int row, int col) noexcept
+
+void PicoTerm::moveToPosition(int row, int col) noexcept
 {
 	hideCursor();
 	this->row = row;
 	this->col = col;
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::moveToCol(int col) noexcept
+
+void PicoTerm::moveToCol(int col) noexcept
 {
 	hideCursor();
 	this->col = col;
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::pushCursorPosition()
+
+void PicoTerm::pushCursorPosition()
 {
 	//TODO: visibility, window
 	pushedRow  = row;
@@ -521,24 +502,24 @@ void PicoTerm<CM>::pushCursorPosition()
 	pushedAttr = attributes;
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::popCursorPosition()
+
+void PicoTerm::popCursorPosition()
 {
 	row = pushedRow;
 	col = pushedCol;
 	setPrintAttributes(pushedAttr);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::setPrintAttributes(uint8 attr)
+
+void PicoTerm::setPrintAttributes(uint8 attr)
 {
 	attributes = attr;
 	dx		   = attr & ATTR_DOUBLE_WIDTH ? 2 : 1;
 	dy		   = attr & ATTR_DOUBLE_HEIGHT ? 2 : 1;
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::cursorLeft(int count) // BS
+
+void PicoTerm::cursorLeft(int count) // BS
 {
 	// scrolls
 
@@ -555,8 +536,8 @@ void PicoTerm<CM>::cursorLeft(int count) // BS
 		}
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::cursorRight(int count) // FF
+
+void PicoTerm::cursorRight(int count) // FF
 {
 	// scrolls
 
@@ -573,8 +554,8 @@ void PicoTerm<CM>::cursorRight(int count) // FF
 		}
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::cursorUp(int count)
+
+void PicoTerm::cursorUp(int count)
 {
 	// scrolls
 
@@ -582,8 +563,8 @@ void PicoTerm<CM>::cursorUp(int count)
 	if (count > 0) row -= dy * count;
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::cursorDown(int count) // NL
+
+void PicoTerm::cursorDown(int count) // NL
 {
 	// scrolls
 
@@ -591,8 +572,8 @@ void PicoTerm<CM>::cursorDown(int count) // NL
 	if (count > 0) row += dy * count;
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::cursorTab(int count)
+
+void PicoTerm::cursorTab(int count)
 {
 	// scrolls
 
@@ -609,8 +590,8 @@ void PicoTerm<CM>::cursorTab(int count)
 		}
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::cursorReturn()
+
+void PicoTerm::cursorReturn()
 {
 	// COL := 0
 
@@ -618,31 +599,31 @@ void PicoTerm<CM>::cursorReturn()
 	col = 0;
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::clearToEndOfLine()
+
+void PicoTerm::clearToEndOfLine()
 {
 	hideCursor();
 	if (col < screen_width && row < screen_height) eraseRect(row, col, 1 /*rows*/, screen_width - col /*cols*/);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::printCharMatrix(CharMatrix charmatrix, int count)
+
+void PicoTerm::printCharMatrix(CharMatrix charmatrix, int count)
 {
 	applyAttributes(charmatrix);
 
 	while (count--) { writeBmp(charmatrix, attributes); }
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::printChar(Char c, int count)
+
+void PicoTerm::printChar(Char c, int count)
 {
 	uint8 charmatrix[CHAR_HEIGHT];
 	getCharMatrix(charmatrix, c);
 	printCharMatrix(charmatrix, count);
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::printText(cstr s)
+
+void PicoTerm::printText(cstr s)
 {
 	// print printable text string.
 	// no control characters.
@@ -655,10 +636,8 @@ void PicoTerm<CM>::printText(cstr s)
 	}
 }
 
-static constexpr bool is_fup(Char c) noexcept { return schar(c) < schar(0xc0); }
 
-template<ColorMode CM>
-void PicoTerm<CM>::print(cstr s, bool auto_crlf)
+void PicoTerm::print(cstr s, bool auto_crlf)
 {
 	assert(s);
 
@@ -720,14 +699,6 @@ b:
 	case CLS: // CLS, HOME CURSOR, RESET ATTR
 	{
 		cls();
-		break;
-	}
-	case SET_WINDOW: // SET_WINDOW <rows> <cols>
-	{
-		validateCursorPosition();
-		uchar rows = getc();
-		uchar cols = getc();
-		setWindow(row, col, rows, cols);
 		break;
 	}
 	case MOVE_TO_POSITION: // MOVE_TO_POSITION, <row>, <col>
@@ -832,10 +803,10 @@ b:
 	goto loop;
 }
 
-template<ColorMode CM>
-void PicoTerm<CM>::printf(cstr fmt, ...)
+
+void PicoTerm::printf(cstr fmt, ...)
 {
-	constexpr int max_cnt = 79;
+	constexpr int max_cnt = 127;
 	char		  bu[max_cnt + 1];
 
 	va_list va;
@@ -864,51 +835,75 @@ void PicoTerm<CM>::printf(cstr fmt, ...)
 	va_end(va);
 }
 
-template<ColorMode CM>
-char* PicoTerm<CM>::identify(char* txt)
+
+char* PicoTerm::identify(char* buffer)
 {
+	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=rgb
+	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=i8 attr=8*12
+
 	sprintf(
-		txt, "PicoTerm,gfx=%u*%u,txt=%u*%u,csz=%u*%u", pixmap.width, pixmap.height, screen_width, screen_height,
-		CHAR_WIDTH, CHAR_HEIGHT);
-	if (get_attrmode(CM) != attrmode_none)
-		sprintf(strchr(txt, 0), ",asz=%u*%u", 1 << get_attrwidth(CM), pixmap.attrheight);
-	sprintf(strchr(txt, 0), ",%s", tostr(get_colordepth(CM)));
-	return txt;
+		buffer, "PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s", pixmap.width, pixmap.height, screen_width,
+		screen_height, CHAR_WIDTH, CHAR_HEIGHT, tostr(colordepth));
+
+	if (attrmode != attrmode_none) sprintf(strchr(buffer, 0), " attr=%u*%u", 1 << attrwidth, attrheight);
+
+	return buffer;
 }
 
 
-// instantiate them all, unless modified they are only compiled once:
-// otherwise we'll need to define which to implement which leads to idiotic problems.
+void PicoTerm::show_cursor(bool show)
+{
+	// for all pixels: color ^= fgcolor ^ bgcolor
 
-template class PicoTerm<colormode_i1>;
-template class PicoTerm<colormode_i2>;
-template class PicoTerm<colormode_i4>;
-template class PicoTerm<colormode_i8>;
-template class PicoTerm<colormode_rgb>;
-template class PicoTerm<colormode_a1w1_i4>;
-template class PicoTerm<colormode_a1w1_i8>;
-template class PicoTerm<colormode_a1w1_rgb>;
-template class PicoTerm<colormode_a1w2_i4>;
-template class PicoTerm<colormode_a1w2_i8>;
-template class PicoTerm<colormode_a1w2_rgb>;
-template class PicoTerm<colormode_a1w4_i4>;
-template class PicoTerm<colormode_a1w4_i8>;
-template class PicoTerm<colormode_a1w4_rgb>;
-template class PicoTerm<colormode_a1w8_i4>;
-template class PicoTerm<colormode_a1w8_i8>;
-template class PicoTerm<colormode_a1w8_rgb>;
-template class PicoTerm<colormode_a2w1_i4>;
-template class PicoTerm<colormode_a2w1_i8>;
-template class PicoTerm<colormode_a2w1_rgb>;
-template class PicoTerm<colormode_a2w2_i4>;
-template class PicoTerm<colormode_a2w2_i8>;
-template class PicoTerm<colormode_a2w2_rgb>;
-template class PicoTerm<colormode_a2w4_i4>;
-template class PicoTerm<colormode_a2w4_i8>;
-template class PicoTerm<colormode_a2w4_rgb>;
-template class PicoTerm<colormode_a2w8_i4>;
-template class PicoTerm<colormode_a2w8_i8>;
-template class PicoTerm<colormode_a2w8_rgb>;
+	if (show)
+	{
+		cursorXorColor = fgcolor ^ bgcolor; // TODO: ink vs. color everywhere!
+		if (cursorXorColor == 0) cursorXorColor = ~0u;
+	}
+
+	pixmap.xor_rect(col * CHAR_WIDTH, row * CHAR_HEIGHT, CHAR_WIDTH, CHAR_HEIGHT, cursorXorColor);
+	cursorVisible = show;
+}
 
 
-} // namespace kio
+} // namespace kio::Graphics
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
