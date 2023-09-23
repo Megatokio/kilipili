@@ -111,7 +111,11 @@ void Scanvideo::teardown() noexcept
 	idle_action		   = nullptr;
 	num_vblank_actions = 0;
 
-	while (num_planes--) { planes[num_planes]->teardown(num_planes, video_queue); }
+	while (num_planes)
+	{
+		num_planes--;
+		planes[num_planes]->teardown(num_planes, video_queue);
+	}
 
 	is_initialized = false;
 }
@@ -219,9 +223,9 @@ void Scanvideo::core1_runner() noexcept
 		print_core();
 		print_stack_free();
 		init_stack_guard();
-		
-		auto& scanvideo = getRef();
-		scanvideo.video_output_running = true;		
+
+		auto& scanvideo				   = getRef();
+		scanvideo.video_output_running = true;
 		scanvideo.video_runner();
 		scanvideo.video_output_running = false;
 		__sev();
@@ -329,4 +333,3 @@ void Scanvideo::waitForScanline(ScanlineID n) noexcept { scanline_sm.waitForScan
 
 
 */
-
