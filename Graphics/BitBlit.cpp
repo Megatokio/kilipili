@@ -642,6 +642,12 @@ void clear_row_of_bits_with_mask(uint8* zp, int zx, int width, uint32 color, uin
 
 void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int height, uint32 color) noexcept
 {
+	//printf("clear_rect_of_bits:\n");
+	//printf("  xoffs=%i\n", xoffs);
+	//printf("  row_offs=%i\n", row_offset);
+	//printf("  width=%i\n", width);
+	//printf("  height=%i\n", height);
+
 	if (unlikely(width <= 0 || height <= 0)) return;
 
 	if (unlikely(row_offset & 3))
@@ -670,41 +676,64 @@ void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int hei
 	// row_offset is a multiple of 4
 	// => alignment from row to row won't change!
 
+	// add full bytes from xoffs to zp:
 	zp += xoffs >> 3;
 	xoffs &= 7;
 
-	int		o = int(zp) & 3; // align zp to int32
+	// align zp to int32:
+	int		o = int(zp) & 3;
 	uint32* p = reinterpret_cast<uint32*>(zp - o);
 	xoffs += o << 3;
 
-	uint32 lmask = ~0u << xoffs; // mask bits to set at left end
-	width -= 32 - xoffs;
-	uint32 rmask = ~0u << ((32 - width) & 31); // mask bits to set at right end
+	// mask for bits to set at left end:  (note: lsb is left!)
+	int keep = xoffs;
+	width += keep;
+	uint32 lmask = ~0u << keep;
 
-	if (width <= 0)
+	// mask for bits to set at right end:
+	keep = -width & 31;
+	width += keep;
+	uint32 rmask = ~0u >> keep;
+
+	int cnt = width >> 5;
+	int dp	= (row_offset >> 2) - cnt;
+
+	assert(cnt > 0);
+
+	//printf("  cnt = %i\n", cnt);
+	//printf("  dp  = %i\n", dp);
+	//printf("  lmask = 0x%08x\n", lmask);
+	//printf("  rmask = 0x%08x\n", rmask);
+	//printf("  p=%u\n", uint(p));
+
+	if (cnt == 1)
 	{
 		color &= lmask & rmask;
-		uint32 mask = ~(lmask & rmask);
+		uint32 mask = ~(lmask & rmask); // bits to keep
 
 		while (height--)
 		{
-			*p = (*p & mask) | color;
-			p += row_offset >> 2;
+			*p++ = (*p & mask) | color;
+			p += dp;
 		}
 	}
 	else
 	{
-		int cnt = width >> 5;					 // number of full words
-		int dp	= (row_offset >> 2) - (cnt + 1); // remaining offset (words)
+		uint32 lcolor = color & lmask;
+		uint32 rcolor = color & rmask;
+		lmask		  = ~lmask; // bits to keep
+		rmask		  = ~rmask; // bits to keep
 
 		while (height--)
 		{
-			*p++ = (*p & ~lmask) | (color & lmask);
-			for (int i = 0; i < cnt; i++) { *p++ = color; }
-			*p = (*p & ~rmask) | (color & rmask);
+			*p++ = (*p & lmask) | lcolor;
+			for (int i = 0; i < cnt - 2; i++) { *p++ = color; }
+			*p++ = (*p & rmask) | rcolor;
 			p += dp;
 		}
 	}
+
+	//printf("  p=%u\n", uint(p));
 }
 
 void xor_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int height, uint32 color) noexcept
