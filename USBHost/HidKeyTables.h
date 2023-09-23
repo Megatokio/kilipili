@@ -6,22 +6,11 @@
 #include "standard_types.h"
 
 
-#ifndef USE_WIDECHARS
-  #define USE_WIDECHARS 0
-#endif
-
-#if USE_WIDECHARS
-using Char = uint16;
-#else
-using Char = uchar;
-#endif
-
-
 namespace kio::USB
 {
 
 constexpr uint KEY_TRANSLATION_TABLE_SIZE = 0x68;
-using KeyTable							  = Char[KEY_TRANSLATION_TABLE_SIZE];
+using KeyTable							  = uchar[KEY_TRANSLATION_TABLE_SIZE];
 
 
 extern const KeyTable key_table_us;

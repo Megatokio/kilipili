@@ -17,7 +17,7 @@ static CharEventHandler*	  char_event_cb = nullptr;
 
 static KeyboardReport old_report; // most recent report
 
-static const Char* key_table[2][2] = // [w/shift][w/alt]
+static const uchar* key_table[2][2] = // [w/shift][w/alt]
 	{{
 		 key_table_us, // solo
 		 key_table_us  // alt

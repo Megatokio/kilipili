@@ -34,13 +34,6 @@ static constexpr const uint8 dblw[16] = {
 };
 
 
-// ------------------------------------------------------------
-// 				Helper:
-// ------------------------------------------------------------
-
-static constexpr bool is_fup(Char c) noexcept { return schar(c) < schar(0xc0); }
-
-
 // =============================================================================
 //							F U N C T I O N S
 // =============================================================================
@@ -263,7 +256,7 @@ void PicoTerm::writeBmp(CharMatrix bmp, uint8 attr)
 }
 
 
-void PicoTerm::getCharMatrix(CharMatrix charmatrix, Char c)
+void PicoTerm::getCharMatrix(CharMatrix charmatrix, char cc)
 {
 	// get character matrix of character c
 	// returns ASCII, UDG or LATIN-1 characters
@@ -274,6 +267,8 @@ void PicoTerm::getCharMatrix(CharMatrix charmatrix, Char c)
 	// 0x80 .. 0x9F	UDG
 	// 0xA0 .. 0xFF	LATIN-1
 
+	uchar c = uchar(cc);
+
 	if (attributes & ATTR_GRAPHICS_CHARACTERS) { getGraphicsCharMatrix(charmatrix, c); }
 	else
 	{
@@ -281,11 +276,8 @@ void PicoTerm::getCharMatrix(CharMatrix charmatrix, Char c)
 
 		if (c < 0x20) {}
 		else if (c < 0x80) { o = c - 32; }
-		else if (c < 0xA0)
-		{
-			// readUDG(c,charmatrix);		LCD: read from eeprom
-		}
-		else if (c <= 0xFF) { o = c - 64; }
+		else if (c < 0xA0) {} // readUDG(c,charmatrix);		TODO:  LCD: read from eeprom
+		else { o = c - 64; }
 
 		const uchar* p = font + o * CHAR_HEIGHT;
 		memcpy(charmatrix, p, CHAR_HEIGHT);
@@ -293,11 +285,12 @@ void PicoTerm::getCharMatrix(CharMatrix charmatrix, Char c)
 }
 
 
-void PicoTerm::getGraphicsCharMatrix(CharMatrix charmatrix, Char c)
+void PicoTerm::getGraphicsCharMatrix(CharMatrix charmatrix, char cc)
 {
 	// calculate graphics character c
 	// returns various block or line graphics
 
+	uchar c = uchar(cc);
 	uint8 i = 0, b, n;
 
 	//	if(c<0x20)			// control codes
@@ -620,7 +613,7 @@ void PicoTerm::printCharMatrix(CharMatrix charmatrix, int count)
 }
 
 
-void PicoTerm::printChar(Char c, int count)
+void PicoTerm::printChar(char c, int count)
 {
 	uint8 charmatrix[CHAR_HEIGHT];
 	getCharMatrix(charmatrix, c);
@@ -652,38 +645,7 @@ loop:
 	int repeat_count = 1;
 
 loop_repeat:
-
-a:
-	Char c = *s++;
-b:
-	if (USE_WIDECHARS && c >= 0x80) // decode utf-8
-	{
-		if (is_fup(c)) goto a; // ignore unexpected fup
-
-		Char c1 = c;
-		c		= getc();
-		if (!is_fup(c)) goto b; // ignore broken char
-
-		if (c1 < 0xE0) // 1 fup:
-		{
-			c = Char(((c1 & 0x1F) << 6) + (c & 0x3F));
-		}
-		else
-		{
-			Char c2 = c;
-			c		= getc();
-			if (!is_fup(c)) goto b; // ignore broken char
-
-			if (c1 < 0xF0) // 2 fup:
-			{
-				c = Char(((c1 & 0x0F) << 12) + ((c2 & 0x3F) << 6) + (c & 0x3F));
-			}
-			else
-			{
-				c = '_'; // too large for UCS2
-			}
-		}
-	}
+	uchar c = uchar(*s++);
 
 	if (c >= 32) // printable char
 	{

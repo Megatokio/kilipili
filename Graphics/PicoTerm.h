@@ -5,20 +5,9 @@
 #pragma once
 #include "IPixmap.h"
 
+
 namespace kio::Graphics
 {
-
-
-#ifndef USE_WIDECHARS
-  #define USE_WIDECHARS 0
-#endif
-
-#if USE_WIDECHARS
-using Char = uint16;
-#else
-using Char = uchar;
-#endif
-
 
 class PicoTerm
 {
@@ -111,7 +100,7 @@ public:
 	void popCursorPosition();
 	void setPrintAttributes(uint8 attr);
 	void printCharMatrix(CharMatrix, int count = 1);
-	void printChar(Char c, int count = 1);
+	void printChar(char c, int count = 1);
 	void printText(cstr text);
 	//void print(std::function<char(void*data)>);
 	void print(cstr text_w_controlcodes, bool auto_crlf = true);
@@ -137,8 +126,8 @@ public:
 
 	void readBmp(CharMatrix, bool use_fgcolor);
 	void writeBmp(CharMatrix, uint8 attr);
-	void getCharMatrix(CharMatrix, Char c);
-	void getGraphicsCharMatrix(CharMatrix, Char c);
+	void getCharMatrix(CharMatrix, char c);
+	void getGraphicsCharMatrix(CharMatrix, char c);
 	void applyAttributes(CharMatrix);
 	void eraseRect(int row, int col, int rows, int cols);
 

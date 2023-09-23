@@ -25,6 +25,20 @@ add_library(kipili_usb_host STATIC
 	tusb_config.h
 	)
 
+
+option(ENABLE_USB_HOST     "Enable USB host mode" ON)
+option(ENABLE_USB_KEYBOARD "Enable USB keyboard in USB host mode" ON)
+option(ENABLE_USB_MOUSE    "Enable USB mouse in USB host mode" ON)
+
+
+target_compile_definitions(kipili_usb_host PUBLIC
+	ON=1 OFF=0
+	#
+	ENABLE_USB_HOST=${ENABLE_USB_HOST}
+	ENABLE_USB_MOUSE=${ENABLE_USB_MOUSE}
+	ENABLE_USB_KEYBOARD=${ENABLE_USB_KEYBOARD}
+	)
+
 target_compile_definitions(kipili_usb_host PRIVATE
 	CFG_TUH_HID=4	# number of mouse+kbd   [4]
 	CFG_TUH_MSC=1	# number of ubs sticks  [1]
