@@ -51,9 +51,10 @@ public:
 		VideoPlane::setup(plane, width, vq); // setup buffers
 		setupScanlineRenderer<CM>(colormap); // setup render function
 		framebuffer_setup_helper(plane, width, vq);
+		FrameBuffer::vblank();				 // reset state variables
 	}
 
-	virtual void teardown(uint plane, VideoQueue& vq) noexcept
+	virtual void teardown(uint plane, VideoQueue& vq) noexcept override
 	{
 		teardownScanlineRenderer<CM>();
 		VideoPlane::teardown(plane, vq);
@@ -118,9 +119,10 @@ public:
 		VideoPlane::setup(plane, width, vq); // setup buffers
 		setupScanlineRenderer<CM>(colormap); // setup render function
 		framebuffer_setup_helper(plane, width, vq);
+		FrameBuffer::vblank();				 // reset state variables
 	}
 
-	virtual void teardown(uint plane, VideoQueue& vq) noexcept
+	virtual void teardown(uint plane, VideoQueue& vq) noexcept override
 	{
 		teardownScanlineRenderer<CM>();
 		VideoPlane::teardown(plane, vq);
