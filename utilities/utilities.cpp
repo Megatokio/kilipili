@@ -61,16 +61,20 @@ size_t calc_heap_free()
 
 ptr core0_stack_bottom()
 {
-	ptr sa = &__scratch_y_start__;
-	ptr se = &__scratch_y_end__;
-	return sa == se ? sa : &__StackBottom;
+	//printf("__scratch_y_start__= 0x%08x\n", uint(&__scratch_y_start__));
+	//printf("__scratch_y_end__  = 0x%08x\n", uint(&__scratch_y_end__));
+	//printf("__StackZeroBottom  = 0x%08x\n", uint(&__StackBottom));
+
+	return &__scratch_y_end__;
 }
 
 ptr core1_stack_bottom()
 {
-	ptr sa = &__scratch_x_start__;
-	ptr se = &__scratch_x_end__;
-	return sa == se ? sa : &__StackOneBottom;
+	//printf("__scratch_x_start__= 0x%08x\n", uint(&__scratch_x_start__));
+	//printf("__scratch_x_end__  = 0x%08x\n", uint(&__scratch_x_end__));
+	//printf("__StackOneBottom   = 0x%08x\n", uint(&__StackOneBottom));
+
+	return &__scratch_x_end__;
 }
 
 ptr stack_bottom(uint core) { return core == 0 ? core0_stack_bottom() : core1_stack_bottom(); }
