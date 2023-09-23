@@ -154,7 +154,7 @@ inline void RAM ScanlineSM::prepare_for_active_scanline() noexcept
 	{
 	a:
 		video_queue.push_free(); // release the recent scanline
-								 //__sev(); // TODO
+		__sev(); 
 	}
 
 	if (video_queue.full_avail())
