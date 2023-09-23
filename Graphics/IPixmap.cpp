@@ -118,7 +118,7 @@ void IPixmap::read_hline_bmp(coord x, coord y, coord w, uint8* z, uint color, bo
 	while (w > 0)
 	{
 		uint8 byte = set ? 0 : 0xff;
-		for (uint m = 0; m < 0x100; m = m << 1)
+		for (uint m = 1; m < 0x100; m = m << 1)
 		{
 			if (get_color(x++, y) == color) byte ^= m;
 		}
@@ -145,7 +145,7 @@ void IPixmap::draw_hline_bmp(coord x, coord y, coord w, const uint8* q, uint col
 		uint8 byte = *q++;
 		if (w < 0) byte &= 0xff >> -w;
 
-		for (uint m = 0; m < 0x100; m = m << 1)
+		for (uint m = 1; m < 0x100; m = m << 1)
 		{
 			if (byte & m) set_pixel(x, y, color, ink);
 			x++;
