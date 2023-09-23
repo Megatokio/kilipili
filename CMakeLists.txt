@@ -3,12 +3,12 @@ cmake_minimum_required(VERSION 3.13)
 
 
 #########################################
-# kipili/CMakeLists.txt
+# kilipili/CMakeLists.txt
 #
-# all kipili subdirectories except USBHost
+# all kilipili subdirectories except USBHost
 
 
-add_library(kipili STATIC
+add_library(kilipili STATIC
 	)
 
 # dependencies:
@@ -18,16 +18,16 @@ add_subdirectory(Graphics)
 add_subdirectory(Video)
 
 # add current dir to 'include search path':
-target_include_directories(kipili PUBLIC
+target_include_directories(kilipili PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
 	)
 
 # dependencies. this also adds the include paths:
-target_link_libraries(kipili PUBLIC
-	kipili_common
-	kipili_utilities
-	kipili_graphics
-	kipili_video
+target_link_libraries(kilipili PUBLIC
+	kilipili_common
+	kilipili_utilities
+	kilipili_graphics
+	kilipili_video
 	)
 
 

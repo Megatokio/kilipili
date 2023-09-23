@@ -9,7 +9,7 @@ set(FAMILY rp2040)
 set(BOARD pico_sdk)
 set(TINYUSB_FAMILY_PROJECT_NAME_PREFIX "tinyusb_host_")
 
-add_library(kipili_usb_host STATIC
+add_library(kilipili_usb_host STATIC
 	hid_handler.cpp
 	hid_handler.h
 	msc_handler.cpp
@@ -31,7 +31,7 @@ option(ENABLE_USB_KEYBOARD "Enable USB keyboard in USB host mode" ON)
 option(ENABLE_USB_MOUSE    "Enable USB mouse in USB host mode" ON)
 
 
-target_compile_definitions(kipili_usb_host PUBLIC
+target_compile_definitions(kilipili_usb_host PUBLIC
 	ON=1 OFF=0
 	#
 	ENABLE_USB_HOST=${ENABLE_USB_HOST}
@@ -39,7 +39,7 @@ target_compile_definitions(kipili_usb_host PUBLIC
 	ENABLE_USB_KEYBOARD=${ENABLE_USB_KEYBOARD}
 	)
 
-target_compile_definitions(kipili_usb_host PRIVATE
+target_compile_definitions(kilipili_usb_host PRIVATE
 	CFG_TUH_HID=4	# number of mouse+kbd   [4]
 	CFG_TUH_MSC=1	# number of ubs sticks  [1]
 	CFG_TUH_CDC=1	# number of communication devices [1]
@@ -47,14 +47,14 @@ target_compile_definitions(kipili_usb_host PRIVATE
 	)
 
 # Make sure TinyUSB can find tusb_config.h
-target_include_directories(kipili_usb_host PUBLIC
+target_include_directories(kilipili_usb_host PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
 	)
 
 # additional dependencies on tinyusb_host for TinyUSB device support
-target_link_libraries(kipili_usb_host PUBLIC
+target_link_libraries(kilipili_usb_host PUBLIC
 	tinyusb_host
-	kipili_common
+	kilipili_common
 	)
 
 

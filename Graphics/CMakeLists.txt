@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.13)
 # Graphics/CMakeLists.txt
 
 
-add_library(kipili_graphics STATIC
+add_library(kilipili_graphics STATIC
 	DrawEngine.cpp
 	DrawEngine.h
 	fixint.h
@@ -29,19 +29,19 @@ add_library(kipili_graphics STATIC
 	PicoTerm.cpp
 	)
 
-target_compile_definitions(kipili_graphics PUBLIC
+target_compile_definitions(kilipili_graphics PUBLIC
 	)
 
 # add current dir to 'include search path':
-target_include_directories(kipili_graphics PUBLIC
+target_include_directories(kilipili_graphics PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
 	)
 
 # dependencies:
-target_link_libraries(kipili_graphics PUBLIC
-	kipili_common
-	kipili_utilities
-	kipili_usb_host
+target_link_libraries(kilipili_graphics PUBLIC
+	kilipili_common
+	kilipili_utilities
+	kilipili_usb_host
 	pico_stdlib
 	hardware_dma
 	hardware_pwm

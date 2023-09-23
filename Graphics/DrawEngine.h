@@ -7,7 +7,7 @@
 #include "Pixmap_wAttr.h"
 #include "geometry.h"
 #include "graphics_types.h"
-#include "kipili_common.h"
+#include "kilipili_common.h"
 
 /*
 	Basic 2D Graphics

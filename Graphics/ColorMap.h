@@ -5,7 +5,7 @@
 #pragma once
 #include "Color.h"
 #include "graphics_types.h"
-#include "kipili_common.h"
+#include "kilipili_common.h"
 
 namespace kio::Graphics
 {

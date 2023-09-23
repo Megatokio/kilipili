@@ -11,7 +11,7 @@
 */
 
 #include "ScanlineRenderFu.h"
-#include "kipili_common.h"
+#include "kilipili_common.h"
 #include <hardware/interp.h>
 
 

@@ -4,7 +4,7 @@
 
 #include "USBKeyboard.h"
 #include "hid_handler.h"
-#include "kipili_cdefs.h"
+#include "kilipili_cdefs.h"
 #include "utilities/BucketList.h"
 
 

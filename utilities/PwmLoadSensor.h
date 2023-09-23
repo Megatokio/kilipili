@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "kipili_common.h"
+#include "kilipili_common.h"
 #include <hardware/pwm.h>
 #include <pico/stdlib.h>
 
