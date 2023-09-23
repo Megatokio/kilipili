@@ -459,6 +459,10 @@ void PicoTerm::reset()
 	bgcolor = INVERTED ? 0x00ffffff : 0;
 	fgcolor = INVERTED ? 0 : 0x00ffffff;
 
+	pushedRow  = 0;
+	pushedCol  = 0;
+	pushedAttr = 0;
+
 	resetColorMap(colordepth, colormap);
 	cls();
 }
