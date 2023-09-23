@@ -216,11 +216,12 @@ void Scanvideo::core1_runner() noexcept
 
 	try
 	{
-		auto& scanvideo				   = getRef();
-		scanvideo.video_output_running = true;
-		init_stack_guard();
 		print_core();
 		print_stack_free();
+		init_stack_guard();
+		
+		auto& scanvideo = getRef();
+		scanvideo.video_output_running = true;		
 		scanvideo.video_runner();
 		scanvideo.video_output_running = false;
 		__sev();
@@ -260,14 +261,11 @@ void RAM Scanvideo::video_runner()
 
 		if (unlikely(++row != scanline->id.scanline)) // next frame or missed row
 		{
-			if (row < scanline->id.scanline) // next frame
+			if (row > scanline->id.scanline) // next frame
 			{
 				if (unlikely(!video_output_enabled)) break;
-
 				locker();
-
 				for (uint i = 0; i < num_vblank_actions; i++) { vblank_actions[i]->vblank(); }
-
 				for (uint i = 0; i < num_planes; i++) { planes[i]->vblank(); }
 			}
 
@@ -291,3 +289,44 @@ void Scanvideo::waitForScanline(ScanlineID n) noexcept { scanline_sm.waitForScan
 
 
 } // namespace kio::Video
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
+
