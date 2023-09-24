@@ -50,9 +50,10 @@ public:
 	using coord = Graphics::coord;
 	using Size	= Graphics::Size;
 
-	static constexpr uint max_vblank_actions = 8;
-	static constexpr uint max_planes		 = PICO_SCANVIDEO_PLANE_COUNT;
-	using idle_fu							 = void();
+	static constexpr uint max_vblank_actions  = 8;
+	static constexpr uint max_onetime_actions = 4;
+	static constexpr uint max_planes		  = PICO_SCANVIDEO_PLANE_COUNT;
+	using idle_fu							  = void();
 
 	idle_fu* idle_action = nullptr;
 
@@ -63,6 +64,9 @@ public:
 	VBlankAction* vblank_actions[max_vblank_actions];
 	uint8		  vblank_when[max_vblank_actions];
 
+	uint				  num_onetime_actions = 0;
+	std::function<void()> onetime_actions[max_onetime_actions]; // TODO this could be a queue
+
 	bool		  video_output_enabled = false;
 	volatile bool video_output_running = false;
 	bool		  is_initialized	   = false;
@@ -70,8 +74,8 @@ public:
 	static Size	 size;
 	static coord width() noexcept { return size.width; }
 	static coord height() noexcept { return size.height; }
-	
-	
+
+
 	static VideoController& getRef() noexcept; // get reference to singleton (and claim hardware)
 
 	Error setup(const VgaMode*, const VgaTiming*);
@@ -83,6 +87,7 @@ public:
 	void addVBlankAction(VBlankAction* fu, uint8 when) noexcept;
 	void removeVBlankAction(VBlankAction*);
 	void setIdleAction(idle_fu* fu) noexcept { idle_action = fu; }
+	void addOneTimeAction(std::function<void()> fu) noexcept;
 
 	void startVideo();
 	void stopVideo();

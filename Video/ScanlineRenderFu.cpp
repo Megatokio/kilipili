@@ -14,7 +14,6 @@
 #include "kilipili_common.h"
 #include <hardware/interp.h>
 
-
 // silence warnings:
 // clang-format off
 #define interp_hw_array ((interp_hw_t *)(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET))
@@ -84,6 +83,8 @@ void setupScanlineRenderer(const Color* colormap)
 {
 	constexpr ColorDepth cd = get_colordepth(CM);
 	constexpr AttrMode	 am = get_attrmode(CM);
+
+	assert(get_core_num() == 1);
 
 	// setup interp0:
 	if (cd != colordepth_16bpp)

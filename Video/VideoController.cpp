@@ -111,6 +111,11 @@ void VideoController::teardown() noexcept
 	idle_action		   = nullptr;
 	num_vblank_actions = 0;
 
+	while (num_onetime_actions)
+	{
+		onetime_actions[--num_onetime_actions] = [] {};
+	}
+
 	while (num_planes)
 	{
 		num_planes--;
@@ -120,17 +125,28 @@ void VideoController::teardown() noexcept
 	is_initialized = false;
 }
 
+void VideoController::addOneTimeAction(std::function<void()> fu) noexcept
+{
+	assert(is_initialized);
+	assert(num_onetime_actions < max_onetime_actions);
+	locker();
+	onetime_actions[num_onetime_actions++] = std::move(fu);
+}
+
 void VideoController::addPlane(VideoPlane* plane)
 {
 	assert(is_initialized);
 	assert(plane != nullptr);
-
-	locker();
 	assert(num_planes < max_planes);
 
-	planes[num_planes] = plane;
-	plane->setup(num_planes, width(), video_queue); // throws
-	num_planes++;									// increment late because video_runner() does not lock
+	// plane must be added by core1 because plane->setup() may initialize the hw interp:
+
+	addOneTimeAction([this, plane] {
+		assert(num_planes < max_planes);
+		planes[num_planes] = plane;
+		plane->setup(num_planes, width(), video_queue); // throws
+		num_planes++;
+	});
 }
 
 void VideoController::removePlane(VideoPlane* plane)
@@ -269,6 +285,16 @@ void RAM VideoController::video_runner()
 			{
 				if (unlikely(!video_output_enabled)) break;
 				locker();
+				if (unlikely(num_onetime_actions))
+				{
+					for (uint i = 0; i < num_onetime_actions; i++)
+					{
+						auto& ota = onetime_actions[i];
+						ota();
+						ota = [] {};
+					}
+					num_onetime_actions = 0;
+				}
 				for (uint i = 0; i < num_vblank_actions; i++) { vblank_actions[i]->vblank(); }
 				for (uint i = 0; i < num_planes; i++) { planes[i]->vblank(); }
 			}
