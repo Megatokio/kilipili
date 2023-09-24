@@ -937,7 +937,7 @@ void draw_bmp_2bpp(
 				zp[x]					 = (zp[x] & ~doubled_bits_mask) | (color & doubled_bits_mask);
 			}
 
-			zp += z_row_offs;
+			zp += z_row_offs >> 1;
 			qp += q_row_offs;
 		}
 		return;
@@ -1013,7 +1013,7 @@ void draw_bmp_4bpp(
 				zp[x]						= (zp[x] & ~quadrupled_bits_mask) | (color & quadrupled_bits_mask);
 			}
 
-			zp += z_row_offs;
+			zp += z_row_offs >> 2;
 			qp += q_row_offs;
 		}
 		return;
@@ -1050,7 +1050,7 @@ void draw_bmp_4bpp(
 		*zp = zbyte;
 
 		qp += q_row_offs;
-		zp += z_row_offs;
+		zp += z_row_offs >> 2;
 	}
 }
 
@@ -1143,7 +1143,7 @@ void draw_chr_2bpp(uint8* zp0, int zx, int z_row_offs, const uint8* qp, int heig
 	{
 		uint16 doubled_bits_mask = bitblit::double_bits(*qp++);
 		*zp						 = (*zp & ~doubled_bits_mask) | (color & doubled_bits_mask);
-		zp += z_row_offs;
+		zp += z_row_offs >> 1;
 	}
 }
 
@@ -1168,7 +1168,7 @@ void draw_chr_4bpp(uint8* zp0, int zx, int z_row_offs, const uint8* qp, int heig
 	{
 		uint32 quadrupled_bits_mask = bitblit::quadruple_bits(*qp++);
 		*zp							= (*zp & ~quadrupled_bits_mask) | (color & quadrupled_bits_mask);
-		zp += z_row_offs;
+		zp += z_row_offs >> 2;
 	}
 }
 
