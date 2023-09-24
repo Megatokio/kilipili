@@ -457,8 +457,8 @@ void PicoTerm::reset()
 
 	bg_ink	= 0;
 	fg_ink	= 1;
-	bgcolor = 0x00ffffff; // white / light
-	fgcolor = 0;		  // black / dark
+	bgcolor = default_bgcolor; // white / light
+	fgcolor = default_fgcolor; // black / dark
 
 	pushedRow  = 0;
 	pushedCol  = 0;
@@ -620,8 +620,6 @@ void PicoTerm::printCharMatrix(CharMatrix charmatrix, int count)
 
 void PicoTerm::printChar(char c, int count)
 {
-	//::printf("%s\n", __func__);
-
 	CharMatrix charmatrix;
 	getCharMatrix(charmatrix, c);
 	printCharMatrix(charmatrix, count);

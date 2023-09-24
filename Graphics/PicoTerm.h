@@ -15,8 +15,8 @@ public:
 	static constexpr int CHAR_HEIGHT = 12;
 	static constexpr int CHAR_WIDTH	 = 8;
 
-	static constexpr int default_bgcolor = 0x0000ffff; // white paper (note: ic1 has inverted default colormap)
-	static constexpr int default_fgcolor = 0;		   // black ink   (      => black paper & green ink)
+	static constexpr uint default_bgcolor = 0x0000ffff; // white paper (note: ic1 has inverted default colormap)
+	static constexpr uint default_fgcolor = 0;			// black ink   (      => black paper & green ink)
 
 	using CharMatrix = uint8[CHAR_HEIGHT];
 
