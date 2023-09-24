@@ -84,14 +84,6 @@ static_assert(Color::fromRGB5(0x22, 0x33, 0x44, 5).alpha == 1);
 
 #endif
 
-inline cstr tostr(Color c)
-{
-	static char bu[16];
-	if (c.is_transparent()) snprintf(bu, 16, "rgba=%u,%u,%u,1", c.red, c.green, c.blue);
-	else snprintf(bu, 16, "rgb=%u,%u,%u", c.red, c.green, c.blue);
-	return bu;
-}
-
 //namespace Color
 //{
 constexpr Color transparent	   = Color::fromRGB8(0, 0, 0, 0);
@@ -115,3 +107,12 @@ constexpr Color grey		   = Color::fromRGB8(0x88, 0x88, 0x88);
 //}
 
 } // namespace kio::Graphics
+
+
+inline cstr tostr(kio::Graphics::Color c)
+{
+	static char bu[16];
+	if (c.is_transparent()) snprintf(bu, 16, "rgba=%u,%u,%u,1", c.red, c.green, c.blue);
+	else snprintf(bu, 16, "rgb=%u,%u,%u", c.red, c.green, c.blue);
+	return bu;
+}
