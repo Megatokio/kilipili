@@ -535,9 +535,9 @@ void draw_bitmap(uint8* zp, int zrow_offs, int x, const uint8* qp, int qrow_offs
 	{
 		draw_bmp_8bpp(zp + (x << (CD >> 3)), zrow_offs, qp, qrow_offs, w, h, color);
 	}
-	else if constexpr (CD == colordepth_4bpp) { draw_bmp_4bpp(zp, x << CD, zrow_offs, zp, zrow_offs, w, h, color); }
-	else if constexpr (CD == colordepth_2bpp) { draw_bmp_2bpp(zp, x << CD, zrow_offs, zp, zrow_offs, w, h, color); }
-	else if constexpr (CD == colordepth_1bpp) { draw_bmp_1bpp(zp, x << CD, zrow_offs, zp, zrow_offs, w, h, color); }
+	else if constexpr (CD == colordepth_4bpp) { draw_bmp_4bpp(zp, x << CD, zrow_offs, qp, qrow_offs, w, h, color); }
+	else if constexpr (CD == colordepth_2bpp) { draw_bmp_2bpp(zp, x << CD, zrow_offs, qp, qrow_offs, w, h, color); }
+	else if constexpr (CD == colordepth_1bpp) { draw_bmp_1bpp(zp, x << CD, zrow_offs, qp, qrow_offs, w, h, color); }
 	else IERR();
 }
 
