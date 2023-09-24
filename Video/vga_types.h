@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Scanvideo.h"
+#include "VideoController.h"
 #include "graphics_types.h"
 
 

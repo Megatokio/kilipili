@@ -21,8 +21,8 @@ add_library(kilipili_video STATIC
 	VideoPlane.h
 	ScanlineSM.cpp
 	ScanlineSM.h
-	Scanvideo.cpp
-	Scanvideo.h
+	VideoController.cpp
+	VideoController.h
 	Sprites.cpp
 	Sprites.h
 	StackInfo.cpp

@@ -41,7 +41,7 @@ namespace kio::Video
 */
 
 
-class Scanvideo
+class VideoController
 {
 	static void core1_runner() noexcept;
 	void		video_runner();
@@ -70,9 +70,9 @@ public:
 	static Size	 size;
 	static coord width() noexcept { return size.width; }
 	static coord height() noexcept { return size.height; }
-
-
-	static Scanvideo& getRef() noexcept; // get reference to singleton (and claim hardware)
+	
+	
+	static VideoController& getRef() noexcept; // get reference to singleton (and claim hardware)
 
 	Error setup(const VgaMode*, const VgaTiming*);
 	Error setup(const VgaMode* mode) { return setup(mode, mode->default_timing); }
@@ -92,7 +92,7 @@ public:
 	static void waitForScanline(ScanlineID n) noexcept;
 
 private:
-	Scanvideo() noexcept;
+	VideoController() noexcept;
 };
 
 

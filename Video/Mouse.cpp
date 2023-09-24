@@ -4,7 +4,7 @@
 
 #include "Mouse.h"
 #include "BucketList.h"
-#include "Scanvideo.h"
+#include "VideoController.h"
 #include "Sprites.h"
 #include "USBHost/hid_handler.h"
 #include "vga_types.h"
@@ -210,14 +210,14 @@ Mouse& Mouse::getRef() noexcept
 			shape_rows = Shape::Row::newShape(w, h, img.bitmap); // throws but hopefully not so early `:-)
 			return Shape {w, h, shape_rows, img.tip_x, img.tip_y};
 		}(),
-		Scanvideo::width() / 2, Scanvideo::height() / 2);
+		VideoController::width() / 2, VideoController::height() / 2);
 
 	return mouse_pointer;
 }
 
 static void limit(coord& x, coord& y)
 {
-	Size size = Scanvideo::size;
+	Size size = VideoController::size;
 
 	static_assert(int(uint(int16(-123))) == -123);
 

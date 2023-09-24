@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 
-#include "Scanvideo.h"
+#include "VideoController.h"
 #include "ScanlineSM.h"
 #include "StackInfo.h"
 #include "TimingSM.h"
@@ -51,7 +51,7 @@ constexpr uint32 SM_MASK = (1u << PICO_SCANVIDEO_SCANLINE_SM1) | (1u << PICO_SCA
 
 using namespace Graphics;
 
-Size Scanvideo::size = {0, 0};
+Size VideoController::size = {0, 0};
 
 static spin_lock_t* spinlock = nullptr;
 
@@ -67,22 +67,22 @@ struct Locker
 
 // =========================================================
 
-Scanvideo::Scanvideo() noexcept
+VideoController::VideoController() noexcept
 {
 	pio_claim_sm_mask(video_pio, 0x0f); // claim all because we clear instruction memory
 	dma_claim_mask(DMA_CHANNELS_MASK);
 	if (!spinlock) spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
 }
 
-Scanvideo& Scanvideo::getRef() noexcept
+VideoController& VideoController::getRef() noexcept
 {
 	// may panic on first call if HW can't be claimed
 
-	static Scanvideo scanvideo;
+	static VideoController scanvideo;
 	return scanvideo;
 }
 
-Error Scanvideo::setup(const VgaMode* mode, const VgaTiming* timing)
+Error VideoController::setup(const VgaMode* mode, const VgaTiming* timing)
 {
 	assert(get_core_num() == 0);
 	assert(!video_output_enabled);
@@ -103,7 +103,7 @@ Error Scanvideo::setup(const VgaMode* mode, const VgaTiming* timing)
 	return NO_ERROR;
 }
 
-void Scanvideo::teardown() noexcept
+void VideoController::teardown() noexcept
 {
 	assert(get_core_num() == 0);
 	assert(!video_output_enabled);
@@ -120,7 +120,7 @@ void Scanvideo::teardown() noexcept
 	is_initialized = false;
 }
 
-void Scanvideo::addPlane(VideoPlane* plane)
+void VideoController::addPlane(VideoPlane* plane)
 {
 	assert(is_initialized);
 	assert(plane != nullptr);
@@ -133,7 +133,7 @@ void Scanvideo::addPlane(VideoPlane* plane)
 	num_planes++;									// increment late because video_runner() does not lock
 }
 
-void Scanvideo::removePlane(VideoPlane* plane)
+void VideoController::removePlane(VideoPlane* plane)
 {
 	// plane must be the last plane!
 	// note: normally not used because teardown() removes all planes.
@@ -145,7 +145,7 @@ void Scanvideo::removePlane(VideoPlane* plane)
 	plane->teardown(--num_planes, video_queue);
 }
 
-void Scanvideo::addVBlankAction(VBlankAction* fu, uint8 when) noexcept
+void VideoController::addVBlankAction(VBlankAction* fu, uint8 when) noexcept
 {
 	assert(is_initialized);
 	assert(fu != nullptr);
@@ -165,7 +165,7 @@ void Scanvideo::addVBlankAction(VBlankAction* fu, uint8 when) noexcept
 	num_vblank_actions += 1;
 }
 
-void Scanvideo::removeVBlankAction(VBlankAction* fu)
+void VideoController::removeVBlankAction(VBlankAction* fu)
 {
 	locker();
 
@@ -184,7 +184,7 @@ void Scanvideo::removeVBlankAction(VBlankAction* fu)
 	}
 }
 
-void Scanvideo::startVideo()
+void VideoController::startVideo()
 {
 	assert(get_core_num() == 0);
 	assert(is_initialized);
@@ -200,7 +200,7 @@ void Scanvideo::startVideo()
 	multicore_launch_core1(core1_runner);
 }
 
-void Scanvideo::stopVideo()
+void VideoController::stopVideo()
 {
 	assert(get_core_num() == 0);
 	if (!video_output_enabled) return;
@@ -214,7 +214,7 @@ void Scanvideo::stopVideo()
 }
 
 //static
-void Scanvideo::core1_runner() noexcept
+void VideoController::core1_runner() noexcept
 {
 	//debuginfo();
 
@@ -244,7 +244,7 @@ void Scanvideo::core1_runner() noexcept
 	}
 }
 
-void RAM Scanvideo::video_runner()
+void RAM VideoController::video_runner()
 {
 	debuginfo();
 
@@ -287,9 +287,9 @@ void RAM Scanvideo::video_runner()
 	}
 }
 
-bool Scanvideo::in_hblank() noexcept { return scanline_sm.in_hblank(); }
-void Scanvideo::waitForVBlank() noexcept { scanline_sm.waitForVBlank(); }
-void Scanvideo::waitForScanline(ScanlineID n) noexcept { scanline_sm.waitForScanline(n); }
+bool VideoController::in_hblank() noexcept { return scanline_sm.in_hblank(); }
+void VideoController::waitForVBlank() noexcept { scanline_sm.waitForVBlank(); }
+void VideoController::waitForScanline(ScanlineID n) noexcept { scanline_sm.waitForScanline(n); }
 
 
 } // namespace kio::Video
