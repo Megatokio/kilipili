@@ -560,7 +560,7 @@ void AttrModePixmap::drawBmp(coord x, coord y, const Bitmap& q, uint color, uint
 	if (unlikely(w > width - x)) { w = width - x; }
 	if (unlikely(h > height - y)) { h = height - y; }
 
-	if (w > 0 && h > 0) draw_bmp(x, y, q, color, ink);
+	if (w > 0 && h > 0) draw_bmp(x, y, qp, q.row_offset, w, h, color, ink);
 }
 
 template<ColorMode CM>
