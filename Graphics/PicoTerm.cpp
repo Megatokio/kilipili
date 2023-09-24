@@ -4,7 +4,6 @@
 
 #include "PicoTerm.h"
 #include "ColorMap.h"
-#include "utilities.h"
 
 
 namespace kio::Graphics
@@ -252,7 +251,9 @@ void PicoTerm::writeBmp(CharMatrix bmp, uint8 attr)
 	int y = row * CHAR_HEIGHT;
 
 	if (!(attr & ATTR_OVERPRINT)) pixmap.fillRect(x, y, CHAR_WIDTH, CHAR_HEIGHT, bgcolor, bg_ink);
-	pixmap.drawBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, fgcolor, fg_ink);
+	//pixmap.drawBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, fgcolor, fg_ink);
+	static_assert(CHAR_WIDTH == 8);
+	pixmap.drawChar(x, y, bmp, CHAR_HEIGHT, fgcolor, fg_ink);
 }
 
 
@@ -456,8 +457,8 @@ void PicoTerm::reset()
 
 	bg_ink	= 0;
 	fg_ink	= 1;
-	bgcolor = INVERTED ? 0x00ffffff : 0;
-	fgcolor = INVERTED ? 0 : 0x00ffffff;
+	bgcolor = 0x00ffffff; // white / light
+	fgcolor = 0;		  // black / dark
 
 	pushedRow  = 0;
 	pushedCol  = 0;
@@ -619,7 +620,9 @@ void PicoTerm::printCharMatrix(CharMatrix charmatrix, int count)
 
 void PicoTerm::printChar(char c, int count)
 {
-	uint8 charmatrix[CHAR_HEIGHT];
+	//::printf("%s\n", __func__);
+
+	CharMatrix charmatrix;
 	getCharMatrix(charmatrix, c);
 	printCharMatrix(charmatrix, count);
 }

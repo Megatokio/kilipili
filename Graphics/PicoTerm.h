@@ -12,9 +12,8 @@ namespace kio::Graphics
 class PicoTerm
 {
 public:
-	static constexpr int  CHAR_HEIGHT = 12;
-	static constexpr int  CHAR_WIDTH  = 8;
-	static constexpr bool INVERTED	  = true; // true => paper = 0xffff, pen = 0x0000
+	static constexpr int CHAR_HEIGHT = 12;
+	static constexpr int CHAR_WIDTH	 = 8;
 
 	using CharMatrix = uint8[CHAR_HEIGHT];
 
