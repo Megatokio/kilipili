@@ -48,21 +48,16 @@ template<ColorMode CM>
 class AttrModePixmap final : public Pixmap<ColorMode(get_attrmode(CM))>
 {
 public:
-	static constexpr int calc_ax(int x) noexcept { return x >> AW << bits_per_pixel; } // attributes[x] for ink = 0
-	static constexpr int calc_aw(int w) noexcept { return (w + (1 << AW) - 1) >> AW << bits_per_pixel; }
-	static constexpr int calc_ah(int h, int ah) noexcept { return (h + ah - 1) / ah; }
-	int					 calc_ay(int y) const noexcept { return y / attrheight; }
+	static constexpr ColorDepth CD = get_colordepth(CM); // 0 .. 4  log2 of bits per color in attributes[]
+	static constexpr AttrMode	AM = get_attrmode(CM);	 // 0 .. 2  log2 of bits per color in pixmap[]
+	static constexpr AttrWidth	AW = get_attrwidth(CM);	 // 0 .. 3  log2 of width of color cells
 
-	static constexpr ColorDepth CD				= get_colordepth(CM); // 0 .. 4  log2 of bits per color in attributes[]
-	static constexpr AttrMode	AM				= get_attrmode(CM);	  // 0 .. 2  log2 of bits per color in pixmap[]
-	static constexpr AttrWidth	AW				= get_attrwidth(CM);  // 0 .. 3  log2 of width of tiles
-	static constexpr int		bits_per_color	= 1 << CD; // bits per color in pixmap[] (wAttr: in attributes[])
+	static constexpr ColorDepth colordepth		= CD;	   // 0 .. 4  log2 of bits per color in attributes[]
+	static constexpr AttrMode	attrmode		= AM;	   // 0 .. 2  log2 of bits per color in pixmap[]
+	static constexpr AttrWidth	attrwidth		= AW;	   // 0 .. 3  log2 of width of color cells
+	static constexpr int		bits_per_color	= 1 << CD; // bits per color in attributes[]
 	static constexpr int		bits_per_pixel	= 1 << AM; // bits per pixel in pixmap[]
 	static constexpr int		colors_per_attr = 1 << bits_per_pixel;
-
-	static constexpr ColorDepth colordepth = CD; // 0 .. 4  log2 of bits per color in attributes[]
-	static constexpr AttrMode	attrmode   = AM; // 0 .. 2  log2 of bits per color in pixmap[]
-	static constexpr AttrWidth	attrwidth  = AW; // 0 .. 3  log2 of width of tiles
 
 	using super = Pixmap<ColorMode(AM)>;
 	using IPixmap::attrheight;
@@ -74,6 +69,15 @@ public:
 
 
 	Pixmap<ColorMode(CD)> attributes; // pixmap with color attributes
+
+
+	// ctor helper:
+	static constexpr int calc_aw(int w) noexcept { return (w + (1 << AW) - 1) >> AW << bits_per_pixel; }
+	static constexpr int calc_ah(int h, int ah) noexcept { return (h + ah - 1) / ah; }
+
+	// get attribute x/y for pixel x/y
+	static constexpr int calc_ax(int x) noexcept { return x >> AW << bits_per_pixel; } // attributes[x] for ink = 0
+	int					 calc_ay(int y) const noexcept { return y / attrheight; }
 
 
 	// allocating ctor:
@@ -254,11 +258,14 @@ void AttrModePixmap::attr_fill_rect(coord x1, coord y1, coord w, coord h, uint c
 {
 	assert((ink & ~pixelmask<super::CD>) == 0);
 
-	w = calc_ax(x1 + w - 1) - x1 + 1;
-	h = calc_ay(y1 + h - 1) - y1 + 1;
+	int x2 = calc_ax(x1 + w - 1); // inner bounds
+	int y2 = calc_ay(y1 + h - 1);
 
 	x1 = calc_ax(x1);
 	y1 = calc_ay(y1);
+
+	w = x2 - x1 + 1; // +1 is enough to include 1 color from the next attribute cell
+	h = y2 - y1 + 1;
 
 	bitblit::attr_clear_rect<AM, CD>(
 		attributes.pixmap + y1 * attributes.row_offset, attributes.row_offset, x1 + ink, w, h, color);
