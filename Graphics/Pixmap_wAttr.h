@@ -49,15 +49,15 @@ class AttrModePixmap final : public Pixmap<ColorMode(get_attrmode(CM))>
 {
 public:
 	static constexpr ColorDepth CD = get_colordepth(CM); // 0 .. 4  log2 of bits per color in attributes[]
-	static constexpr AttrMode	AM = get_attrmode(CM);	 // 0 .. 2  log2 of bits per color in pixmap[]
+	static constexpr AttrMode	AM = get_attrmode(CM);	 // 0 .. 1  log2 of bits per pixel in pixmap[]
 	static constexpr AttrWidth	AW = get_attrwidth(CM);	 // 0 .. 3  log2 of width of color cells
 
-	static constexpr ColorDepth colordepth		= CD;	   // 0 .. 4  log2 of bits per color in attributes[]
-	static constexpr AttrMode	attrmode		= AM;	   // 0 .. 2  log2 of bits per color in pixmap[]
-	static constexpr AttrWidth	attrwidth		= AW;	   // 0 .. 3  log2 of width of color cells
-	static constexpr int		bits_per_color	= 1 << CD; // bits per color in attributes[]
-	static constexpr int		bits_per_pixel	= 1 << AM; // bits per pixel in pixmap[]
-	static constexpr int		colors_per_attr = 1 << bits_per_pixel;
+	static constexpr ColorDepth colordepth		= CD;				   // 0 .. 4  log2 of bits per color in attributes[]
+	static constexpr AttrMode	attrmode		= AM;				   // 0 .. 1  log2 of bits per pixel in pixmap[]
+	static constexpr AttrWidth	attrwidth		= AW;				   // 0 .. 3  log2 of width of color cells
+	static constexpr int		bits_per_color	= 1 << CD;			   // 1 .. 16 bits per color in attributes[]
+	static constexpr int		bits_per_pixel	= 1 << AM;			   // 1 .. 2  bits per pixel in pixmap[]
+	static constexpr int		colors_per_attr = 1 << bits_per_pixel; // 2 .. 4
 
 	using super = Pixmap<ColorMode(AM)>;
 	using IPixmap::attrheight;
@@ -274,11 +274,14 @@ void AttrModePixmap::attr_fill_rect(coord x1, coord y1, coord w, coord h, uint c
 template<ColorMode CM>
 void AttrModePixmap::attr_xor_rect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
 {
-	w = calc_ax(x1 + w - 1) - x1 + colors_per_attr;
-	h = calc_ay(y1 + h - 1) - y1 + 1;
+	int x2 = calc_ax(x1 + w - 1); // inner bounds
+	int y2 = calc_ay(y1 + h - 1);
 
 	x1 = calc_ax(x1);
 	y1 = calc_ay(y1);
+
+	w = x2 - x1 + (1 << (1 << AM));
+	h = y2 - y1 + 1;
 
 	attributes.xor_rect(x1, y1, w, h, xor_color);
 }
