@@ -103,3 +103,5 @@ extern KeyEvent				 getKeyEvent();		  // get serialized key up/down event
 extern int					 getChar();			  // get serialized char. TODO: auto repeat
 
 } // namespace kio::USB
+
+extern cstr tostr(kio::USB::Modifiers, bool lr_unified = true) noexcept;

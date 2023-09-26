@@ -7,6 +7,58 @@
 #include "kilipili_cdefs.h"
 #include "utilities/BucketList.h"
 
+static constexpr int numbits(uint8 z)
+{
+	z = ((z & 0xAAu) >> 1) + (z & 0x55u);
+	z = ((z & 0xCCu) >> 2) + (z & 0x33u);
+	return (z >> 4) + (z & 0x0Fu);
+}
+
+cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
+{
+	//LEFTCTRL   = 1 << 0, // Left Control
+	//LEFTSHIFT  = 1 << 1, // Left Shift
+	//LEFTALT	 = 1 << 2, // Left Alt
+	//LEFTGUI	 = 1 << 3, // Left Window
+	//RIGHTCTRL  = 1 << 4, // Right Control
+	//RIGHTSHIFT = 1 << 5, // Right Shift
+	//RIGHTALT   = 1 << 6, // Right Alt
+	//RIGHTGUI   = 1 << 7, // Right Window
+
+	if (mod == kio::USB::NO_MODIFIERS) return "NONE";
+	static constexpr char names[4][7] = {"CTRL+", "SHIFT+", "ALT+", "GUI+"};
+
+	static char bu[26]; // max: "lCTRL+lSHIFT+rCTRL+rSHIFT"
+	char*		p = bu;
+
+	if (unified || numbits(mod) > 4)
+	{
+		uint mask = 0x11;
+		for (uint i = 0; i < 4; i++)
+		{
+			if (mod & (mask << i))
+			{
+				strncpy(p, names[i], 99);
+				p = strchr(p, 0);
+			}
+		}
+	}
+	else
+	{
+		uint mask = 0x01;
+		for (uint i = 0; i < 8; i++)
+		{
+			if (mod & (mask << i))
+			{
+				*p++ = i < 4 ? 'l' : 'r';
+				strncpy(p, names[i & 3], 99);
+				p = strchr(p, 0);
+			}
+		}
+	}
+	*--p = 0;
+	return bu;
+}
 
 namespace kio::USB
 {
