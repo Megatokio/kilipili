@@ -68,73 +68,54 @@ inline void PicoTerm::hideCursor()
 }
 
 
-void PicoTerm::scrollScreen(coord dx, coord dy)
+void PicoTerm::scrollScreen(coord dx /*chars*/, coord dy /*chars*/)
 {
 	hideCursor();
 
-	int w = screen_width < abs(dx);
-	int h = screen_height < abs(dy);
+	int w = (screen_width - abs(dx)) * CHAR_WIDTH;
+	int h = (screen_height - abs(dy)) * CHAR_HEIGHT;
 
 	if (w <= 0 || h <= 0) return pixmap.clear(bgcolor, bg_ink);
 
-	Point q {0, 0};
-	Point z {0, 0};
+	dx *= CHAR_WIDTH;
+	dy *= CHAR_HEIGHT;
 
-	if (dx)
-	{
-		if (dx < 0) q.x -= dx;
-		else z.x += dx;
-	}
-	if (dy)
-	{
-		if (dy < 0) q.y -= dy;
-		else z.y += dy;
-	}
+	coord qx = dx >= 0 ? 0 : -dx;
+	coord zx = dx >= 0 ? +dx : 0;
+	coord qy = dy >= 0 ? 0 : -dy;
+	coord zy = dy >= 0 ? +dy : 0;
 
-	pixmap.copyRect(z, pixmap, Rect(q.x, q.y, w, h));
+	pixmap.copyRect(zx, zy, qx, qy, w, h);
 
-	if (dx)
-	{
-		if (dx < 0) pixmap.fillRect(w, 0, screen_width - w, screen_height, bgcolor, bg_ink);
-		else pixmap.fillRect(0, 0, dx, screen_height, bgcolor, bg_ink);
-	}
-	if (dy)
-	{
-		if (dy < 0) pixmap.fillRect(0, h, screen_width, screen_height - h, bgcolor, bg_ink);
-		else pixmap.fillRect(0, 0, screen_width, dy, bgcolor, bg_ink);
-	}
+	if (dx > 0) pixmap.fillRect(0, 0, +dx, screen_height * CHAR_HEIGHT, bgcolor, bg_ink);
+	if (dx < 0) pixmap.fillRect(w, 0, -dx, screen_height * CHAR_HEIGHT, bgcolor, bg_ink);
+
+	if (dy > 0) pixmap.fillRect(0, 0, screen_width * CHAR_WIDTH, +dy, bgcolor, bg_ink);
+	if (dy < 0) pixmap.fillRect(0, h, screen_width * CHAR_WIDTH, -dy, bgcolor, bg_ink);
 }
 
 
 void PicoTerm::scrollScreenUp(int rows /*char*/)
 {
-	// doesn't update the cursor position
-
-	if (rows > 0) scrollScreen(0, -rows * CHAR_HEIGHT);
+	if (rows > 0) scrollScreen(0, -rows);
 }
 
 
 void PicoTerm::scrollScreenDown(int rows /*char*/)
 {
-	// doesn't update the cursor position
-
-	if (rows > 0) scrollScreen(0, +rows * CHAR_HEIGHT);
+	if (rows > 0) scrollScreen(0, +rows);
 }
 
 
 void PicoTerm::scrollScreenLeft(int cols)
 {
-	// scroll screen left
-
-	if (cols > 0) scrollScreen(-cols * int(CHAR_WIDTH), 0);
+	if (cols > 0) scrollScreen(-cols, 0);
 }
 
 
 void PicoTerm::scrollScreenRight(int cols)
 {
-	// scroll screen right
-
-	if (cols > 0) scrollScreen(+cols * int(CHAR_WIDTH), 0);
+	if (cols > 0) scrollScreen(+cols, 0);
 }
 
 
