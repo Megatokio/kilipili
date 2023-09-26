@@ -766,35 +766,50 @@ void xor_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int heigh
 	// row_offset is a multiple of 4
 	// => alignment from row to row won't change!
 
+	// add full bytes from xoffs to zp:
 	zp += xoffs >> 3;
 	xoffs &= 7;
 
-	int		o = int(zp) & 3; // align zp to int32
+	// align zp to int32:
+	int		o = int(zp) & 3;
 	uint32* p = reinterpret_cast<uint32*>(zp - o);
 	xoffs += o << 3;
 
-	uint32 lmask = ~0u << xoffs; // mask bits to set at left end
-	width -= 32 - xoffs;
-	uint32 rmask = ~0u << ((32 - width) & 31); // mask bits to set at right end
+	// mask for bits to set at left end:  (note: lsb is left!)
+	int keep = xoffs;
+	width += keep;
+	uint32 lmask = ~0u << keep;
 
-	if (width <= 0)
+	// mask for bits to set at right end:
+	keep = -width & 31;
+	width += keep;
+	uint32 rmask = ~0u >> keep;
+
+	int cnt = width >> 5;
+	int dp	= (row_offset >> 2) - cnt;
+
+	assert(cnt > 0);
+
+	if (cnt == 1)
 	{
+		color &= lmask & rmask;
+
 		while (height--)
 		{
-			*p ^= lmask & rmask & color;
-			p += row_offset >> 2;
+			*p++ ^= color;
+			p += dp;
 		}
 	}
 	else
 	{
-		int cnt = width >> 5;					 // number of full words
-		int dp	= (row_offset >> 2) - (cnt + 1); // remaining offset (words)
+		uint32 lcolor = color & lmask;
+		uint32 rcolor = color & rmask;
 
 		while (height--)
 		{
-			*p++ ^= lmask & color;
-			for (int i = 0; i < cnt; i++) { *p++ ^= color; }
-			*p ^= rmask & color;
+			*p++ ^= lcolor;
+			for (int i = 0; i < cnt - 2; i++) { *p++ ^= color; }
+			*p++ ^= rcolor;
 			p += dp;
 		}
 	}
