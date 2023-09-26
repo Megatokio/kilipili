@@ -74,7 +74,13 @@ __unused static constexpr const char* filenamefrompath(const char* path)
   #define assert_ge(A, B) ((A) >= (B) ? (void)0 : panic("failed: %s:%u: (%li) >= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
 // clang-format on
 #else
-  #define assert(...) ((void)0)
+  #define assert(...)	  ((void)0)
+  #define assert_eq(A, B) ((void)0)
+  #define assert_ne(A, B) ((void)0)
+  #define assert_lt(A, B) ((void)0)
+  #define assert_le(A, B) ((void)0)
+  #define assert_gt(A, B) ((void)0)
+  #define assert_ge(A, B) ((void)0)
 #endif
 
 
