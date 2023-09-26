@@ -4,8 +4,8 @@
 
 #pragma once
 #include "BitBlit.h"
-#include "ColorMap.h"
 #include "Canvas.h"
+#include "ColorMap.h"
 #include "geometry.h"
 
 
@@ -100,7 +100,7 @@ public:
 	bool operator==(const Pixmap& other) const noexcept;
 
 
-	// overrides for IPixmap virtual drawing methods:
+	// overrides for Canvas virtual drawing methods:
 
 	virtual void set_pixel(coord x, coord y, uint color, uint ink = 0) noexcept override;
 	virtual uint get_pixel(coord x, coord y, uint* ink) const noexcept override;
@@ -111,7 +111,7 @@ public:
 	virtual void draw_vline(coord x, coord y, coord h, uint color, uint ink = 0) noexcept override;
 	virtual void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept override;
 	virtual void copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept override;
-        virtual void copy_rect(coord x, coord y, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept override;
+	virtual void copy_rect(coord x, coord y, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept override;
 	//virtual void read_bmp(coord x, coord y, uint8*, int roffs, coord w, coord h, uint c, uint = 0) noexcept override;
 	virtual void draw_bmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint = 0) noexcept override;
 	virtual void draw_char(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink = 0) noexcept override;
@@ -162,7 +162,7 @@ inline constexpr int calc_row_offset(ColorDepth CD, int w) noexcept // ctor help
 // allocating, throws:
 template<ColorMode CM>
 DirectColorPixmap::Pixmap(coord w, coord h, ColorMode cm, AttrHeight ah) throws :
-    Canvas(w, h, cm, ah, true /*allocated*/),
+	Canvas(w, h, cm, ah, true /*allocated*/),
 	row_offset(calc_row_offset(CD, w)),
 	pixmap(new uint8[uint(h * row_offset)])
 {}
@@ -185,7 +185,7 @@ DirectColorPixmap::Pixmap(const Size& sz, AttrHeight ah) throws : Pixmap(sz.widt
 // not allocating: wrap existing pixels:
 template<ColorMode CM>
 DirectColorPixmap::Pixmap(coord w, coord h, ColorMode cm, AttrHeight ah, uint8* pixels, int row_offset) noexcept :
-    Canvas(w, h, cm, ah, false /*not allocated*/),
+	Canvas(w, h, cm, ah, false /*not allocated*/),
 	row_offset(row_offset),
 	pixmap(pixels)
 {}
@@ -203,7 +203,7 @@ DirectColorPixmap::Pixmap(const Size& sz, uint8* pixels, int row_offset) noexcep
 // window into other pixmap:
 template<ColorMode CM>
 DirectColorPixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
-    Canvas(w, h, q.Canvas::colormode, q.Canvas::attrheight, false /*not allocated*/),
+	Canvas(w, h, q.Canvas::colormode, q.Canvas::attrheight, false /*not allocated*/),
 	row_offset(q.row_offset),
 	pixmap(q.pixmap + y * q.row_offset + (bits_for_pixels(CD, x) >> 3))
 {

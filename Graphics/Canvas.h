@@ -9,30 +9,30 @@
 #include "no_copy_move.h"
 
 
-/* Interface class IPixmap 
-   -----------------------
+/* Interface class Canvas 
+   ----------------------
 	
-  IPixmap defines 
+  Canvas defines 
 	virtual methods for setting and reading pixels, 
 	drawing horizontal and vertical lines and rectangles,
 	copying (and possibly converting) rectangular areas 
 	and printing character glyphs.
 	
-  IPixmap provides 
+  Canvas provides 
 	slow default implementations for most virtual methods, except:
 		rgb_for_color, color_for_rgb, 
 		set_color, set_pixel, get_color and get_pixel. 
 
-  IPixmap provides 
+  Canvas provides 
 	camelCase methods which check and limit their arguments.
 	These come in two flavors:
 		one which uses `coord` for it's arguments and
 		one which uses `Point`, `Size`and `Rect`.
 
   subclasses:
-    Pixmap templates are subclasses of IPixmap:
+    Pixmap templates are subclasses of Canvas:
 	  indexed color and true color: 
-		this is opaque to IPixmap.
+		this is opaque to Canvas.
 	  direct color and attribute modes:
 		drawing methods typically take a `color` and an `ink` argument.
 		  direct color:    the `color` goes into the pixels[] and argument `ink` is not needed and ignored.
@@ -66,13 +66,10 @@ public:
 	const bool		 allocated; // whether pixmap[] was allocated and will be deleted in dtor
 	char			 padding[1];
 
-	ColorDepth colordepth() const noexcept
-	{
-		return get_colordepth(colormode);
-	}																	   // 0 .. 4  log2 of bits per color in attr[]
-	AttrMode attrmode() const noexcept { return get_attrmode(colormode); } // 0 .. 2  log2 of bits per color in pixmap[]
-	AttrWidth attrwidth() const noexcept { return get_attrwidth(colormode); } // 0 .. 3  log2 of width of tiles
-	int		  bits_per_color() const noexcept { return 1 << colordepth(); }	  // bits per color in pixmap[] or attr[]
+	ColorDepth colordepth() const noexcept { return get_colordepth(colormode); } // log2 of bits per color in attr[]
+	AttrMode   attrmode() const noexcept { return get_attrmode(colormode); }	 // log2 of bits per color in pixmap[]
+	AttrWidth  attrwidth() const noexcept { return get_attrwidth(colormode); }	 // log2 of width of tiles
+	int		   bits_per_color() const noexcept { return 1 << colordepth(); }	 // bits per color in pixmap[] or attr[]
 	int bits_per_pixel() const noexcept { return is_attribute_mode(colormode) ? 1 << attrmode() : 1 << colordepth(); }
 
 	virtual ~Canvas() = default;
@@ -219,8 +216,7 @@ inline void Canvas::copyRect(const Point& zpos, const Canvas& src, const Point& 
 }
 
 
-inline void
-Canvas::readBmp(const Point& z, uint8* bmp, int row_offset, const Size& size, uint color, bool set) noexcept
+inline void Canvas::readBmp(const Point& z, uint8* bmp, int row_offset, const Size& size, uint color, bool set) noexcept
 {
 	drawBmp(z.x, z.y, bmp, row_offset, size.width, size.height, color, set);
 }

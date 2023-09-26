@@ -60,10 +60,10 @@ public:
 	static constexpr int		colors_per_attr = 1 << bits_per_pixel; // 2 .. 4
 
 	using super = Pixmap<ColorMode(AM)>;
-        using Canvas::attrheight;
-        using Canvas::height;
-        using Canvas::size;
-        using Canvas::width;
+	using Canvas::attrheight;
+	using Canvas::height;
+	using Canvas::size;
+	using Canvas::width;
 	using super::pixmap;
 	using super::row_offset; // in pixels[]
 
@@ -98,7 +98,7 @@ public:
 	bool operator==(const Pixmap& other) const noexcept;
 
 	// helper:
-        using Canvas::is_inside;
+	using Canvas::is_inside;
 	uint attr_get_color(coord x, coord y, uint ink) const noexcept;
 	void attr_set_color(coord x, coord y, uint color, uint ink) noexcept;
 	void attr_draw_hline(coord x, coord y, coord x2, uint color, uint ink) noexcept;
@@ -111,7 +111,7 @@ public:
 	const super& as_super() const { return *this; }
 
 
-	// overrides for IPixmap virtual drawing methods:
+	// overrides for Canvas virtual drawing methods:
 
 	virtual void set_pixel(coord x, coord y, uint color, uint ink = 0) noexcept override;
 	virtual uint get_pixel(coord x, coord y, uint* ink) const noexcept override;
@@ -122,7 +122,7 @@ public:
 	virtual void draw_vline(coord x, coord y, coord h, uint color, uint ink) noexcept override;
 	virtual void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept override;
 	virtual void copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept override;
-        virtual void copy_rect(coord x, coord y, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept override;
+	virtual void copy_rect(coord x, coord y, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept override;
 	//virtual void read_bmp(coord x, coord y, uint8*, int roffs, coord w, coord h, uint c, uint = 0) noexcept override;
 	virtual void draw_bmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint ink) noexcept override;
 	virtual void draw_char(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink) noexcept override;

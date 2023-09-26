@@ -549,7 +549,7 @@ void DrawEngine::restorePixels(const Pixmap<CM>& buffer, coord x, coord y, coord
 
 
 #if 0
-void IPixmap::read_hline(coord x1, coord y1, coord w, Color* z) const noexcept
+void Canvas::read_hline(coord x1, coord y1, coord w, Color* z) const noexcept
 {
 	// helper:
 
@@ -560,7 +560,7 @@ void IPixmap::read_hline(coord x1, coord y1, coord w, Color* z) const noexcept
 	while (--w >= 0) *z++ = rgb_for_color(get_color(x1++, y1));
 }
 
-void IPixmap::draw_hline(coord x1, coord y1, coord w, const Color* q) noexcept
+void Canvas::draw_hline(coord x1, coord y1, coord w, const Color* q) noexcept
 {
 	// helper:
 	// draw a hline of pixels by reading them from a color buffer.
@@ -574,7 +574,7 @@ void IPixmap::draw_hline(coord x1, coord y1, coord w, const Color* q) noexcept
 	while (--w >= 0) set_pixel(x1++, y1, color_for_rgb(*q++)); // set_color() ?
 }
 
-void IPixmap::copy_hline(coord zx, coord zy, coord w, const IPixmap& q, coord qx, coord qy) noexcept
+void Canvas::copy_hline(coord zx, coord zy, coord w, const Canvas& q, coord qx, coord qy) noexcept
 {
 	// helper:
 	// copy and convert a horizontal line of pixels.
