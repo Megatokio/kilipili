@@ -447,7 +447,7 @@ void attr_draw_hline(uint8* row, int x, int width, uint color) noexcept
 }
 
 /**	clear every 2nd, 4th or 16th column in rectangle depending on AttrMode AM.
-	this is intended to set the colors in the color attributes for a rectangle in tiled Pixmaps.
+	this is intended to set the colors in the color attributes for a rectangle in Pixmaps with attributes.
 	@tparam	AM		AttrMode, essentially the color depth of the pixmap itself
 	@tparam CD		ColorDepth of the colors in the attributes
 	@param row		start of top row
@@ -485,11 +485,12 @@ void copy_rect(uint8* zp, int zrow_offs, int zx, const uint8* qp, int qrow_offs,
 	if constexpr (CD >= colordepth_8bpp)
 	{
 		if (w > 0 && h > 0)
-			bitblit::copy_rect_of_bytes(zp + (zx << (CD - 3)), zrow_offs, qp + (qx << (CD - 3)), qrow_offs, w, h);
+			bitblit::copy_rect_of_bytes(
+				zp + (zx << (CD - 3)), zrow_offs, qp + (qx << (CD - 3)), qrow_offs, w << (CD - 3), h);
 	}
 	else
 	{
-		if (w > 0 && h > 0) bitblit::copy_rect_of_bits(zp, zx << CD, zrow_offs, qp, qx << CD, qrow_offs, w, h);
+		if (w > 0 && h > 0) bitblit::copy_rect_of_bits(zp, zx << CD, zrow_offs, qp, qx << CD, qrow_offs, w << CD, h);
 	}
 }
 
