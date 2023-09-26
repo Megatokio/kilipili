@@ -171,11 +171,11 @@ inline void DrawEngine::drawLine(const Point& p1, const Point& p2, uint color, u
 }
 inline void DrawEngine::draw_hline(coord x, coord y, coord x2, uint color, uint ink) noexcept
 {
-	pixmap.draw_hline(x, y, x2, color, ink);
+	pixmap.drawHLine(x, y, x2, color, ink);
 }
 inline void DrawEngine::draw_vline(coord x, coord y, coord y2, uint color, uint ink) noexcept
 {
-	pixmap.draw_vline(x, y, y2, color, ink);
+	pixmap.drawVLine(x, y, y2, color, ink);
 }
 
 inline void DrawEngine::copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h)

@@ -9,31 +9,47 @@ namespace kio::Graphics
 {
 
 template<ColorMode CM>
-void DirectColorPixmap::copyRect(coord zx, coord zy, const Pixmap& q) noexcept
+void DirectColorPixmap::drawHLine(coord x1, coord y1, coord w, uint color, uint /*ink*/) noexcept
 {
-	coord qx = 0;
-	coord qy = 0;
-	coord w	 = q.width;
-	coord h	 = q.height;
+	if (uint(y1) >= uint(height)) return;
 
-	if (unlikely(zx < 0))
-	{
-		w += zx;
-		qx -= zx;
-		zx -= zx;
-	}
-	if (unlikely(zy < 0))
-	{
-		h += zy;
-		qy -= zy;
-		zy -= zy;
-	}
-	w = min(w, width - zx);
-	h = min(h, height - zy);
+	coord x2 = min(x1 + w, width);
+	x1		 = max(x1, 0);
 
-	if (w > 0 && h > 0)
-		bitblit::copy_rect<colordepth>(
-			pixmap + zy * row_offset, row_offset, zx, q.pixmap + qy * q.row_offset, q.row_offset, qx, w, h);
+	draw_hline(x1, y1, x2 - x1, color);
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::drawVLine(coord x1, coord y1, coord h, uint color, uint /*ink*/) noexcept
+{
+	if (uint(x1) < uint(width)) return;
+
+	coord y2 = min(y1 + h, height);
+	y1		 = max(y1, 0);
+
+	draw_vline(x1, y1, y2 - y1, color);
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint /*ink*/) noexcept
+{
+	coord x2 = min(x1 + w, width);
+	coord y2 = min(y1 + h, height);
+	x1		 = max(x1, 0);
+	y1		 = max(y1, 0);
+
+	fill_rect(x1, y1, x2 - x1, y2 - y1, color);
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::xorRect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
+{
+	coord x2 = min(x1 + w, width);
+	coord y2 = min(y1 + h, height);
+	x1		 = max(x1, 0);
+	y1		 = max(y1, 0);
+
+	xor_rect(x1, y1, x2 - x1, y2 - y1, xor_color);
 }
 
 template<ColorMode CM>
@@ -68,32 +84,131 @@ void DirectColorPixmap::copyRect(coord zx, coord zy, const Pixmap& q, coord qx, 
 
 	if (w > 0 && h > 0)
 		bitblit::copy_rect<colordepth>(
-			pixmap + zy * row_offset, row_offset, zx, q.pixmap + qy * q.row_offset, q.row_offset, qx, w, h);
+			pixmap + zy * row_offset, row_offset, zx,		//
+			q.pixmap + qy * q.row_offset, q.row_offset, qx, //
+			w, h);
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::drawBmp(coord zx, coord zy, const Bitmap& q, uint color, uint /*ink*/) noexcept
+void DirectColorPixmap::copyRect(coord zx, coord zy, const Pixmap& q) noexcept
 {
-	const uint8* qp = q.pixmap;
-	coord		 w	= min(q.width, width - zx);
-	coord		 h	= min(q.height, height - zy);
+	coord qx = 0;
+	coord qy = 0;
+	coord w	 = q.width;
+	coord h	 = q.height;
 
 	if (unlikely(zx < 0))
 	{
-		assert((zx & 7) == 0);
 		w += zx;
-		qp -= zx >> 3;
+		qx -= zx;
 		zx -= zx;
 	}
 	if (unlikely(zy < 0))
 	{
 		h += zy;
-		qp -= zy * q.row_offset;
+		qy -= zy;
 		zy -= zy;
 	}
+	w = min(w, width - zx);
+	h = min(h, height - zy);
 
 	if (w > 0 && h > 0)
-		bitblit::draw_bitmap<colordepth>(pixmap + zy * row_offset, row_offset, zx, qp, q.row_offset, w, h, color);
+		bitblit::copy_rect<colordepth>(
+			pixmap + zy * row_offset, row_offset, zx,		//
+			q.pixmap + qy * q.row_offset, q.row_offset, qx, //
+			w, h);
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
+{
+	copyRect(zx, zy, *this, qx, qy, w, h);
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::copyRect(coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept
+{
+	assert(CM == q.colormode); // must be same type
+	copyRect(zx, zy, static_cast<const Pixmap&>(q), qx, qy, w, h);
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::copyRect(const Point& z, const Pixmap& q) noexcept
+{
+	copyRect(z.x, z.y, q, 0, 0, q.width, q.height);
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::copyRect(const Point& zp, const Pixmap& pm, const Point& qp, const Size& size) noexcept
+{
+	copyRect(zp.x, zp.y, pm, qp.x, qp.y, size.width, size.height);
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::copyRect(const Point& zp, const Pixmap& pm, const Rect& qr) noexcept
+{
+	copyRect(zp.x, zp.y, pm, qr.left(), qr.top(), qr.width(), qr.height());
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::drawBmp(
+	coord zx, coord zy, const uint8* bmp, int bmp_row_offset, int w, int h, uint color, uint /*ink*/) noexcept
+{
+	// draw bitmap into Canvas
+	// draw the set bits with `color`, skip the zeros
+
+	if (unlikely(zx < 0))
+	{
+		w += zx;
+		bmp -= zx / 8; // TODO: need x0 offset in bitblit::draw_bitmap()
+		zx -= zx;
+	}
+	if (unlikely(zy < 0))
+	{
+		h += zy;
+		bmp -= zy * bmp_row_offset;
+		zy -= zy;
+	}
+	w = min(w, width - zx);
+	h = min(h, height - zy);
+
+	if (w > 0 && h > 0)
+		bitblit::draw_bitmap<colordepth>(
+			pixmap + zy * row_offset, // start of the first row in destination Pixmap
+			row_offset,				  // row offset in destination Pixmap measured in bytes
+			zx,						  // x offset from zp in pixels
+			bmp,					  // start of the first byte of source Bitmap
+			bmp_row_offset,			  // row offset in source Bitmap measured in bytes
+			w,						  // width in pixels
+			h,						  // height in pixels
+			color);					  // color for drawing the bitmap
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::drawBmp(coord zx, coord zy, const Bitmap& bmp, uint color, uint /*ink*/) noexcept
+{
+	drawBmp(zx, zy, bmp.pixmap, bmp.row_offset, bmp.width, bmp.height, color);
+}
+
+template<ColorMode CM>
+void DirectColorPixmap::drawChar(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint /*ink*/) noexcept
+{
+	// optimized version of drawBmp:
+	//   row_offset = 1
+	//   width = 8
+	//   x = N * 8
+
+	if (unlikely(zx < 0 || zx >= width) || (zx & 7) != 0) return drawBmp(zx, zy, bmp, 1, 8, h, color);
+
+	if (unlikely(zy < 0))
+	{
+		h += zy;
+		bmp -= zy;
+		zy -= zy;
+	}
+	h = min(h, height - zy);
+
+	if (h > 0) bitblit::draw_char<colordepth>(pixmap + zy * row_offset, row_offset, zx, bmp, h, color);
 }
 
 

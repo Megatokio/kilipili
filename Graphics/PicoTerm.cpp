@@ -814,7 +814,7 @@ void PicoTerm::show_cursor(bool show)
 		if (cursorXorColor == 0) cursorXorColor = ~0u;
 	}
 
-	pixmap.xor_rect(col * CHAR_WIDTH, row * CHAR_HEIGHT, CHAR_WIDTH, CHAR_HEIGHT, cursorXorColor);
+	pixmap.xorRect(col * CHAR_WIDTH, row * CHAR_HEIGHT, CHAR_WIDTH, CHAR_HEIGHT, cursorXorColor);
 	cursorVisible = show;
 }
 
