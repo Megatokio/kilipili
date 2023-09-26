@@ -12,8 +12,8 @@ add_library(kilipili_graphics STATIC
 	fixint.h
 	geometry.h
 	geometry.cpp
-	IPixmap.h
-	IPixmap.cpp
+	Canvas.h
+	Canvas.cpp
 	Pixmap.h
 	Pixmap.cpp
 	Pixmap_wAttr.h

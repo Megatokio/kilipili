@@ -38,7 +38,7 @@ static constexpr const uint8 dblw[16] = {
 // =============================================================================
 
 
-PicoTerm::PicoTerm(IPixmap& pixmap, Color* colors) :
+PicoTerm::PicoTerm(Canvas& pixmap, Color* colors) :
 	pixmap(pixmap),
 	colormap(colors),
 	colormode(pixmap.colormode),

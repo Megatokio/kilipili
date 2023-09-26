@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "IPixmap.h"
+#include "Canvas.h"
 
 
 namespace kio::Graphics
@@ -56,7 +56,7 @@ public:
 		SCROLL_SCREEN		 = 21,
 	};
 
-	IPixmap& pixmap;
+        Canvas& pixmap;
 	Color*	 colormap;
 
 	const ColorMode	 colormode;
@@ -92,7 +92,7 @@ public:
 	bool   cursorVisible;  // currently visible?
 	uint32 cursorXorColor; // value used to xor the colors
 
-	PicoTerm(IPixmap&, Color* colors);
+        PicoTerm(Canvas&, Color* colors);
 
 	void reset();
 	void cls();

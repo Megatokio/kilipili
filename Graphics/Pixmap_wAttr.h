@@ -60,10 +60,10 @@ public:
 	static constexpr int		colors_per_attr = 1 << bits_per_pixel; // 2 .. 4
 
 	using super = Pixmap<ColorMode(AM)>;
-	using IPixmap::attrheight;
-	using IPixmap::height;
-	using IPixmap::size;
-	using IPixmap::width;
+        using Canvas::attrheight;
+        using Canvas::height;
+        using Canvas::size;
+        using Canvas::width;
 	using super::pixmap;
 	using super::row_offset; // in pixels[]
 
@@ -98,7 +98,7 @@ public:
 	bool operator==(const Pixmap& other) const noexcept;
 
 	// helper:
-	using IPixmap::is_inside;
+        using Canvas::is_inside;
 	uint attr_get_color(coord x, coord y, uint ink) const noexcept;
 	void attr_set_color(coord x, coord y, uint color, uint ink) noexcept;
 	void attr_draw_hline(coord x, coord y, coord x2, uint color, uint ink) noexcept;
@@ -122,7 +122,7 @@ public:
 	virtual void draw_vline(coord x, coord y, coord h, uint color, uint ink) noexcept override;
 	virtual void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept override;
 	virtual void copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept override;
-	virtual void copy_rect(coord x, coord y, const IPixmap& q, coord qx, coord qy, coord w, coord h) noexcept override;
+        virtual void copy_rect(coord x, coord y, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept override;
 	//virtual void read_bmp(coord x, coord y, uint8*, int roffs, coord w, coord h, uint c, uint = 0) noexcept override;
 	virtual void draw_bmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint ink) noexcept override;
 	virtual void draw_char(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink) noexcept override;
@@ -395,7 +395,7 @@ void AttrModePixmap::copy_rect(coord zx, coord zy, coord qx, coord qy, coord w, 
 }
 
 template<ColorMode CM>
-void AttrModePixmap::copy_rect(coord zx, coord zy, const IPixmap& q, coord qx, coord qy, coord w, coord h) noexcept
+void AttrModePixmap::copy_rect(coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept
 {
 	assert(CM == q.colormode); // must be same type
 	const Pixmap& src = static_cast<const Pixmap&>(q);

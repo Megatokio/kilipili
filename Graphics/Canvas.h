@@ -44,12 +44,12 @@ namespace kio::Graphics
 {
 
 
-class IPixmap
+class Canvas
 {
-	NO_COPY_MOVE(IPixmap);
+	NO_COPY_MOVE(Canvas);
 
 protected:
-	IPixmap(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept;
+	Canvas(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept;
 
 public:
 	union
@@ -75,7 +75,7 @@ public:
 	int		  bits_per_color() const noexcept { return 1 << colordepth(); }	  // bits per color in pixmap[] or attr[]
 	int bits_per_pixel() const noexcept { return is_attribute_mode(colormode) ? 1 << attrmode() : 1 << colordepth(); }
 
-	virtual ~IPixmap() = default;
+	virtual ~Canvas() = default;
 
 
 	// helper:
@@ -135,17 +135,17 @@ public:
 		copy pixels from other pixmap: Source and target must have same ColorMode.
 	*/
 	virtual void copy_rect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept;
-	virtual void copy_rect(coord zx, coord zy, const IPixmap& src, coord qx, coord qy, coord w, coord h) noexcept;
+	virtual void copy_rect(coord zx, coord zy, const Canvas& src, coord qx, coord qy, coord w, coord h) noexcept;
 
 	void copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept;
 	void copyRect(const Point& zpos, const Rect& qrect) noexcept;
 	void copyRect(const Point& zpos, const Point& qpos, const Size& size) noexcept;
 
-	void copyRect(coord zx, coord zy, const IPixmap& src) noexcept;
-	void copyRect(coord zx, coord zy, const IPixmap& src, coord qx, coord qy, coord w, coord h) noexcept;
-	void copyRect(const Point& zpos, const IPixmap& src) noexcept;
-	void copyRect(const Point& zpos, const IPixmap& src, const Rect& qrect) noexcept;
-	void copyRect(const Point& zpos, const IPixmap& src, const Point& qpos, const Size& size) noexcept;
+	void copyRect(coord zx, coord zy, const Canvas& src) noexcept;
+	void copyRect(coord zx, coord zy, const Canvas& src, coord qx, coord qy, coord w, coord h) noexcept;
+	void copyRect(const Point& zpos, const Canvas& src) noexcept;
+	void copyRect(const Point& zpos, const Canvas& src, const Rect& qrect) noexcept;
+	void copyRect(const Point& zpos, const Canvas& src, const Point& qpos, const Size& size) noexcept;
 
 
 	/* copy bitmaps:
@@ -184,52 +184,52 @@ private:
 // ###################################################################
 
 
-inline void IPixmap::setPixel(const Point& p, uint color, uint ink) noexcept { setPixel(p.x, p.y, color, ink); }
-inline uint IPixmap::getPixel(const Point& p, uint* ink) const noexcept { return getPixel(p.x, p.y, ink); }
-inline uint IPixmap::getInk(const Point& p) const noexcept { return getInk(p.x, p.y); }
-inline uint IPixmap::getColor(const Point& p) const noexcept { return getColor(p.x, p.y); }
-inline void IPixmap::drawHLine(const Point& p1, coord w, uint color, uint ink) noexcept
+inline void Canvas::setPixel(const Point& p, uint color, uint ink) noexcept { setPixel(p.x, p.y, color, ink); }
+inline uint Canvas::getPixel(const Point& p, uint* ink) const noexcept { return getPixel(p.x, p.y, ink); }
+inline uint Canvas::getInk(const Point& p) const noexcept { return getInk(p.x, p.y); }
+inline uint Canvas::getColor(const Point& p) const noexcept { return getColor(p.x, p.y); }
+inline void Canvas::drawHLine(const Point& p1, coord w, uint color, uint ink) noexcept
 {
 	drawHLine(p1.x, p1.y, w, color, ink);
 }
-inline void IPixmap::drawVLine(const Point& p1, coord h, uint color, uint ink) noexcept
+inline void Canvas::drawVLine(const Point& p1, coord h, uint color, uint ink) noexcept
 {
 	drawVLine(p1.x, p1.y, h, color, ink);
 }
-inline void IPixmap::fillRect(Rect z, uint color, uint ink) noexcept
+inline void Canvas::fillRect(Rect z, uint color, uint ink) noexcept
 {
 	fillRect(z.left(), z.top(), z.width(), z.height(), color, ink);
 }
-inline void IPixmap::copyRect(const Point& z, const Rect& q) noexcept
+inline void Canvas::copyRect(const Point& z, const Rect& q) noexcept
 {
 	copyRect(z.x, z.y, q.left(), q.top(), q.width(), q.height());
 }
-inline void IPixmap::copyRect(const Point& z, const Point& q, const Size& s) noexcept
+inline void Canvas::copyRect(const Point& z, const Point& q, const Size& s) noexcept
 {
 	copyRect(z.x, z.y, q.x, q.y, s.width, s.height);
 }
-inline void IPixmap::copyRect(const Point& z, const IPixmap& q) noexcept { copyRect(z.x, z.y, q); }
-inline void IPixmap::copyRect(const Point& z, const IPixmap& pm, const Rect& q) noexcept
+inline void Canvas::copyRect(const Point& z, const Canvas& q) noexcept { copyRect(z.x, z.y, q); }
+inline void Canvas::copyRect(const Point& z, const Canvas& pm, const Rect& q) noexcept
 {
 	copyRect(z.x, z.y, pm, q.left(), q.top(), q.width(), q.height());
 }
-inline void IPixmap::copyRect(const Point& zpos, const IPixmap& src, const Point& qpos, const Size& size) noexcept
+inline void Canvas::copyRect(const Point& zpos, const Canvas& src, const Point& qpos, const Size& size) noexcept
 {
 	copyRect(zpos.x, zpos.y, src, qpos.x, qpos.y, size.width, size.height);
 }
 
 
 inline void
-IPixmap::readBmp(const Point& z, uint8* bmp, int row_offset, const Size& size, uint color, bool set) noexcept
+Canvas::readBmp(const Point& z, uint8* bmp, int row_offset, const Size& size, uint color, bool set) noexcept
 {
 	drawBmp(z.x, z.y, bmp, row_offset, size.width, size.height, color, set);
 }
 inline void
-IPixmap::drawBmp(const Point& z, const uint8* bmp, int row_offs, const Size& size, uint color, uint ink) noexcept
+Canvas::drawBmp(const Point& z, const uint8* bmp, int row_offs, const Size& size, uint color, uint ink) noexcept
 {
 	drawBmp(z.x, z.y, bmp, row_offs, size.width, size.height, color, ink);
 }
-inline void IPixmap::drawChar(const Point& z, const uint8* bmp, coord h, uint color, uint ink) noexcept
+inline void Canvas::drawChar(const Point& z, const uint8* bmp, coord h, uint color, uint ink) noexcept
 {
 	drawChar(z.x, z.y, bmp, h, color, ink);
 }

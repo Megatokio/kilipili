@@ -36,7 +36,7 @@ class DrawEngine
 	NO_COPY_MOVE(DrawEngine);
 
 public:
-	IPixmap&	 pixmap;
+        Canvas&	 pixmap;
 	const Color* colormap; // if current color mode uses index colors
 
 	const ColorMode	 CM = pixmap.colormode;
@@ -61,7 +61,7 @@ public:
 	};
 
 
-	DrawEngine(IPixmap& pixmap, Color* colormap) noexcept : //
+        DrawEngine(Canvas& pixmap, Color* colormap) noexcept : //
 		pixmap(pixmap),
 		colormap(colormap),
 		size(pixmap.size)
@@ -89,11 +89,11 @@ public:
 	void floodFill(coord x, coord y, uint color, uint ink = 1);
 
 	void copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h);
-	void copyRect(coord zx, coord zy, const IPixmap& q) { pixmap.copyRect(zx, zy, q); }
-	void copyRect(coord zx, coord zy, const IPixmap& q, coord qx, coord qy, coord w, coord h);
+        void copyRect(coord zx, coord zy, const Canvas& q) { pixmap.copyRect(zx, zy, q); }
+        void copyRect(coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h);
 
-	void savePixels(IPixmap& buffer, coord x, coord y, coord w, coord h); // same CM
-	void restorePixels(const IPixmap& buffer, coord x, coord y, coord w, coord h);
+        void savePixels(Canvas& buffer, coord x, coord y, coord w, coord h); // same CM
+        void restorePixels(const Canvas& buffer, coord x, coord y, coord w, coord h);
 
 
 	uint getInk(const Point& p) const noexcept { return pixmap.getInk(p); }
@@ -116,9 +116,9 @@ public:
 	void copyRect(const Point& z, const Point& q, const Size& size);
 	void copyRect(const Rect& z, const Point& q) { copyRect(z.p1, q, z.size()); }
 	void copyRect(const Point& z, const Rect& q) { copyRect(z, q.p1, q.size()); }
-	void copyRect(const Point& z, const IPixmap& src) { pixmap.copyRect(z, src); }
-	void copyRect(const Point& z, const IPixmap& src, const Rect& q) { pixmap.copyRect(z, src, q); }
-	void copyRect(const Rect& z, const IPixmap& src, const Point& q) { pixmap.copyRect(z.p1, src, q, z.size()); }
+        void copyRect(const Point& z, const Canvas& src) { pixmap.copyRect(z, src); }
+        void copyRect(const Point& z, const Canvas& src, const Rect& q) { pixmap.copyRect(z, src, q); }
+        void copyRect(const Rect& z, const Canvas& src, const Point& q) { pixmap.copyRect(z.p1, src, q, z.size()); }
 
 
 	void readBmpFromScreen(coord x, coord y, coord w, coord h, uint8[], uint color, bool set);
@@ -126,8 +126,8 @@ public:
 
 	//void savePixels(IPixmap& buffer, const Point& p, const Size& s); // same CM
 	//void savePixels(IPixmap& buffer, const Rect& r) { savePixels(buffer, r.left(), r.top(), r.width(), r.height()); }
-	void restorePixels(const IPixmap& buffer, const Point& p, const Size& s);
-	void restorePixels(const IPixmap& buffer, const Rect& r);
+        void restorePixels(const Canvas& buffer, const Point& p, const Size& s);
+        void restorePixels(const Canvas& buffer, const Rect& r);
 
 
 	// helper:
@@ -186,7 +186,7 @@ inline void DrawEngine::copyRect(const Point& z, const Point& q, const Size& siz
 {
 	copyRect(z.x, z.y, q.x, q.y, size.width, size.height);
 }
-inline void DrawEngine::copyRect(coord zx, coord zy, const IPixmap& q, coord qx, coord qy, coord w, coord h)
+inline void DrawEngine::copyRect(coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h)
 {
 	pixmap.copyRect(zx, zy, q, qx, qy, w, h);
 }
@@ -194,11 +194,11 @@ inline void DrawEngine::copyRect(coord zx, coord zy, const IPixmap& q, coord qx,
 //{
 //	savePixels(buffer, p.x, p.y, s.width, s.height);
 //}
-inline void DrawEngine::restorePixels(const IPixmap& buffer, const Point& p, const Size& s)
+inline void DrawEngine::restorePixels(const Canvas& buffer, const Point& p, const Size& s)
 {
 	restorePixels(buffer, p.x, p.y, s.width, s.height);
 }
-inline void DrawEngine::restorePixels(const IPixmap& buffer, const Rect& r)
+inline void DrawEngine::restorePixels(const Canvas& buffer, const Rect& r)
 {
 	restorePixels(buffer, r.left(), r.top(), r.width(), r.height());
 }
