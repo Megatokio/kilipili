@@ -635,7 +635,6 @@ int Canvas::adjust_l(coord l, coord r, coord y, uint ink)
 	}
 }
 
-
 int Canvas::adjust_r(coord l, coord r, coord y, uint ink)
 {
 	// helper:
@@ -656,7 +655,6 @@ int Canvas::adjust_r(coord l, coord r, coord y, uint ink)
 		return r;
 	}
 }
-
 
 void Canvas::floodFill(coord x, coord y, uint color, uint ink)
 {
@@ -767,6 +765,134 @@ void Canvas::floodFill(coord x, coord y, uint color, uint ink)
 void Canvas::drawPolygon(const Point* p, uint cnt, uint color, uint ink) noexcept
 {
 	for (uint i = 0; i < cnt - 1; i++) { drawLine(p[i], p[i + 1], color, ink); }
+}
+
+void Canvas::fill_convex_polygon(const Point* p, uint cnt, uint color, uint ink)
+{
+	if (cnt <= 2) return;
+
+	// top point of polygon: start point
+	// top point & bottom point: => determine whether we are totally flat
+	// left point & right point: => determine whether we are totally slim
+	// all 4 points: determine cw or ccw orientation of points: add to ri, sub from li
+
+	uint ti = 0;
+	for (uint i = 1; i < cnt; i++)
+	{
+		if (p[i].y < p[ti].y) ti = i;
+	}
+
+	// border line "drawing" (calculation):
+	// for every y+=1 we step a fixed x+=dx
+	// plus evtl. one additional x+=1 acc. to line drawing algorithm
+
+	using namespace std;
+	struct
+	{
+		int x;		// current x
+		int zx, zy; // destination
+		int sdx;	//sign
+		int dx;		// abs(zx-x0)
+		int dy;		// zy-y0  (always positive)
+		int dx0;	// min. dx to add per dy=1
+		int dz;		// interpolator
+
+		void setup(const Point& next_point, int current_y)
+		{
+			zx = next_point.x;
+			zy = next_point.y;
+
+			sdx = sign(zx - x);
+			dx	= abs(zx - x);
+			dy	= zy - current_y; // if dy==0 then division by 0 can be ignored
+			dx0 = dx / dy;		  //   because setup will be immediately called again for next point
+			dx -= dx0 * dy;
+			dx0 *= sdx;
+			dz = dx / 2;
+		}
+
+		void step()
+		{
+			x += dx0;
+			dz += dy;
+			if (dz >= dx)
+			{
+				dz -= dx;
+				x += sdx;
+			}
+		}
+	} l, r;
+
+
+	auto inc = [=](uint i) { return i + 1 < cnt ? i + 1 : 0; };
+	auto dec = [=](uint i) { return i ? i - 1 : cnt - 1; };
+	auto add = [=](uint i, int cw) { return (cnt + i + uint(cw)) % cnt; };
+
+
+	int	 y	= p[ti].y; // top.y
+	uint li = ti;	   // index for left border path
+	uint ri = ti;	   // index for right border path
+
+a:
+	const Point& rhp = p[inc(ri)];
+	const Point& lhp = p[dec(li)];
+	int			 cw	 = sign(lhp.y * rhp.x - lhp.x * rhp.y);
+
+	while (unlikely(cw == 0)) // cross product is 0:
+	{
+		// either 3 points 180° opening with all p.y = top.y
+		// or 3 points 0° opening with at least one point below top.y and the other on the same line
+		// both cases include l=t, r=t or l=r
+		// 180° also includes l=t=r
+
+		// 180° opening:
+		//if (lhp.y == rhp.y) { li = dec(li); } else
+
+		// 0° opening:
+		if (lhp.y <= rhp.y) // lhp becomes new top
+		{
+			y  = lhp.y;
+			li = dec(li);
+		}
+		else // rhp becomes new top
+		{
+			y  = rhp.y;
+			ri = inc(ri);
+		}
+
+		if (li == ri) return; // all points on a line
+		goto a;
+	}
+
+	if (cw < 0) swap(li, ri);
+
+	// init loop parameters:
+	l.zy = y;
+	r.zy = y;
+	l.x	 = p[li].x;
+	r.x	 = p[ri].x;
+
+	for (;;)
+	{
+		while (unlikely(y == l.zy))
+		{
+			if (li == ri) return; // finish
+			li = add(li, -cw);
+			l.setup(p[li], y);
+		}
+
+		while (unlikely(y == r.zy))
+		{
+			if (li == ri) return; // finish
+			ri = add(ri, +cw);
+			r.setup(p[ri], y);
+		}
+
+		drawHLine(l.x, y++, r.x - l.x, color, ink);
+
+		l.step();
+		r.step();
+	}
 }
 
 

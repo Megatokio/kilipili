@@ -169,6 +169,7 @@ private:
 	void draw_hline_bmp(coord x, coord y, coord w, const uint8*, uint color, uint ink) noexcept;
 	int	 adjust_l(coord l, coord r, coord y, uint ink); // -> floodFill()
 	int	 adjust_r(coord l, coord r, coord y, uint ink); // -> floodFill()
+	void fill_convex_polygon(const Point* p, uint cnt, uint color, uint ink);
 };
 
 
