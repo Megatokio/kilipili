@@ -9,28 +9,6 @@ namespace kio::Graphics
 {
 
 template<ColorMode CM>
-void DirectColorPixmap::drawHLine(coord x1, coord y1, coord w, uint color, uint /*ink*/) noexcept
-{
-	if (uint(y1) >= uint(height)) return;
-
-	coord x2 = min(x1 + w, width);
-	x1		 = max(x1, 0);
-
-	draw_hline(x1, y1, x2 - x1, color);
-}
-
-template<ColorMode CM>
-void DirectColorPixmap::drawVLine(coord x1, coord y1, coord h, uint color, uint /*ink*/) noexcept
-{
-	if (uint(x1) < uint(width)) return;
-
-	coord y2 = min(y1 + h, height);
-	y1		 = max(y1, 0);
-
-	draw_vline(x1, y1, y2 - y1, color);
-}
-
-template<ColorMode CM>
 void DirectColorPixmap::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint /*ink*/) noexcept
 {
 	coord x2 = min(x1 + w, width);

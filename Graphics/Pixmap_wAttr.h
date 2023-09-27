@@ -119,9 +119,8 @@ public:
 	virtual uint get_color(coord x, coord y) const noexcept override;
 	virtual uint get_ink(coord x, coord y) const noexcept override;
 
-	virtual void draw_hline(coord x, coord y, coord w, uint color, uint ink) noexcept override;
-	virtual void drawHLine(coord x, coord y, coord w, uint color, uint ink) noexcept override;
-	virtual void drawVLine(coord x, coord y, coord h, uint color, uint ink) noexcept override;
+	virtual void draw_hline_to(coord x, coord y, coord w, uint color, uint ink) noexcept override;
+	virtual void draw_vline_to(coord x, coord y, coord h, uint color, uint ink) noexcept override;
 	virtual void fillRect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept override;
 	virtual void xorRect(coord x, coord y, coord w, coord h, uint xor_color) noexcept override;
 	virtual void copyRect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept override;
@@ -133,7 +132,6 @@ public:
 	// _______________________________________________________________________________________
 	// non-overrides:
 
-	void draw_vline(coord x, coord y, coord h, uint color, uint ink = 0) noexcept;
 	void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept;
 	void xor_rect(coord x, coord y, coord w, coord h, uint xor_color) noexcept;
 	void copy_rect(coord x, coord y, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept;
@@ -257,7 +255,7 @@ void AttrModePixmap::attr_draw_vline(coord x1, coord y1, coord y2, uint color, u
 	y1 = calc_ay(y1);
 	y2 = calc_ay(y2 - 1) + 1;
 
-	attributes.draw_vline(x1 + ink, y1, y2, color);
+	attributes.draw_vline_to(x1 + ink, y1, y2, color);
 }
 
 template<ColorMode CM>
@@ -366,28 +364,28 @@ uint AttrModePixmap::get_pixel(coord x, coord y, uint* ink) const noexcept
 // IMPLEMENTATIONS: draw line, fill rect
 
 template<ColorMode CM>
-void AttrModePixmap::draw_hline(coord x1, coord y1, coord w, uint color, uint ink) noexcept
+void AttrModePixmap::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
 {
-	if (w > 0)
+	if (x1 < x2)
 	{
 		assert(is_inside(x1, y1));
-		assert(x1 + w <= width);
+		assert(x2 <= width);
 
-		attr_draw_hline(x1, y1, x1 + w, color, ink);
-		super::draw_hline(x1, y1, w, ink);
+		attr_draw_hline(x1, y1, x2, color, ink);
+		super::draw_hline_to(x1, y1, x2, ink);
 	}
 }
 
 template<ColorMode CM>
-void AttrModePixmap::draw_vline(coord x1, coord y1, coord h, uint color, uint ink) noexcept
+void AttrModePixmap::draw_vline_to(coord x1, coord y1, coord y2, uint color, uint ink) noexcept
 {
-	if (h > 0)
+	if (y1 < y2)
 	{
 		assert(is_inside(x1, y1));
-		assert(y1 + h <= height);
+		assert(y2 <= height);
 
-		attr_draw_vline(x1, y1, y1 + h, color, ink);
-		super::draw_vline(x1, y1, h, ink);
+		attr_draw_vline(x1, y1, y2, color, ink);
+		super::draw_vline_to(x1, y1, y2, ink);
 	}
 }
 

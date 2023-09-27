@@ -80,13 +80,16 @@ public:
 	/* _______________________________________________________________________________________
 	   draw lines:
 		- draw nothing if width or height is <= 0.
-		- draw_hline(): no bounds test!
+		- draw_hline_to(): no clipping test!
+		- draw_vline_to(): no clipping test!
 		- drawHLine():  draw horizontal line
 		- drawVLine():  draw vertical line
 	*/
-	virtual void draw_hline(coord x, coord y, coord w, uint color, uint ink) noexcept;
-	virtual void drawHLine(coord x, coord y, coord w, uint color, uint ink = 0) noexcept;
-	virtual void drawVLine(coord x, coord y, coord h, uint color, uint ink = 0) noexcept;
+	virtual void draw_hline_to(coord x, coord y, coord x2, uint color, uint ink) noexcept;
+	virtual void draw_vline_to(coord x, coord y, coord y2, uint color, uint ink) noexcept;
+
+	void drawHLine(coord x, coord y, coord w, uint color, uint ink = 0) noexcept;
+	void drawVLine(coord x, coord y, coord h, uint color, uint ink = 0) noexcept;
 
 	/* _______________________________________________________________________________________
 	   paint rectangular area:

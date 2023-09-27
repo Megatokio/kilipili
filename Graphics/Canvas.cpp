@@ -17,15 +17,15 @@ Canvas::Canvas(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) no
 	allocated(allocated)
 {}
 
-void Canvas::draw_hline(coord x1, coord y1, coord w, uint color, uint ink) noexcept
+void Canvas::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
 {
 	// draw horizontal line
-	// no bound test for speed
+	// no clipping test for speed
 
-	assert(x1 >= 0 && x1 + w <= width);
-	assert(y1 >= 0 && y1 + 1 <= height);
+	assert(x1 >= 0 && x2 <= width);
+	assert(uint(y1) < uint(height));
 
-	while (--w >= 0) set_pixel(x1++, y1, color, ink);
+	while (x1 < x2) set_pixel(x1++, y1, color, ink);
 }
 
 void Canvas::drawHLine(coord x1, coord y1, coord w, uint color, uint ink) noexcept
@@ -37,7 +37,17 @@ void Canvas::drawHLine(coord x1, coord y1, coord w, uint color, uint ink) noexce
 	coord x2 = min(x1 + w, width);
 	x1		 = max(x1, 0);
 
-	while (x1 < x2) set_pixel(x1++, y1, color, ink);
+	draw_hline_to(x1, y1, x2, color, ink);
+}
+
+void Canvas::draw_vline_to(coord x1, coord y1, coord y2, uint color, uint ink) noexcept
+{
+	// draw vertical line
+
+	assert(uint(x1) < uint(width));
+	assert(y1 >= 0 && y2 <= height);
+
+	while (y1 < y2) set_pixel(x1, y1++, color, ink);
 }
 
 void Canvas::drawVLine(coord x1, coord y1, coord h, uint color, uint ink) noexcept
@@ -49,7 +59,7 @@ void Canvas::drawVLine(coord x1, coord y1, coord h, uint color, uint ink) noexce
 	coord y2 = min(y1 + h, height);
 	y1		 = max(y1, 0);
 
-	while (y1 < y2) set_pixel(x1, y1++, color, ink);
+	draw_vline_to(x1, y1, y2, color, ink);
 }
 
 void Canvas::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
@@ -60,10 +70,9 @@ void Canvas::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint ink
 	coord y2 = min(y1 + h, height);
 	x1		 = max(x1, 0);
 	y1		 = max(y1, 0);
-	w		 = x2 - x1;
 
-	if (w > 0)
-		while (y1 < y2) draw_hline(x1, y1++, w, color, ink);
+	if (x1 < x2)
+		while (y1 < y2) draw_hline_to(x1, y1++, x2, color, ink);
 }
 
 void Canvas::xorRect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
@@ -84,7 +93,6 @@ void Canvas::xorRect(coord x1, coord y1, coord w, coord h, uint xor_color) noexc
 		}
 	}
 }
-
 
 void Canvas::copyRect(coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept
 {
@@ -579,8 +587,8 @@ void Canvas::fillCircle(coord x1, coord y1, coord x2, coord y2, uint color, uint
 		const fixint r2 = r * r;				   // r²
 
 		auto drawlines = [this, x0, y0, color, ink](fixint x, fixint y) {
-			drawHLine(x0 - x, y0 + y, x0 + x + one, color, ink);
-			drawHLine(x0 - x, y0 - y, x0 + x + one, color, ink);
+			drawHLine(x0 - x, y0 + y, x * 2 + one, color, ink);
+			drawHLine(x0 - x, y0 - y, x * 2 + one, color, ink);
 		};
 
 		// if we have an odd number of lines (=> r is xxx.0), then there is a center line at y=0.0.
@@ -714,7 +722,7 @@ void Canvas::floodFill(coord x, coord y, uint color, uint ink)
 
 	int x1 = adjust_l(x, x + 1, y, ink);
 	int x2 = adjust_r(x, x + 1, y, ink);
-	draw_hline(x1, y, x2, color, ink); // fill between x1 and x2
+	draw_hline_to(x1, y, x2, color, ink); // fill between x1 and x2
 	if (y + 1 < height) { stack.push(x1, x2, y, +1); }
 	if (y - 1 >= 0) { stack.push(x1, x2, y, -1); }
 
@@ -748,7 +756,7 @@ void Canvas::floodFill(coord x, coord y, uint color, uint ink)
 			if (r1 == r) r1 = x2;
 
 			// fill it:
-			draw_hline(x1, y, r1, color, ink);
+			draw_hline_to(x1, y, r1, color, ink);
 
 			// push work in dy direction:
 			if (uint(y + dy) < uint(height)) stack.push(x1, r1, y, dy);

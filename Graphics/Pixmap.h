@@ -108,9 +108,8 @@ public:
 	virtual uint get_color(coord x, coord y) const noexcept override;
 	virtual uint get_ink(coord x, coord y) const noexcept override;
 
-	virtual void draw_hline(coord x, coord y, coord w, uint color, uint ink = 0) noexcept override;
-	virtual void drawHLine(coord x, coord y, coord w, uint color, uint ink = 0) noexcept override;
-	virtual void drawVLine(coord x, coord y, coord h, uint color, uint ink = 0) noexcept override;
+	virtual void draw_hline_to(coord x, coord y, coord x2, uint color, uint ink = 0) noexcept override;
+	virtual void draw_vline_to(coord x, coord y, coord y2, uint color, uint ink = 0) noexcept override;
 	virtual void fillRect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept override;
 	virtual void xorRect(coord x, coord y, coord w, coord h, uint xor_color) noexcept override;
 	virtual void copyRect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept override;
@@ -122,7 +121,6 @@ public:
 	// _______________________________________________________________________________________
 	// non-overrides:
 
-	void draw_vline(coord x, coord y, coord h, uint color, uint ink = 0) noexcept;
 	void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept;
 	void xor_rect(coord x, coord y, coord w, coord h, uint xor_color) noexcept;
 	void copy_rect(coord x, coord y, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept;
@@ -305,26 +303,26 @@ uint DirectColorPixmap::get_pixel(coord x, coord y, uint* ink) const noexcept
 // IMPLEMENTATIONS: lines, rects, bmps & chars
 
 template<ColorMode CM>
-void DirectColorPixmap::draw_hline(coord x1, coord y1, coord w, uint color, uint /*ink*/) noexcept
+void DirectColorPixmap::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint /*ink*/) noexcept
 {
-	if (w > 0)
+	if (x1 < x2)
 	{
 		assert(is_inside(x1, y1));
-		assert(x1 + w <= width);
+		assert(x2 <= width);
 
-		bitblit::draw_hline<colordepth>(pixmap + y1 * row_offset, x1, w, color);
+		bitblit::draw_hline<colordepth>(pixmap + y1 * row_offset, x1, x2 - x1, color);
 	}
 }
 
 template<ColorMode CM>
-void DirectColorPixmap::draw_vline(coord x1, coord y1, coord h, uint color, uint) noexcept
+void DirectColorPixmap::draw_vline_to(coord x1, coord y1, coord y2, uint color, uint) noexcept
 {
-	if (h > 0)
+	if (y1 < y2)
 	{
 		assert(is_inside(x1, y1));
-		assert(y1 + h <= height);
+		assert(y2 <= height);
 
-		bitblit::draw_vline<colordepth>(pixmap + y1 * row_offset, row_offset, x1, h, color);
+		bitblit::draw_vline<colordepth>(pixmap + y1 * row_offset, row_offset, x1, y2 - y1, color);
 	}
 }
 
