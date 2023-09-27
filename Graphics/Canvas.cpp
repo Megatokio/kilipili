@@ -614,6 +614,157 @@ void Canvas::fillCircle(coord x1, coord y1, coord x2, coord y2, uint color, uint
 	}
 }
 
+int Canvas::adjust_l(coord l, coord r, coord y, uint ink)
+{
+	// helper:
+	// returns x of the left border of unset pixels
+	// returns x == r if no unset pixel was found
+
+	assert(uint(y) < uint(height));
+	assert(0 <= l && l < r && r <= width);
+
+	if (getInk(l, y) == ink) // set => adjust to the right until first unset pixel found
+	{
+		while (++l < r && getInk(l, y) == ink) {}
+		return l;
+	}
+	else // unset => adjust to the left until first unset pixel found
+	{
+		while (--l >= 0 && getInk(l, y) != ink) {}
+		return l + 1;
+	}
+}
+
+
+int Canvas::adjust_r(coord l, coord r, coord y, uint ink)
+{
+	// helper:
+	// returns x of the right border of unset pixels
+	// returns x == l if no unset pixel was found
+
+	assert(uint(y) < uint(height));
+	assert(0 <= l && l < r && r <= width);
+
+	if (getInk(r - 1, y) == ink) // set => adjust to the left until first unset pixel found
+	{
+		while (--r > l && getInk(r - 1, y) == ink) {}
+		return r;
+	}
+	else // unset => adjust to the right until first unset pixel found
+	{
+		while (r < width && getInk(r, y) != ink) { r++; }
+		return r;
+	}
+}
+
+
+void Canvas::floodFill(coord x, coord y, uint color, uint ink)
+{
+	// TODO:
+	// stack on heap, use Array<>?
+	// burn-in grid needs stack up to 2k pixel
+	// set_pixel()? get_ink()?
+
+	if (!is_inside(x, y)) return;
+	if (is_direct_color(colormode)) ink = color;
+	if (getInk(x, y) == ink) return;
+
+	constexpr uint ssz = 1 << 9; // fill full screen 1024*768 filled with text: stack usage ~ 346
+	class Stack
+	{
+		struct Data
+		{
+			// area between (l,y) and (r,y) has been filled. => need to resume in line y+dy.
+
+			uint l	: 10; // left border of filled area
+			uint r	: 11; // right border of filled area: 0 <= l < r <= width
+			uint y	: 10; // scanline of filled area
+			uint dy : 1;  // direction to go: 0 => y+1, 1 => y-1
+			Data() {}
+			Data(uint l, uint r, uint y, uint dy) : l(l), r(r), y(y), dy(dy) {}
+		};
+		static_assert(sizeof(Data) == 4);
+
+		Data data[ssz]; // 64*4 = 256 bytes
+		uint wi = 0, ri = 0;
+		void push(const Data& d)
+		{
+			assert(free());
+			data[wi++ & (ssz - 1)] = d;
+			max_usage			   = max(max_usage, avail());
+		}
+		Data& pop()
+		{
+			assert(avail());
+			return data[ri++ & (ssz - 1)];
+		}
+
+	public:
+		uint max_usage = 0;
+		uint avail() { return wi - ri; }
+		uint free() { return ssz - (wi - ri); }
+		void push(int l, int r, int y, int dy) { push(Data(uint(l), uint(r), uint(y), dy < 0)); }
+		void pop(int& l, int& r, int& y, int& dy)
+		{
+			Data d = pop();
+			l	   = d.l;
+			r	   = d.r;
+			y	   = d.y;
+			dy	   = d.dy ? -1 : +1;
+		}
+	} stack;
+
+	int x1 = adjust_l(x, x + 1, y, ink);
+	int x2 = adjust_r(x, x + 1, y, ink);
+	draw_hline(x1, y, x2, color, ink); // fill between x1 and x2
+	if (y + 1 < height) { stack.push(x1, x2, y, +1); }
+	if (y - 1 >= 0) { stack.push(x1, x2, y, -1); }
+
+	while (stack.avail())
+	{
+		int l, r, y, dy;
+		stack.pop(l, r, y, dy);
+		assert(l >= 0 && l < r && r <= width);
+		// the pixels between (l,y) and (r,y) have been filled in and we shall resume in line y+dy:
+		y += dy;
+
+		int x1 = adjust_l(l, r, y, ink);
+		if (x1 == r) continue;			 // no unset pixel found
+		int x2 = adjust_r(l, r, y, ink); // note: x1 and x2 may refer to different ranges separated by some set pixels!
+
+		// push ranges left & right of original range, if any:
+		if (x1 < l - 1) stack.push(x1, l - 1, y, -dy);
+		if (x2 > r + 1) stack.push(r + 1, x2, y, -dy);
+
+		// examine and fill (x1,y) to (x2,y) and push ranges in dy direction:
+		for (;;)
+		{
+			// x1 is the l border of a fill area
+			// x2 is the r border of a fill area, maybe the same, maybe another
+			// if x1 <= l then range x1 to l+1 is area
+			// if x2 >= r then range r-1 to x2 is area
+
+			//int r1 = adjust_r(x1,x1+1,y,px);
+			// avoid testing known area pixels:
+			int r1 = adjust_r(x1, max(x1, l) + 1, y, ink);
+			if (r1 == r) r1 = x2;
+
+			// fill it:
+			draw_hline(x1, y, r1, color, ink);
+
+			// push work in dy direction:
+			if (uint(y + dy) < uint(height)) stack.push(x1, r1, y, dy);
+
+			// done?
+			if (r1 >= x2) break;
+
+			// find l border of next area:
+			x1 = adjust_l(r1, r, y, ink);
+		}
+	}
+}
+
+
 } // namespace kio::Graphics
 
 

@@ -126,6 +126,7 @@ public:
 	void drawRect(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
 	void drawCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
 	void fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
+	void floodFill(coord x, coord y, uint color, uint ink = 1);
 
 
 	// ########################
@@ -160,6 +161,8 @@ public:
 private:
 	void read_hline_bmp(coord x, coord y, coord w, uint8* z, uint color, bool set) noexcept;
 	void draw_hline_bmp(coord x, coord y, coord w, const uint8*, uint color, uint ink) noexcept;
+	int	 adjust_l(coord l, coord r, coord y, uint ink); // -> floodFill()
+	int	 adjust_r(coord l, coord r, coord y, uint ink); // -> floodFill()
 };
 
 
