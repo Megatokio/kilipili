@@ -122,12 +122,12 @@ public:
 	/* _______________________________________________________________________________________
 	   more drawing primitives:
 	*/
-	void drawLine(coord x1, coord y1, coord x2, coord y2, uint color, uint ink = 1) noexcept;
-	void drawRect(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
-	void drawCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
-	void fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
-	void floodFill(coord x, coord y, uint color, uint ink = 1);
-	void drawPolygon(const Point*, uint cnt, uint color, uint ink = 1) noexcept;
+	void drawLine(coord x1, coord y1, coord x2, coord y2, uint color, uint ink = 0) noexcept;
+	void drawRect(coord x, coord y, coord x2, coord y2, uint color, uint ink = 0) noexcept;
+	void drawCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 0) noexcept;
+	void fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 0) noexcept;
+	void floodFill(coord x, coord y, uint color, uint ink = 0);
+	void drawPolygon(const Point*, uint cnt, uint color, uint ink = 0) noexcept;
 
 
 	// ########################
@@ -146,7 +146,12 @@ public:
 
 	void drawHLine(const Point& p1, coord w, uint color, uint ink = 0) noexcept;
 	void drawVLine(const Point& p1, coord h, uint color, uint ink = 0) noexcept;
-	void fillRect(Rect zrect, uint color, uint ink = 0) noexcept;
+	void drawLine(const Point& p1, const Point& p2, uint color, uint ink = 0) noexcept;
+	void fillRect(const Rect& r, uint color, uint ink = 0) noexcept;
+	void drawRect(const Rect& r, uint color, uint ink = 0) noexcept;
+	void drawCircle(const Rect&, uint color, uint ink = 0) noexcept;
+	void fillCircle(const Rect&, uint color, uint ink = 0) noexcept;
+	void floodFill(const Point& p, uint color, uint ink = 0);
 
 	void copyRect(const Point& zpos, const Rect& qrect) noexcept;
 	void copyRect(const Point& zpos, const Point& qpos, const Size& size) noexcept;
@@ -198,10 +203,27 @@ inline void Canvas::drawVLine(const Point& p1, coord h, uint color, uint ink) no
 {
 	drawVLine(p1.x, p1.y, h, color, ink);
 }
-inline void Canvas::fillRect(Rect z, uint color, uint ink) noexcept
+inline void Canvas::drawLine(const Point& p1, const Point& p2, uint color, uint ink) noexcept
+{
+	drawLine(p1.x, p1.y, p2.x, p2.y, color, ink);
+}
+inline void Canvas::fillRect(const Rect& z, uint color, uint ink) noexcept
 {
 	fillRect(z.left(), z.top(), z.width(), z.height(), color, ink);
 }
+inline void Canvas::drawRect(const Rect& z, uint color, uint ink) noexcept
+{
+	drawRect(z.left(), z.top(), z.width(), z.height(), color, ink);
+}
+inline void Canvas::drawCircle(const Rect& z, uint color, uint ink) noexcept
+{
+	drawCircle(z.left(), z.top(), z.width(), z.height(), color, ink);
+}
+inline void Canvas::fillCircle(const Rect& z, uint color, uint ink) noexcept
+{
+	fillCircle(z.left(), z.top(), z.width(), z.height(), color, ink);
+}
+inline void Canvas::floodFill(const Point& p, uint color, uint ink) { floodFill(p.x, p.y, color, ink); }
 inline void Canvas::clear(uint color, uint ink) noexcept { fillRect(0, 0, width, height, color, ink); }
 
 inline void Canvas::copyRect(coord zx, coord zy, const Canvas& q) noexcept
