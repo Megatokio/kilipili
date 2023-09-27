@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Canvas.h"
+#include "fixint.h"
 
 
 namespace kio::Graphics
@@ -483,6 +484,135 @@ void Canvas::drawRect(coord x1, coord y1, coord x2, coord y2, uint color, uint i
 	drawVLine(x2 - 1, y1, y2 - y1 - 1, color, ink);
 }
 
+void Canvas::drawCircle(coord x1, coord y1, coord x2, coord y2, uint color, uint ink) noexcept
+{
+	// draw outline of circle.
+	// outline is inset for rect and circle
+	// => nothing is drawn for empty circle!
+
+	if (x2 <= x1 || y2 <= y1) return;
+
+	/*	Circle:
+		x² + y² = r²
+		x² = r² - y²
+		y² = r² - x²
+
+		Ellipse:
+		(x/a)² + (y/b)² = 1
+		(bx)² + (ay)² = (ab)²
+		(bx)² = (ab)² - (ay)²
+		(ay)² = (ab)² - (bx)²
+	*/
+
+	if (x2 - x1 == y2 - y1) // square circle
+	{
+		// because every point we plot draws a 1*1 pixel rect, we must reduce the diameter by 1
+		// and move the center by -0.5,-0.5:
+
+		// center:
+		const fixint x0 = fixint(x1 + x2 - 1) * (one / 2);
+		const fixint y0 = fixint(y1 + y2 - 1) * (one / 2);
+
+		// radius:
+		const fixint r	= fixint(x2 - x1 - 1) * (one / 2); // radius
+		const fixint r2 = r * r;						   // r²
+
+		// colorful plotting routine:
+		auto setpixels = [this, x0, y0, color, ink](fixint x, fixint y) {
+			setPixel(x0 - x, y0 + y, color, ink);
+			setPixel(x0 + x, y0 + y, color, ink);
+			setPixel(x0 - x, y0 - y, color, ink);
+			setPixel(x0 + x, y0 - y, color, ink);
+		};
+
+		// if we have an odd number of lines (=> r is xxx.0), then there is a center line at y=0.0.
+		// if we have an even number of lines (=> r is xxx.5) then the first line is at y=0.5.
+
+		fixint x = r;			  // start at x=r
+		fixint y = r & (one / 2); // and y=0 or y=0.5
+
+		while (y <= x)
+		{
+			setpixels(x, y); // plot 8 mirrored points
+			setpixels(y, x);
+
+			y += one; // step in y direction
+
+			fixint x2_ref = r2 - y * y;
+			fixint new_x  = x - one; // step aside in x direction?
+			if (abs(x2_ref - new_x * new_x) < abs(x2_ref - x * x)) { x = new_x; }
+		}
+	}
+	else // ellipse
+	{
+		TODO();
+	}
+}
+
+void Canvas::fillCircle(coord x1, coord y1, coord x2, coord y2, uint color, uint ink) noexcept
+{
+	if (x2 <= x1 || y2 <= y1) return;
+
+	/*	Circle:
+		x² + y² = r²
+		x² = r² - y²
+		y² = r² - x²
+
+		Ellipse:
+		(x/a)² + (y/b)² = 1
+		(bx)² + (ay)² = (ab)²
+		(bx)² = (ab)² - (ay)²
+		(ay)² = (ab)² - (bx)²
+	*/
+
+	if (x2 - x1 == y2 - y1) // square circle
+	{
+		// because every point we plot draws a 1*1 pixel rect, we must reduce the diameter by 1
+		// and move the center by -0.5,-0.5:
+
+		// center:
+		const fixint x0 = fixint(x1 + x2 - 1) / 2;
+		const fixint y0 = fixint(y1 + y2 - 1) / 2;
+
+		// radius:
+		const fixint r	= fixint(x2 - x1 - 1) / 2; // radius
+		const fixint r2 = r * r;				   // r²
+
+		auto drawlines = [this, x0, y0, color, ink](fixint x, fixint y) {
+			drawHLine(x0 - x, y0 + y, x0 + x + one, color, ink);
+			drawHLine(x0 - x, y0 - y, x0 + x + one, color, ink);
+		};
+
+		// if we have an odd number of lines (=> r is xxx.0), then there is a center line at y=0.0.
+		// if we have an even number of lines (=> r is xxx.5) then the first line is at y=0.5.
+
+		fixint x = r;			  // start at x=r
+		fixint y = r & (one / 2); // and y=0 or y=0.5
+
+		drawlines(x, y);
+
+		while (y < r)
+		{
+			y += one;
+
+			fixint x2_ref =
+				r2 - (y - one / 2) * (y - one / 2); // TODO rounding vgl. mit drawcircle contour mismatch ...
+		a:
+			fixint new_x = x - one;
+			if (abs(x2_ref - new_x * new_x) < abs(x2_ref - x * x))
+			{
+				x = new_x;
+				if (y >= x) goto a;
+			}
+
+			drawlines(x, y);
+		}
+	}
+	else // ellipse
+	{
+		TODO();
+	}
+}
 
 } // namespace kio::Graphics
 

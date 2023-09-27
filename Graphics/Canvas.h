@@ -124,6 +124,8 @@ public:
 	*/
 	void drawLine(coord x1, coord y1, coord x2, coord y2, uint color, uint ink = 1) noexcept;
 	void drawRect(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
+	void drawCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
+	void fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
 
 
 	// ########################
