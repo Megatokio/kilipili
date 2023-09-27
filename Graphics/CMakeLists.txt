@@ -7,8 +7,6 @@ cmake_minimum_required(VERSION 3.13)
 
 
 add_library(kilipili_graphics STATIC
-	DrawEngine.cpp
-	DrawEngine.h
 	fixint.h
 	geometry.h
 	geometry.cpp
