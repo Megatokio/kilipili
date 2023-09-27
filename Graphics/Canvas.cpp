@@ -466,6 +466,23 @@ void Canvas::drawLine(coord x1, coord y1, coord x2, coord y2, uint color, uint i
 	}
 }
 
+void Canvas::drawRect(coord x1, coord y1, coord x2, coord y2, uint color, uint ink) noexcept
+{
+	// draw outline of rectangle.
+	// outline is inset: drawn *between* (x1,y1) and (x2,y2)
+	// => outer dimensions are as for fillRect()
+	// => nothing is drawn for empty rect!
+
+	sort(x1, x2);
+	sort(y1, y2);
+	if (x1 >= x2 || y1 >= y2) return;
+
+	drawHLine(x1, y1, x2 - x1, color, ink);
+	drawHLine(x1, y2 - 1, x2 - x1, color, ink);
+	drawVLine(x1, y1, y2 - y1 - 1, color, ink);
+	drawVLine(x2 - 1, y1, y2 - y1 - 1, color, ink);
+}
+
 
 } // namespace kio::Graphics
 
