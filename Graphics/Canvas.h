@@ -127,6 +127,7 @@ public:
 	void drawCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
 	void fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 1) noexcept;
 	void floodFill(coord x, coord y, uint color, uint ink = 1);
+	void drawPolygon(const Point*, uint cnt, uint color, uint ink = 1) noexcept;
 
 
 	// ########################

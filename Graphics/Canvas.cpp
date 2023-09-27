@@ -764,6 +764,11 @@ void Canvas::floodFill(coord x, coord y, uint color, uint ink)
 	}
 }
 
+void Canvas::drawPolygon(const Point* p, uint cnt, uint color, uint ink) noexcept
+{
+	for (uint i = 0; i < cnt - 1; i++) { drawLine(p[i], p[i + 1], color, ink); }
+}
+
 
 } // namespace kio::Graphics
 
