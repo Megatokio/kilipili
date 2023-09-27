@@ -119,6 +119,11 @@ public:
 	virtual void drawBmp(coord zx, coord zy, const uint8* bmp, int ro, coord w, coord h, uint color, uint = 0) noexcept;
 	virtual void drawChar(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint = 0) noexcept;
 
+	/* _______________________________________________________________________________________
+	   more drawing primitives:
+	*/
+	void drawLine(coord x1, coord y1, coord x2, coord y2, uint color, uint ink = 1) noexcept;
+
 
 	// ########################
 	//		Variants:
