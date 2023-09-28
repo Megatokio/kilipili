@@ -15,12 +15,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "TEST")
 	
 	add_executable(unit_tests
 		unit_tests.cpp
+		common/unit_tests.cpp
 		)
 	
 	# add current dir to 'include search path':
 	target_include_directories(unit_tests PUBLIC
 		${CMAKE_CURRENT_LIST_DIR}
-		${CMAKE_CURRENT_LIST_DIR}/doctest/doctest
 		)
 	
 	# dependencies. this also adds the include paths:

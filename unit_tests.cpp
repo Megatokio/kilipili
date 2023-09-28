@@ -5,11 +5,14 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-//	TEST_CASE("dummy test case")
-//	{
-//		CHECK(123 == 123);
-//		SUBCASE("subcase")
-//		{
-//			CHECK(124 == 124);
-//		}
-//	}
+#if 0 
+// c&p template:
+
+TEST_CASE("")
+{
+	REQUIRE(1 == 1);
+	CHECK(1 == 1);
+	SUBCASE("") {}
+}
+
+#endif

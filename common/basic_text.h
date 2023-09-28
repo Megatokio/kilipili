@@ -17,5 +17,3 @@ inline constexpr uint hex_digit_value(uchar c) noexcept // non-digits ≥ 36
 {
 	return c <= '9' ? uchar(c - '0') : uchar((c | 0x20) - 'a') + 10;
 }
-
-inline constexpr bool is_fup(uchar c) noexcept { return schar(c) < schar(0xc0); }
