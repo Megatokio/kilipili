@@ -358,12 +358,12 @@ void copy_rect_of_bits(
 		// align to word addresses:
 
 		int o;
-		o = int(zp) & 3;
+		o = ssize_t(zp) & 3;
 		zp -= o;
 		zx += o << 3;
 		zp += (zx >> 5) << 2;
 		zx &= 31;
-		o = int(qp) & 3;
+		o = ssize_t(qp) & 3;
 		qp -= o;
 		qx += o << 3;
 		qp += (qx >> 5) << 2;
@@ -387,7 +387,7 @@ void copy_rect_of_bits(
 				copy_rect_of_bits(reinterpret_cast<uint32ptr>(zp), zx, reinterpret_cast<cuint32ptr>(qp), qx, w);
 				zp += z_row_offs;
 				qp += q_row_offs;
-				o = int(zp) & 3;
+				o = ssize_t(zp) & 3;
 				if (o)
 				{
 					zp -= o;
@@ -395,7 +395,7 @@ void copy_rect_of_bits(
 					zp += (zx >> 5) << 2;
 					zx &= 31;
 				}
-				o = int(qp) & 3;
+				o = ssize_t(qp) & 3;
 				if (o)
 				{
 					qp -= o;
@@ -460,7 +460,7 @@ void copy_rect_of_bits(
 		if (((z_row_offs | q_row_offs) & 3) == 0)
 		{
 			// align to word addresses:
-			if (int o = int(zp) & 3)
+			if (int o = ssize_t(zp) & 3)
 			{
 				zp -= o;
 				zx += o << 3;
@@ -470,7 +470,7 @@ void copy_rect_of_bits(
 					zp += 4;
 				}
 			}
-			if (int o = int(qp) & 3)
+			if (int o = ssize_t(qp) & 3)
 			{
 				qp -= o;
 				qx += o << 3;
@@ -496,7 +496,7 @@ void copy_rect_of_bits(
 				qp -= q_row_offs;
 
 				// align to word addresses:
-				if (int o = int(zp) & 3)
+				if (int o = ssize_t(zp) & 3)
 				{
 					zp -= o;
 					zx += o << 3;
@@ -506,7 +506,7 @@ void copy_rect_of_bits(
 						zp += 4;
 					}
 				}
-				if (int o = int(qp) & 3)
+				if (int o = ssize_t(qp) & 3)
 				{
 					qp -= o;
 					qx += o << 3;
@@ -535,7 +535,7 @@ void clear_row(uint16* z, int cnt, uint32 color) noexcept
 {
 	if (unlikely(cnt == 0)) return;
 
-	if (int(z) & 2)
+	if (ssize_t(z) & 2)
 	{
 		*z++ = uint16(color);
 		cnt--;
@@ -548,7 +548,7 @@ void clear_row(uint8* z, int cnt, uint32 color) noexcept
 {
 	if (unlikely(cnt == 0)) return;
 
-	if (int(z) & 1)
+	if (ssize_t(z) & 1)
 	{
 		*z++ = uint8(color);
 		cnt--;
@@ -562,7 +562,7 @@ void clear_row_of_bits(uint8* zp, int xoffs, int width, uint32 color) noexcept
 	zp += xoffs >> 3;
 	xoffs &= 7;
 
-	int		o = int(zp) & 3; // align zp to int32
+	int		o = ssize_t(zp) & 3; // align zp to int32
 	uint32* p = reinterpret_cast<uint32*>(zp - o);
 	xoffs += o << 3;
 
@@ -587,7 +587,7 @@ void xor_row_of_bits(uint8* zp, int xoffs, int width, uint32 color) noexcept
 	zp += xoffs >> 3;
 	xoffs &= 7;
 
-	int		o = int(zp) & 3; // align zp to int32
+	int		o = ssize_t(zp) & 3; // align zp to int32
 	uint32* p = reinterpret_cast<uint32*>(zp - o);
 	xoffs += o << 3;
 
@@ -614,7 +614,7 @@ void clear_row_of_bits_with_mask(uint8* zp, int zx, int width, uint32 color, uin
 	zp += zx >> 3;
 	zx &= 7;
 
-	if (int o = int(zp) & 3) // align zp to int32
+	if (int o = ssize_t(zp) & 3) // align zp to int32
 	{
 		zp -= o;
 		o <<= 3;
@@ -681,7 +681,7 @@ void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int hei
 	xoffs &= 7;
 
 	// align zp to int32:
-	int		o = int(zp) & 3;
+	int		o = ssize_t(zp) & 3;
 	uint32* p = reinterpret_cast<uint32*>(zp - o);
 	xoffs += o << 3;
 
@@ -771,7 +771,7 @@ void xor_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int heigh
 	xoffs &= 7;
 
 	// align zp to int32:
-	int		o = int(zp) & 3;
+	int		o = ssize_t(zp) & 3;
 	uint32* p = reinterpret_cast<uint32*>(zp - o);
 	xoffs += o << 3;
 
@@ -926,7 +926,7 @@ void draw_bmp_2bpp(
 
 	zp0 += zx >> 3;
 	zx &= 7; // low 3 bit of bit address
-	if (int(zp0) & 1)
+	if (ssize_t(zp0) & 1)
 	{
 		zp0--;
 		zx += 8;
@@ -1002,7 +1002,7 @@ void draw_bmp_4bpp(
 
 	zp0 += zx >> 3;
 	zx &= 7; // low 3 bit of bit address
-	if (int o = (int(zp0) & 3))
+	if (int o = (ssize_t(zp0) & 3))
 	{
 		zp0 -= o;
 		zx += o << 3;
@@ -1091,7 +1091,7 @@ void draw_bmp_8bpp(
 void draw_bmp_16bpp(
 	uint8* zp0, int z_row_offs, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
 {
-	assert((int(zp0) & 1) == 0);
+	assert((ssize_t(zp0) & 1) == 0);
 
 	uint16* zp = reinterpret_cast<uint16*>(zp0);
 	z_row_offs = z_row_offs >> 1; // row offset is always in bytes
@@ -1143,7 +1143,7 @@ void draw_chr_2bpp(uint8* zp0, int zx, int z_row_offs, const uint8* qp, int heig
 
 	zp0 += zx >> 3;
 	zx &= 7;
-	if (int(zp0) & 1)
+	if (ssize_t(zp0) & 1)
 	{
 		zp0--;
 		zx += 8;
@@ -1169,7 +1169,7 @@ void draw_chr_4bpp(uint8* zp0, int zx, int z_row_offs, const uint8* qp, int heig
 
 	zp0 += zx >> 3;
 	zx &= 7;
-	if (int o = (int(zp0) & 3))
+	if (int o = (ssize_t(zp0) & 3))
 	{
 		zp0 -= o;
 		zx += o << 3;
