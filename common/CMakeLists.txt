@@ -13,9 +13,9 @@ add_library(kilipili_common STATIC
 	standard_types.h
 	no_copy_move.h
 	basic_math.h
+	basic_text.h
 	)
  
-
 target_compile_definitions(kilipili_common PUBLIC
 	ON=1 OFF=0
 	#

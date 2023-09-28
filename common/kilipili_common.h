@@ -5,6 +5,7 @@
 #pragma once
 
 #include "basic_math.h"
+#include "basic_text.h"
 #include "kilipili_cdefs.h"
 #include "no_copy_move.h"
 #include "standard_types.h"
