@@ -7,6 +7,8 @@
 
 // basic math
 
+namespace kio
+{
 
 template<class T, class T2>
 inline constexpr T min(T a, T2 b) noexcept
@@ -33,26 +35,30 @@ inline constexpr T max(T a, T2 b, T3 c) noexcept
 }
 
 template<class T>
-inline int sign(T a) noexcept
+inline constexpr int sign(T a) noexcept
 {
 	return int(a > 0) - int(a < 0);
 }
 
 template<class T>
-inline T abs(T a) noexcept
+inline constexpr T abs(T a) noexcept
 {
 	return a < 0 ? -a : a;
 }
 
 template<class T>
-inline T minmax(T a, T n, T e) noexcept
+inline constexpr T minmax(T a, T n, T e) noexcept
 {
+	// note: upper limit is incl.
 	return n <= a ? a : n >= e ? e : n;
 }
 
 template<class T>
 inline void limit(T a, T& n, T e) noexcept
 {
+	// note: upper limit is incl.
 	if (n < a) n = a;
 	else if (n > e) n = e;
 }
+
+} // namespace kio
