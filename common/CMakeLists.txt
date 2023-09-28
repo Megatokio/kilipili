@@ -7,13 +7,14 @@ cmake_minimum_required(VERSION 3.13)
 
 
 add_library(kilipili_common STATIC
+	dummy.cpp
 	kilipili_common.h
 	kilipili_cdefs.h
 	standard_types.h
 	no_copy_move.h
 	basic_math.h
 	)
-
+ 
 
 target_compile_definitions(kilipili_common PUBLIC
 	ON=1 OFF=0
@@ -33,6 +34,6 @@ target_include_directories(kilipili_common PUBLIC
 target_link_libraries(kilipili_common PUBLIC
 	)
 
-
+ 
  
 

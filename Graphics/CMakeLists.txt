@@ -38,12 +38,10 @@ target_include_directories(kilipili_graphics PUBLIC
 # dependencies:
 target_link_libraries(kilipili_graphics PUBLIC
 	kilipili_common
-	kilipili_utilities
-	kilipili_usb_host
-	pico_stdlib
-	hardware_dma
-	hardware_pwm
 	)
+
+
+
 
 
 

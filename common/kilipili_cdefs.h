@@ -3,8 +3,12 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include <cstdlib>		   // __CONCAT
-#include <pico/platform.h> // panic()
+#include <cstdlib> // __CONCAT
+#ifdef TEST
+extern void panic(const char* fmt, ...) __attribute__((format(printf, 1, 2)));
+#else
+  #include <pico/platform.h> // panic()
+#endif
 
 
 // test for DEBUG and RELEASE are preferred:
