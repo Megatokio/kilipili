@@ -1,3 +1,6 @@
 [submodule "doctest"]
 	path = doctest
 	url = ../../doctest/doctest.git
+[submodule "stb"]
+	path = stb
+	url = ../../nothings/stb.git
