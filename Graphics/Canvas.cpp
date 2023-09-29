@@ -475,30 +475,29 @@ void Canvas::drawLine(coord x1, coord y1, coord x2, coord y2, uint color, uint i
 	}
 }
 
-void Canvas::drawRect(coord x1, coord y1, coord x2, coord y2, uint color, uint ink) noexcept
+void Canvas::drawRect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
 {
 	// draw outline of rectangle.
 	// outline is inset: drawn *between* (x1,y1) and (x2,y2)
 	// => outer dimensions are as for fillRect()
 	// => nothing is drawn for empty rect!
 
-	sort(x1, x2);
-	sort(y1, y2);
-	if (x1 >= x2 || y1 >= y2) return;
-
-	drawHLine(x1, y1, x2 - x1, color, ink);
-	drawHLine(x1, y2 - 1, x2 - x1, color, ink);
-	drawVLine(x1, y1, y2 - y1 - 1, color, ink);
-	drawVLine(x2 - 1, y1, y2 - y1 - 1, color, ink);
+	if (w > 0 && h > 0)
+	{
+		drawHLine(x1, y1, w, color, ink);
+		drawHLine(x1, y1 + h - 1, w, color, ink);
+		drawVLine(x1, y1, h - 1, color, ink);
+		drawVLine(x1 + w - 1, y1, h - 1, color, ink);
+	}
 }
 
-void Canvas::drawCircle(coord x1, coord y1, coord x2, coord y2, uint color, uint ink) noexcept
+void Canvas::drawCircle(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
 {
 	// draw outline of circle.
 	// outline is inset for rect and circle
 	// => nothing is drawn for empty circle!
 
-	if (x2 <= x1 || y2 <= y1) return;
+	if (w <= 0 || h <= 0) return;
 
 	/*	Circle:
 		x² + y² = r²
@@ -512,18 +511,18 @@ void Canvas::drawCircle(coord x1, coord y1, coord x2, coord y2, uint color, uint
 		(ay)² = (ab)² - (bx)²
 	*/
 
-	if (x2 - x1 == y2 - y1) // square circle
+	if (w == h) // square circle
 	{
 		// because every point we plot draws a 1*1 pixel rect, we must reduce the diameter by 1
 		// and move the center by -0.5,-0.5:
 
 		// center:
-		const fixint x0 = fixint(x1 + x2 - 1) * (one / 2);
-		const fixint y0 = fixint(y1 + y2 - 1) * (one / 2);
+		const fixint x0 = fixint(x1 + x1 + w - 1) * (one / 2);
+		const fixint y0 = fixint(y1 + y1 + h - 1) * (one / 2);
 
 		// radius:
-		const fixint r	= fixint(x2 - x1 - 1) * (one / 2); // radius
-		const fixint r2 = r * r;						   // r²
+		const fixint r	= fixint(w - 1) * (one / 2); // radius
+		const fixint r2 = r * r;					 // r²
 
 		// colorful plotting routine:
 		auto setpixels = [this, x0, y0, color, ink](fixint x, fixint y) {
