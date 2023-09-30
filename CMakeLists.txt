@@ -16,6 +16,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "TEST")
 	add_executable(unit_tests
 		unit_tests.cpp
 		common/unit_tests.cpp
+		Graphics/Canvas_unit_test.cpp
 		)
 	
 	# add current dir to 'include search path':
