@@ -9,33 +9,6 @@
 namespace kio::Graphics
 {
 
-//	// handy names:
-//	using PixMap_a1w1i4	 = Pixmap<colormode_a1w1_i4>;  // Pixels = 1bpp, Attribute cell width = 1px, colors = i4
-//	using PixMap_a1w1i8	 = Pixmap<colormode_a1w1_i8>;  // Pixels = 1bpp, Attribute cell width = 1px, colors = i8
-//	using PixMap_a1w1rgb = Pixmap<colormode_a1w1_rgb>; // Pixels = 1bpp, Attribute cell width = 1px, colors = true color
-//	using PixMap_a1w2i4	 = Pixmap<colormode_a1w2_i4>;  // Pixels = 1bpp, Attribute cell width = 2px, colors = i4
-//	using PixMap_a1w2i8	 = Pixmap<colormode_a1w2_i8>;
-//	using PixMap_a1w2rgb = Pixmap<colormode_a1w2_rgb>;
-//	using PixMap_a1w4i4	 = Pixmap<colormode_a1w4_i4>; // Pixels = 1bpp, Attribute cell width = 4px, colors = i4
-//	using PixMap_a1w4i8	 = Pixmap<colormode_a1w4_i8>;
-//	using PixMap_a1w4rgb = Pixmap<colormode_a1w4_rgb>;
-//	using PixMap_a1w8i4	 = Pixmap<colormode_a1w8_i4>; // Pixels = 1bpp, Attribute cell width = 8px, colors = i4
-//	using PixMap_a1w8i8	 = Pixmap<colormode_a1w8_i8>;
-//	using PixMap_a1w8rgb = Pixmap<colormode_a1w8_rgb>;
-//	using PixMap_a2w1i4	 = Pixmap<colormode_a2w1_i4>; // Pixels = 2bpp, Attribute cell width = 1px, colors = i4
-//	using PixMap_a2w1i8	 = Pixmap<colormode_a2w1_i8>;
-//	using PixMap_a2w1rgb = Pixmap<colormode_a2w1_rgb>;
-//	using PixMap_a2w2i4	 = Pixmap<colormode_a2w2_i4>;
-//	using PixMap_a2w2i8	 = Pixmap<colormode_a2w2_i8>;
-//	using PixMap_a2w2rgb = Pixmap<colormode_a2w2_rgb>;
-//	using PixMap_a2w4i4	 = Pixmap<colormode_a2w4_i4>;
-//	using PixMap_a2w4i8	 = Pixmap<colormode_a2w4_i8>;
-//	using PixMap_a2w4rgb = Pixmap<colormode_a2w4_rgb>;
-//	using PixMap_a2w8i4	 = Pixmap<colormode_a2w8_i4>;
-//	using PixMap_a2w8i8	 = Pixmap<colormode_a2w8_i8>;
-//	using PixMap_a2w8rgb = Pixmap<colormode_a2w8_rgb>;
-
-
 // how ugly can it be?
 #define AttrModePixmap Pixmap<CM, typename std::enable_if_t<is_attribute_mode(CM)>>
 
@@ -52,12 +25,14 @@ public:
 	static constexpr AttrMode	AM = get_attrmode(CM);	 // 0 .. 1  log2 of bits per pixel in pixmap[]
 	static constexpr AttrWidth	AW = get_attrwidth(CM);	 // 0 .. 3  log2 of width of color cells
 
+	static constexpr ColorMode	colormode		= CM;
 	static constexpr ColorDepth colordepth		= CD;				   // 0 .. 4  log2 of bits per color in attributes[]
 	static constexpr AttrMode	attrmode		= AM;				   // 0 .. 1  log2 of bits per pixel in pixmap[]
 	static constexpr AttrWidth	attrwidth		= AW;				   // 0 .. 3  log2 of width of color cells
 	static constexpr int		bits_per_color	= 1 << CD;			   // 1 .. 16 bits per color in attributes[]
 	static constexpr int		bits_per_pixel	= 1 << AM;			   // 1 .. 2  bits per pixel in pixmap[]
 	static constexpr int		colors_per_attr = 1 << bits_per_pixel; // 2 .. 4
+	static constexpr int		pixel_per_attr	= 1 << AW;
 
 	using super = Pixmap<ColorMode(AM)>;
 	using Canvas::attrheight;
@@ -67,15 +42,19 @@ public:
 	using super::pixmap;
 	using super::row_offset; // in pixels[]
 
+	super&		 as_super() { return *this; }
+	const super& as_super() const { return *this; }
 
 	Pixmap<ColorMode(CD)> attributes; // pixmap with color attributes
 
 
-	// ctor helper:
-	static constexpr int calc_aw(int w) noexcept { return (w + (1 << AW) - 1) >> AW << bits_per_pixel; }
-	static constexpr int calc_ah(int h, int ah) noexcept { return (h + ah - 1) / ah; }
+	// helper: calculate (minimum) sizes for the pixels and attributes pixmap:
+	static constexpr int calc_row_offset(int w) noexcept { return super::calc_row_offset(w); } // min.
+	static constexpr int calc_attr_width(int w) noexcept { return (w + (1 << AW) - 1) >> AW << bits_per_pixel; }
+	static constexpr int calc_attr_row_offset(int w) noexcept { return calc_attr_width(w) << CD >> 3; } // min.
+	static constexpr int calc_attr_height(int h, int ah) noexcept { return (h + ah - 1) / ah; }
 
-	// get attribute x/y for pixel x/y
+	// helper: get attribute x/y for pixel x/y
 	static constexpr int calc_ax(int x) noexcept { return x >> AW << bits_per_pixel; } // attributes[x] for ink = 0
 	int					 calc_ay(int y) const noexcept { return y / attrheight; }
 
@@ -106,9 +85,6 @@ public:
 	void attr_fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept;
 	void attr_xor_rect(coord x, coord y, coord w, coord h, uint color) noexcept;
 	void attr_copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept;
-
-	super&		 as_super() { return *this; }
-	const super& as_super() const { return *this; }
 
 
 	// _______________________________________________________________________________________
@@ -164,7 +140,9 @@ AttrModePixmap::Pixmap(const Size& size, AttrHeight ah) : Pixmap(size.width, siz
 {}
 
 template<ColorMode CM>
-AttrModePixmap::Pixmap(coord w, coord h, AttrHeight ah) : super(w, h, CM, ah), attributes(calc_aw(w), calc_ah(h, ah))
+AttrModePixmap::Pixmap(coord w, coord h, AttrHeight ah) :
+	super(w, h, CM, ah),
+	attributes(calc_attr_width(w), calc_attr_height(h, ah))
 {
 	assert(attrheight != attrheight_none);
 }
@@ -180,7 +158,7 @@ template<ColorMode CM>
 AttrModePixmap::Pixmap(
 	coord w, coord h, uint8* pixels, int row_offs, uint8* attr, int attr_row_offs, AttrHeight ah) noexcept :
 	super(w, h, CM, ah, pixels, row_offs),
-	attributes(calc_aw(w), calc_ah(h, ah), attr, attr_row_offs)
+	attributes(calc_attr_width(w), calc_attr_height(h, ah), attr, attr_row_offs)
 {
 	assert(AM != attrmode_none);
 	assert(attrheight != attrheight_none);
@@ -194,7 +172,7 @@ AttrModePixmap::Pixmap(Pixmap& q, const Rect& r) noexcept : Pixmap(q, r.left(), 
 template<ColorMode CM>
 AttrModePixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
 	super(q, x, y, w, h),
-	attributes(q.attributes, calc_ax(x), calc_ay(y), calc_aw(w), calc_ah(h, q.attrheight))
+	attributes(q.attributes, calc_ax(x), calc_ay(y), calc_attr_width(w), calc_attr_height(h, q.attrheight))
 {
 	assert(x % (1 << AW) == 0);	  // x must be a multiple of the attribute cell width
 	assert(y % attrheight == 0);  // y must be a multiple of the attribute cell height
@@ -271,6 +249,11 @@ void AttrModePixmap::attr_fill_rect(coord x1, coord y1, coord w, coord h, uint c
 
 	w = x2 - x1 + 1; // +1 is enough to include 1 color from the next attribute cell
 	h = y2 - y1 + 1;
+
+	assert(x1 >= 0);
+	assert(y1 >= 0);
+	assert(x1 + w <= attributes.width);
+	assert(y1 + h <= attributes.height);
 
 	bitblit::attr_clear_rect<AM, CD>(
 		attributes.pixmap + y1 * attributes.row_offset, attributes.row_offset, x1 + ink, w, h, color);

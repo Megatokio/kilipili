@@ -65,9 +65,13 @@ public:
 	static constexpr ColorDepth colordepth = CD;
 
 	// for compatibility with Pixmap_wAttr:
+	static constexpr ColorMode	colormode  = CM;
 	static constexpr AttrMode	attrmode   = attrmode_none;
 	static constexpr AttrWidth	attrwidth  = attrwidth_none;
 	static constexpr AttrHeight attrheight = attrheight_none;
+
+	// helper: calculate (minimum) sizes for the pixels pixmap:
+	static constexpr int calc_row_offset(int w) noexcept { return ((w << CD) + 7) >> 3; }
 
 	// allocating ctor:
 	Pixmap(const Size& size, AttrHeight = attrheight_none) throws;
@@ -146,40 +150,28 @@ protected:
 // __________________________________________________________________
 // IMPLEMENTATIONS: ctor, dtor
 
-inline constexpr int bits_for_pixels(ColorDepth CD, int w) noexcept // ctor helper
-{
-	return w << CD;
-}
-
-inline constexpr int calc_row_offset(ColorDepth CD, int w) noexcept // ctor helper
-{
-	return (bits_for_pixels(CD, w) + 7) >> 3;
-}
-
-// allocating, throws:
+// allocating, throws. for use by subclass:
 template<ColorMode CM>
 DirectColorPixmap::Pixmap(coord w, coord h, ColorMode cm, AttrHeight ah) throws :
 	Canvas(w, h, cm, ah, true /*allocated*/),
-	row_offset(calc_row_offset(CD, w)),
+	row_offset(calc_row_offset(w)),
 	pixmap(new uint8[uint(h * row_offset)])
 {}
 
 template<ColorMode CM>
-DirectColorPixmap::Pixmap(coord w, coord h, AttrHeight ah) throws : Pixmap(w, h, CM, attrheight_none)
+DirectColorPixmap::Pixmap(coord w, coord h, AttrHeight) throws : Pixmap(w, h, CM, attrheight_none)
 {
-	// attrheight argument is only for signature compatibility with Pixmap_wAttr version:
-	assert(ah == attrheight_none);
+	// argument attrheight is only for signature compatibility with Pixmap_wAttr version
 }
 
 template<ColorMode CM>
-DirectColorPixmap::Pixmap(const Size& sz, AttrHeight ah) throws : Pixmap(sz.width, sz.height, CM, attrheight_none)
+DirectColorPixmap::Pixmap(const Size& sz, AttrHeight) throws : Pixmap(sz.width, sz.height, CM, attrheight_none)
 {
-	// attrheight argument is only for signature compatibility with Pixmap_wAttr version:
-	assert(ah == attrheight_none);
+	// argument attrheight is only for signature compatibility with Pixmap_wAttr version
 }
 
 
-// not allocating: wrap existing pixels:
+// not allocating: wrap existing pixels. for use by subclass:
 template<ColorMode CM>
 DirectColorPixmap::Pixmap(coord w, coord h, ColorMode cm, AttrHeight ah, uint8* pixels, int row_offset) noexcept :
 	Canvas(w, h, cm, ah, false /*not allocated*/),
@@ -202,11 +194,11 @@ template<ColorMode CM>
 DirectColorPixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
 	Canvas(w, h, q.Canvas::colormode, q.Canvas::attrheight, false /*not allocated*/),
 	row_offset(q.row_offset),
-	pixmap(q.pixmap + y * q.row_offset + (bits_for_pixels(CD, x) >> 3))
+	pixmap(q.pixmap + y * q.row_offset + ((x << CD) >> 3))
 {
 	assert(x >= 0 && w >= 0 && x + w <= q.width);
 	assert(y >= 0 && h >= 0 && y + h <= q.height);
-	assert(bits_for_pixels(CD, x) % 8 == 0);
+	assert((x << CD) % 8 == 0);
 }
 
 template<ColorMode CM>

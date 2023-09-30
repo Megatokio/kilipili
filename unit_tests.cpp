@@ -4,6 +4,19 @@
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+//
+#include "kilipili_cdefs.h"
+
+
+void panic(const char* fmt, ...)
+{
+	va_list va;
+	va_start(va, fmt);
+	vprintf(fmt, va);
+	exit(2);
+}
 
 #if 0 
 // c&p template:
