@@ -9,11 +9,6 @@
 #include "geometry.h"
 
 
-#ifndef PIXMAP_ALIGN_TO_INT32
-  #define PIXMAP_ALIGN_TO_INT32 0
-#endif
-
-
 namespace kio::Graphics
 {
 
@@ -158,9 +153,7 @@ inline constexpr int bits_for_pixels(ColorDepth CD, int w) noexcept // ctor help
 
 inline constexpr int calc_row_offset(ColorDepth CD, int w) noexcept // ctor helper
 {
-	if (PIXMAP_ALIGN_TO_INT32) return (bits_for_pixels(CD, w) + 31) >> 5 << 2;
-	if ((w << CD) >= (80 << 3)) return (bits_for_pixels(CD, w) + 31) >> 5 << 2;
-	else return (bits_for_pixels(CD, w) + 7) >> 3;
+	return (bits_for_pixels(CD, w) + 7) >> 3;
 }
 
 // allocating, throws:
