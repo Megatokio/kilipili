@@ -81,9 +81,6 @@ inline constexpr uint16 double_bits(uint8 bits) noexcept
 	return n * 3;
 }
 
-static_assert(double_bits(0x0f) == 0x00ff);
-static_assert(double_bits(0xA5) == 0xcc33);
-
 /* stretch bitmask to quadruple width:
 */
 inline constexpr uint32 quadruple_bits(uint8 bits) noexcept
@@ -94,9 +91,6 @@ inline constexpr uint32 quadruple_bits(uint8 bits) noexcept
 	n		 = (n | (n << 3)) & 0x11111111;
 	return n * 15;
 }
-
-static_assert(quadruple_bits(0x0f) == 0x0000ffff);
-static_assert(quadruple_bits(0xA5) == 0xf0f00f0f);
 
 inline constexpr uint8 reduce_bits_2bpp(uint bits) noexcept
 {
@@ -122,12 +116,6 @@ inline constexpr uint8 reduce_bits_4bpp(uint32 bits) noexcept
 	bits = (bits | (bits >> 12));
 	return uint8(bits);
 }
-
-static_assert(reduce_bits_4bpp(uint32(0xffff0000)) == 0xf0);
-static_assert(reduce_bits_4bpp(uint32(0x00110101)) == 0x35);
-static_assert(reduce_bits_4bpp(uint32(0x00000804)) == 0x05);
-static_assert(reduce_bits_2bpp(uint16(0xff00)) == 0xf0);
-static_assert(reduce_bits_2bpp(uint16(0xc8A5)) == 0xaf);
 
 
 /* clear row of bytes, halfwords or words with flood_filled_color.
@@ -608,7 +596,7 @@ void copy_row_as_1bpp(uint8* zp, const uint8* qp, int w, uint color, uint8 toggl
 	}
 	else if constexpr (CD == colordepth_4bpp)
 	{
-		if ((int(qp) & 3) == 0)
+		if ((size_t(qp) & 3) == 0)
 		{
 			const uint32* qptr = reinterpret_cast<const uint32*>(qp);
 			while (--w >= 0) { *zp++ = bitblit::reduce_bits_4bpp(*qptr++ ^ color) ^ toggle; }
@@ -626,7 +614,7 @@ void copy_row_as_1bpp(uint8* zp, const uint8* qp, int w, uint color, uint8 toggl
 	}
 	else if constexpr (CD == colordepth_2bpp)
 	{
-		if ((int(qp) & 1) == 0)
+		if ((size_t(qp) & 1) == 0)
 		{
 			const uint16* qptr = reinterpret_cast<const uint16*>(qp);
 			while (--w >= 0) { *zp++ = bitblit::reduce_bits_2bpp(*qptr++ ^ color) ^ toggle; }

@@ -18,6 +18,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "TEST")
 		common/unit_tests.cpp
 		Graphics/Pixmap_unit_test.cpp
 		Graphics/Canvas_unit_test.cpp
+		Graphics/BitBlit_unit_test.cpp
 		)
 	
 	# add current dir to 'include search path':
