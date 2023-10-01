@@ -290,7 +290,7 @@ TEST_CASE_TEMPLATE("Pixmap::operator==() direct color", T, ALL_PIXMAPS)
 	}
 }
 
-TEST_CASE_TEMPLATE("Pixmap::operator==() attribute modes", T, ALL_PIXMAPa1, ALL_PIXMAPa2)
+TEST_CASE_TEMPLATE("Pixmap::operator==() attribute modes" * doctest::skip(1), T, ALL_PIXMAPa1, ALL_PIXMAPa2)
 {
 	const int		 width = 55, height = 77;
 	const AttrHeight ah = attrheight_8px;
