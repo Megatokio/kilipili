@@ -148,16 +148,18 @@ extern void clear_row_of_bits_with_mask(
 	uint8* row, int xoffs_bits, int width_bits, uint32 flood_filled_color, uint32 flood_filled_mask) noexcept;
 
 /* clear a rectangular area with bit boundary precision.
+	the color is not rolled for (x0 & 31) because it is assumed that x0 is a multiple of the color width and 
+	flood_filled_color is a repetition of a single color; then rolling will always result in the same value again.
 
 	row0 = pointer to the first row
-	xpos_bits = x position measured in bits
+	x0_bits = x position measured in bits
 	row_offset = row offset in bytes
 	width_bits = width in bits
 	height = height in rows
 	flood_filled_color = 32 bit flood filled color
 */
 extern void clear_rect_of_bits(
-	uint8* row0, int xpos_bits, int row_offset, int width_bits, int height, uint32 flood_filled_color) noexcept;
+	uint8* row0, int x0_bits, int row_offset, int width_bits, int height, uint32 flood_filled_color) noexcept;
 
 /* clear a rectangular area with byte boundary precision.
 
@@ -374,7 +376,7 @@ void draw_hline(uint8* row, int x, int width, uint color) noexcept
 
 /** draw dotted horizontal line in pixmap.
 	draws only every 2nd, 4th or 16th pixel depending on AttrMode AM.
-	this is intended to set the colors in the color attributes for a horizontal line in tiled Pixmaps.
+	this is intended to set the colors in the color attributes for a horizontal line in Pixmaps with attributes.
 
 	note that x1 and width are the coordinates in the attributes[],
 		not the x coordinate and width used to draw the line in the pixels[] of the Pixmap.
@@ -384,25 +386,25 @@ void draw_hline(uint8* row, int x, int width, uint color) noexcept
 
 	@tparam	AM		AttrMode, essentially the color depth of the pixmap itself
 	@tparam CD		ColorDepth of the colors in the attributes
-	@param row		start of top row
-	@param x    	xpos measured from `row` in pixels
-	@param width	width of horizontal line, measured in pixels
+	@param row		start of row
+	@param x0    	xpos measured from `row` in pixels (colors)
+	@param width	width of horizontal line, measured in pixels (colors)
 	@param color	color for drawing
 */
 template<AttrMode AM, ColorDepth CD>
-void attr_draw_hline(uint8* row, int x, int width, uint color) noexcept
+void attr_draw_hline(uint8* row, int x0, int width, uint color) noexcept
 {
-	constexpr int num_colors = 1 << (1 << AM); // number of colors per attribute
+	constexpr int colors_per_attr = 1 << (1 << AM);
 
 	if constexpr (CD == colordepth_16bpp)
 	{
-		uint16* p = reinterpret_cast<uint16*>(row) + x;
-		for (int i = 0; i < width; i += num_colors) { p[i] = uint16(color); }
+		uint16* p = reinterpret_cast<uint16*>(row) + x0;
+		for (int i = 0; i < width; i += colors_per_attr) { p[i] = uint16(color); }
 	}
 	else if constexpr (CD == colordepth_8bpp)
 	{
-		uint8* p = row + x;
-		for (int i = 0; i < width; i += num_colors) { p[i] = uint8(color); }
+		uint8* p = row + x0;
+		for (int i = 0; i < width; i += colors_per_attr) { p[i] = uint8(color); }
 	}
 	else // 1bpp .. 4bpp colors
 	{
@@ -430,7 +432,7 @@ void attr_draw_hline(uint8* row, int x, int width, uint color) noexcept
 		constexpr uint32 mask = flooded(bits_per_attr, pixelmask<CD>);
 
 		if (unlikely(width <= 0)) return;
-		clear_row_of_bits_with_mask(row, x << CD, width << CD, flood_filled_color<CD>(color), mask);
+		clear_row_of_bits_with_mask(row, x0 << CD, width << CD, flood_filled_color<CD>(color), mask);
 	}
 }
 

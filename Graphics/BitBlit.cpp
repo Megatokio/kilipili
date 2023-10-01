@@ -609,35 +609,51 @@ void xor_row_of_bits(uint8* zp, int xoffs, int width, uint32 color) noexcept
 	*p ^= rmask & color;
 }
 
-void clear_row_of_bits_with_mask(uint8* zp, int zx, int width, uint32 color, uint32 mask) noexcept
+void clear_row_of_bits_with_mask(uint8* zp, int xoffs, int width, uint32 color, uint32 mask) noexcept
 {
-	zp += zx >> 3;
-	zx &= 7;
+	// align zp to int32:
+	int o = ssize_t(zp) & 3;
+	xoffs += o << 3;
+	uint32* p = reinterpret_cast<uint32*>(zp - o);
 
-	if (int o = ssize_t(zp) & 3) // align zp to int32
+	// add full words from xoffs to zp:
+	p += xoffs >> 5;
+	xoffs &= 31;
+	if (xoffs) mask = (mask << xoffs) | (mask >> (32 - xoffs));
+
+	// mask for bits to set at left end:  (note: lsb is left!)
+	int keep = xoffs;
+	width += keep;
+	uint32 lmask = (~0u << keep) & mask;
+
+	// mask for bits to set at right end:
+	keep = -width & 31;
+	width += keep;
+	uint32 rmask = (~0u >> keep) & mask;
+
+	int cnt = width >> 5;
+	assert(cnt > 0);
+
+	if (cnt == 1)
 	{
-		zp -= o;
-		o <<= 3;
-		zx += o;
-		mask = (mask << o) | (mask >> (32 - o));
+		color &= lmask & rmask;
+		mask = ~(lmask & rmask); // bits to keep
+
+		*p++ = (*p & mask) | color;
 	}
-
-	uint32* p = reinterpret_cast<uint32*>(zp);
-
-	uint32 lmask = mask & (~0u << zx); // mask bits to set at left end
-	*p			 = (*p & ~lmask) | (color & lmask);
-
-	width -= 32 - zx;
-	uint32 rmask = mask & (~0u << ((32 - width) & 31)); // mask bits to set at right end
-
-	if (width > 0)
+	else
 	{
-		p++;
-		int cnt = width >> 5;
-		for (int i = 0; i < cnt; i++) { *p++ = color; }
-	}
+		uint32 lcolor = color & lmask;
+		uint32 rcolor = color & rmask;
+		color &= mask;
+		lmask = ~lmask; // bits to keep
+		rmask = ~rmask; // bits to keep
+		mask  = ~mask;	// bits to keep
 
-	*p = (*p & ~rmask) | (color & rmask);
+		*p++ = (*p & lmask) | lcolor;
+		for (int i = 0; i < cnt - 2; i++) { *p++ = (*p & mask) | color; }
+		*p++ = (*p & rmask) | rcolor;
+	}
 }
 
 void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int height, uint32 color) noexcept
