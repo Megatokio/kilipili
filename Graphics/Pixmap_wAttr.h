@@ -324,15 +324,14 @@ uint AttrModePixmap::get_ink(coord x, coord y) const noexcept
 {
 	// get ink from pixels[]
 	// same as in Pixmap.getInk()
-	assert(is_inside(x, y));
-	return bitblit::get_pixel<colordepth>(pixmap + y * row_offset, x);
+	return super::get_ink(y, x);
 }
 
 template<ColorMode CM>
 uint AttrModePixmap::get_color(coord x, coord y) const noexcept
 {
 	// get color from attributes[]
-	uint ink = get_ink(x, y);
+	uint ink = super::get_ink(x, y);
 	return attr_get_color(x, y, ink);
 }
 
@@ -340,7 +339,7 @@ template<ColorMode CM>
 uint AttrModePixmap::get_pixel(coord x, coord y, uint* ink) const noexcept
 {
 	// get color and ink
-	return attr_get_color(x, y, *ink = get_ink(x, y));
+	return attr_get_color(x, y, *ink = super::get_ink(x, y));
 }
 
 
