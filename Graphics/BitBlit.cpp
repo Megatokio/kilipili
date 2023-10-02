@@ -670,23 +670,17 @@ void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int hei
 	{
 		// if row_offset is not a multiple of 4
 		// then alignment will change from row to row.
-		// a simple way to fix this fast is to double the row offset
-		// and clear only every 2nd row in each of two rounds
+		// => We double the row offset and clear only every 2nd row in each of two rounds
 		// or quadruple the row offset and do 4 rounds.
 
-		if (row_offset & 1)
-		{
-			clear_rect_of_bits(zp, xoffs, row_offset << 2, width, (height + 3) >> 2, color);
-			clear_rect_of_bits(zp + row_offset * 1, xoffs, row_offset << 2, width, (height + 2) >> 2, color);
-			clear_rect_of_bits(zp + row_offset * 2, xoffs, row_offset << 2, width, (height + 1) >> 2, color);
-			clear_rect_of_bits(zp + row_offset * 3, xoffs, row_offset << 2, width, (height + 0) >> 2, color);
-		}
-		else // if (row_offset & 2)
-		{
+		do {
 			clear_rect_of_bits(zp, xoffs, row_offset << 1, width, (height + 1) >> 1, color);
-			clear_rect_of_bits(zp + row_offset, xoffs, row_offset << 1, width, (height + 0) >> 1, color);
+			//clear_rect_of_bits(zp + row_offset, xoffs, row_offset << 1, width, (height + 0) >> 1, color);
+			zp += row_offset;
+			row_offset <<= 1;
+			height >>= 1;
 		}
-		return;
+		while (row_offset & 2);
 	}
 
 	// row_offset is a multiple of 4
