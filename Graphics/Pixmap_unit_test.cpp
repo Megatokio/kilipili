@@ -58,19 +58,21 @@ void print_metrics(const PM& pm, cstr ident = "", cstr msg = "new Pixmap")
 	}
 }
 
+static int rand(int max) { return random() % max; }
+
 template<typename PM>
 bool is_clear(const PM& pm, uint color)
 {
 	return true;
 	constexpr ColorDepth CD = PM::colordepth;
 
-	if (is_direct_color(PM::colormode) && pm.row_offset << 3 == pm.width << CD)
-	{
-		color = flood_filled_color<CD>(color);
-		if (memcmp(pm.pixmap, &color, uint(min(pm.row_offset * pm.height, 4))) != 0) return false;
-		return memcmp(pm.pixmap, pm.pixmap + 4, uint(pm.row_offset * pm.height - 4)) == 0;
-	}
-	else
+	//if (is_direct_color(PM::colormode) && pm.row_offset << 3 == pm.width << CD)
+	//{
+	//	color = flood_filled_color<CD>(color);
+	//	if (memcmp(pm.pixmap, &color, uint(min(pm.row_offset * pm.height, 4))) != 0) return false;
+	//	return memcmp(pm.pixmap, pm.pixmap + 4, uint(pm.row_offset * pm.height - 4)) == 0;
+	//}
+	//else
 	{
 		color &= pixelmask<CD>;
 		for (int y = 0; y < pm.height; y++)
@@ -80,7 +82,7 @@ bool is_clear(const PM& pm, uint color)
 	}
 }
 
-TEST_CASE_TEMPLATE("Pixmap(Size)", T, ALL_PIXMAPS)
+TEST_CASE_TEMPLATE("Pixmap(Size) constructor", T, ALL_PIXMAPS)
 {
 	constexpr ColorDepth CD				= T::CD;
 	static constexpr int bits_per_pixel = 1 << CD;
@@ -195,27 +197,27 @@ TEST_CASE_TEMPLATE("Pixmap(Size,pixels[],attr[]) constructor", T, ALL_PIXMAPa1, 
 TEST_CASE_TEMPLATE("Pixmap::clear()", T, ALL_PIXMAPS, ALL_PIXMAPa1, ALL_PIXMAPa2)
 {
 	T pm1 {80, 40, attrheight_8px};
-	pm1.clear(0, 0);
+	pm1.clear(0);
 	CHECK(is_clear(pm1, 0));
 
 	T pm2 {81, 40, attrheight_8px};
-	pm2.clear(0, 0);
+	pm2.clear(0);
 	CHECK(is_clear(pm2, 0));
 
 	T pm3 {80, 41, attrheight_8px};
-	pm3.clear(0, 0);
+	pm3.clear(0);
 	CHECK(is_clear(pm3, 0));
 
 	T pm4 {40, 80, attrheight_8px};
-	pm4.clear(0, 0);
+	pm4.clear(0);
 	CHECK(is_clear(pm4, 0));
 
 	T pm5 {41, 80, attrheight_8px};
-	pm5.clear(0, 0);
+	pm5.clear(0);
 	CHECK(is_clear(pm5, 0));
 
 	T pm6 {40, 81, attrheight_8px};
-	pm6.clear(0, 0);
+	pm6.clear(0);
 	CHECK(is_clear(pm6, 0));
 }
 
@@ -248,7 +250,7 @@ TEST_CASE_TEMPLATE("Pixmap(Pixmap,Rect) constructor", T, ALL_PIXMAPa1, ALL_PIXMA
 		{
 			pm2.set_pixel(x, y, 1);
 			CHECK_EQ(pm1.get_color(x0 + x, y0 + y), 1);
-			pm1.setPixel(x0 + x, y0 + y, 0);
+			pm1.set_pixel(x0 + x, y0 + y, 0);
 			CHECK_EQ(pm2.get_color(x, y), 0);
 		}
 
@@ -266,31 +268,31 @@ TEST_CASE_TEMPLATE("Pixmap::operator==() direct color", T, ALL_PIXMAPS)
 	T pm2 {pm1, x0, y0, width, height};
 	T pm3 {width, height, ah};
 
-	for (uint ink = 0; ink <= 1; ink++)
+	for (uint color = 0; color <= 1; color++)
 	{
-		pm1.clear(ink, ink);
-		pm3.clear(ink, ink);
+		pm1.clear(color);
+		pm3.clear(color);
 		CHECK_EQ(pm3, pm2);
 
-		pm2.set_pixel(0, 0, !ink, !ink);
+		pm2.set_pixel(0, 0, !color);
 		CHECK(pm3 != pm2);
-		pm2.set_pixel(0, 0, ink, ink);
+		pm2.set_pixel(0, 0, color);
 		CHECK(pm3 == pm2);
 
-		pm2.set_pixel(width - 1, height - 1, !ink, !ink);
+		pm2.set_pixel(width - 1, height - 1, !color);
 		CHECK(pm3 != pm2);
-		pm2.set_pixel(width - 1, height - 1, ink, ink);
+		pm2.set_pixel(width - 1, height - 1, color);
 		CHECK(pm3 == pm2);
 
-		pm1.clear(!ink, !ink);
-		pm2.clear(ink, ink);
+		pm1.clear(!color);
+		pm2.clear(color);
 		CHECK(pm3 == pm3);
 		CHECK(pm2 == pm2);
 		CHECK(pm3 == pm2);
 	}
 }
 
-TEST_CASE_TEMPLATE("Pixmap::operator==() attribute modes" * doctest::skip(1), T, ALL_PIXMAPa1, ALL_PIXMAPa2)
+TEST_CASE_TEMPLATE("Pixmap::operator==() attribute modes", T, ALL_PIXMAPa1, ALL_PIXMAPa2)
 {
 	const int		 width = 55, height = 77;
 	const AttrHeight ah = attrheight_8px;
@@ -302,54 +304,75 @@ TEST_CASE_TEMPLATE("Pixmap::operator==() attribute modes" * doctest::skip(1), T,
 
 	uint num_inks = T::colors_per_attr;
 
-	// clear() == fillRect()
-	// --> sets only colors for ink in attr[] but operator==() compares whole attr[]
-	// --> extra clear needed:
-	// TODO: maybe we should clear the pixmaps in ctor?
 	for (uint ink = 0; ink < num_inks; ink++)
 	{
-		pm1.clear(0, ink);
-		pm3.clear(0, ink);
-	}
-	CHECK_EQ(pm2, pm3);
-
-	for (uint ink = 0; ink < num_inks; ink++)
-	{
-		pm1.clear(0, ink);
-		pm3.clear(0, ink);
+		pm1.clear(0);
+		pm3.clear(0);
 		CHECK_EQ(pm2, pm3);
 
 		pm2.set_pixel(0, 0, 1, ink);
 		CHECK_NE(pm3, pm2);
-		pm2.set_pixel(0, 0, 0, ink);
+		pm2.set_pixel(0, 0, 0, ink); // reset the color to 0
+		pm2.set_pixel(0, 0, 0, 0);	 // reset the pixel to 0
 		CHECK_EQ(pm3, pm2);
 
 		pm2.set_pixel(width - 1, height - 1, 1, ink);
-		CHECK_EQ(pm2, pm3);
+		CHECK_NE(pm2, pm3);
 		pm2.set_pixel(width - 1, height - 1, 0, ink);
+		pm2.set_pixel(width - 1, height - 1, 0, 0);
 		CHECK_EQ(pm2, pm3);
 
-		pm1.clear(1, ink);
-		pm2.clear(0, ink);
+		pm1.clear(1);
+		pm2.clear(0);
 		CHECK_EQ(pm2, pm3);
 	}
 }
 
 TEST_CASE_TEMPLATE("Pixmap::set_pixel(), get_pixel()", T, ALL_PIXMAPS)
 {
-	T pm {200, 100};
-	pm.clear(0, 0);
+	constexpr int width = 200, height = 100;
+	T			  pm {width, height};
+	pm.clear(0);
+	uint ink;
 
-	Point pt[] = {{10, 12}, {20, 12}, {10, 24}, {111, 99}};
-
-	for (uint i = 0; i < NELEM(pt); i++)
+	for (uint i = 0; i < 99; i++)
 	{
-		uint ink;
-		CHECK_UNARY(pm.getPixel(pt[i], &ink) == 0 && ink == 0);
-		pm.setPixel(pt[i], 1);
-		CHECK_UNARY(pm.getPixel(pt[i], &ink) == 1 && ink == 1);
-		pm.setPixel(pt[i], 0);
-		CHECK_UNARY(pm.getPixel(pt[i], &ink) == 0 && ink == 0);
+		coord x = rand(width);
+		coord y = rand(height);
+		pm.setPixel(x, y, 1);
+		CHECK_UNARY(pm.getPixel(x - 1, y, &ink) == 0 && ink == 0);
+		CHECK_UNARY(pm.getPixel(x, y, &ink) == 1 && ink == 1);
+		CHECK_UNARY(pm.getPixel(x + 1, y, &ink) == 0 && ink == 0);
+		pm.setPixel(x, y, 0);
+		CHECK_UNARY(pm.getPixel(x, y, &ink) == 0 && ink == 0);
+	}
+	CHECK(is_clear(pm, 0));
+}
+
+TEST_CASE_TEMPLATE("Pixmap::set_pixel(), get_pixel()", T, ALL_PIXMAPa1, ALL_PIXMAPa2)
+{
+	constexpr int width = 200, height = 100;
+	T			  pm {width, height, attrheight_8px};
+	pm.clear(0);
+	constexpr uint ink1	  = T::colors_per_attr - 1;
+	constexpr uint color1 = 15;
+	uint		   ink	  = 999;
+
+	for (uint i = 0; i < 20; i++)
+	{
+		coord x = 32 + rand(width - 64);
+		coord y = 8 + rand(height - 16);
+
+		pm.setPixel(x, y, color1, ink1);
+
+
+		CHECK_UNARY(pm.getPixel(x - 1, y, &ink) == 0 && ink == 0);
+		CHECK_UNARY(pm.getPixel(x, y, &ink) == color1 && ink == ink1);
+		CHECK_UNARY(pm.getPixel(x + 1, y, &ink) == 0 && ink == 0);
+
+		pm.setPixel(x, y, 0, ink1); // reset color in attr[ink1] => final is_clear works
+		pm.setPixel(x, y, 0, 0);
+		CHECK_UNARY(pm.getPixel(x, y, &ink) == 0 && ink == 0);
 	}
 	CHECK(is_clear(pm, 0));
 }
