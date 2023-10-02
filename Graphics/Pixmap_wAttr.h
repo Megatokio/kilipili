@@ -221,7 +221,7 @@ void AttrModePixmap::attr_draw_hline(coord x1, coord y1, coord x2, uint color, u
 	x2 = calc_ax(x2 - 1) + 1;
 	y1 = calc_ay(y1);
 
-	bitblit::attr_draw_hline<AM, CD>(attributes.pixmap + y1 * attributes.row_offset, x1 + ink, x2 - x1, color);
+	bitblit::attr_clear_rect<AM, CD>(attributes.pixmap + y1 * attributes.row_offset, 0, x1 + ink, x2 - x1, 1, color);
 }
 
 template<ColorMode CM>

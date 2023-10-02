@@ -609,8 +609,30 @@ void xor_row_of_bits(uint8* zp, int xoffs, int width, uint32 color) noexcept
 	*p ^= rmask & color;
 }
 
-void clear_row_of_bits_with_mask(uint8* zp, int xoffs, int width, uint32 color, uint32 mask) noexcept
+void clear_rect_of_bits_with_mask(
+	uint8* zp, int xoffs, int row_offset, int width, int height, uint32 color, uint32 mask) noexcept
 {
+	if (unlikely(width <= 0 || height <= 0)) return;
+
+	if (unlikely(row_offset & 3))
+	{
+		// if row_offset is not a multiple of 4 then alignment will change from row to row.
+		// => Double the row offset and clear only every 2nd row in each of two rounds
+		// or quadruple the row offset and do 4 rounds.
+
+		do {
+			clear_rect_of_bits_with_mask(zp, xoffs, row_offset << 1, width, (height + 1) >> 1, color, mask);
+			//clear_rect_of_bits_with_mask(zp + row_offset, xoffs, row_offset << 1, width, (height + 0) >> 1, color, mask);
+			zp += row_offset;
+			row_offset <<= 1;
+			height >>= 1;
+		}
+		while (row_offset & 2);
+	}
+
+	// row_offset is a multiple of 4
+	// => alignment from row to row won't change!
+
 	// align zp to int32:
 	int o = ssize_t(zp) & 3;
 	xoffs += o << 3;
@@ -632,6 +654,7 @@ void clear_row_of_bits_with_mask(uint8* zp, int xoffs, int width, uint32 color, 
 	uint32 rmask = (~0u >> keep) & mask;
 
 	int cnt = width >> 5;
+	int dp	= (row_offset >> 2) - cnt;
 	assert(cnt > 0);
 
 	if (cnt == 1)
@@ -639,7 +662,11 @@ void clear_row_of_bits_with_mask(uint8* zp, int xoffs, int width, uint32 color, 
 		color &= lmask & rmask;
 		mask = ~(lmask & rmask); // bits to keep
 
-		*p++ = (*p & mask) | color;
+		while (--height >= 0)
+		{
+			*p++ = (*p & mask) | color;
+			p += dp;
+		}
 	}
 	else
 	{
@@ -650,27 +677,24 @@ void clear_row_of_bits_with_mask(uint8* zp, int xoffs, int width, uint32 color, 
 		rmask = ~rmask; // bits to keep
 		mask  = ~mask;	// bits to keep
 
-		*p++ = (*p & lmask) | lcolor;
-		for (int i = 0; i < cnt - 2; i++) { *p++ = (*p & mask) | color; }
-		*p++ = (*p & rmask) | rcolor;
+		while (--height >= 0)
+		{
+			*p++ = (*p & lmask) | lcolor;
+			for (int i = 0; i < cnt - 2; i++) { *p++ = (*p & mask) | color; }
+			*p++ = (*p & rmask) | rcolor;
+			p += dp;
+		}
 	}
 }
 
 void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int height, uint32 color) noexcept
 {
-	//printf("clear_rect_of_bits:\n");
-	//printf("  xoffs=%i\n", xoffs);
-	//printf("  row_offs=%i\n", row_offset);
-	//printf("  width=%i\n", width);
-	//printf("  height=%i\n", height);
-
 	if (unlikely(width <= 0 || height <= 0)) return;
 
 	if (unlikely(row_offset & 3))
 	{
-		// if row_offset is not a multiple of 4
-		// then alignment will change from row to row.
-		// => We double the row offset and clear only every 2nd row in each of two rounds
+		// if row_offset is not a multiple of 4 then alignment will change from row to row.
+		// => Double the row offset and clear only every 2nd row in each of two rounds
 		// or quadruple the row offset and do 4 rounds.
 
 		do {
@@ -710,18 +734,12 @@ void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int hei
 
 	assert(cnt > 0);
 
-	//printf("  cnt = %i\n", cnt);
-	//printf("  dp  = %i\n", dp);
-	//printf("  lmask = 0x%08x\n", lmask);
-	//printf("  rmask = 0x%08x\n", rmask);
-	//printf("  p=%u\n", uint(p));
-
 	if (cnt == 1)
 	{
 		color &= lmask & rmask;
 		uint32 mask = ~(lmask & rmask); // bits to keep
 
-		while (height--)
+		while (--height >= 0)
 		{
 			*p++ = (*p & mask) | color;
 			p += dp;
@@ -734,7 +752,7 @@ void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int hei
 		lmask		  = ~lmask; // bits to keep
 		rmask		  = ~rmask; // bits to keep
 
-		while (height--)
+		while (--height >= 0)
 		{
 			*p++ = (*p & lmask) | lcolor;
 			for (int i = 0; i < cnt - 2; i++) { *p++ = color; }
@@ -742,8 +760,6 @@ void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int hei
 			p += dp;
 		}
 	}
-
-	//printf("  p=%u\n", uint(p));
 }
 
 void xor_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int height, uint32 color) noexcept

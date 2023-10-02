@@ -140,12 +140,15 @@ extern void xor_row_of_bits(uint8* row, int xoffs_bits, int width_bits, uint32 f
 
 	row = pointer to the start of the row
 	xoffs_bits = x position measured in bits
+	row_offset = row offset in bytes
 	width_bits = width in bits
+	height = height in rows
 	flood_filled_color = 32 bit flood filled color
 	flood_filled_mask = 32 bit wide mask for bits to set
 */
-extern void clear_row_of_bits_with_mask(
-	uint8* row, int xoffs_bits, int width_bits, uint32 flood_filled_color, uint32 flood_filled_mask) noexcept;
+extern void clear_rect_of_bits_with_mask(
+	uint8* row, int xoffs_bits, int row_offset, int width_bits, int height, uint32 flood_filled_color,
+	uint32 flood_filled_mask) noexcept;
 
 /* clear a rectangular area with bit boundary precision.
 	the color is not rolled for (x0 & 31) because it is assumed that x0 is a multiple of the color width and 
@@ -374,37 +377,46 @@ void draw_hline(uint8* row, int x, int width, uint color) noexcept
 	else IERR();
 }
 
-/** draw dotted horizontal line in pixmap.
-	draws only every 2nd, 4th or 16th pixel depending on AttrMode AM.
-	this is intended to set the colors in the color attributes for a horizontal line in Pixmaps with attributes.
-
+/**	clear every 2nd, 4th or 16th column in rectangle depending on AttrMode AM.
+	this is intended to set the colors in the color attributes for a rectangle in Pixmaps with attributes.
+	
 	note that x1 and width are the coordinates in the attributes[],
 		not the x coordinate and width used to draw the line in the pixels[] of the Pixmap.
 	therefore:
 		x1 = x/attrwidth * num_colors_in_attr + pixel_value
 		   = (x >> AW) << (1 << AM) + pixel
-
+		   
 	@tparam	AM		AttrMode, essentially the color depth of the pixmap itself
 	@tparam CD		ColorDepth of the colors in the attributes
-	@param row		start of row
-	@param x0    	xpos measured from `row` in pixels (colors)
-	@param width	width of horizontal line, measured in pixels (colors)
+	@param row		start of top row
+	@param row_offs	address offset between rows
+	@param x1    	xpos measured from `row` in pixels (colors)
+	@param w		width of rectangle, measured in pixels (colors) in the attributes
+	@param h		width of rectangle, measured in pixels (rows) in the attributes
 	@param color	color for drawing
 */
 template<AttrMode AM, ColorDepth CD>
-void attr_draw_hline(uint8* row, int x0, int width, uint color) noexcept
+void attr_clear_rect(uint8* row, int row_offset, int x1, int width, int height, uint color) noexcept
 {
 	constexpr int colors_per_attr = 1 << (1 << AM);
 
 	if constexpr (CD == colordepth_16bpp)
 	{
-		uint16* p = reinterpret_cast<uint16*>(row) + x0;
-		for (int i = 0; i < width; i += colors_per_attr) { p[i] = uint16(color); }
+		uint16* p = reinterpret_cast<uint16*>(row) + x1;
+		while (--height >= 0)
+		{
+			for (int i = 0; i < width; i += colors_per_attr) { p[i] = uint16(color); }
+			p += row_offset >> 1;
+		}
 	}
 	else if constexpr (CD == colordepth_8bpp)
 	{
-		uint8* p = row + x0;
-		for (int i = 0; i < width; i += colors_per_attr) { p[i] = uint8(color); }
+		uint8* p = row + x1;
+		while (--height >= 0)
+		{
+			for (int i = 0; i < width; i += colors_per_attr) { p[i] = uint8(color); }
+			p += row_offset;
+		}
 	}
 	else // 1bpp .. 4bpp colors
 	{
@@ -431,29 +443,8 @@ void attr_draw_hline(uint8* row, int x0, int width, uint color) noexcept
 		};
 		constexpr uint32 mask = flooded(bits_per_attr, pixelmask<CD>);
 
-		if (unlikely(width <= 0)) return;
-		clear_row_of_bits_with_mask(row, x0 << CD, width << CD, flood_filled_color<CD>(color), mask);
-	}
-}
-
-/**	clear every 2nd, 4th or 16th column in rectangle depending on AttrMode AM.
-	this is intended to set the colors in the color attributes for a rectangle in Pixmaps with attributes.
-	@tparam	AM		AttrMode, essentially the color depth of the pixmap itself
-	@tparam CD		ColorDepth of the colors in the attributes
-	@param row		start of top row
-	@param row_offs	address offset between rows
-	@param x    	xpos measured from `row` in pixels (colors)
-	@param w		width of rectangle, measured in pixels (colors) in the attributes
-	@param h		width of rectangle, measured in pixels (rows) in the attributes
-	@param color	color for drawing
-*/
-template<AttrMode AM, ColorDepth CD>
-void attr_clear_rect(uint8* row, int row_offs, int x, int w, int h, uint color) noexcept
-{
-	while (--h >= 0)
-	{
-		attr_draw_hline<AM, CD>(row, x, w, color);
-		row += row_offs;
+		clear_rect_of_bits_with_mask(
+			row, x1 << CD, row_offset, width << CD, height, flood_filled_color<CD>(color), mask);
 	}
 }
 
