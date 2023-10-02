@@ -96,11 +96,11 @@ public:
 		- fillRect(): paint rectangular area
 		- xorRect():  xor all colors in the rect area with the xorColor
 		              Pixmap_wAttr: xor colors of all inks in the attributes[]
-		- clear():    entire pixmap 
+		- clear():    entire pixmap, in attr modes also all inks 
 	*/
 	virtual void fillRect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept;
 	virtual void xorRect(coord x, coord y, coord w, coord h, uint color) noexcept;
-	void		 clear(uint color, uint ink = 0) noexcept;
+	virtual void clear(uint color) noexcept;
 
 	/* _______________________________________________________________________________________
 	   copy rectangular area:
@@ -228,7 +228,7 @@ inline void Canvas::fillCircle(const Rect& z, uint color, uint ink) noexcept
 	fillCircle(z.left(), z.top(), z.width(), z.height(), color, ink);
 }
 inline void Canvas::floodFill(const Point& p, uint color, uint ink) { floodFill(p.x, p.y, color, ink); }
-inline void Canvas::clear(uint color, uint ink) noexcept { fillRect(0, 0, width, height, color, ink); }
+inline void Canvas::clear(uint color) noexcept { fillRect(0, 0, width, height, color); }
 
 inline void Canvas::copyRect(coord zx, coord zy, const Canvas& q) noexcept
 {

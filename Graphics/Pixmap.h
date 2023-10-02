@@ -111,6 +111,7 @@ public:
 	virtual void draw_vline_to(coord x, coord y, coord y2, uint color, uint ink = 0) noexcept override;
 	virtual void fillRect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept override;
 	virtual void xorRect(coord x, coord y, coord w, coord h, uint xor_color) noexcept override;
+	//virtual void clear(uint color) noexcept override;
 	virtual void copyRect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept override;
 	virtual void copyRect(coord x, coord y, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept override;
 	//virtual void readBmp(coord x, coord y, uint8*, int roffs, coord w, coord h, uint c, uint = 0) noexcept override;

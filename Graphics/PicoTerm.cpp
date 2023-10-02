@@ -75,7 +75,7 @@ void PicoTerm::scrollScreen(coord dx /*chars*/, coord dy /*chars*/)
 	int w = (screen_width - abs(dx)) * CHAR_WIDTH;
 	int h = (screen_height - abs(dy)) * CHAR_HEIGHT;
 
-	if (w <= 0 || h <= 0) return pixmap.clear(bgcolor, bg_ink);
+	if (w <= 0 || h <= 0) return pixmap.clear(bgcolor);
 
 	dx *= CHAR_WIDTH;
 	dy *= CHAR_HEIGHT;
@@ -459,7 +459,7 @@ void PicoTerm::cls()
 	attributes	  = 0;
 	cursorVisible = false;
 
-	pixmap.clear(bgcolor, bg_ink);
+	pixmap.clear(bgcolor);
 }
 
 

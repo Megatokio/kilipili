@@ -27,6 +27,24 @@ void AttrModePixmap::fillRect(coord x1, coord y1, coord w, coord h, uint color, 
 }
 
 template<ColorMode CM>
+void AttrModePixmap::clear(uint color) noexcept
+{
+	// clear pixmap to:     all inks = 0
+	// clear attributes to: all colors = color
+	// if this is a window into another Pixmap and if width or height is not a multiple of the attribute cell size
+	// then this bleeds the color to full attribute cells.
+
+	coord w = calc_ax(width - 1) + colors_per_attr;
+	coord h = calc_ay(height - 1) + 1;
+
+	assert(w <= attributes.width);
+	assert(h <= attributes.height);
+
+	attributes.fill_rect(0, 0, w, h, color);  // all colors in all attributes := color
+	super::fill_rect(0, 0, width, height, 0); // all pixels: ink := 0
+}
+
+template<ColorMode CM>
 void AttrModePixmap::xorRect(coord x1, coord y1, coord w, coord h, uint color) noexcept
 {
 	coord x2 = min(x1 + w, width);
