@@ -491,6 +491,19 @@ void copy_rect(uint8* zp, int zrow_offs, int zx, const uint8* qp, int qrow_offs,
 template<ColorDepth CD>
 void draw_bitmap(uint8* zp, int zrow_offs, int x0, const uint8* qp, int qrow_offs, int w, int h, uint color) noexcept;
 
+template<ColorDepth CD>
+void draw_bitmap_ref(
+	uint8* zp, int zrow_offs, int x0, const uint8* qp, int qrow_offs, int w, int h, uint color) noexcept
+{
+	for (int y = 0; y < h; y++)
+	{
+		for (int x = 0; x < w; x++)
+			if (get_pixel<colordepth_1bpp>(qp, x)) set_pixel<CD>(zp, x0 + x, color);
+		qp += qrow_offs;
+		zp += zrow_offs;
+	}
+}
+
 /** draw character glyph into destination pixmap of any color depth.
 	it draws the '1' bits in the given color, while '0' bits are left transparent.
 	if you want to draw the '0' in a certain color too then clear the area with that color first.

@@ -946,29 +946,26 @@ void draw_bitmap<colordepth_1bpp>(
 	}
 }
 
-
 template<>
 void draw_bitmap<colordepth_2bpp>(
-	uint8* zp0, int z_row_offs, int x0, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
+	uint8* zp, int zrow_offs, int x0, const uint8* qp, int qrow_offs, int width, int height, uint color) noexcept
 {
 	if (width <= 0 || height <= 0) return;
 
 	constexpr ColorDepth CD = colordepth_2bpp;
-	color					= flood_filled_color<CD>(color);
-	x0						= x0 << CD;
 
-	zp0 += x0 >> 3;
-	x0 &= 7; // low 3 bit of bit address
-	if (ssize_t(zp0) & 1)
+	x0 = x0 << CD;
+	zp += x0 >> 3;
+	x0 &= 7;
+	int o = ssize_t(zp) & 1;
+	zp -= o;
+	x0 += o << 3;
+
+	if (x0 == 0 && (zrow_offs & 1) == 0) // no need to shift
 	{
-		zp0--;
-		x0 += 8;
-	}
+		uint16* wzp = reinterpret_cast<uint16*>(zp);
+		color		= flood_filled_color<CD>(color);
 
-	uint16* zp = reinterpret_cast<uint16*>(zp0);
-
-	if (x0 == 0) // no need to shift
-	{
 		uint mask = ~(~0u << (width & 7)); // mask for last bits in q
 		width	  = width >> 3;			   // count of full bytes to copy
 
@@ -977,77 +974,46 @@ void draw_bitmap<colordepth_2bpp>(
 			for (x = 0; x < width; x++)
 			{
 				uint16 doubled_bits_mask = bitblit::double_bits(qp[x]);
-				zp[x]					 = (zp[x] & ~doubled_bits_mask) | (color & doubled_bits_mask);
+				wzp[x]					 = (wzp[x] & ~doubled_bits_mask) | (color & doubled_bits_mask);
 			}
 			if (mask)
 			{
 				uint16 doubled_bits_mask = bitblit::double_bits(qp[x] & mask);
-				zp[x]					 = (zp[x] & ~doubled_bits_mask) | (color & doubled_bits_mask);
+				wzp[x]					 = (wzp[x] & ~doubled_bits_mask) | (color & doubled_bits_mask);
 			}
 
-			zp += z_row_offs >> 1;
-			qp += q_row_offs;
+			wzp += zrow_offs >> 1;
+			qp += qrow_offs;
 		}
 		return;
 	}
 
 	// source qp and destination zp are not aligned. we need to shift.
-	// this could be optimized as in `copy_bits(uint32* zp, int zx, const uint32* qp, int qx, int cnt)`
-	// with even more code bloating, especially as separate versions are needed for colormode_i1, _i2 and _i4.
+	// TODO: optimize
 
-	q_row_offs -= (width + 7) >> 3;
-	z_row_offs -= (width + (x0 >> CD) - 1) >> 3;
-
-	for (int y = 0; y < height; y++)
-	{
-		uint16 zmask = uint8(pixelmask<CD> << x0); // mask for current pixel in zp[]
-		uint16 zbyte = *zp;						   // target byte read from and stored back to zp[]
-		uint8  qbyte = 0;						   // byte read from qp[]
-
-		for (int x = 0; x < width; x++)
-		{
-			if (unlikely((x & 7) == 0)) { qbyte = *qp++; }
-			if (unlikely(zmask == 0))
-			{
-				*zp = zbyte;
-				zp++;
-				zbyte = *zp;
-				zmask = pixelmask<CD>;
-			}
-			if (qbyte & 1) { zbyte = (zbyte & ~zmask) | (color & zmask); }
-			qbyte >>= 1;
-			zmask <<= 1 << CD;
-		}
-
-		*zp = zbyte;
-
-		qp += q_row_offs;
-		zp += z_row_offs;
-	}
+	draw_bitmap_ref<CD>(zp, zrow_offs, x0 >> CD, qp, qrow_offs, width, height, color);
 }
 
 template<>
 void draw_bitmap<colordepth_4bpp>(
-	uint8* zp0, int z_row_offs, int x0, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
+	uint8* zp, int zrow_offs, int x0, const uint8* qp, int qrow_offs, int width, int height, uint color) noexcept
 {
 	if (width <= 0 || height <= 0) return;
 
-	constexpr ColorDepth CD = colordepth_2bpp;
-	color					= flood_filled_color<CD>(color);
-	x0						= x0 << CD;
+	constexpr ColorDepth CD = colordepth_4bpp;
 
-	zp0 += x0 >> 3;
-	x0 &= 7; // low 3 bit of bit address
-	if (int o = (ssize_t(zp0) & 3))
-	{
-		zp0 -= o;
-		x0 += o << 3;
-	}
-
-	uint32* zp = reinterpret_cast<uint32*>(zp0);
+	x0 = x0 << CD;
+	zp += x0 >> 3;
+	x0 &= 7;
+	int o = (ssize_t(zp) & 3);
+	zp -= o;
+	x0 += o << 3;
 
 	if (x0 == 0) // no need to shift
 	{
+		uint32* wzp = reinterpret_cast<uint32*>(zp);
+		color		= flood_filled_color<CD>(color);
+
 		uint mask = ~(~0u << (width & 7)); // mask for last bits in q
 		width	  = width >> 3;			   // count of full bytes to copy
 
@@ -1056,53 +1022,24 @@ void draw_bitmap<colordepth_4bpp>(
 			for (x = 0; x < width; x++)
 			{
 				uint32 quadrupled_bits_mask = bitblit::quadruple_bits(qp[x]);
-				zp[x]						= (zp[x] & ~quadrupled_bits_mask) | (color & quadrupled_bits_mask);
+				wzp[x]						= (wzp[x] & ~quadrupled_bits_mask) | (color & quadrupled_bits_mask);
 			}
 			if (mask)
 			{
 				uint32 quadrupled_bits_mask = bitblit::quadruple_bits(qp[x] & mask);
-				zp[x]						= (zp[x] & ~quadrupled_bits_mask) | (color & quadrupled_bits_mask);
+				wzp[x]						= (wzp[x] & ~quadrupled_bits_mask) | (color & quadrupled_bits_mask);
 			}
 
-			zp += z_row_offs >> 2;
-			qp += q_row_offs;
+			wzp += zrow_offs >> 2;
+			qp += qrow_offs;
 		}
 		return;
 	}
 
 	// source qp and destination zp are not aligned. we need to shift.
-	// this could be optimized as in `copy_bits(uint32* zp, int zx, const uint32* qp, int qx, int cnt)`
-	// with even more code bloating, especially as separate versions are needed for colormode_i1, _i2 and _i4.
+	// TODO: optimize
 
-	q_row_offs -= (width + 7) >> 3;
-	z_row_offs -= (width + (x0 >> CD) - 1) >> 3;
-
-	for (int y = 0; y < height; y++)
-	{
-		uint32 zmask = uint8(pixelmask<CD> << x0); // mask for current pixel in zp[]
-		uint32 zbyte = *zp;						   // target byte read from and stored back to zp[]
-		uint8  qbyte = 0;						   // byte read from qp[]
-
-		for (int x = 0; x < width; x++)
-		{
-			if (unlikely((x & 7) == 0)) { qbyte = *qp++; }
-			if (unlikely(zmask == 0))
-			{
-				*zp = zbyte;
-				zp++;
-				zbyte = *zp;
-				zmask = pixelmask<CD>;
-			}
-			if (qbyte & 1) { zbyte = (zbyte & ~zmask) | (color & zmask); }
-			qbyte >>= 1;
-			zmask <<= 1 << CD;
-		}
-
-		*zp = zbyte;
-
-		qp += q_row_offs;
-		zp += z_row_offs >> 2;
-	}
+	draw_bitmap_ref<CD>(zp, zrow_offs, x0 >> CD, qp, qrow_offs, width, height, color);
 }
 
 template<>
