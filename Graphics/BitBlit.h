@@ -475,31 +475,13 @@ void copy_rect(uint8* zp, int zrow_offs, int zx, const uint8* qp, int qrow_offs,
 	}
 }
 
-// helper:
-extern void draw_bmp_1bpp(
-	uint8* zp, int zx, int z_row_offs, const uint8* qp, int q_row_offs, int width_pixels, int height,
-	uint color) noexcept;
-extern void draw_bmp_2bpp(
-	uint8* zp, int zx, int z_row_offs, const uint8* qp, int q_row_offs, int width_pixels, int height,
-	uint color) noexcept;
-extern void draw_bmp_4bpp(
-	uint8* zp, int zx, int z_row_offs, const uint8* qp, int q_row_offs, int width_pixels, int height,
-	uint color) noexcept;
-extern void draw_bmp_8bpp(
-	uint8* zp, int z_row_offs, const uint8* qp, int q_row_offs, int width_pixels, int height, uint color) noexcept;
-extern void draw_bmp_16bpp(
-	uint8* zp, int z_row_offs, const uint8* qp, int q_row_offs, int width_pixels, int height, uint color) noexcept;
-extern void draw_chr_1bpp(uint8* zp, int zx, int z_row_offs, const uint8* qp, int height, uint color) noexcept;
-extern void draw_chr_2bpp(uint8* zp, int zx, int z_row_offs, const uint8* qp, int height, uint color) noexcept;
-extern void draw_chr_4bpp(uint8* zp, int zx, int z_row_offs, const uint8* qp, int height, uint color) noexcept;
-
 /** draw Bitmap into destination Pixmap of any color depth.
 	draws the '1' bits in the given color, while '0' bits are left transparent.
 	if you want to draw the '0' in a certain color too then clear the area with that color first.
 
 	@param zp		 start of the first row in destination Pixmap
 	@param zrow_offs row offset in destination Pixmap measured in bytes
-	@param x		 x offset from zp in pixels
+	@param x0		 x offset from zp in pixels
 	@param qp		 start of the first byte of source Bitmap
 	@param qrow_offs row offset in source Bitmap measured in bytes
 	@param w		 width in pixels
@@ -507,21 +489,7 @@ extern void draw_chr_4bpp(uint8* zp, int zx, int z_row_offs, const uint8* qp, in
 	@param color	 color for drawing the bitmap
 */
 template<ColorDepth CD>
-void draw_bitmap(uint8* zp, int zrow_offs, int x, const uint8* qp, int qrow_offs, int w, int h, uint color) noexcept
-{
-	if constexpr (CD >= colordepth_16bpp)
-	{
-		draw_bmp_16bpp(zp + (x << (CD >> 3)), zrow_offs, qp, qrow_offs, w, h, color);
-	}
-	else if constexpr (CD == colordepth_8bpp)
-	{
-		draw_bmp_8bpp(zp + (x << (CD >> 3)), zrow_offs, qp, qrow_offs, w, h, color);
-	}
-	else if constexpr (CD == colordepth_4bpp) { draw_bmp_4bpp(zp, x << CD, zrow_offs, qp, qrow_offs, w, h, color); }
-	else if constexpr (CD == colordepth_2bpp) { draw_bmp_2bpp(zp, x << CD, zrow_offs, qp, qrow_offs, w, h, color); }
-	else if constexpr (CD == colordepth_1bpp) { draw_bmp_1bpp(zp, x << CD, zrow_offs, qp, qrow_offs, w, h, color); }
-	else IERR();
-}
+void draw_bitmap(uint8* zp, int zrow_offs, int x0, const uint8* qp, int qrow_offs, int w, int h, uint color) noexcept;
 
 /** draw character glyph into destination pixmap of any color depth.
 	it draws the '1' bits in the given color, while '0' bits are left transparent.
@@ -533,26 +501,35 @@ void draw_bitmap(uint8* zp, int zrow_offs, int x, const uint8* qp, int qrow_offs
 
 	@param zp		 start of first row in destination Pixmap
 	@param zrow_offs address offset between rows in destination Pixmap
-	@param x		 x position in pixels measured from zp
+	@param x0		 x position in pixels measured from zp
 	@param qp		 start of character glyph (source bitmap)
 	@param height	 height in pixels
 	@param color	 color for drawing the character glyph
 */
 template<ColorDepth CD>
-void draw_char(uint8* zp, int zrow_offset, int x, const uint8* qp, int height, uint color) noexcept
+void draw_char(uint8* zp, int zrow_offset, int x0, const uint8* qp, int height, uint color) noexcept;
+
+// clang-format off
+template<>void draw_bitmap<colordepth_1bpp>(uint8*, int, int, const uint8*, int, int, int, uint) noexcept;
+template<>void draw_bitmap<colordepth_2bpp>(uint8*, int, int, const uint8*, int, int, int, uint) noexcept;
+template<>void draw_bitmap<colordepth_4bpp>(uint8*, int, int, const uint8*, int, int, int, uint) noexcept;
+template<>void draw_bitmap<colordepth_8bpp>(uint8*, int, int, const uint8*, int, int, int, uint) noexcept;
+template<>void draw_bitmap<colordepth_16bpp>(uint8*, int, int, const uint8*, int, int, int, uint) noexcept;
+template<>void draw_char<colordepth_1bpp>(uint8*, int, int, const uint8*, int, uint) noexcept;
+template<>void draw_char<colordepth_2bpp>(uint8*, int, int, const uint8*, int, uint) noexcept;
+template<>void draw_char<colordepth_4bpp>(uint8*, int, int, const uint8*, int, uint) noexcept;
+// clang-format on
+template<>
+inline void
+draw_char<colordepth_8bpp>(uint8* zp, int zrow_offset, int x0, const uint8* qp, int height, uint color) noexcept
 {
-	if constexpr (CD >= colordepth_16bpp)
-	{
-		draw_bmp_16bpp(zp + (x << (CD - 3)), zrow_offset, qp, 1 /*row_offs*/, 8 /*width*/, height, color);
-	}
-	else if constexpr (CD == colordepth_8bpp)
-	{
-		draw_bmp_8bpp(zp + (x << (CD - 3)), zrow_offset, qp, 1 /*row_offs*/, 8 /*width*/, height, color);
-	}
-	else if constexpr (CD == colordepth_4bpp) { draw_chr_4bpp(zp, x << CD, zrow_offset, qp, height, color); }
-	else if constexpr (CD == colordepth_2bpp) { draw_chr_2bpp(zp, x << CD, zrow_offset, qp, height, color); }
-	else if constexpr (CD == colordepth_1bpp) { draw_chr_1bpp(zp, x << CD, zrow_offset, qp, height, color); }
-	else IERR();
+	draw_bitmap<colordepth_8bpp>(zp, zrow_offset, x0, qp, 1 /*row_offs*/, 8 /*width*/, height, color);
+}
+template<>
+inline void
+draw_char<colordepth_16bpp>(uint8* zp, int zrow_offset, int x0, const uint8* qp, int height, uint color) noexcept
+{
+	draw_bitmap<colordepth_16bpp>(zp, zrow_offset, x0, qp, 1 /*row_offs*/, 8 /*width*/, height, color);
 }
 
 /** Convert row from a Pixmap with ColorDepth CD to a row with 1bpp.

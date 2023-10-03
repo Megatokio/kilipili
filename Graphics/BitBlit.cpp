@@ -844,21 +844,24 @@ void xor_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int heigh
 
 // #############################################################
 
-void draw_bmp_1bpp(
-	uint8* zp, int zx, int z_row_offs, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
+template<>
+void draw_bitmap<colordepth_1bpp>(
+	uint8* zp, int z_row_offs, int x0, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
 {
+	if (width <= 0 || height <= 0) return;
+
 	constexpr ColorDepth CD = colordepth_1bpp;
 	color					= flood_filled_color<CD>(color);
-	assert(width > 0);
+	x0						= x0 << CD; // nop
 
 	// for colordepth_i1 we go at extra length for optimization
 	// and distinguish between color = 0 and color = 1
 	// because these are only 2 cases and most attribute modes use colordepth_i1 in the pixels[]
 
-	zp += zx >> 3;
-	zx &= 7; // low 3 bit of bit address
+	zp += x0 >> 3;
+	x0 &= 7; // low 3 bit of bit address
 
-	if (zx == 0) // no need to shift
+	if (x0 == 0) // no need to shift
 	{
 		uint mask = ~(~0u << (width & 7)); // mask for last bits in q
 		width	  = width >> 3;
@@ -893,11 +896,11 @@ void draw_bmp_1bpp(
 	// with even more code bloating, especially as separate versions are needed for colormode_i1, _i2 and _i4.
 
 	q_row_offs -= (width + 7) >> 3;
-	z_row_offs -= (width + (zx >> CD) - 1) >> 3;
+	z_row_offs -= (width + (x0 >> CD) - 1) >> 3;
 
 	for (int y = 0; y < height; y++)
 	{
-		uint8 zmask = uint8(pixelmask<CD> << zx); // mask for current pixel in zp[]
+		uint8 zmask = uint8(pixelmask<CD> << x0); // mask for current pixel in zp[]
 		uint8 zbyte = *zp;						  // target byte read from and stored back to zp[]
 		uint8 qbyte = 0;						  // byte read from qp[]
 
@@ -943,24 +946,28 @@ void draw_bmp_1bpp(
 	}
 }
 
-void draw_bmp_2bpp(
-	uint8* zp0, int zx, int z_row_offs, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
+
+template<>
+void draw_bitmap<colordepth_2bpp>(
+	uint8* zp0, int z_row_offs, int x0, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
 {
+	if (width <= 0 || height <= 0) return;
+
 	constexpr ColorDepth CD = colordepth_2bpp;
 	color					= flood_filled_color<CD>(color);
-	assert(width > 0);
+	x0						= x0 << CD;
 
-	zp0 += zx >> 3;
-	zx &= 7; // low 3 bit of bit address
+	zp0 += x0 >> 3;
+	x0 &= 7; // low 3 bit of bit address
 	if (ssize_t(zp0) & 1)
 	{
 		zp0--;
-		zx += 8;
+		x0 += 8;
 	}
 
 	uint16* zp = reinterpret_cast<uint16*>(zp0);
 
-	if (zx == 0) // no need to shift
+	if (x0 == 0) // no need to shift
 	{
 		uint mask = ~(~0u << (width & 7)); // mask for last bits in q
 		width	  = width >> 3;			   // count of full bytes to copy
@@ -989,11 +996,11 @@ void draw_bmp_2bpp(
 	// with even more code bloating, especially as separate versions are needed for colormode_i1, _i2 and _i4.
 
 	q_row_offs -= (width + 7) >> 3;
-	z_row_offs -= (width + (zx >> CD) - 1) >> 3;
+	z_row_offs -= (width + (x0 >> CD) - 1) >> 3;
 
 	for (int y = 0; y < height; y++)
 	{
-		uint16 zmask = uint8(pixelmask<CD> << zx); // mask for current pixel in zp[]
+		uint16 zmask = uint8(pixelmask<CD> << x0); // mask for current pixel in zp[]
 		uint16 zbyte = *zp;						   // target byte read from and stored back to zp[]
 		uint8  qbyte = 0;						   // byte read from qp[]
 
@@ -1019,24 +1026,27 @@ void draw_bmp_2bpp(
 	}
 }
 
-void draw_bmp_4bpp(
-	uint8* zp0, int zx, int z_row_offs, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
+template<>
+void draw_bitmap<colordepth_4bpp>(
+	uint8* zp0, int z_row_offs, int x0, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
 {
-	constexpr ColorDepth CD = colordepth_4bpp;
-	color					= flood_filled_color<CD>(color);
-	assert(width > 0);
+	if (width <= 0 || height <= 0) return;
 
-	zp0 += zx >> 3;
-	zx &= 7; // low 3 bit of bit address
+	constexpr ColorDepth CD = colordepth_2bpp;
+	color					= flood_filled_color<CD>(color);
+	x0						= x0 << CD;
+
+	zp0 += x0 >> 3;
+	x0 &= 7; // low 3 bit of bit address
 	if (int o = (ssize_t(zp0) & 3))
 	{
 		zp0 -= o;
-		zx += o << 3;
+		x0 += o << 3;
 	}
 
 	uint32* zp = reinterpret_cast<uint32*>(zp0);
 
-	if (zx == 0) // no need to shift
+	if (x0 == 0) // no need to shift
 	{
 		uint mask = ~(~0u << (width & 7)); // mask for last bits in q
 		width	  = width >> 3;			   // count of full bytes to copy
@@ -1065,11 +1075,11 @@ void draw_bmp_4bpp(
 	// with even more code bloating, especially as separate versions are needed for colormode_i1, _i2 and _i4.
 
 	q_row_offs -= (width + 7) >> 3;
-	z_row_offs -= (width + (zx >> CD) - 1) >> 3;
+	z_row_offs -= (width + (x0 >> CD) - 1) >> 3;
 
 	for (int y = 0; y < height; y++)
 	{
-		uint32 zmask = uint8(pixelmask<CD> << zx); // mask for current pixel in zp[]
+		uint32 zmask = uint8(pixelmask<CD> << x0); // mask for current pixel in zp[]
 		uint32 zbyte = *zp;						   // target byte read from and stored back to zp[]
 		uint8  qbyte = 0;						   // byte read from qp[]
 
@@ -1095,9 +1105,13 @@ void draw_bmp_4bpp(
 	}
 }
 
-void draw_bmp_8bpp(
-	uint8* zp, int z_row_offs, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
+template<>
+void draw_bitmap<colordepth_8bpp>(
+	uint8* zp, int z_row_offs, int x0, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
 {
+	if (width <= 0 || height <= 0) return;
+
+	zp += x0;
 	uint8 byte = 0;
 
 	for (int y = 0; y < height; y++)
@@ -1114,12 +1128,16 @@ void draw_bmp_8bpp(
 	}
 }
 
-void draw_bmp_16bpp(
-	uint8* zp0, int z_row_offs, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
+template<>
+void draw_bitmap<colordepth_16bpp>(
+	uint8* zp0, int z_row_offs, int x0, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
 {
+	if (width <= 0 || height <= 0) return;
+
 	assert((ssize_t(zp0) & 1) == 0);
 
 	uint16* zp = reinterpret_cast<uint16*>(zp0);
+	zp += x0;
 	z_row_offs = z_row_offs >> 1; // row offset is always in bytes
 	uint8 byte = 0;
 
@@ -1137,13 +1155,15 @@ void draw_bmp_16bpp(
 	}
 }
 
-void draw_chr_1bpp(uint8* zp, int zx, int z_row_offs, const uint8* qp, int height, uint color) noexcept
+template<>
+void draw_char<colordepth_1bpp>(uint8* zp, int z_row_offs, int x0, const uint8* qp, int height, uint color) noexcept
 {
 	constexpr ColorDepth CD = colordepth_1bpp;
-	if (zx & 7) return draw_bmp_1bpp(zp, zx, z_row_offs, qp, 1, 8, height, color);
+	if (x0 & 7) return draw_bitmap<CD>(zp, z_row_offs, x0, qp, 1, 8, height, color);
 
 	color = flood_filled_color<CD>(color);
-	zp += zx >> (3 - CD);
+	x0 <<= CD; // nop
+	zp += x0 >> 3;
 
 	if (color != 0)
 	{
@@ -1163,55 +1183,97 @@ void draw_chr_1bpp(uint8* zp, int zx, int z_row_offs, const uint8* qp, int heigh
 	}
 }
 
-void draw_chr_2bpp(uint8* zp0, int zx, int z_row_offs, const uint8* qp, int height, uint color) noexcept
+template<>
+void draw_char<colordepth_2bpp>(uint8* zp, int z_row_offs, int x0, const uint8* qp, int height, uint color) noexcept
 {
 	constexpr ColorDepth CD = colordepth_2bpp;
 
-	zp0 += zx >> 3;
-	zx &= 7;
-	if (ssize_t(zp0) & 1)
+	x0 <<= CD;
+	zp += x0 >> 3;
+	x0 &= 7;
+	if (ssize_t(zp) & 1)
 	{
-		zp0--;
-		zx += 8;
+		zp--;
+		x0 += 8;
 	}
 
-	if ((zx & 15) || (z_row_offs & 1)) { return draw_bmp_2bpp(zp0, zx, z_row_offs, qp, 1, 8, height, color); }
+	if ((x0 & 15) || (z_row_offs & 1)) { return draw_bitmap<CD>(zp, z_row_offs, x0, qp, 1, 8, height, color); }
 
-	color	   = flood_filled_color<CD>(color);
-	uint16* zp = reinterpret_cast<uint16*>(zp0);
+	color		= flood_filled_color<CD>(color);
+	uint16* wzp = reinterpret_cast<uint16*>(zp);
 
 	for (int y = 0; y < height; y++)
 	{
 		uint16 doubled_bits_mask = bitblit::double_bits(*qp++);
-		*zp						 = (*zp & ~doubled_bits_mask) | (color & doubled_bits_mask);
-		zp += z_row_offs >> 1;
+		*wzp					 = (*wzp & ~doubled_bits_mask) | (color & doubled_bits_mask);
+		wzp += z_row_offs >> 1;
 	}
 }
 
-void draw_chr_4bpp(uint8* zp0, int zx, int z_row_offs, const uint8* qp, int height, uint color) noexcept
+template<>
+void draw_char<colordepth_4bpp>(uint8* zp, int z_row_offs, int x0, const uint8* qp, int height, uint color) noexcept
 {
 	constexpr ColorDepth CD = colordepth_4bpp;
-	color					= flood_filled_color<CD>(color);
 
-	zp0 += zx >> 3;
-	zx &= 7;
-	if (int o = (ssize_t(zp0) & 3))
+	zp += x0 >> 3;
+	x0 &= 7;
+	if (int o = (ssize_t(zp) & 3))
 	{
-		zp0 -= o;
-		zx += o << 3;
+		zp -= o;
+		x0 += o << 3;
 	}
 
-	if ((zx & 31) || (z_row_offs & 3)) { return draw_bmp_4bpp(zp0, zx, z_row_offs, qp, 1, 8, height, color); }
+	if ((x0 & 31) || (z_row_offs & 3)) { return draw_bitmap<CD>(zp, z_row_offs, x0, qp, 1, 8, height, color); }
 
-	uint32* zp = reinterpret_cast<uint32*>(zp0);
+	color		= flood_filled_color<CD>(color);
+	uint32* wzp = reinterpret_cast<uint32*>(zp);
 
 	for (int y = 0; y < height; y++)
 	{
 		uint32 quadrupled_bits_mask = bitblit::quadruple_bits(*qp++);
-		*zp							= (*zp & ~quadrupled_bits_mask) | (color & quadrupled_bits_mask);
-		zp += z_row_offs >> 2;
+		*wzp						= (*wzp & ~quadrupled_bits_mask) | (color & quadrupled_bits_mask);
+		wzp += z_row_offs >> 2;
 	}
 }
 
 
 } // namespace kio::Graphics::bitblit
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
