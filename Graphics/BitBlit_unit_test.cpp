@@ -86,6 +86,14 @@ struct Buffer
 		assert(z == px + width * height);
 	}
 
+	Buffer(const uint8* compressed_source)
+	{
+		for (uint i=0; i<width*height; i++)
+		{
+			px[i] = flip(compressed_source[i]);
+		}
+	}
+
 	bool operator==(const Buffer& other) const { return memcmp(px, other.px, width * height) == 0; }
 };
 
@@ -136,7 +144,7 @@ TEST_CASE("BitBlit: reduce_bits_2bpp, reduce_bits_4bpp")
 
 TEST_CASE("BitBlit: clear_rect_of_bits")
 {
-	// clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int height, uint32 color)
+	// clear_rect_of_bits(uint8* zp, int row_offset, int xoffs, int width, int height, uint32 color)
 	//	zp = pointer to the first row
 	//	xoffs      = x position measured in bits
 	//	row_offset = row offset in bytes
@@ -158,7 +166,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		clear_rect_of_bits(pixmap.px, 8*width + 32, width, 64, 2, flip(0xACACACACu));
+		clear_rect_of_bits(pixmap.px, width, 8*width + 32, 64, 2, flip(0xACACACACu));
 		CHECK_EQ(pixmap, expect);
 	}
 
@@ -182,7 +190,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		clear_rect_of_bits(pixmap.px, 8*width + x0, width, w, h, flip(0xACACACACu));
+		clear_rect_of_bits(pixmap.px, width, 8*width + x0, w, h, flip(0xACACACACu));
 		CHECK_EQ(pixmap, expect);
 	}
 
@@ -201,7 +209,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		clear_rect_of_bits(pixmap.px, 8*width + x0, width, w, h, flip(0x55555555u));
+		clear_rect_of_bits(pixmap.px, width, 8*width + x0, w, h, flip(0x55555555u));
 		CHECK_EQ(pixmap, expect);
 	}
 
@@ -219,7 +227,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		clear_rect_of_bits(pixmap.px, 8*width + x0, width, w, h, flip(0x66666666u));
+		clear_rect_of_bits(pixmap.px, width, 8*width + x0, w, h, flip(0x66666666u));
 		CHECK_EQ(pixmap, expect);
 	}
 	
@@ -237,7 +245,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		clear_rect_of_bits(pixmap.px, 8*width + x0, width, w, h, flip(0x66666666u));
+		clear_rect_of_bits(pixmap.px, width, 8*width + x0, w, h, flip(0x66666666u));
 		CHECK_EQ(pixmap, expect);
 	}
 
@@ -251,18 +259,102 @@ TEST_CASE("BitBlit: clear_rect_of_bits")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		clear_rect_of_bits(pixmap.px, 8*width + x0, width, 0, 2, flip(0x66666666u));
+		clear_rect_of_bits(pixmap.px, width, 8*width + x0, 0, 2, flip(0x66666666u));
 		CHECK_EQ(pixmap, expect);
-		clear_rect_of_bits(pixmap.px, 8*width + x0, width, 33, 0, flip(0x66666666u));
+		clear_rect_of_bits(pixmap.px, width, 8*width + x0, 33, 0, flip(0x66666666u));
 		CHECK_EQ(pixmap, expect);
-		clear_rect_of_bits(pixmap.px, 8*width + x0, width, 33, -1, flip(0x66666666u));
+		clear_rect_of_bits(pixmap.px, width, 8*width + x0, 33, -1, flip(0x66666666u));
 		CHECK_EQ(pixmap, expect);
-		clear_rect_of_bits(pixmap.px, 8*width + x0, width, -1, 2, flip(0x66666666u));
+		clear_rect_of_bits(pixmap.px, width, 8*width + x0, -1, 2, flip(0x66666666u));
 		CHECK_EQ(pixmap, expect);
-		clear_rect_of_bits(pixmap.px, 8*width + x0, width, 33, -999, flip(0x66666666u));
+		clear_rect_of_bits(pixmap.px, width, 8*width + x0, 33, -999, flip(0x66666666u));
 		CHECK_EQ(pixmap, expect);
-		clear_rect_of_bits(pixmap.px, 8*width + x0, width, -999, 2, flip(0x66666666u));
+		clear_rect_of_bits(pixmap.px, width, 8*width + x0, -999, 2, flip(0x66666666u));
 		CHECK_EQ(pixmap, expect);
+	}
+}
+
+TEST_CASE("BitBlit: clear_rect_of_bits (was: clear_rect_of_bytes)")
+{
+	// 8bpp:	
+	{
+		constexpr int width = 17, height = 10;
+		const uint16 q[] = { 0xAA00 };  
+		
+		Buffer<width, height> pixmap(q);
+		Buffer<width, height> expect(q);
+
+		for(int bg=0; bg<=255; bg+=255)
+		{
+			uint fg = 0x55;
+			for(int x=0;x<=4;x++)
+			{
+				memset(pixmap.px, bg, width*height);
+				memset(expect.px, bg, width*height);
+				
+				int y=1,w=10,h=5;
+				clear_rect_of_bits(pixmap.px + y*width + x, width, 0, w<<3, h, fg*0x01010101);
+				for(int i=0; i<w; i++) 
+					draw_vline<colordepth_8bpp>(expect.px + y*width, width, x+i, h, fg);
+				
+				CHECK_EQ(pixmap,expect);
+			}
+		}
+	}
+
+	// 16bpp:	
+	{
+		constexpr int width = 18, height = 10;
+		const uint16 q[] = { 0xB400 };  
+		
+		Buffer<width, height> pixmap(q);
+		Buffer<width, height> expect(q);
+
+		for(int bg=0; bg<=255; bg+=255)
+		{
+			uint fg = 0x5678;
+			for(int x=0;x<=4;x+=2)
+			{
+				memset(pixmap.px, bg, width*height);
+				memset(expect.px, bg, width*height);
+				
+				int y=1,w=12,h=5;
+				clear_rect_of_bits(pixmap.px + y*width + x, width, 0, w<<3, h, fg*0x00010001);
+				for(int i=0; i<w; i+=2) 
+					draw_vline<colordepth_16bpp>(expect.px + y*width, width, (x+i)/2, h, fg);
+				
+				CHECK_EQ(pixmap,expect);
+			}
+		}
+	}
+
+	// 32bpp:	
+	{
+		constexpr int width = 20, height = 10;
+		const uint16 q[] = { 0xC800 };  
+		
+		Buffer<width, height> pixmap(q);
+		Buffer<width, height> expect(q);
+
+		for(int bg=0; bg<=255; bg+=255)
+		{
+			uint fg = 0x23456789;
+			for(int x=0;x<=4;x+=4)
+			{
+				memset(pixmap.px, bg, width*height);
+				memset(expect.px, bg, width*height);
+				
+				int y=1,w=12,h=5;
+				clear_rect_of_bits(pixmap.px + y*width + x, width, 0, w<<3, h, fg*0x00000001);
+				for(int i=0; i<w; i+=4) 
+				{
+					draw_vline<colordepth_16bpp>(expect.px + y*width, width, (x+i)/2+0, h, uint16(fg)*0x00010001);
+					draw_vline<colordepth_16bpp>(expect.px + y*width, width, (x+i)/2+1, h, (fg>>16)*0x00010001);
+				}
+				
+				CHECK_EQ(pixmap,expect);
+			}
+		}
 	}
 }
 
@@ -290,7 +382,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits_with_mask")
 		Buffer<width> pixmap(q);
 		Buffer<width> expect(z);
 
-		clear_rect_of_bits_with_mask(pixmap.px, x0, 0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
+		clear_rect_of_bits_with_mask(pixmap.px, 0, x0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
 		CHECK_EQ(pixmap, expect);
 	}
 		
@@ -308,7 +400,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits_with_mask")
 		Buffer<width> pixmap(q);
 		Buffer<width> expect(z);
 
-		clear_rect_of_bits_with_mask(pixmap.px, x0, 0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
+		clear_rect_of_bits_with_mask(pixmap.px, 0, x0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
 		CHECK_EQ(pixmap, expect);
 	}
 		
@@ -322,7 +414,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits_with_mask")
 		Buffer<width> pixmap(q);
 		Buffer<width> expect(z);
 
-		clear_rect_of_bits_with_mask(pixmap.px, x0, 0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
+		clear_rect_of_bits_with_mask(pixmap.px, 0, x0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
 		CHECK_EQ(pixmap, expect);
 	}
 		
@@ -336,7 +428,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits_with_mask")
 		Buffer<width> pixmap(q);
 		Buffer<width> expect(z);
 
-		clear_rect_of_bits_with_mask(pixmap.px+1, x0-8, 0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
+		clear_rect_of_bits_with_mask(pixmap.px+1, 0, x0-8, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
 		CHECK_EQ(pixmap, expect);
 	}
 		
@@ -350,7 +442,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits_with_mask")
 		Buffer<width> pixmap(q);
 		Buffer<width> expect(z);
 
-		clear_rect_of_bits_with_mask(pixmap.px, x0, 0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
+		clear_rect_of_bits_with_mask(pixmap.px, 0, x0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
 		CHECK_EQ(pixmap, expect);
 	}
 		
@@ -364,7 +456,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits_with_mask")
 		Buffer<width> pixmap(q);
 		Buffer<width> expect(z);
 
-		clear_rect_of_bits_with_mask(pixmap.px, x0, 0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
+		clear_rect_of_bits_with_mask(pixmap.px, 0, x0, w, h, flip(0x55555555u),flip(0xf0f0f0f0u));
 		CHECK_EQ(pixmap, expect);
 	}
 		
@@ -378,17 +470,17 @@ TEST_CASE("BitBlit: clear_rect_of_bits_with_mask")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		clear_rect_of_bits_with_mask(pixmap.px, 8*width + x0, width, 0, 2, 0xffffffffu,0x55555555u);
+		clear_rect_of_bits_with_mask(pixmap.px, width, 8*width + x0, 0, 2, 0xffffffffu,0x55555555u);
 		CHECK_EQ(pixmap, expect);
-		clear_rect_of_bits_with_mask(pixmap.px, 8*width + x0, width, 33, 0,  0xffffffffu,0x55555555u);
+		clear_rect_of_bits_with_mask(pixmap.px, width, 8*width + x0, 33, 0,  0xffffffffu,0x55555555u);
 		CHECK_EQ(pixmap, expect);
-		clear_rect_of_bits_with_mask(pixmap.px, 8*width + x0, width, 33, -1, 0xffffffffu,0x55555555u);
+		clear_rect_of_bits_with_mask(pixmap.px, width, 8*width + x0, 33, -1, 0xffffffffu,0x55555555u);
 		CHECK_EQ(pixmap, expect);
-		clear_rect_of_bits_with_mask(pixmap.px, 8*width + x0, width, -1, 2,  0xffffffffu,0x55555555u);
+		clear_rect_of_bits_with_mask(pixmap.px, width, 8*width + x0, -1, 2,  0xffffffffu,0x55555555u);
 		CHECK_EQ(pixmap, expect);		
-		clear_rect_of_bits_with_mask(pixmap.px, 8*width + x0, width, 33, -999, 0xffffffffu,0x55555555u);
+		clear_rect_of_bits_with_mask(pixmap.px, width, 8*width + x0, 33, -999, 0xffffffffu,0x55555555u);
 		CHECK_EQ(pixmap, expect);
-		clear_rect_of_bits_with_mask(pixmap.px, 8*width + x0, width, -999, 2,  0xffffffffu,0x55555555u);
+		clear_rect_of_bits_with_mask(pixmap.px, width, 8*width + x0, -999, 2,  0xffffffffu,0x55555555u);
 		CHECK_EQ(pixmap, expect);		
 	}
 }
@@ -810,35 +902,1104 @@ TEST_CASE("BitBlit: compare_row")
 	}
 }
 
-
-
-
-TEST_CASE("BitBlit: clear_row: uint8*, uint16*, uint32*")
+TEST_CASE("BitBlit: draw_bitmap<1bpp>")
 {
-	//
+	constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+	
+	// left aligned, color=1
+	{
+		constexpr int width = 12, height = 8;
+		constexpr int x0=32,y0=2,w=30,h=4;
+		const uint16 q[] = {
+			0x6000
+		};  
+		const uint16 z[] = {
+			0x0c00, 
+			0x0c00, 
+			0x0400, 0x25, 0x5A, 0xA5, 0x88, 0x0400,  
+			0x0400, 0x26, 0x6B, 0xB6, 0x88, 0x0400,  
+			0x0400, 0x27, 0x7C, 0xC7, 0x8C, 0x0400,  
+			0x0400, 0x28, 0xD8, 0xD8, 0xFC, 0x0400,  
+			0x0c00, 
+			0x0C00, 
+			};
+		const uint8 b[] = {
+			0x25, 0x5A, 0xA5, 0x8A, 
+			0x26, 0x6B, 0xB6, 0x8B, 
+			0x27, 0x7C, 0xC7, 0x8C, 
+			0x28, 0xD8, 0xD8, 0xFF, 
+			};
+		
+		Buffer<4,4>bmp(b);
+		Buffer<width,height> pixmap(q);
+		Buffer<width,height> expect(z);
+
+		draw_bitmap<CD>(pixmap.px + y0*width, width, x0, bmp.px,4, w,h, 1);
+		CHECK_EQ(pixmap, expect);
+	}
+
+	// left aligned, color=0
+	{
+		constexpr int width = 8, height = 8;
+		constexpr int x0=16,y0=2,w=31,h=4;
+		const uint16 q[] = {
+			0x40ff
+		};  
+		const uint16 z[] = {
+			0x08ff, 
+			0x08ff, 
+			0x02ff, 0xff-0x25, 0xff-0x5A, 0xff-0xA5, 0xff-0x8A, 0x02ff,  
+			0x02ff, 0xff-0x26, 0xff-0x6B, 0xff-0xB6, 0xff-0x8A, 0x02ff,  
+			0x02ff, 0xff-0x27, 0xff-0x7C, 0xff-0xC7, 0xff-0x8C, 0x02ff,  
+			0x02ff, 0xff-0x28, 0xff-0xD8, 0xff-0xD8, 0xff-0xFE, 0x02ff,  
+			0x08ff, 
+			0x08ff, 
+			};
+		const uint8 b[] = {
+			0x25, 0x5A, 0xA5, 0x8A, 
+			0x26, 0x6B, 0xB6, 0x8B, 
+			0x27, 0x7C, 0xC7, 0x8C, 
+			0x28, 0xD8, 0xD8, 0xFF, 
+			};
+		
+		Buffer<4,4>bmp(b);
+		Buffer<width,height> pixmap(q);
+		Buffer<width,height> expect(z);
+
+		draw_bitmap<CD>(pixmap.px + y0*width, width, x0, bmp.px,4, w,h, 0);
+		CHECK_EQ(pixmap, expect);
+	}
+
+	// left unaligned, color=1
+	{
+		constexpr int width = 8, height = 8;
+		constexpr int x0=17,y0=2,w=32,h=4;
+		const uint16 q[] = {
+			0x4000
+		};  
+		const uint16 z[] = {
+			0x0800, 
+			0x0800, 
+			0x0200, 0x25>>1, 0x80+(0x5A>>1), 0x00+(0xA5>>1), 0x80+(0x8A>>1), 0x00+0x00, 0x00,  
+			0x0200, 0xF6>>1, 0x00+(0x6B>>1), 0x80+(0xB6>>1), 0x00+(0x1B>>1), 0x80+0x00, 0x00,  
+			0x0200, 0x27>>1, 0x80+(0x7C>>1), 0x00+(0xC7>>1), 0x80+(0x8C>>1), 0x00+0x00, 0x00,  
+			0x0200, 0x28>>1, 0x00+(0xD8>>1), 0x00+(0xD8>>1), 0x00+(0x88>>1), 0x00+0x00, 0x00,  
+			0x0800, 
+			0x0800, 
+			};
+		const uint8 b[] = {
+			0x25, 0x5A, 0xA5, 0x8A, 
+			0xF6, 0x6B, 0xB6, 0x1B, 
+			0x27, 0x7C, 0xC7, 0x8C, 
+			0x28, 0xD8, 0xD8, 0x88, 
+			};
+		
+		Buffer<4,4>bmp(b);
+		Buffer<width,height> pixmap(q);
+		Buffer<width,height> expect(z);
+
+		draw_bitmap<CD>(pixmap.px + y0*width, width, x0, bmp.px,4, w,h, 1);
+		CHECK_EQ(pixmap, expect);
+	}
+
+	// left unaligned, color=0
+	{
+		constexpr int width = 8, height = 8;
+		constexpr int x0=17,y0=2,w=32,h=4;
+		const uint16 q[] = {
+			0x40ff
+		};  
+		const uint16 z[] = {
+			0x08ff, 
+			0x08ff, 
+			0x02ff, 0x80+(0x25>>1), 0x80+(0x5A>>1), 0x00+(0xA5>>1), 0x80+(0x8A>>1), 0x00+0x7f, 0xff,  
+			0x02ff, 0x80+(0xF6>>1), 0x00+(0x6B>>1), 0x80+(0xB6>>1), 0x00+(0x1B>>1), 0x80+0x7f, 0xff,  
+			0x02ff, 0x80+(0x27>>1), 0x80+(0x7C>>1), 0x00+(0xC7>>1), 0x80+(0x8C>>1), 0x00+0x7f, 0xff,  
+			0x02ff, 0x80+(0x28>>1), 0x00+(0xD8>>1), 0x00+(0xD8>>1), 0x00+(0x89>>1), 0x80+0x7f, 0xff,  
+			0x08ff, 
+			0x08ff, 
+			};
+		const uint8 b[] = {
+			0xff-0x25, 0xff-0x5A, 0xff-0xA5, 0xff-0x8A, 
+			0xff-0xF6, 0xff-0x6B, 0xff-0xB6, 0xff-0x1B, 
+			0xff-0x27, 0xff-0x7C, 0xff-0xC7, 0xff-0x8C, 
+			0xff-0x28, 0xff-0xD8, 0xff-0xD8, 0xff-0x89, 
+			};
+		
+		Buffer<4,4>bmp(b);
+		Buffer<width,height> pixmap(q);
+		Buffer<width,height> expect(z);
+
+		draw_bitmap<CD>(pixmap.px + y0*width, width, x0, bmp.px,4, w,h, 0);
+		CHECK_EQ(pixmap, expect);
+	}
+
+	// left unaligned, right aligned, color=1
+	{
+		constexpr int width = 8, height = 4;
+		constexpr int x0=17,y0=1,w=31,h=2;
+		const uint16 q[] = {
+			0x2000
+		};  
+		const uint16 z[] = {
+			0x0800, 
+			0x0200, 0x25>>1, 0x80+(0x5A>>1), 0x00+(0xA5>>1), 0x80+(0x9F>>1), 0x0200,  
+			0x0200, 0x25>>1, 0x80+(0x5A>>1), 0x00+(0xA5>>1), 0x80+(0x9F>>1), 0x0200,  
+			0x0800, 
+			};
+		const uint8 b[] = {
+			0x25, 0x5A, 0xA5, 0x9F, 
+			0x25, 0x5A, 0xA5, 0x9F, 
+			};
+		
+		Buffer<4,2>bmp(b);
+		Buffer<width,height> pixmap(q);
+		Buffer<width,height> expect(z);
+
+		draw_bitmap<CD>(pixmap.px + y0*width, width, x0, bmp.px,4, w,h, 1);
+		CHECK_EQ(pixmap, expect);
+	}
+}
+
+TEST_CASE("BitBlit: draw_bitmap<2bpp>")
+{
+	constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+
+	// x1 not|aligned
+	// x2 not|aligned
+	// xoffs&1
+	// color 0,1,2,3
+
+	constexpr int bmp_roffs=5, bmp_width=32, bmp_height=4;
+	const uint8 b[] = {
+		0x81, 0x23, 0x47, 0x67, 0xff,
+		0x34, 0x33, 0x45, 0xf1, 0xff,
+		0x71, 0x73, 0xDF, 0x73, 0xff,
+		0xC3, 0xe3, 0xCE, 0x01, 0xff,
+		};
+	
+	Buffer<bmp_roffs,bmp_height> bmp{b};
+
+	constexpr int width = 16, height = 6;
+	const uint16 null[] = {0x6000};
+	Buffer<width,height> pixmap(null);
+	Buffer<width,height> expect(null);
+	
+	// l+r aligned, all colors:	
+	{
+		for(uint bg=0; bg<=3; bg++)
+			for(uint fg=0; fg<=3; fg++)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 16, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 16, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+
+	// l aligned, r unaligned, all colors:	
+	{
+		for(uint bg=0; bg<=3; bg++)
+			for(uint fg=0; fg<=3; fg++)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 16, bmp.px, bmp_roffs, bmp_width-1, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 16, bmp.px, bmp_roffs, bmp_width-1, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+
+	// l unaligned, all colors:	
+	{
+		for(uint bg=0; bg<=3; bg++)
+			for(uint fg=0; fg<=3; fg++)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 13, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 13, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+	
+	// odd pixmap width:
+	{
+		constexpr int width = 17, height = 6;
+		const uint16 null[] = {0x6600};
+		Buffer<width,height> pixmap(null);
+		Buffer<width,height> expect(null);
+		
+		for(uint bg=0; bg<=3; bg++)
+			for(uint fg=0; fg<=3; fg++)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 20, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 20, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+}
+
+TEST_CASE("BitBlit: draw_bitmap<4bpp>")
+{
+	constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+
+	// x1 not|aligned
+	// x2 not|aligned
+	// xoffs&1
+	// color 0,1,2,3 … 15
+
+	constexpr int bmp_roffs=5, bmp_width=32, bmp_height=4;
+	const uint8 b[] = {
+		0x81, 0x23, 0x47, 0x67, 0xff,
+		0x34, 0x33, 0x45, 0xf1, 0xff,
+		0x71, 0x73, 0xDF, 0x73, 0xff,
+		0xC3, 0xe3, 0xCE, 0x01, 0xff,
+		};
+	
+	Buffer<bmp_roffs,bmp_height> bmp{b};
+
+	constexpr int width = 32, height = 6;
+	const uint16 null[] = {0xC000};
+	Buffer<width,height> pixmap(null);
+	Buffer<width,height> expect(null);
+	
+	// l+r aligned, all colors:	
+	{
+		for(uint bg=0; bg<=15; bg+=3)
+			for(uint fg=0; fg<=15; fg+=3)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 16, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 16, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+
+	// l aligned, r unaligned, all colors:	
+	{
+		for(uint bg=0; bg<=15; bg+=3)
+			for(uint fg=0; fg<=15; fg+=3)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 16, bmp.px, bmp_roffs, bmp_width-1, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 16, bmp.px, bmp_roffs, bmp_width-1, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+
+	// l unaligned, all colors:	
+	{
+		for(uint bg=0; bg<=15; bg+=3)
+			for(uint fg=0; fg<=15; fg+=3)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 13, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 13, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+	
+	// odd pixmap width:
+	{
+		constexpr int width = 33, height = 6;
+		const uint16 null[] = {0xC600};
+		Buffer<width,height> pixmap(null);
+		Buffer<width,height> expect(null);
+		
+		for(uint bg=0; bg<=15; bg+=3)
+			for(uint fg=3; fg<=12; fg+=3)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 20, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 20, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+}
+
+TEST_CASE("BitBlit: draw_bitmap<8bpp>")
+{
+	constexpr ColorDepth CD = kio::Graphics::colordepth_8bpp;
+
+	// x1 not|aligned
+	// x2 not|aligned
+	// xoffs&1
+	// color 0,1,2,3 … 255
+
+	constexpr int bmp_roffs=4, bmp_width=24, bmp_height=4;
+	const uint8 b[] = {
+		0x81, 0x23, 0x67, 0xff,
+		0x34, 0x33, 0xf1, 0xff,
+		0x71, 0x73, 0x73, 0xff,
+		0xC3, 0xe3, 0x01, 0xff,
+		};
+	
+	Buffer<bmp_roffs,bmp_height> bmp{b};
+
+	constexpr int width = 32, height = 6;
+	const uint16 null[] = {0xC000};
+	Buffer<width,height> pixmap(null);
+	Buffer<width,height> expect(null);
+	
+	// l+r aligned, all colors:	
+	{
+		for(uint bg=0; bg<=255; bg+=51)
+			for(uint fg=0; fg<=255; fg+=85)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 4, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 4, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+
+	// l aligned, r unaligned, all colors:	
+	{
+		for(uint bg=0; bg<=255; bg+=51)
+			for(uint fg=0; fg<=255; fg+=85)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 4, bmp.px, bmp_roffs, bmp_width-1, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 4, bmp.px, bmp_roffs, bmp_width-1, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+
+	// l unaligned, all colors:	
+	{
+		for(uint bg=0; bg<=255; bg+=51)
+			for(uint fg=0; fg<=255; fg+=85)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 5, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 5, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+	
+	// odd pixmap width:
+	{
+		constexpr int width = 33, height = 6;
+		const uint16 null[] = {0xC600};
+		Buffer<width,height> pixmap(null);
+		Buffer<width,height> expect(null);
+		
+		for(uint bg=0; bg<=255; bg+=51)
+			for(uint fg=0; fg<=255; fg+=85)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 4, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 4, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+}
+
+TEST_CASE("BitBlit: draw_bitmap<16bpp>")
+{
+	constexpr ColorDepth CD = kio::Graphics::colordepth_16bpp;
+
+	// x1 not|aligned
+	// x2 not|aligned
+	// xoffs&1
+	// color 0,1,2,3 … 0xffff
+
+	constexpr int bmp_roffs=4, bmp_width=24, bmp_height=4;
+	const uint8 b[] = {
+		0x81, 0x23, 0x67, 0xff,
+		0x34, 0x33, 0xf1, 0xff,
+		0x71, 0x73, 0x73, 0xff,
+		0xC3, 0xe3, 0x01, 0xff,
+		};
+	
+	Buffer<bmp_roffs,bmp_height> bmp{b};
+
+	constexpr int width = 64, height = 6;
+	const uint16 null[] = {0xC000,0xC000};
+	Buffer<width,height> pixmap(null);
+	Buffer<width,height> expect(null);
+	
+	// l+r aligned, all colors:	
+	{
+		for(uint bg=0; bg<=0xffff; bg+=0xffff/3)
+			for(uint fg=0; fg<=0xffff; fg+=0xffff/5)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 4, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 4, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+
+	// l aligned, r unaligned, all colors:	
+	{
+		for(uint bg=0; bg<=0xffff; bg+=0xffff/3)
+			for(uint fg=0; fg<=0xffff; fg+=0xffff/5)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 4, bmp.px, bmp_roffs, bmp_width-1, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 4, bmp.px, bmp_roffs, bmp_width-1, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+
+	// l unaligned, all colors:	
+	{
+		for(uint bg=0; bg<=0xffff; bg+=0xffff/3)
+			for(uint fg=0; fg<=0xffff; fg+=0xffff/5)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 5, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 5, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+	
+	// odd pixmap width:
+	{
+		constexpr int width = 66, height = 6;
+		const uint16 null[] = {0xC600,0xC600};
+		Buffer<width,height> pixmap(null);
+		Buffer<width,height> expect(null);
+		
+		for(uint bg=0; bg<=0xffff; bg+=0xffff/3)
+			for(uint fg=0; fg<=0xffff; fg+=0xffff/5)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_bitmap<CD>(pixmap.px+width, width, 4, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 4, bmp.px, bmp_roffs, bmp_width, bmp_height, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+}
+
+TEST_CASE("BitBlit: draw_char<1bpp>")
+{
+	constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+	
+	constexpr int width = 8, height = 14;
+	constexpr int chr_roffs=1, chr_height=12; // chr_width=8, 
+	const uint16 q[] = { 0x7000 };  
+	const uint8 b[] = {
+		0x25, 0x5A, 0xA5, 0x8A, 0x26, 0x6B, 0xB6, 0x8B, 0x71, 0x73, 0xDF, 0x73, 
+		0xA7, 0x7C, 0xC7, 0x8C, 0x28, 0xD8, 0xD8, 0xFF, 0xC3, 0xe3, 0xCE, 0x01, 
+		};
+	
+	Buffer<chr_roffs, 2*chr_height> chr(b);
+	Buffer<width, height> pixmap(q);
+	Buffer<width, height> expect(q);
+	
+	// aligned:
+	{
+		for(uint bg=0; bg<=1; bg++)
+			for(uint fg=0; fg<=1; fg++)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_char<CD>(pixmap.px+width, width, 16, chr.px, 12, fg);
+				draw_char<CD>(pixmap.px+width, width, 16+8, chr.px+12, 12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 16, chr.px, 1, 8, 12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 16+8, chr.px+12, 1, 8, 12, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+	
+	// unaligned
+	{
+		for(uint bg=0; bg<=1; bg++)
+			for(uint fg=0; fg<=1; fg++)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_char<CD>(pixmap.px+width, width, 13, chr.px, 12, fg);
+				draw_char<CD>(pixmap.px+width, width, 13+8, chr.px+12, 12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 13, chr.px, 1, 8, 12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 13+8, chr.px+12, 1, 8, 12, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+	
+	// odd row offset
+	{
+		constexpr int width = 7, height = 16;
+		const uint16 q[] = { 0x7000 };  
+		
+		Buffer<width, height> pixmap(q);
+		Buffer<width, height> expect(q);
+		
+		for(uint bg=0; bg<=1; bg++)
+			for(uint fg=0; fg<=1; fg++)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_char<CD>(pixmap.px+width*2, width, 16, chr.px, 12, fg);
+				draw_char<CD>(pixmap.px+width*2, width, 16+9, chr.px+12, 12, fg);
+				draw_bitmap_ref<CD>(expect.px+width*2, width, 16, chr.px, 1, 8, 12, fg);
+				draw_bitmap_ref<CD>(expect.px+width*2, width, 16+9, chr.px+12, 1, 8, 12, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+}
+
+TEST_CASE("BitBlit: draw_char<2bpp>")
+{
+	constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+	
+	constexpr int width = 16, height = 14;
+	constexpr int chr_roffs=1, chr_height=12; // chr_width=8, 
+	const uint16 q[] = { 0xE000 };  
+	const uint8 b[] = {
+		0x25, 0x5A, 0xA5, 0x8A, 0x26, 0x6B, 0xB6, 0x8B, 0x71, 0x73, 0xDF, 0x73, 
+		0xA7, 0x7C, 0xC7, 0x8C, 0x28, 0xD8, 0xD8, 0xFF, 0xC3, 0xe3, 0xCE, 0x01, 
+		};
+	
+	Buffer<chr_roffs, 2*chr_height> chr(b);
+	Buffer<width, height> pixmap(q);
+	Buffer<width, height> expect(q);
+	
+	// aligned:
+	{
+		for(uint bg=0; bg<=3; bg++)
+			for(uint fg=0; fg<=3; fg++)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);
+				draw_char<CD>(pixmap.px+width, width, 16, chr.px, 12, fg);
+				draw_char<CD>(pixmap.px+width, width, 16+8, chr.px+12, 12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 16, chr.px, 1, 8, 12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 16+8, chr.px+12, 1, 8, 12, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+	
+	// unaligned
+	{
+		for(uint bg=0; bg<=3; bg++)
+			for(uint fg=0; fg<=3; fg++)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x55, width*height);
+				memset(expect.px, int(bg)*0x55, width*height);				
+				draw_char<CD>      (pixmap.px+width, width, 13, chr.px,       12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 13, chr.px, 1, 8, 12, fg);				
+				draw_char<CD>      (pixmap.px+width, width, 13+8, chr.px+12,       12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 13+8, chr.px+12, 1, 8, 12, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+	
+	// odd row offset
+	{
+		constexpr int width = 15, height = 16;
+		const uint16 q[] = { 0xF000 };  
+		
+		Buffer<width, height> pixmap(q);
+		Buffer<width, height> expect(q);
+		
+		for(uint bg=0; bg<=1; bg++)
+			for(uint fg=0; fg<=1; fg++)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0xAA, width*height);
+				memset(expect.px, int(bg)*0xAA, width*height);
+				draw_char<CD>      (pixmap.px+width*2, width, 16, chr.px,       12, fg);
+				draw_bitmap_ref<CD>(expect.px+width*2, width, 16, chr.px, 1, 8, 12, fg);
+				draw_char<CD>      (pixmap.px+width*1, width, 16+9, chr.px+12,       12, fg);
+				draw_bitmap_ref<CD>(expect.px+width*1, width, 16+9, chr.px+12, 1, 8, 12, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+}
+
+TEST_CASE("BitBlit: draw_char<4bpp>")
+{
+	constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+	
+	constexpr int width = 32, height = 14;
+	constexpr int chr_roffs=1, chr_height=12; // chr_width=8, 
+	const uint16 q[] = { 0xE000,0xE000 };  
+	const uint8 b[] = {
+		0x25, 0x5A, 0xA5, 0x8A, 0x26, 0x6B, 0xB6, 0x8B, 0x71, 0x73, 0xDF, 0x73, 
+		0xA7, 0x7C, 0xC7, 0x8C, 0x28, 0xD8, 0xD8, 0xFF, 0xC3, 0xe3, 0xCE, 0x01, 
+		};
+	
+	Buffer<chr_roffs, 2*chr_height> chr(b);
+	Buffer<width, height> pixmap(q);
+	Buffer<width, height> expect(q);
+	
+	// aligned:
+	{
+		for(uint bg=0; bg<=15; bg+=5)
+			for(uint fg=0; fg<=15; fg+=3)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x11, width*height);
+				memset(expect.px, int(bg)*0x11, width*height);
+
+				draw_char<CD>      (pixmap.px+width, width, 16, chr.px,       12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 16, chr.px, 1, 8, 12, fg);
+				
+				draw_char<CD>      (pixmap.px+width, width, 16+8, chr.px+12,       12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 16+8, chr.px+12, 1, 8, 12, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+	
+	// unaligned
+	{
+		for(uint bg=0; bg<=15; bg+=5)
+			for(uint fg=0; fg<=15; fg+=3)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x11, width*height);
+				memset(expect.px, int(bg)*0x11, width*height);				
+
+				draw_char<CD>      (pixmap.px+width, width, 13, chr.px,       12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 13, chr.px, 1, 8, 12, fg);				
+				
+				draw_char<CD>      (pixmap.px+width, width, 13+8, chr.px+12,       12, fg);
+				draw_bitmap_ref<CD>(expect.px+width, width, 13+8, chr.px+12, 1, 8, 12, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
+
+	// odd row offset
+	{
+		constexpr int width = 31, height = 16;
+		const uint16 q[] = { 0xF800,0xF800 };  
+		
+		Buffer<width, height> pixmap(q);
+		Buffer<width, height> expect(q);
+		
+		for(uint bg=0; bg<=15; bg+=5)
+			for(uint fg=0; fg<=15; fg+=3)
+			{
+				if (bg==fg) continue;
+				memset(pixmap.px, int(bg)*0x11, width*height);
+				memset(expect.px, int(bg)*0x11, width*height);
+				
+				draw_char<CD>      (pixmap.px+width*2, width, 16, chr.px,       12, fg);
+				draw_bitmap_ref<CD>(expect.px+width*2, width, 16, chr.px, 1, 8, 12, fg);
+				
+				draw_char<CD>      (pixmap.px+width*1, width, 16+9, chr.px+12,       12, fg);
+				draw_bitmap_ref<CD>(expect.px+width*1, width, 16+9, chr.px+12, 1, 8, 12, fg);
+				CHECK_EQ(pixmap,expect);
+			}
+	}
 }
 
 TEST_CASE("BitBlit: clear_row_of_bits")
 {
-	//
+	constexpr int width = 20, height = 3;
+	const uint16 q[] = { 0x3C00 };  
+	
+	Buffer<width, height> pixmap(q);
+	Buffer<width, height> expect(q);
+	
+	for(uint c=0;c<=1;c++)
+	{
+		uint bg = flood_filled_color<colordepth_1bpp>(c);
+		uint fg = ~bg;
+		
+		for(int x=0;x<=32;x++)
+		{			
+			memset(pixmap.px, int(bg), width*height);
+			memset(expect.px, int(bg), width*height);
+			
+			clear_row_of_bits(pixmap.px+width, 32+x, 96-x, fg);
+			draw_hline_ref<colordepth_1bpp>(expect.px+width,32+x,96-x,fg);
+			CHECK_EQ(pixmap,expect);
+		}
+		
+		for(int w=64;w<=96;w++)
+		{			
+			memset(pixmap.px, int(bg), width*height);
+			memset(expect.px, int(bg), width*height);
+			
+			clear_row_of_bits(pixmap.px+width, 32, w, fg);
+			draw_hline_ref<colordepth_1bpp>(expect.px+width, 32, w, fg);
+			CHECK_EQ(pixmap,expect);
+		}
+
+		{			
+			memset(pixmap.px, int(bg), width*height);
+			memset(expect.px, int(bg), width*height);
+			
+			clear_row_of_bits(pixmap.px,       32,    1, fg);
+			clear_row_of_bits(pixmap.px+width, 32+31, 1, fg);
+			clear_row_of_bits(pixmap.px,       64,   -1, fg);
+			set_pixel<colordepth_1bpp>(expect.px,       32,    fg);
+			set_pixel<colordepth_1bpp>(expect.px+width, 32+31, fg);
+			CHECK_EQ(pixmap,expect);
+		}
+	}
+}
+
+TEST_CASE("BitBlit: draw_hline")
+{	
+	constexpr int width = 32, height = 3;
+	const uint16 q[] = { 0x6000 };  
+	
+	Buffer<width, height> pixmap(q);
+	Buffer<width, height> expect(q);
+	
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+		
+		for(uint bg=0; bg<=1; bg++)
+		{
+			uint fg = 1 - bg;
+			
+			for(int w = (width*8/2 - 8) >> CD; w >= -7; w-=7)
+			{				
+				int x = ((width*8-w)>>CD) / 3;
+				
+				memset(pixmap.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(expect.px, int(flood_filled_color<CD>(bg)), width*height);
+				
+				draw_hline<CD>    (pixmap.px+width, x, w, fg);
+				draw_hline_ref<CD>(expect.px+width, x, w, fg);
+				
+				CHECK_EQ(pixmap,expect);
+			}
+		}
+	}
+	
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+		
+		for(uint bg=0; bg<=3; bg++)
+		{
+			uint fg = 3 - bg;
+			
+			for(int w = (width*8/2 - 8) >> CD; w >= -5; w-=5)
+			{				
+				int x = ((width*8-w)>>CD) / 3;
+				
+				memset(pixmap.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(expect.px, int(flood_filled_color<CD>(bg)), width*height);
+				
+				draw_hline<CD>    (pixmap.px+width, x, w, fg);
+				draw_hline_ref<CD>(expect.px+width, x, w, fg);
+				
+				CHECK_EQ(pixmap,expect);
+			}
+		}
+	}
+	
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+		
+		for(uint bg=0; bg<=15; bg+=5)
+		{
+			uint fg = 15 - bg;
+			
+			for(int w = (width*8/2 - 8) >> CD; w >= -5; w-=5)
+			{				
+				int x = ((width*8-w)>>CD) / 3;
+				
+				memset(pixmap.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(expect.px, int(flood_filled_color<CD>(bg)), width*height);
+				
+				draw_hline<CD>    (pixmap.px+width, x, w, fg);
+				draw_hline_ref<CD>(expect.px+width, x, w, fg);
+				
+				CHECK_EQ(pixmap,expect);
+			}
+		}
+	}
+
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_8bpp;
+		
+		for(uint bg=0; bg<=255; bg+=51)
+		{
+			uint fg = 255-bg;
+			
+			for(int w = (width*8/2 - 8) >> CD; w >= -5; w-=5)
+			{				
+				int x = ((width*8-w)>>CD) / 3;
+				
+				memset(pixmap.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(expect.px, int(flood_filled_color<CD>(bg)), width*height);
+				
+				draw_hline<CD>    (pixmap.px+width, x, w, fg);
+				draw_hline_ref<CD>(expect.px+width, x, w, fg);
+				
+				CHECK_EQ(pixmap,expect);
+			}
+		}
+	}
+	
+	{
+		constexpr int width = 32, height = 3;
+		const uint16 q[] = { 0x6000 };  
+		
+		Buffer<width, height> pixmap(q);
+		Buffer<width, height> expect(q);
+		
+		constexpr ColorDepth CD = kio::Graphics::colordepth_16bpp;
+		
+		for(uint bg = 0; bg<=0xffff; bg+=0xffff/3)
+		{
+			uint fg = 0xffff - bg;
+			
+			for(int w = (width*8/2 - 8) >> CD; w >= -5; w-=5)
+			{				
+				int x = ((width*8-w)>>CD) / 3;
+				
+				memset(pixmap.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(expect.px, int(flood_filled_color<CD>(bg)), width*height);
+				
+				draw_hline<CD>    (pixmap.px+width, x, w, fg);
+				draw_hline_ref<CD>(expect.px+width, x, w, fg);
+				
+				CHECK_EQ(pixmap,expect);
+			}
+		}
+	}
+}
+
+TEST_CASE("BitBlit: draw_vline")
+{
+	constexpr int width = 8, height = 16;
+	constexpr int width2 = 11;
+	const uint16 q1[] = { 0x8000 };  
+	const uint16 q2[] = { 0x8000, 0x3000 };  
+	
+	Buffer<width, height> pixmap1(q1);
+	Buffer<width2,height> pixmap2(q2);
+	Buffer<width, height> expect(q1);
+	Buffer<width2,height> expect2(q2);
+	
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+		
+		for(uint bg=0; bg<=1; bg++)
+		{
+			uint fg = 1 - bg;
+			
+			for(int x = 0; x < 64; x+=7)
+			{		
+				int h = height -2 - x/6;
+				
+				memset(pixmap1.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(pixmap2.px, int(flood_filled_color<CD>(bg)), width2*height);
+				memset(expect.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(expect2.px, int(flood_filled_color<CD>(bg)), width2*height);
+				
+				draw_vline<CD>    (pixmap1.px+width, width, x, h, fg);
+				draw_vline<CD>    (pixmap2.px+width2, width2, x, h, fg);
+				draw_vline_ref<CD>(expect.px+width, width, x, h, fg);
+				draw_vline_ref<CD>(expect2.px+width2, width2, x, h, fg);
+				
+				CHECK_EQ(pixmap1,expect);
+				CHECK_EQ(pixmap2,expect2);
+			}
+		}
+	}
+	
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+		
+		for(uint bg=0; bg<=3; bg+=3)
+		{
+			uint fg = 3 - bg;
+			
+			for(int x = 0; x < 32; x+=5)
+			{		
+				int h = height -2 - x/3;
+				
+				memset(pixmap1.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(pixmap2.px, int(flood_filled_color<CD>(bg)), width2*height);
+				memset(expect.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(expect2.px, int(flood_filled_color<CD>(bg)), width2*height);
+				
+				draw_vline<CD>    (pixmap1.px+width, width, x, h, fg);
+				draw_vline<CD>    (pixmap2.px+width2, width2, x, h, fg);
+				draw_vline_ref<CD>(expect.px+width, width, x, h, fg);
+				draw_vline_ref<CD>(expect2.px+width2, width2, x, h, fg);
+				
+				CHECK_EQ(pixmap1,expect);
+				CHECK_EQ(pixmap2,expect2);
+			}
+		}
+	}
+	
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+		
+		for(uint bg=0; bg<=15; bg+=15)
+		{
+			uint fg = 15 - bg;
+			
+			for(int x = 0; x < 16; x+=5)
+			{		
+				int h = height -2 - x*2/3;
+				
+				memset(pixmap1.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(pixmap2.px, int(flood_filled_color<CD>(bg)), width2*height);
+				memset(expect.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(expect2.px, int(flood_filled_color<CD>(bg)), width2*height);
+				
+				draw_vline<CD>    (pixmap1.px+width, width, x, h, fg);
+				draw_vline<CD>    (pixmap2.px+width2, width2, x, h, fg);
+				draw_vline_ref<CD>(expect.px+width, width, x, h, fg);
+				draw_vline_ref<CD>(expect2.px+width2, width2, x, h, fg);
+				
+				CHECK_EQ(pixmap1,expect);
+				CHECK_EQ(pixmap2,expect2);
+			}
+		}
+	}
+	
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_8bpp;
+		
+		for(uint bg=0; bg<=255; bg+=255)
+		{
+			uint fg = 255 - bg;
+			
+			for(int x = 3; x < 8; x+=1)
+			{		
+				int h = height -2 - x*4/3;
+				
+				memset(pixmap1.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(pixmap2.px, int(flood_filled_color<CD>(bg)), width2*height);
+				memset(expect.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(expect2.px, int(flood_filled_color<CD>(bg)), width2*height);
+				
+				draw_vline<CD>    (pixmap1.px+width, width, x, h, fg);
+				draw_vline<CD>    (pixmap2.px+width2, width2, x, h, fg);
+				draw_vline_ref<CD>(expect.px+width, width, x, h, fg);
+				draw_vline_ref<CD>(expect2.px+width2, width2, x, h, fg);
+				
+				CHECK_EQ(pixmap1,expect);
+				CHECK_EQ(pixmap2,expect2);
+			}
+		}
+	}
+	
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_16bpp;
+		
+		for(uint bg=0; bg<=0xffff; bg+=0xffff)
+		{
+			uint fg = 0xffff - bg;
+			
+			for(int x = 0; x < 4; x++)
+			{		
+				int h = height -2 - x*3;
+				
+				memset(pixmap1.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(pixmap2.px, int(flood_filled_color<CD>(bg)), width2*height);
+				memset(expect.px, int(flood_filled_color<CD>(bg)), width*height);
+				memset(expect2.px, int(flood_filled_color<CD>(bg)), width2*height);
+				
+				draw_vline<CD>    (pixmap1.px+width, width, x, h, fg);
+				draw_vline<CD>    (pixmap2.px+width2, width2, x, h, fg);
+				draw_vline_ref<CD>(expect.px+width, width, x, h, fg);
+				draw_vline_ref<CD>(expect2.px+width2, width2, x, h, fg);
+				
+				CHECK_EQ(pixmap1,expect);
+				CHECK_EQ(pixmap2,expect2);
+			}
+		}
+	}
+}
+
+TEST_CASE("BitBlit: clear_row: uint8*, uint16*, uint32*")
+{
+	uint16 p[]= { 0xa000, 0xa000 };
+	uint16 e[]=
+	{
+		0x1400,
+		0x0400, 0x0CAA, 0x0400,
+		0x0300, 0x0CAA, 0x0500,
+		0x0200, 0x0CAA, 0x0600,
+		0x0100, 0x0CAA, 0x0700,
+		
+		0x0400, 0xab,0xcd, 0xab,0xcd, 0xab,0xcd, 0xab,0xcd, 0xab,0xcd, 0xab,0xcd, 0x0400,
+		0x0200, 0xab,0xcd, 0xab,0xcd, 0xab,0xcd, 0xab,0xcd, 0xab,0xcd, 0xab,0xcd, 0x0600,		
+		0x0400, 0x23,0x45,0x67,0x89, 0x23,0x45,0x67,0x89, 0x23,0x45,0x67,0x89, 0x0400,
+		
+		0x0400, 0x01AA, 0x0F00,
+		0x0300, 0x01AA, 0x1000,
+		0x0200, 0x01AA, 0x1100,
+		0x0100, 0x01AA, 0x1200,
+		
+		0x0400, 0xab,0xcd, 0x0E00,
+		0x0200, 0xab,0xcd, 0x1000,		
+		
+		0x0400, 0x23,0x45,0x67,0x89, 0x0C00,
+		0x1400,
+	};
+
+	constexpr int width=20, height=16;	
+	Buffer<width,height> pixmap(p);
+	Buffer<width,height> expect(e);
+
+	clear_row(pixmap.px + width*1 + 4, 12, flip(0xAAAAAAAAu));
+	clear_row(pixmap.px + width*2 + 3, 12, flip(0xAAAAAAAAu));
+	clear_row(pixmap.px + width*3 + 2, 12, flip(0xAAAAAAAAu));
+	clear_row(pixmap.px + width*4 + 1, 12, flip(0xAAAAAAAAu));
+	clear_row(reinterpret_cast<uint16*>(pixmap.px + width*5 + 4), 6, flip(0xabcdabcdu));
+	clear_row(reinterpret_cast<uint16*>(pixmap.px + width*6 + 2), 6, flip(0xabcdabcdu));
+	clear_row(reinterpret_cast<uint32*>(pixmap.px + width*7 + 4), 3, flip(0x23456789u));
+	
+	clear_row(pixmap.px + width*8  + 4, 1, flip(0xAAAAAAAAu));
+	clear_row(pixmap.px + width*9  + 3, 1, flip(0xAAAAAAAAu));
+	clear_row(pixmap.px + width*10 + 2, 1, flip(0xAAAAAAAAu));
+	clear_row(pixmap.px + width*11 + 1, 1, flip(0xAAAAAAAAu));
+	clear_row(reinterpret_cast<uint16*>(pixmap.px + width*12 + 4), 1, flip(0xabcdabcdu));
+	clear_row(reinterpret_cast<uint16*>(pixmap.px + width*13 + 2), 1, flip(0xabcdabcdu));
+	clear_row(reinterpret_cast<uint32*>(pixmap.px + width*14 + 4), 1, flip(0x23456789u));
+	
+	CHECK_EQ(pixmap,expect);
 }
 
 TEST_CASE("BitBlit: xor_row_of_bits")
 {
-	//
-}
-
-TEST_CASE("BitBlit: clear_rect_of_bytes")
-{
-	//
+	// 
 }
 
 TEST_CASE("BitBlit: xor_rect_of_bits")
-{
-	//
-}
-
-TEST_CASE("BitBlit: xor_rect_of_bytes")
 {
 	//
 }
@@ -853,37 +2014,7 @@ TEST_CASE("BitBlit: copy_rect_of_bytes")
 	//
 }
 
-TEST_CASE("BitBlit: draw_vline")
-{
-	//
-}
-
-TEST_CASE("BitBlit: draw_hline")
-{
-	//
-}
-
 TEST_CASE("BitBlit: copy_rect")
-{
-	//
-}
-
-TEST_CASE("BitBlit: draw_bmp_1bpp draw_bmp_2bpp draw_bmp_4bpp draw_bmp_8bpp draw_bmp_16bpp")
-{
-	//
-}
-
-TEST_CASE("BitBlit: draw_chr_1bpp draw_chr_2bpp draw_chr_4bpp")
-{
-	//
-}
-
-TEST_CASE("BitBlit: draw_bitmap")
-{
-	//
-}
-
-TEST_CASE("BitBlit: draw_char")
 {
 	//
 }
