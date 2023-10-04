@@ -355,6 +355,12 @@ void draw_vline(uint8* row, int row_offset, int x, int height, uint color) noexc
 	else IERR();
 }
 
+template<ColorDepth CD>
+void draw_vline_ref(uint8* row, int row_offset, int x, int height, uint color) noexcept
+{
+	while (--height >= 0) set_pixel<CD>(row + height * row_offset, x, color);
+}
+
 /** draw horizontal line in pixmap
 	@tparam CD		ColorDepth of the pixmap
 	@param row		start of top row
@@ -375,6 +381,12 @@ void draw_hline(uint8* row, int x, int width, uint color) noexcept
 		clear_row(reinterpret_cast<uint16*>(row) + x, width, flood_filled_color<colordepth_16bpp>(color));
 	}
 	else IERR();
+}
+
+template<ColorDepth CD>
+void draw_hline_ref(uint8* row, int x, int width, uint color) noexcept
+{
+	while (--width >= 0) set_pixel<CD>(row, x + width, color);
 }
 
 /**	clear every 2nd, 4th or 16th column in rectangle depending on AttrMode AM.

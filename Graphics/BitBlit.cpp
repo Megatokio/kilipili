@@ -526,60 +526,81 @@ void copy_rect_of_bits(
 
 // #############################################################
 
-void clear_row(uint32* z, int cnt, uint32 color) noexcept
+void clear_row(uint32* z, int w, uint32 color) noexcept
 {
-	while (--cnt >= 0) { *z++ = color; }
+	while (--w >= 0) { *z++ = color; }
 }
 
-void clear_row(uint16* z, int cnt, uint32 color) noexcept
+void clear_row(uint16* z, int w, uint32 color) noexcept
 {
-	if (unlikely(cnt == 0)) return;
+	if (unlikely(w <= 0)) return;
 
 	if (ssize_t(z) & 2)
 	{
 		*z++ = uint16(color);
-		cnt--;
+		w--;
 	}
-	if (cnt & 1) { z[--cnt] = uint16(color); }
-	clear_row(reinterpret_cast<uint32*>(z), cnt >> 1, color);
+	if (w & 1) { z[--w] = uint16(color); }
+	clear_row(reinterpret_cast<uint32*>(z), w >> 1, color);
 }
 
-void clear_row(uint8* z, int cnt, uint32 color) noexcept
+void clear_row(uint8* z, int w, uint32 color) noexcept
 {
-	if (unlikely(cnt == 0)) return;
+	if (unlikely(w <= 0)) return;
 
 	if (ssize_t(z) & 1)
 	{
 		*z++ = uint8(color);
-		cnt--;
+		w--;
 	}
-	if (cnt & 1) { z[--cnt] = uint8(color); }
-	clear_row(reinterpret_cast<uint16*>(z), cnt >> 1, color);
+	if (w & 1) { z[--w] = uint8(color); }
+	clear_row(reinterpret_cast<uint16*>(z), w >> 1, color);
 }
 
-void clear_row_of_bits(uint8* zp, int xoffs, int width, uint32 color) noexcept
+void clear_row_of_bits(uint8* zp, int x0, int width, uint32 color) noexcept
 {
-	zp += xoffs >> 3;
-	xoffs &= 7;
+	if (width <= 0) return;
 
-	int		o = ssize_t(zp) & 3; // align zp to int32
-	uint32* p = reinterpret_cast<uint32*>(zp - o);
-	xoffs += o << 3;
+	// add full bytes from xoffs to zp:
+	zp += x0 >> 3;
+	x0 &= 7;
 
-	uint32 lmask = ~0u << xoffs; // mask bits to set at left end
-	*p			 = (*p & ~lmask) | (color & lmask);
+	// align zp to int32:
+	int		o	= ssize_t(zp) & 3;
+	uint32* wzp = reinterpret_cast<uint32*>(zp - o);
+	x0 += o << 3;
 
-	width -= 32 - xoffs;
-	uint32 rmask = ~0u << ((32 - width) & 31); // mask bits to set at right end
+	// mask for bits to set at left end:  (note: lsb is left!)
+	int keep = x0;
+	width += keep;
+	uint32 lmask = ~0u << keep;
 
-	if (width > 0)
+	// mask for bits to set at right end:
+	keep = -width & 31;
+	width += keep;
+	uint32 rmask = ~0u >> keep;
+
+	int cnt = width >> 5;
+	assert(cnt > 0);
+
+	if (cnt == 1)
 	{
-		p++;
-		int cnt = width >> 5;
-		for (int i = 0; i < cnt; i++) { *p++ = color; }
-	}
+		color &= lmask & rmask;
+		uint32 mask = ~(lmask & rmask); // bits to keep
 
-	*p = (*p & ~rmask) | (color & rmask);
+		*wzp++ = (*wzp & mask) | color;
+	}
+	else
+	{
+		uint32 lcolor = color & lmask;
+		uint32 rcolor = color & rmask;
+		lmask		  = ~lmask; // bits to keep
+		rmask		  = ~rmask; // bits to keep
+
+		*wzp++ = (*wzp & lmask) | lcolor;
+		for (int i = 0; i < cnt - 2; i++) { *wzp++ = color; }
+		*wzp++ = (*wzp & rmask) | rcolor;
+	}
 }
 
 void xor_row_of_bits(uint8* zp, int xoffs, int width, uint32 color) noexcept
