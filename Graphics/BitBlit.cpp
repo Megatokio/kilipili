@@ -1128,13 +1128,11 @@ void draw_char<colordepth_2bpp>(uint8* zp, int z_row_offs, int x0, const uint8* 
 	x0 <<= CD;
 	zp += x0 >> 3;
 	x0 &= 7;
-	if (ssize_t(zp) & 1)
-	{
-		zp--;
-		x0 += 8;
-	}
+	int o = ssize_t(zp) & 1;
+	zp -= o;
+	x0 += o << 3;
 
-	if ((x0 & 15) || (z_row_offs & 1)) { return draw_bitmap<CD>(zp, z_row_offs, x0, qp, 1, 8, height, color); }
+	if ((x0 & 15) || (z_row_offs & 1)) { return draw_bitmap<CD>(zp, z_row_offs, x0 >> CD, qp, 1, 8, height, color); }
 
 	color		= flood_filled_color<CD>(color);
 	uint16* wzp = reinterpret_cast<uint16*>(zp);
@@ -1152,15 +1150,14 @@ void draw_char<colordepth_4bpp>(uint8* zp, int z_row_offs, int x0, const uint8* 
 {
 	constexpr ColorDepth CD = colordepth_4bpp;
 
+	x0 <<= CD;
 	zp += x0 >> 3;
 	x0 &= 7;
-	if (int o = (ssize_t(zp) & 3))
-	{
-		zp -= o;
-		x0 += o << 3;
-	}
+	int o = (ssize_t(zp) & 3);
+	zp -= o;
+	x0 += o << 3;
 
-	if ((x0 & 31) || (z_row_offs & 3)) { return draw_bitmap<CD>(zp, z_row_offs, x0, qp, 1, 8, height, color); }
+	if ((x0 & 31) || (z_row_offs & 3)) { return draw_bitmap<CD>(zp, z_row_offs, x0 >> CD, qp, 1, 8, height, color); }
 
 	color		= flood_filled_color<CD>(color);
 	uint32* wzp = reinterpret_cast<uint32*>(zp);
