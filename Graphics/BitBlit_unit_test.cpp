@@ -1994,29 +1994,1007 @@ TEST_CASE("BitBlit: clear_row: uint8*, uint16*, uint32*")
 	CHECK_EQ(pixmap,expect);
 }
 
-TEST_CASE("BitBlit: xor_row_of_bits")
+TEST_CASE("BitBlit: xor_rect, xor_rect_of_bits")
 {
-	// 
+	// 1bpp:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+
+		constexpr int width = 8, height = 8;
+		const uint16 q[] = { 
+			0x0800,
+			0x0800,
+			0x0805,
+			0x080A,
+			0x08A0,
+			0x08AA,
+			0x08FF,
+			0x0800,
+		};  
+		
+		for(int x=8;x<=16;x++) // long line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=6*8, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(1));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(1));
+			CHECK_EQ(pixmap,expect);
+		}
+	
+		for(int x=8;x<=16;x++) // short line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=6, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(1));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(1));
+			CHECK_EQ(pixmap,expect);
+		}
+
+		// empty rect:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			
+			xor_rect<CD>(pixmap.px+width, width, 5, 0, 4, flood_filled_color<CD>(1));
+			xor_rect<CD>(pixmap.px+width, width, 5, 8, -1, flood_filled_color<CD>(1));
+			xor_rect<CD>(pixmap.px+width, width, 8, -2, 4, flood_filled_color<CD>(1));
+			xor_rect<CD>(pixmap.px+width, width, 8, 8, 0, flood_filled_color<CD>(1));
+			CHECK_EQ(pixmap,expect);
+		}
+	}
+	
+	// 2bpp:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+
+		constexpr int width = 16, height = 8;
+		const uint16 q[] = { 
+			0x1000,
+			0x1000,
+			0x1005,
+			0x100A,
+			0x10A0,
+			0x10AA,
+			0x10FF,
+			0x1000,
+		};  
+		
+		for(int x=8;x<=16;x++) // long line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=6*8, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(1));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(1));
+			CHECK_EQ(pixmap,expect);
+		}
+	
+		for(int x=8;x<=16;x++) // short line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=3, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(1));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(1));
+			CHECK_EQ(pixmap,expect);
+		}
+
+		// empty rect:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			
+			xor_rect<CD>(pixmap.px+width, width, 5, 0, 4, flood_filled_color<CD>(1));
+			xor_rect<CD>(pixmap.px+width, width, 5, 8, -1, flood_filled_color<CD>(1));
+			xor_rect<CD>(pixmap.px+width, width, 8, -2, 4, flood_filled_color<CD>(1));
+			xor_rect<CD>(pixmap.px+width, width, 8, 8, 0, flood_filled_color<CD>(1));
+			CHECK_EQ(pixmap,expect);
+		}
+	}
+	
+	// 4bpp:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+
+		constexpr int width = 16, height = 8;
+		const uint16 q[] = { 
+			0x1000,
+			0x1000,
+			0x1005,
+			0x100A,
+			0x10A0,
+			0x10AA,
+			0x10FF,
+			0x1000,
+		};  
+		
+		for(int x=2;x<=8;x++) // long line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=20, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(0xA));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(0xA));
+			CHECK_EQ(pixmap,expect);
+		}
+	
+		for(int x=2;x<=8;x++) // short line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=1, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(0xA));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(0xA));
+			CHECK_EQ(pixmap,expect);
+		}
+
+		// empty rect:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			
+			xor_rect<CD>(pixmap.px+width, width, 5, 0,  4, flood_filled_color<CD>(0xA));
+			xor_rect<CD>(pixmap.px+width, width, 5, 8, -1, flood_filled_color<CD>(0xA));
+			xor_rect<CD>(pixmap.px+width, width, 8, -2, 4, flood_filled_color<CD>(0xA));
+			xor_rect<CD>(pixmap.px+width, width, 8, 8,  0, flood_filled_color<CD>(0xA));
+			CHECK_EQ(pixmap,expect);
+		}
+	}
+	
+	// 8bpp:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_8bpp;
+
+		constexpr int width = 32, height = 8;
+		const uint16 q[] = { 
+			0x2000,
+			0x2000,
+			0x2005,
+			0x200A,
+			0x20A0,
+			0x20AA,
+			0x20FF,
+			0x2000,
+		};  
+		
+		for(int x=2;x<=8;x++) // long line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=20, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(0xAA));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(0xAA));
+			CHECK_EQ(pixmap,expect);
+		}
+	
+		for(int x=2;x<=8;x++) // short line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=1, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(0xAA));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(0xAA));
+			CHECK_EQ(pixmap,expect);
+		}
+
+		// empty rect:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			
+			xor_rect<CD>(pixmap.px+width, width, 5, 0,  4, flood_filled_color<CD>(0xAA));
+			xor_rect<CD>(pixmap.px+width, width, 5, 8, -1, flood_filled_color<CD>(0xAA));
+			xor_rect<CD>(pixmap.px+width, width, 8, -2, 4, flood_filled_color<CD>(0xAA));
+			xor_rect<CD>(pixmap.px+width, width, 8, 8,  0, flood_filled_color<CD>(0xAA));
+			CHECK_EQ(pixmap,expect);
+		}
+	}
+	
+	// 16bpp:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_16bpp;
+
+		constexpr int width = 32, height = 8;
+		const uint16 q[] = { 
+			0x2000,
+			0x2000,
+			0x2005,
+			0x200A,
+			0x20A0,
+			0x20AA,
+			0x20FF,
+			0x2000,
+		};  
+		
+		for(int x=1;x<=2;x++) // long line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=5, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(0xA55A));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(0xA55A));
+			CHECK_EQ(pixmap,expect);
+		}
+	
+		for(int x=2;x<=8;x++) // short line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=1, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(0xA55A));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(0xA55A));
+			CHECK_EQ(pixmap,expect);
+		}
+
+		// empty rect:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			
+			xor_rect<CD>(pixmap.px+width, width, 5, 0,  4, flood_filled_color<CD>(0xA55A));
+			xor_rect<CD>(pixmap.px+width, width, 5, 8, -1, flood_filled_color<CD>(0xA55A));
+			xor_rect<CD>(pixmap.px+width, width, 8, -2, 4, flood_filled_color<CD>(0xA55A));
+			xor_rect<CD>(pixmap.px+width, width, 8, 8,  0, flood_filled_color<CD>(0xA55A));
+			CHECK_EQ(pixmap,expect);
+		}
+	}
+
+	// odd row offset:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+
+		constexpr int width = 11, height = 8;
+		const uint16 q[] = { 
+			0x0B00,
+			0x0B00,
+			0x0B05,
+			0x0B0A,
+			0x0BA0,
+			0x0BAA,
+			0x0BFF,
+			0x0B00,
+		};  
+		
+		for(int x=8;x<=16;x++) // long line:
+		{			
+			Buffer<width, height> pixmap(q);
+			Buffer<width, height> expect(q);
+			const int w=6*8, h=6;
+			
+			xor_rect<CD>    (pixmap.px+width, width, x, w, h, flood_filled_color<CD>(1));
+			xor_rect_ref<CD>(expect.px+width, width, x, w, h, flood_filled_color<CD>(1));
+			CHECK_EQ(pixmap,expect);
+		}
+	}	
 }
 
-TEST_CASE("BitBlit: xor_rect_of_bits")
+TEST_CASE("BitBlit: copy_rect, copy_rect_of_bits, copy_rect_of_bytes")
 {
-	//
-}
+	const uint8 q[256] = { 
+		123, 54, 23, 01, 55, 201, 255, 67, 
+		24, 75, 233, 10, 77, 88, 213, 244, 
+		0x41, 0x62, 0xC7, 0x37, 0x30, 0x46, 0x62, 0xBB, 
+		158, 64, 32, 233, 98, 90, 240, 43, 
+		0x80, 0xc0, 0xe0, 0xf0, 15, 7, 3, 1, 
+		0xc0, 23, 43, 67, 88, 76, 45, 233, 
+		213, 80, 77, 65, 43, 21, 10, 98, 
+		89, 00, 255, 65, 43, 210, 58, 0xf, 		
+		124, 210, 214, 188, 7, 62, 235, 54,   
+		71, 254, 229, 133, 214, 88, 69, 182,  
+		198, 25, 123, 125, 63, 27, 16, 248,   
+		71, 35, 121, 58, 111, 155, 117, 143,  
+		128, 0, 78, 143, 149, 171, 187, 144,  
+		240, 129, 161, 112, 40, 228, 111, 159,
+		140, 251, 97, 109, 134, 198, 76, 38,  
+		55, 13, 230, 121, 81, 29, 108, 178,   
+		124, 210, 139, 46, 117, 6, 89, 107,
+		93, 145, 75, 116, 164, 70, 219, 46,
+		203, 27, 107, 190, 99, 100, 42, 254,
+		66, 133, 214, 253, 160, 4, 78, 166,
+		164, 40, 56, 216, 213, 82, 135, 155,
+		14, 34, 17, 228, 205, 226, 176, 124,
+		8, 141, 220, 204, 68, 9, 208, 95,
+		6, 247, 128, 249, 168, 21, 111, 183,		
+		74, 50, 76, 199, 92, 68, 117, 32,
+		191, 164, 211, 241, 58, 68, 102, 137,
+		130, 78, 231, 206, 30, 165, 181, 131,
+		78, 238, 160, 25, 72, 26, 214, 246,
+		244, 57, 226, 116, 110, 87, 109, 240,
+		181, 66, 200, 255, 9, 160, 221, 96,
+		244, 78, 109, 83, 24, 250, 132, 137,
+		252, 129, 0, 46, 219, 255, 44, 119,		
+	};  
+	
+	// 1bpp:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
 
-TEST_CASE("BitBlit: copy_rect_of_bits")
-{
-	//
-}
+		constexpr int width = 28, height = 9;
+		constexpr int width2 = 27;
 
-TEST_CASE("BitBlit: copy_rect_of_bytes")
-{
-	//
-}
+		for(int zx=8; zx<=32; zx+=2) // copy left:		
+		{			
+			for(int qx=zx; qx<=zx+32; qx+=3)
+			{
+				for(int w=0,h=5; w<=13*8; w+=11)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
 
-TEST_CASE("BitBlit: copy_rect")
-{
-	//
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2,width2, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2,width2, zx, expect2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}
+		for(int zx=8;zx<=32;zx+=3) // copy down:		
+		{			
+			for(int qx=zx-8;qx<=zx+32;qx+=5)
+			{
+				for(int w=0,h=5; w<=12*8; w+=9)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width*2,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width*2,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+					
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2,width2, zx, pixmap2.px+width2*2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2,width2, zx, expect2.px+width2*2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}		
+		for(int zx=8; zx<=32; zx+=2) // copy right:		
+		{			
+			for(int qx=zx-8; qx<zx; qx++)
+			{
+				for(int w=0,h=5; w<=11*8; w+=9)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+										
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					//if(zx==16&&qx==9&&w==9)
+					//	LOL
+					
+					copy_rect<CD>    (pixmap2.px+width2,width2, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2,width2, zx, expect2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}
+		for(int zx=8;zx<=32;zx+=3) // copy up:		
+		{			
+			for(int qx=zx-8;qx<=zx+8;qx+=5)
+			{
+				for(int w=0,h=5; w<=13*8; w+=13)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width*2,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width*2,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+					
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2*2,width2, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2*2,width2, zx, expect2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}		
+
+		for(int zx=8;zx<=32;zx+=3) // mixed stride:		
+		{						
+			for(int qx=zx-8;qx<=zx+8;qx+=2)
+			{
+				for(int w=1,h=7; w<=13*8; w+=17) // copy down, z=even, q=odd
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					Buffer<width2, height> pixmap2(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=13*8; w+=19) // copy up, z=even, q=odd
+				{
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=13*8; w+=23) // copy down, z=odd, q=even
+				{
+					Buffer<width2, height> pixmap(q);
+					Buffer<width2, height> expect(q);
+					Buffer<width, height> pixmap2(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=13*8; w+=27) // copy up, z=odd, q=even
+				{
+					Buffer<width, height> pixmap2(q);
+					Buffer<width2, height> pixmap(q);
+					Buffer<width2, height> expect(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+			}			
+		}		
+	}
+	
+	// 2bpp:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+
+		constexpr int width = 28, height = 9;
+		constexpr int width2 = 27;
+
+		for(int zx=4;zx<=16;zx+=2) // copy down:		
+		{			
+			for(int qx=zx-4;qx<=zx+16;qx+=3)
+			{
+				for(int w=0,h=5; w<=12*4; w+=5)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width*2,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width*2,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+					
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2,width2, zx, pixmap2.px+width2*2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2,width2, zx, expect2.px+width2*2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}		
+		for(int zx=4;zx<=16;zx+=2) // copy up:		
+		{			
+			for(int qx=zx-4;qx<=zx+4;qx+=3)
+			{
+				for(int w=0,h=5; w<=13*4; w+=9)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width*2,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width*2,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+					
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2*2,width2, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2*2,width2, zx, expect2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}		
+
+		for(int zx=4;zx<=16;zx+=2) // mixed stride:		
+		{						
+			for(int qx=zx-4;qx<=zx+4;qx+=1)
+			{
+				for(int w=1,h=7; w<=13*4; w+=9) // copy down, z=even, q=odd
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					Buffer<width2, height> pixmap2(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=13*4; w+=10) // copy up, z=even, q=odd
+				{
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=13*4+1; w+=13) // copy down, z=odd, q=even
+				{
+					Buffer<width2, height> pixmap(q);
+					Buffer<width2, height> expect(q);
+					Buffer<width, height> pixmap2(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=13*4; w+=11) // copy up, z=odd, q=even
+				{
+					Buffer<width, height> pixmap2(q);
+					Buffer<width2, height> pixmap(q);
+					Buffer<width2, height> expect(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+			}			
+		}		
+	}
+	
+	// 4bpp:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+
+		constexpr int width = 28, height = 9;
+		constexpr int width2 = 27;
+
+		for(int zx=2;zx<=8;zx+=1) // copy down:		
+		{			
+			for(int qx=zx-2;qx<=zx+8;qx+=2)
+			{
+				for(int w=0,h=5; w<=12*2; w+=3)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width*2,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width*2,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+					
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2,width2, zx, pixmap2.px+width2*2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2,width2, zx, expect2.px+width2*2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}		
+		for(int zx=2;zx<=8;zx+=2) // copy up:		
+		{			
+			for(int qx=zx-2;qx<=zx+2;qx+=1)
+			{
+				for(int w=0,h=5; w<=13*2; w+=5)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width*2,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width*2,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+					
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2*2,width2, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2*2,width2, zx, expect2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}		
+
+		for(int zx=2;zx<=8;zx+=2) // mixed stride:		
+		{						
+			for(int qx=zx-2;qx<=zx+2;qx+=1)
+			{
+				for(int w=1,h=7; w<=13*2; w+=3) // copy down, z=even, q=odd
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					Buffer<width2, height> pixmap2(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=13*2; w+=5) // copy up, z=even, q=odd
+				{
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=13*2; w+=6) // copy down, z=odd, q=even
+				{
+					Buffer<width2, height> pixmap(q);
+					Buffer<width2, height> expect(q);
+					Buffer<width, height> pixmap2(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=14*2+1; w+=7) // copy up, z=odd, q=even
+				{
+					Buffer<width, height> pixmap2(q);
+					Buffer<width2, height> pixmap(q);
+					Buffer<width2, height> expect(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+			}			
+		}		
+	}
+	
+	// 8bpp:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_8bpp;
+
+		constexpr int width = 28, height = 9;
+		constexpr int width2 = 27;
+
+		for(int zx=2;zx<=8;zx+=1) // copy down:		
+		{			
+			for(int qx=zx-2;qx<=zx+4;qx+=2)
+			{
+				for(int w=0,h=5; w<=12; w+=3)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width*2,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width*2,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+					
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2,width2, zx, pixmap2.px+width2*2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2,width2, zx, expect2.px+width2*2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}		
+		for(int zx=2;zx<=8;zx+=1) // copy up:		
+		{			
+			for(int qx=zx-2;qx<=zx+2;qx+=1)
+			{
+				for(int w=1,h=5; w<=13; w+=3)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width*2,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width*2,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+					
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2*2,width2, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2*2,width2, zx, expect2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}		
+
+		for(int zx=2;zx<=8;zx+=2) // mixed stride:		
+		{						
+			for(int qx=zx-2;qx<=zx+2;qx+=1)
+			{
+				for(int w=1,h=7; w<=13; w+=3) // copy down, z=even, q=odd
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					Buffer<width2, height> pixmap2(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=16; w+=5) // copy up, z=even, q=odd
+				{
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=13; w+=6) // copy down, z=odd, q=even
+				{
+					Buffer<width2, height> pixmap(q);
+					Buffer<width2, height> expect(q);
+					Buffer<width, height> pixmap2(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=14+1; w+=7) // copy up, z=odd, q=even
+				{
+					Buffer<width, height> pixmap2(q);
+					Buffer<width2, height> pixmap(q);
+					Buffer<width2, height> expect(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+			}			
+		}		
+	}
+	
+	// 16bpp:
+	{
+		constexpr ColorDepth CD = kio::Graphics::colordepth_16bpp;
+
+		constexpr int width = 28, height = 9;
+		constexpr int width2 = 26;
+
+		for(int zx=1;zx<=5;zx+=1) // copy down:		
+		{			
+			for(int qx=zx-1;qx<=zx+2;qx+=1)
+			{
+				for(int w=0,h=5; w<=6; w+=1)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width*2,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width*2,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+					
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2,width2, zx, pixmap2.px+width2*2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2,width2, zx, expect2.px+width2*2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}		
+		for(int zx=1;zx<=5;zx+=1) // copy up:		
+		{			
+			for(int qx=zx-1;qx<=zx+1;qx+=1)
+			{
+				for(int w=1,h=5; w<=7; w+=2)
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap.px+width*2,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, expect.px+width*2,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+					
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width2, height> expect2(q);
+					//pixmap2.px[0]=expect2.px[0]=flip(uint8(zx));
+					//pixmap2.px[1]=expect2.px[1]=flip(uint8(qx));
+					//pixmap2.px[2]=expect2.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap2.px+width2*2,width2, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect2.px+width2*2,width2, zx, expect2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap2,expect2);				
+				}
+			}			
+		}		
+
+		for(int zx=1;zx<=4;zx+=1) // mixed stride:		
+		{						
+			for(int qx=zx-1;qx<=zx+1;qx+=1)
+			{
+				for(int w=1,h=7; w<=7; w+=3) // copy down, z=even, q=odd
+				{
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);
+					Buffer<width2, height> pixmap2(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=7; w+=3) // copy up, z=even, q=odd
+				{
+					Buffer<width2, height> pixmap2(q);
+					Buffer<width, height> pixmap(q);
+					Buffer<width, height> expect(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width,width, zx, pixmap2.px+width2,width2, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=7; w+=3) // copy down, z=odd, q=even
+				{
+					Buffer<width2, height> pixmap(q);
+					Buffer<width2, height> expect(q);
+					Buffer<width, height> pixmap2(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+				for(int w=1,h=7; w<=7; w+=3) // copy up, z=odd, q=even
+				{
+					Buffer<width, height> pixmap2(q);
+					Buffer<width2, height> pixmap(q);
+					Buffer<width2, height> expect(q);					
+					//pixmap.px[0]=expect.px[0]=flip(uint8(zx));
+					//pixmap.px[1]=expect.px[1]=flip(uint8(qx));
+					//pixmap.px[2]=expect.px[2]=flip(uint8(w));
+					
+					copy_rect<CD>    (pixmap.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					copy_rect_ref<CD>(expect.px+width2,width2, zx, pixmap2.px+width,width, qx, w, h);
+					CHECK_EQ(pixmap,expect);				
+				}
+			}			
+		}		
+	}
 }
 
 TEST_CASE("BitBlit: copy_row_as_1bpp")
