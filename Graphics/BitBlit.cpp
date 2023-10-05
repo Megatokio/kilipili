@@ -279,7 +279,7 @@ void rcopy_bits_aligned(UINT* zp, const UINT* qp, int x, int cnt) noexcept
 
 void copy_rect_of_bytes(uint8* zp, int z_row_offs, const uint8* qp, int q_row_offs, int w, int h) noexcept
 {
-	assert(h >= 0 && w >= 0);
+	if (w <= 0 || h <= 0) return;
 
 	if (zp <= qp)
 	{
@@ -305,7 +305,7 @@ void copy_rect_of_bytes(uint8* zp, int z_row_offs, const uint8* qp, int q_row_of
 }
 
 void copy_rect_of_bits(
-	uint8* zp, int zx, int z_row_offs, const uint8* qp, int qx, int q_row_offs, int w, int h) noexcept
+	uint8* zp, int z_row_offs, int zx, const uint8* qp, int qx, int q_row_offs, int w, int h) noexcept
 {
 	/*	copy rectangular area of bits from source to destination.
 
@@ -321,7 +321,7 @@ void copy_rect_of_bits(
 		h = height in rows
 	*/
 
-	assert(h >= 0 && w > 0);
+	if (w <= 0 || h <= 0) return;
 
 	if (zp <= qp) // work in y++ and x++ direction:
 	{
@@ -631,7 +631,7 @@ void xor_row_of_bits(uint8* zp, int xoffs, int width, uint32 color) noexcept
 }
 
 void clear_rect_of_bits_with_mask(
-	uint8* zp, int xoffs, int row_offset, int width, int height, uint32 color, uint32 mask) noexcept
+	uint8* zp, int row_offset, int xoffs, int width, int height, uint32 color, uint32 mask) noexcept
 {
 	if (unlikely(width <= 0 || height <= 0)) return;
 
@@ -642,8 +642,8 @@ void clear_rect_of_bits_with_mask(
 		// or quadruple the row offset and do 4 rounds.
 
 		do {
-			clear_rect_of_bits_with_mask(zp, xoffs, row_offset << 1, width, (height + 1) >> 1, color, mask);
-			//clear_rect_of_bits_with_mask(zp + row_offset, xoffs, row_offset << 1, width, (height + 0) >> 1, color, mask);
+			clear_rect_of_bits_with_mask(zp, row_offset << 1, xoffs, width, (height + 1) >> 1, color, mask);
+			//clear_rect_of_bits_with_mask(zp + row_offset, row_offset << 1, xoffs, width, (height + 0) >> 1, color, mask);
 			zp += row_offset;
 			row_offset <<= 1;
 			height >>= 1;
@@ -708,7 +708,7 @@ void clear_rect_of_bits_with_mask(
 	}
 }
 
-void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int height, uint32 color) noexcept
+void clear_rect_of_bits(uint8* zp, int row_offset, int xoffs, int width, int height, uint32 color) noexcept
 {
 	if (unlikely(width <= 0 || height <= 0)) return;
 
@@ -719,8 +719,8 @@ void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int hei
 		// or quadruple the row offset and do 4 rounds.
 
 		do {
-			clear_rect_of_bits(zp, xoffs, row_offset << 1, width, (height + 1) >> 1, color);
-			//clear_rect_of_bits(zp + row_offset, xoffs, row_offset << 1, width, (height + 0) >> 1, color);
+			clear_rect_of_bits(zp, row_offset << 1, xoffs, width, (height + 1) >> 1, color);
+			//clear_rect_of_bits(zp + row_offset, row_offset << 1, xoffs, width, (height + 0) >> 1, color);
 			zp += row_offset;
 			row_offset <<= 1;
 			height >>= 1;
@@ -783,31 +783,24 @@ void clear_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int hei
 	}
 }
 
-void xor_rect_of_bits(uint8* zp, int xoffs, int row_offset, int width, int height, uint32 color) noexcept
+void xor_rect_of_bits(uint8* zp, int row_offset, int xoffs, int width, int height, uint32 color) noexcept
 {
 	if (unlikely(width <= 0 || height <= 0)) return;
 
 	if (unlikely(row_offset & 3))
 	{
-		// if row_offset is not a multiple of 4
-		// then alignment will change from row to row.
-		// a simple way to fix this fast is to double the row offset
-		// and clear only every 2nd row in each of two rounds
+		// if row_offset is not a multiple of 4 then alignment will change from row to row.
+		// => Double the row offset and clear only every 2nd row in each of two rounds
 		// or quadruple the row offset and do 4 rounds.
 
-		if (row_offset & 1)
-		{
-			xor_rect_of_bits(zp, xoffs, row_offset << 2, width, (height + 3) >> 2, color);
-			xor_rect_of_bits(zp + row_offset * 1, xoffs, row_offset << 2, width, (height + 2) >> 2, color);
-			xor_rect_of_bits(zp + row_offset * 2, xoffs, row_offset << 2, width, (height + 1) >> 2, color);
-			xor_rect_of_bits(zp + row_offset * 3, xoffs, row_offset << 2, width, (height + 0) >> 2, color);
+		do {
+			xor_rect_of_bits(zp, row_offset << 1, xoffs, width, (height + 1) >> 1, color);
+			//xor_rect_of_bits(zp + row_offset, row_offset << 1, xoffs, width, (height + 0) >> 1, color);
+			zp += row_offset;
+			row_offset <<= 1;
+			height >>= 1;
 		}
-		else // if (row_offset & 2)
-		{
-			xor_rect_of_bits(zp, xoffs, row_offset << 1, width, (height + 1) >> 1, color);
-			xor_rect_of_bits(zp + row_offset, xoffs, row_offset << 1, width, (height + 0) >> 1, color);
-		}
-		return;
+		while (row_offset & 2);
 	}
 
 	// row_offset is a multiple of 4

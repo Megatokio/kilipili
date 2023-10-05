@@ -319,15 +319,9 @@ void DirectColorPixmap::fill_rect(coord x1, coord y1, coord w, coord h, uint col
 	{
 		assert(is_inside(x1, y1));
 		assert(is_inside(x1 + w - 1, y1 + h - 1));
-
-		bitblit::clear_rect_of_bits(
-			pixmap + y1 * row_offset, // start of top row
-			x1 << colordepth,		  // x-offset measured in bits
-			row_offset,				  // row offset
-			w << colordepth,		  // width measured in bits
-			h,						  // height measured in rows
-			flood_filled_color<colordepth>(color));
 	}
+
+	bitblit::clear_rect<colordepth>(pixmap + y1 * row_offset, row_offset, x1, w, h, color);
 }
 
 template<ColorMode CM>
@@ -337,15 +331,9 @@ void DirectColorPixmap::xor_rect(coord x1, coord y1, coord w, coord h, uint xor_
 	{
 		assert(is_inside(x1, y1));
 		assert(is_inside(x1 + w - 1, y1 + h - 1));
-
-		bitblit::xor_rect_of_bits(
-			pixmap + y1 * row_offset, // start of top row
-			x1 << colordepth,		  // x-offset measured in bits
-			row_offset,				  // row offset
-			w << colordepth,		  // width measured in bits
-			h,						  // height measured in rows
-			flood_filled_color<colordepth>(xor_color));
 	}
+
+	bitblit::xor_rect<colordepth>(pixmap + y1 * row_offset, x1, row_offset, w, h, xor_color);
 }
 
 template<ColorMode CM>
