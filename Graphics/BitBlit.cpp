@@ -9,9 +9,9 @@ namespace kio::Graphics::bitblit
 
 // #############################################################
 
-void copy_rect_of_bits(uint32* zp, int zx, const uint32* qp, int qx, int cnt) noexcept
+void copy_bits(uint32* zp, int zx, const uint32* qp, int qx, int cnt) noexcept
 {
-	// copy non-aligned bits with incrementing addresses
+	// copy row of bits with incrementing addresses to lower location
 	// attn: left pixel is in lsb!
 	//    => shift ops in source code are opposite direction to how pixels move!
 	//
@@ -22,77 +22,117 @@ void copy_rect_of_bits(uint32* zp, int zx, const uint32* qp, int qx, int cnt) no
 
 	assert(uint(zx) <= 31);
 	assert(uint(qx) <= 31);
-	assert(zx != qx);
 
-	// we walk from left to right => pixel come in from the high side:
-	uint32 lo, hi; // words holding bits from the source row
-	int	   lsl;	   // left shift for pixels / right shift for bits
-	int	   hsr;	   // shift for hi
-
-	if (qx > zx)
+	if (zx == qx) // no bit shifting required?
 	{
-		lsl = qx - zx;
-		hsr = 32 - lsl;
-		lo	= *qp++;
-		hi	= *qp++;
+		if (zx + cnt <= 32) // very few bits go into single word
+		{
+			uint32 mask = (1u << cnt) - 1; // mask for cnt bits
+			mask		= mask << zx;	   // mask selects bits from q
+			*zp			= (*zp & ~mask) | (*qp & mask);
+			return;
+		}
+
+		if (zx) // copy first partial word
+		{
+			uint32 mask = ~0u << zx; // mask selects bits from q
+			*zp			= (*zp & ~mask) | (*qp & mask);
+			zp++;
+			qp++;
+			cnt -= 32 - zx;
+		}
+
+		while (cnt >= 64) // copy main part
+		{
+			*zp++ = *qp++;
+			*zp++ = *qp++;
+			cnt -= 64;
+		}
+
+		if (cnt >= 32)
+		{
+			*zp++ = *qp++;
+			cnt -= 32;
+		}
+
+		if (cnt) // copy last partial word
+		{
+			uint32 mask = ~0u << cnt; // mask selects bits in z
+			*zp			= (*zp & mask) | (*qp & ~mask);
+		}
 	}
-	else
+	else // bit shifting required!
 	{
-		hsr = zx - qx;
-		lsl = 32 - hsr;
-		lo	= 0; // silence warning
-		hi	= *qp++;
-	}
+		// we walk from left to right => pixel come in from the high side:
+		uint32 lo, hi; // words holding bits from the source row
+		int	   lsl;	   // left shift for pixels / right shift for bits
+		int	   hsr;	   // shift for hi
 
-	if (zx + cnt < 32) // very few bits go into single word
-	{
-		uint32 mask = (1 << cnt) - 1; // mask for cnt bits
-		mask		= mask << zx;	  // mask selects bits from q
+		if (qx > zx)
+		{
+			lsl = qx - zx;
+			hsr = 32 - lsl;
+			lo	= *qp++;
+			hi	= *qp++;
+		}
+		else
+		{
+			hsr = zx - qx;
+			lsl = 32 - hsr;
+			lo	= 0; // silence warning
+			hi	= *qp++;
+		}
 
-		uint32 byte = (lo >> lsl) | (hi << hsr);
-		*zp			= (*zp & ~mask) | (byte & mask);
-		return;
-	}
+		if (zx + cnt < 32) // very few bits go into single word
+		{
+			uint32 mask = (1 << cnt) - 1; // mask for cnt bits
+			mask		= mask << zx;	  // mask selects bits from q
 
-	if (zx) // copy partial first word
-	{
-		uint32 mask = ~0u << zx; // mask selects bits from q
-		uint32 byte = (lo >> lsl) | (hi << hsr);
-		*zp			= (*zp & ~mask) | (byte & mask);
-		zp++;
-		lo = hi;
-		hi = *qp++;
-		cnt -= 32 - zx;
-	}
+			uint32 byte = (lo >> lsl) | (hi << hsr);
+			*zp			= (*zp & ~mask) | (byte & mask);
+			return;
+		}
 
-	while (cnt >= 64) // copy main part
-	{
-		*zp++ = (lo >> lsl) | (hi << hsr);
-		lo	  = *qp++;					   // lo=hi and hi=lo
-		*zp++ = (hi >> lsl) | (lo << hsr); // lo=hi and hi=lo
-		hi	  = *qp++;
-		cnt -= 64;
-	}
+		if (zx) // copy partial first word
+		{
+			uint32 mask = ~0u << zx; // mask selects bits from q
+			uint32 byte = (lo >> lsl) | (hi << hsr);
+			*zp			= (*zp & ~mask) | (byte & mask);
+			zp++;
+			lo = hi;
+			hi = *qp++;
+			cnt -= 32 - zx;
+		}
 
-	if (cnt >= 32)
-	{
-		*zp++ = (lo >> lsl) | (hi << hsr);
-		lo	  = hi;
-		hi	  = *qp++;
-		cnt -= 32;
-	}
+		while (cnt >= 64) // copy main part
+		{
+			*zp++ = (lo >> lsl) | (hi << hsr);
+			lo	  = *qp++;					   // lo=hi and hi=lo
+			*zp++ = (hi >> lsl) | (lo << hsr); // lo=hi and hi=lo
+			hi	  = *qp++;
+			cnt -= 64;
+		}
 
-	if (cnt) // copy partial last halfword
-	{
-		uint32 mask = ~0u << cnt; // mask selects bits in z
-		uint32 byte = (lo >> lsl) | (hi << hsr);
-		*zp			= (*zp & mask) | (byte & ~mask);
+		if (cnt >= 32)
+		{
+			*zp++ = (lo >> lsl) | (hi << hsr);
+			lo	  = hi;
+			hi	  = *qp++;
+			cnt -= 32;
+		}
+
+		if (cnt) // copy partial last halfword
+		{
+			uint32 mask = ~0u << cnt; // mask selects bits in z
+			uint32 byte = (lo >> lsl) | (hi << hsr);
+			*zp			= (*zp & mask) | (byte & ~mask);
+		}
 	}
 }
 
 void rcopy_bits(uint32* zp, int zx, const uint32* qp, int qx, int cnt) noexcept
 {
-	// copy non-aligned bits with decrementing addresses
+	// copy row of bits with decrementing addresses to higher location
 	// attn: left pixel is in lsb!
 	//    => shift ops in source code are opposite direction to how pixels move!
 	//
@@ -103,209 +143,143 @@ void rcopy_bits(uint32* zp, int zx, const uint32* qp, int qx, int cnt) noexcept
 
 	assert(uint(zx) <= 31);
 	assert(uint(qx) <= 31);
-	assert(zx != qx);
 
-	// we walk from right to left => pixel come in from the low side:
-	uint32 lo, hi; // words holding bits from the source row
-	int	   hsr;	   // right shift for pixels / left shift for bits
-	int	   lsl;	   // shift for lo
-
-	if (qx > zx)
+	if (zx == qx) // no bit shifting required?
 	{
-		hsr = qx - zx;
-		lsl = 32 - hsr;
-		hi	= *qp--;
-		lo	= *qp--;
+		if (zx + cnt <= 32) // very few bits go into single word
+		{
+			uint32 mask = ~(~0u >> cnt); // mask for cnt bits
+			mask		= mask >> zx;	 // mask selects bits from q
+			*zp			= (*zp & ~mask) | (*qp & mask);
+			return;
+		}
+
+		if (zx) // copy first partial word
+		{
+			uint32 mask = ~0u >> zx; // mask selects bits from q
+			*zp			= (*zp & ~mask) | (*qp & mask);
+			zp--;
+			qp--;
+			cnt -= 32 - zx;
+		}
+
+		while (cnt >= 64) // copy main part
+		{
+			*zp-- = *qp--;
+			*zp-- = *qp--;
+			cnt -= 64;
+		}
+
+		if (cnt >= 32)
+		{
+			*zp-- = *qp--;
+			cnt -= 32;
+		}
+
+		if (cnt) // copy last partial word
+		{
+			uint32 mask = ~0u >> cnt; // mask selects bits in z
+			*zp			= (*zp & mask) | (*qp & ~mask);
+		}
 	}
-	else
+	else // bit shifting required!
 	{
-		lsl = zx - qx;
-		hsr = 32 - lsl;
-		hi	= 0; // silence warning
-		lo	= *qp--;
-	}
+		// we walk from right to left => pixel come in from the low side:
+		uint32 lo, hi; // words holding bits from the source row
+		int	   hsr;	   // right shift for pixels / left shift for bits
+		int	   lsl;	   // shift for lo
 
-	if (zx + cnt < 32) // very few bits go into single word
-	{
-		zx			= 32 - (zx + cnt); // zx now from the left (as in copy_bits())
-		uint32 mask = (1 << cnt) - 1;  // mask for cnt bits
-		mask		= mask << zx;	   // mask selects bits from q
+		if (qx > zx)
+		{
+			hsr = qx - zx;
+			lsl = 32 - hsr;
+			hi	= *qp--;
+			lo	= *qp--;
+		}
+		else
+		{
+			lsl = zx - qx;
+			hsr = 32 - lsl;
+			hi	= 0; // silence warning
+			lo	= *qp--;
+		}
 
-		uint32 byte = (lo >> lsl) | (hi << hsr);
-		*zp			= (*zp & ~mask) | (byte & mask);
-		return;
-	}
+		if (zx + cnt < 32) // very few bits go into single word
+		{
+			uint32 mask = ~(~0u >> cnt); // mask for cnt bits
+			mask		= mask >> zx;	 // mask selects bits from q
 
-	if (zx) // copy partial first word
-	{
-		uint32 mask = ~0u >> zx; // mask selects bits from q
-		uint32 byte = (lo >> lsl) | (hi << hsr);
-		*zp			= (*zp & ~mask) | (byte & mask);
-		zp--;
-		hi = lo;
-		lo = *qp--;
-		cnt -= 32 - zx;
-	}
+			uint32 byte = (lo >> lsl) | (hi << hsr);
+			*zp			= (*zp & ~mask) | (byte & mask);
+			return;
+		}
 
-	while (cnt >= 64) // copy main part
-	{
-		*zp-- = (lo >> lsl) | (hi << hsr);
-		hi	  = *qp--;					   // lo=hi and hi=lo
-		*zp-- = (hi >> lsl) | (lo << hsr); // lo=hi and hi=lo
-		lo	  = *qp--;
-		cnt -= 64;
-	}
+		if (zx) // copy partial first word
+		{
+			uint32 mask = ~0u >> zx; // mask selects bits from q
+			uint32 byte = (lo >> lsl) | (hi << hsr);
+			*zp			= (*zp & ~mask) | (byte & mask);
+			zp--;
+			hi = lo;
+			lo = *qp--;
+			cnt -= 32 - zx;
+		}
 
-	if (cnt >= 32)
-	{
-		*zp-- = (lo >> lsl) | (hi << hsr);
-		hi	  = lo;
-		lo	  = *qp--;
-		cnt -= 32;
-	}
+		while (cnt >= 64) // copy main part
+		{
+			*zp-- = (lo >> lsl) | (hi << hsr);
+			hi	  = *qp--;					   // lo=hi and hi=lo
+			*zp-- = (hi >> lsl) | (lo << hsr); // lo=hi and hi=lo
+			lo	  = *qp--;
+			cnt -= 64;
+		}
 
-	if (cnt) // copy partial last halfword
-	{
-		uint32 mask = ~0u >> cnt; // mask selects bits in z
-		uint32 byte = (lo >> lsl) | (hi << hsr);
-		*zp			= (*zp & mask) | (byte & ~mask);
-	}
-}
+		if (cnt >= 32)
+		{
+			*zp-- = (lo >> lsl) | (hi << hsr);
+			hi	  = lo;
+			lo	  = *qp--;
+			cnt -= 32;
+		}
 
-template<typename UINT>
-void copy_bits_aligned(UINT* zp, const UINT* qp, int x, int cnt) noexcept
-{
-	// copy 8/16/32 bit aligned bits with incrementing address
-	//
-	// attn: left pixel is in lsb!
-	//    => shift ops in source code are opposite direction to pixels!
-	//
-	// in: qp -> word which provides the first bits
-	//     zp -> word which receives the first bits
-	//     x =  offset of bits from the left side
-
-	constexpr int BITS = sizeof(UINT) << 3;
-	constexpr int MASK = BITS - 1;
-
-	assert(uint(x) < BITS);
-
-	if (x + cnt <= BITS) // very few bits go into single word
-	{
-		UINT mask = UINT((1 << cnt) - 1); // mask for cnt bits
-		mask	  = UINT(mask << x);	  // mask selects bits from q
-		*zp		  = (*zp & ~mask) | (*qp & mask);
-		return;
-	}
-
-	if (x) // copy first partial word
-	{
-		UINT mask = UINT(~0u << x); // mask selects bits from q
-		*zp		  = (*zp & ~mask) | (*qp & mask);
-		zp++;
-		qp++;
-		cnt -= BITS - x;
-	}
-
-	for (uint i = 0; i < uint(cnt) / (BITS * 2); i++) // copy main part
-	{
-		*zp++ = *qp++;
-		*zp++ = *qp++;
-	}
-
-	if (cnt & BITS) // copy last odd word
-	{
-		*zp++ = *qp++;
-	}
-
-	if (cnt & MASK) // copy last partial word
-	{
-		uint32 mask = ~0u << cnt; // mask selects bits in z
-		*zp			= (*zp & mask) | (*qp & ~mask);
+		if (cnt) // copy partial last word
+		{
+			uint32 mask = ~0u >> cnt; // mask selects bits in z
+			uint32 byte = (lo >> lsl) | (hi << hsr);
+			*zp			= (*zp & mask) | (byte & ~mask);
+		}
 	}
 }
 
-template<typename UINT>
-void rcopy_bits_aligned(UINT* zp, const UINT* qp, int x, int cnt) noexcept
-{
-	// copy 8/16/32 bit aligned bits with decrementing address
-	//
-	// attn: left pixel is in lsb!
-	//    => shift ops in source code are opposite direction to pixels!
-	//
-	// in: qp -> word which provides the last bits
-	//     zp -> word which receives the last bits
-	//     x =  offset of bits from the right side
-
-	constexpr uint BITS = sizeof(UINT) << 3;
-	constexpr uint MASK = BITS - 1;
-
-	assert(uint(x) < BITS);
-
-	if (x + cnt <= BITS) // very few bits go into single word
-	{
-		x		  = 32 - (x + cnt); // zx now from the left (as in copy_bits_aligned())
-		UINT mask = (1 << cnt) - 1; // mask for cnt bits
-		mask	  = mask << x;		// mask selects bits from q
-		*zp		  = (*zp & ~mask) | (*qp & mask);
-		return;
-	}
-
-	if (x) // copy first partial word
-	{
-		UINT mask = UINT(~0u >> x); // mask selects bits from q
-		*zp		  = (*zp & ~mask) | (*qp & mask);
-		zp--;
-		qp--;
-		cnt -= BITS - x;
-	}
-
-	for (uint i = 0; i < uint(cnt) / (BITS * 2); i++) // copy main part
-	{
-		*zp-- = *qp--;
-		*zp-- = *qp--;
-	}
-
-	if (cnt & BITS) // copy last odd word
-	{
-		*zp-- = *qp--;
-	}
-
-	if (cnt & MASK) // copy last partial word
-	{
-		uint32 mask = ~0u >> cnt; // mask selects bits in z
-		*zp			= (*zp & mask) | (*qp & ~mask);
-	}
-}
-
-void copy_rect_of_bytes(uint8* zp, int z_row_offs, const uint8* qp, int q_row_offs, int w, int h) noexcept
+void copy_rect_of_bytes(uint8* zp, int zrow_offset, const uint8* qp, int qrow_offset, int w, int h) noexcept
 {
 	if (w <= 0 || h <= 0) return;
 
 	if (zp <= qp)
 	{
-		while (h--)
+		while (--h >= 0)
 		{
 			memmove(zp, qp, uint(w));
-			zp += z_row_offs;
-			qp += q_row_offs;
+			zp += zrow_offset;
+			qp += qrow_offset;
 		}
 	}
 	else
 	{
-		zp += h * z_row_offs;
-		qp += h * q_row_offs;
+		zp += h * zrow_offset;
+		qp += h * qrow_offset;
 
-		while (h--)
+		while (--h >= 0)
 		{
-			zp -= z_row_offs;
-			qp -= q_row_offs;
+			zp -= zrow_offset;
+			qp -= qrow_offset;
 			memmove(zp, qp, uint(w));
 		}
 	}
 }
 
 void copy_rect_of_bits(
-	uint8* zp, int z_row_offs, int zx, const uint8* qp, int qx, int q_row_offs, int w, int h) noexcept
+	uint8* zp, int z_row_offs, int zx, const uint8* qp, int q_row_offs, int qx, int w, int h) noexcept
 {
 	/*	copy rectangular area of bits from source to destination.
 
@@ -323,201 +297,130 @@ void copy_rect_of_bits(
 
 	if (w <= 0 || h <= 0) return;
 
-	if (zp <= qp) // work in y++ and x++ direction:
+	if (((zx | qx | w) & 7) == 0)
+		return copy_rect_of_bytes(zp + zx / 8, z_row_offs, qp + qx / 8, q_row_offs, w >> 3, h);
+
+	// we have some odd bits at either end and/or must shift bits:
+
+	qp += qx >> 3;
+	qx &= 7;
+
+	zp += zx >> 3;
+	zx &= 7;
+
+	if (((q_row_offs | z_row_offs) & 3) == 0) // both pixmaps have aligned row offsets?
 	{
-		// test if we can use byte copy:
+		// if the row offset of both pixmaps is aligned to word address,
+		// then zx and qx don't change from row to row:
 
-		if (((int(zx) ^ int(qx)) & 7) == 0)
-		{
-			zp -= zx >> 3;
-			zx &= 7;
-			qp -= qx >> 3; //qx &= 7;
-
-			if (zx == 0 && (w & 7) == 0)
-			{
-				while (h--)
-				{
-					memmove(zp, qp, uint(w >> 3));
-					zp += z_row_offs;
-					qp += q_row_offs;
-				}
-				return;
-			}
-			else
-			{
-				while (h--)
-				{
-					copy_bits_aligned(zp, qp, zx, w);
-					zp += z_row_offs;
-					qp += q_row_offs;
-				}
-				return;
-			}
-		}
-
-		// align to word addresses:
-
-		int o;
-		o = ssize_t(zp) & 3;
-		zp -= o;
+		int		o	= ssize_t(zp) & 3;
+		uint32* wzp = reinterpret_cast<uint32*>(zp - o);
 		zx += o << 3;
-		zp += (zx >> 5) << 2;
-		zx &= 31;
-		o = ssize_t(qp) & 3;
-		qp -= o;
+
+		o				  = ssize_t(qp) & 3;
+		const uint32* wqp = reinterpret_cast<const uint32*>(qp - o);
 		qx += o << 3;
-		qp += (qx >> 5) << 2;
-		qx &= 31;
 
-		// test if row offsets are word aligned:
-
-		if (((z_row_offs | q_row_offs) & 3) == 0)
+		if (wzp < wqp || (wzp == wqp && zx < qx)) // copy down
 		{
-			while (h--)
+			while (--h >= 0)
 			{
-				copy_rect_of_bits(reinterpret_cast<uint32ptr>(zp), zx, reinterpret_cast<cuint32ptr>(qp), qx, w);
-				zp += z_row_offs;
-				qp += q_row_offs;
+				copy_bits(wzp, zx, wqp, qx, w);
+				wzp += z_row_offs >> 2;
+				wqp += q_row_offs >> 2;
 			}
 		}
-		else
+		else // copy up
 		{
-			while (h--)
+			wzp += h * z_row_offs >> 2;
+			wqp += h * q_row_offs >> 2;
+
+			// flip the logic from ltr to rtl:
+			wqp += (qx + w - 1) >> 5; // -> last word with q bits
+			wzp += (zx + w - 1) >> 5; // -> last word with z bits
+			qx = -(qx + w) & 31;	  // -> qx = offset of bits from the right side
+			zx = -(zx + w) & 31;	  // -> zx = offset of bits from the right side
+
+			while (--h >= 0)
 			{
-				copy_rect_of_bits(reinterpret_cast<uint32ptr>(zp), zx, reinterpret_cast<cuint32ptr>(qp), qx, w);
-				zp += z_row_offs;
-				qp += q_row_offs;
-				o = ssize_t(zp) & 3;
-				if (o)
-				{
-					zp -= o;
-					zx += o << 3;
-					zp += (zx >> 5) << 2;
-					zx &= 31;
-				}
-				o = ssize_t(qp) & 3;
-				if (o)
-				{
-					qp -= o;
-					qx += 8 << 3;
-					qp += (qx >> 5) << 2;
-					qx &= 31;
-				}
+				wzp -= z_row_offs >> 2;
+				wqp -= q_row_offs >> 2;
+				rcopy_bits(wzp, zx, wqp, qx, w);
 			}
 		}
 	}
-	else // work in y-- and x-- direction:
+	else // one or both pixmaps have an odd row offset!
 	{
-		zp += z_row_offs * h; // start with last row
-		qp += q_row_offs * h;
+		// if a pixmap has an odd row offset,
+		// then zx or qx changes from row to row!
+		// if the 'oddity' of both pixmaps is different,
+		// then whether zx == qx can change from row to row!
 
-		// test if we can use byte copy:
-
-		if (((int(zx) ^ int(qx)) & 7) == 0)
+		if (zp < qp || (zp == qp && zx < qx)) // copy down
 		{
-			zp -= zx >> 3;
-			zx &= 7;
-			qp -= qx >> 3; //qx &= 7;
-
-			if (zx == 0 && (w & 7) == 0)
+			while (--h >= 0)
 			{
-				while (h--)
-				{
-					zp -= z_row_offs;
-					qp -= q_row_offs;
-					memmove(zp, qp, uint(w >> 3));
-				}
-				return;
-			}
-			else
-			{
-				qp += (qx + w - 1) >> 3; // -> at byte which provides the last bits
-				zp += (zx + w - 1) >> 3; // -> at byte which receives the last bits
-
-				zx = -(zx + w) & 7; // bits to skip from the right
-				//qx = -(qx+w) & 7;
-
-				while (h--)
-				{
-					zp -= z_row_offs;
-					qp -= q_row_offs;
-					copy_bits_aligned(zp, qp, zx, w);
-				}
-				return;
-			}
-		}
-
-		// switch to right-to-left:
-
-		zp += (zx + w - 1) >> 3; // -> last byte
-		qp += (qx + w - 1) >> 3;
-
-		zx = -(zx + w) & 7; // bits to skip from the right
-		qx = -(qx + w) & 7;
-
-		// test if row offsets are word aligned:
-
-		if (((z_row_offs | q_row_offs) & 3) == 0)
-		{
-			// align to word addresses:
-			if (int o = ssize_t(zp) & 3)
-			{
-				zp -= o;
-				zx += o << 3;
-				if (zx > 31)
-				{
-					zx -= 32;
-					zp += 4;
-				}
-			}
-			if (int o = ssize_t(qp) & 3)
-			{
-				qp -= o;
-				qx += o << 3;
-				if (qx > 31)
-				{
-					qx -= 32;
-					qp += 4;
-				}
-			}
-
-			while (h--)
-			{
-				zp -= z_row_offs;
-				qp -= q_row_offs;
-				rcopy_bits(reinterpret_cast<uint32ptr>(zp), zx, reinterpret_cast<cuint32ptr>(qp), qx, w);
-			}
-		}
-		else
-		{
-			while (h--)
-			{
-				zp -= z_row_offs;
-				qp -= q_row_offs;
-
-				// align to word addresses:
 				if (int o = ssize_t(zp) & 3)
 				{
 					zp -= o;
 					zx += o << 3;
-					if (zx > 31)
-					{
-						zx -= 32;
-						zp += 4;
-					}
+					zp += zx >> 5 << 2;
+					zx &= 31;
 				}
+
 				if (int o = ssize_t(qp) & 3)
 				{
 					qp -= o;
 					qx += o << 3;
-					if (qx > 31)
-					{
-						qx -= 32;
-						qp += 4;
-					}
+					qp += qx >> 5 << 2;
+					qx &= 31;
 				}
 
-				rcopy_bits(reinterpret_cast<uint32ptr>(zp), zx, reinterpret_cast<cuint32ptr>(qp), qx, w);
+				uint32*		  wzp = reinterpret_cast<uint32*>(zp);
+				const uint32* wqp = reinterpret_cast<const uint32*>(qp);
+
+				copy_bits(wzp, zx, wqp, qx, w);
+
+				zp += z_row_offs;
+				qp += q_row_offs;
+			}
+		}
+		else // copy up
+		{
+			zp += z_row_offs * h;
+			qp += q_row_offs * h;
+
+			// flip the logic from ltr to rtl:
+			qp += (qx + w - 1) >> 5 << 2; // -> last word with q bits
+			zp += (zx + w - 1) >> 5 << 2; // -> last word with z bits
+			qx = -(qx + w) & 31;		  // -> qx = offset of bits from the right side
+			zx = -(zx + w) & 31;		  // -> zx = offset of bits from the right side
+
+			while (--h >= 0)
+			{
+				zp -= z_row_offs;
+				qp -= q_row_offs;
+
+				if (int o = ssize_t(zp) & 3)
+				{
+					zp -= o;
+					zx -= o << 3;
+					if (zx < 0) zp += 4;
+					zx &= 31;
+				}
+
+				if (int o = ssize_t(qp) & 3)
+				{
+					qp -= o;
+					qx -= o << 3;
+					if (qx < 0) qp += 4;
+					qx &= 31;
+				}
+
+				uint32*		  wzp = reinterpret_cast<uint32*>(zp);
+				const uint32* wqp = reinterpret_cast<const uint32*>(qp);
+
+				rcopy_bits(wzp, zx, wqp, qx, w);
 			}
 		}
 	}
