@@ -603,33 +603,6 @@ void clear_row_of_bits(uint8* zp, int x0, int width, uint32 color) noexcept
 	}
 }
 
-void xor_row_of_bits(uint8* zp, int xoffs, int width, uint32 color) noexcept
-{
-	zp += xoffs >> 3;
-	xoffs &= 7;
-
-	int		o = ssize_t(zp) & 3; // align zp to int32
-	uint32* p = reinterpret_cast<uint32*>(zp - o);
-	xoffs += o << 3;
-
-	uint32 lmask = ~0u << xoffs; // mask bits to set at left end
-	//*p = (*p & ~lmask) | ((color^*p) & lmask);
-	*p ^= lmask & color;
-
-	width -= 32 - xoffs;
-	uint32 rmask = ~0u << ((32 - width) & 31); // mask bits to set at right end
-
-	if (width > 0)
-	{
-		p++;
-		int cnt = width >> 5;
-		for (int i = 0; i < cnt; i++) { *p++ ^= color; }
-	}
-
-	//*p = (*p & ~rmask) | ((color^*p) & rmask);
-	*p ^= rmask & color;
-}
-
 void clear_rect_of_bits_with_mask(
 	uint8* zp, int row_offset, int xoffs, int width, int height, uint32 color, uint32 mask) noexcept
 {

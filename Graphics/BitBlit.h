@@ -257,16 +257,6 @@ void clear_row(uint32* zp, int num_words, uint32 flood_filled_color) noexcept;
 void clear_row_of_bits(uint8* zp, int xoffs_bits, int num_bits, uint32 flood_filled_color) noexcept;
 
 
-/** Toggle colors in a row of bits with flood_filled_xor_color.
-
-	@param zp			pointer to the start of the row
-	@param xoffs_bits	x offset from zp measured in bits
-	@param num_bits		width / number of bits
-	@param flood_filled_xor_color  32 bit flood filled xor pattern for color
-*/
-void xor_row_of_bits(uint8* zp, int xoffs_bits, int num_bits, uint32 flood_filled_xor_color) noexcept;
-
-
 /** Clear row of bits with flood_filled_color, masked with flood_filled_mask.
     This is intended to set color attributes for a horizontal line
     to set only one color in each attribute.
