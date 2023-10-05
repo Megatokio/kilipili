@@ -155,6 +155,9 @@ void attr_clear_rect(uint8* row, int row_offset, int x1, int width, int height, 
 template<ColorDepth CD>
 void copy_rect(uint8* zp, int zrow_offs, int zx, const uint8* qp, int qrow_offs, int qx, int w, int h) noexcept;
 
+template<ColorDepth CD>
+void copy_rect_ref(uint8* zp, int zrow_offs, int zx, const uint8* qp, int qrow_offs, int qx, int w, int h) noexcept;
+
 
 /** Draw Bitmap into destination Pixmap of any color depth.
 	Draws the '1' bits in the given color, while '0' bits are left transparent.
@@ -637,11 +640,43 @@ void attr_clear_rect(uint8* row, int row_offset, int x1, int width, int height, 
 template<ColorDepth CD>
 void copy_rect(uint8* zp, int zrow_offs, int zx, const uint8* qp, int qrow_offs, int qx, int w, int h) noexcept
 {
-	if constexpr (CD >= colordepth_8bpp)
+	if constexpr (CD == colordepth_16bpp) copy_rect_of_bytes(zp + zx * 2, zrow_offs, qp + qx * 2, qrow_offs, w * 2, h);
+	else if constexpr (CD == colordepth_8bpp) copy_rect_of_bytes(zp + zx, zrow_offs, qp + qx, qrow_offs, w, h);
+	else copy_rect_of_bits(zp, zrow_offs, zx << CD, qp, qrow_offs, qx << CD, w << CD, h);
+}
+
+template<ColorDepth CD>
+void copy_rect_ref(uint8* zp, int zrow_offs, int zx, const uint8* qp, int qrow_offs, int qx, int w, int h) noexcept
+{
+	bool dn = CD == colordepth_1bpp ?
+				  zp + (zx >> 3) < qp + (qx >> 3) || (zp + (zx >> 3) == qp + (qx >> 3) && (zx & 7) <= (qx & 7)) :
+			  CD == colordepth_2bpp ?
+				  zp + (zx >> 2) < qp + (qx >> 2) || (zp + (zx >> 2) == qp + (qx >> 2) && (zx & 3) <= (qx & 3)) :
+			  CD == colordepth_4bpp ?
+				  zp + (zx >> 1) < qp + (qx >> 1) || (zp + (zx >> 1) == qp + (qx >> 1) && (zx & 1) <= (qx & 1)) :
+				  zp <= qp;
+
+	if (dn)
 	{
-		copy_rect_of_bytes(zp + (zx << (CD - 3)), zrow_offs, qp + (qx << (CD - 3)), qrow_offs, w << (CD - 3), h);
+		while (--h >= 0)
+		{
+			for (int x = 0; x < w; x++) { set_pixel<CD>(zp, zx + x, get_pixel<CD>(qp, qx + x)); }
+			zp += zrow_offs;
+			qp += qrow_offs;
+		}
 	}
-	else { copy_rect_of_bits(zp, zrow_offs, zx << CD, qp, qrow_offs, qx << CD, w << CD, h); }
+	else
+	{
+		zp += zrow_offs * h;
+		qp += qrow_offs * h;
+
+		while (--h >= 0)
+		{
+			zp -= zrow_offs;
+			qp -= qrow_offs;
+			for (int x = w; --x >= 0;) { set_pixel<CD>(zp, zx + x, get_pixel<CD>(qp, qx + x)); }
+		}
+	}
 }
 
 template<ColorDepth CD>
