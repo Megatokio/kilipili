@@ -114,6 +114,9 @@ void clear_rect(uint8* row, int row_offset, int x1, int width, int height, uint 
 template<ColorDepth CD>
 void xor_rect(uint8* row, int row_offset, int x1, int width, int height, uint xor_color) noexcept;
 
+template<ColorDepth CD>
+void xor_rect_ref(uint8* row, int row_offset, int x1, int width, int height, uint xor_color) noexcept;
+
 
 /**	Clear every 2nd, 4th or 16th column in rectangle depending on AttrMode AM.
 	This is intended to set the colors in the color attributes for a rectangle in Pixmaps with attributes.
@@ -290,6 +293,8 @@ void clear_rect_of_bits(
 
 
 /** Toggle colors in a rectangular area with bit boundary precision.
+	The color is not rolled for (xoffs & 31) because it is assumed that xoffs is a multiple of the color width and 
+	flood_filled_xor_color is a repetition of a single color; then rolling would always result in the same value again.
 
 	@param zp			pointer to first row
 	@param row_offset	row offset in bytes
@@ -564,6 +569,16 @@ template<ColorDepth CD>
 void xor_rect(uint8* row, int row_offset, int x1, int width, int height, uint xor_color) noexcept
 {
 	xor_rect_of_bits(row, row_offset, x1 << CD, width << CD, height, flood_filled_color<CD>(xor_color));
+}
+
+template<ColorDepth CD>
+void xor_rect_ref(uint8* row, int row_offset, int x1, int width, int height, uint xor_color) noexcept
+{
+	while (--height >= 0)
+	{
+		for (int x = 0; x < width; x++) { set_pixel<CD>(row, x1 + x, xor_color ^ get_pixel<CD>(row, x1 + x)); }
+		row += row_offset;
+	}
 }
 
 template<AttrMode AM, ColorDepth CD>
