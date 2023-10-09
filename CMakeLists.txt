@@ -42,6 +42,7 @@ else()
 	add_subdirectory(utilities)
 	add_subdirectory(Graphics)
 	add_subdirectory(Video)
+	add_subdirectory(Devices)
 	
 	# add current dir to 'include search path':
 	target_include_directories(kilipili PUBLIC
@@ -54,6 +55,7 @@ else()
 		kilipili_utilities
 		kilipili_graphics
 		kilipili_video
+		kilipili_devices
 		)
  
 endif() 
