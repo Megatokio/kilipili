@@ -30,8 +30,8 @@ extern __attribute__((format(printf, 1, 2))) __attribute__((__noreturn__)) void 
 #define throws		noexcept(false)
 #define NELEM(feld) (sizeof(feld) / sizeof((feld)[0])) // UNSIGNED !!
 
-#define likely(x)	__builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect(!!(x), 0)
+#define likely(x)	(__builtin_expect(!!(x), 1))
+#define unlikely(x) (__builtin_expect(!!(x), 0))
 
 #define __deprecated __attribute__((__deprecated__))
 #define __noreturn	 __attribute__((__noreturn__))
