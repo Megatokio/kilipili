@@ -30,13 +30,6 @@
 namespace kio::Video
 {
 
-// clang-format off
-#define pio0_hw ((pio_hw_t *)PIO0_BASE)				   // assert definition hasn't changed
-// clang-format on
-#undef pio0_hw										   // undef c-style definition
-#define pio0_hw reinterpret_cast<pio_hw_t*>(PIO0_BASE) // replace with c++-style definition
-
-
 constexpr uint32 DMA_CHANNELS_MASK = (1u << PICO_SCANVIDEO_TIMING_DMA_CHANNEL) |
 									 (1u << PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL1) |
 									 ((PICO_SCANVIDEO_PLANE_COUNT >= 2) << PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL2) |

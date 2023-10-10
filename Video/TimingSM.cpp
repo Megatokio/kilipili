@@ -18,16 +18,6 @@
 namespace kio::Video
 {
 
-// clang-format off
-#define pio0_hw ((pio_hw_t *)PIO0_BASE)				   // assert definition hasn't changed
-#undef pio0_hw										   // undef c-style definition
-#define pio0_hw reinterpret_cast<pio_hw_t*>(PIO0_BASE) // replace with c++-style definition
-
-#define dma_hw ((dma_hw_t *)DMA_BASE)				 // assert definition hasn't changed
-#undef dma_hw										 // undef c-style definition
-#define dma_hw reinterpret_cast<dma_hw_t*>(DMA_BASE) // replace with c++-style definition
-// clang-format on
-
 #define RAM __attribute__((section(".time_critical.TimingSM")))
 
 constexpr uint DMA_CHANNEL		= PICO_SCANVIDEO_TIMING_DMA_CHANNEL;
