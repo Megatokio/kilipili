@@ -53,8 +53,8 @@ target_include_directories(kilipili_usb_host PUBLIC
 
 # additional dependencies on tinyusb_host for TinyUSB device support
 target_link_libraries(kilipili_usb_host PUBLIC
-	tinyusb_host
 	kilipili_common
+	tinyusb_host
 	)
 
 
