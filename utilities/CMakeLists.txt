@@ -17,6 +17,8 @@ add_library(kilipili_utilities STATIC
 	BucketList.h
 	tempmem.cpp
 	tempmem.h
+	Logger.h 
+	Logger.cpp
 	)
 
 # add current dir to 'include search path':
