@@ -24,7 +24,7 @@ public:
 
 class Locker //: public std::lock_guard<Mutex>
 {
-	Mutex& mutex;
+	volatile Mutex& mutex;
 
 public:
 	Locker(volatile Mutex& mutex) : mutex(mutex) { mutex.lock(); }
