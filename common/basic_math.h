@@ -61,4 +61,47 @@ inline void limit(T a, T& n, T e) noexcept
 	else if (n > e) n = e;
 }
 
+template<typename T, typename T2>
+inline T2 map_range(T value, T qmax, T2 zmax)
+{
+	return T(float(value) / qmax * zmax + 0.5f);
+}
+
+template<>
+inline float map_range(float value, float qmax, float zmax)
+{
+	return value / qmax * zmax;
+}
+
+
 } // namespace kio
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
