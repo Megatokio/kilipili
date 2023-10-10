@@ -3,10 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "PwmLoadSensor.h"
+#include "basic_math.h"
 #include "utilities.h"
 
-
-namespace kio
+namespace kio::LoadSensor
 {
 
 static constexpr uint pwm0 = PWM_LOAD_SENSOR_SLICE_NUM_BASE + 0;
@@ -14,16 +14,30 @@ static constexpr uint pwm1 = PWM_LOAD_SENSOR_SLICE_NUM_BASE + 1;
 
 static constexpr uint pwm_max_count = 0xffff;
 
-static constexpr uint timer_freq	  = 100; // frequency of measurement timer
-static constexpr uint timer_period_us = uint((1000000 + timer_freq / 2) / timer_freq);
+static constexpr uint timer_frequency = 100; // frequency of measurement timer
+static constexpr uint timer_period_us = uint((1000000 + timer_frequency / 2) / timer_frequency);
 
 
-PwmLoadSensor loadsensor;
+static alarm_id_t alarm_id = -1;
+float			  pwm_frequency; // calibrated in start()
 
 
-static uint map_range(uint value, uint qmax, uint zmax) { return min(zmax, (value * zmax + qmax / 2) / qmax); }
+static struct CoreData
+{
+	uint16 pwm_slice;
+	uint16 last_pwm_count = 0;
 
-void PwmLoadSensor::CoreData::reset_load() noexcept
+	volatile uint	count = 0;		// measurement counter
+	volatile uint16 min	  = 0xffff; // min count seen
+	volatile uint16 max	  = 0;		// max count seen
+	volatile uint32 sum	  = 0;		// sum of all counts for avg calculation
+
+	void reset_load() noexcept;
+	void update() noexcept; // callback for measurement timer
+	void init(uint16 pwm) noexcept;
+} core[2];
+
+void CoreData::reset_load() noexcept
 {
 	do {
 		count = 0;
@@ -34,7 +48,7 @@ void PwmLoadSensor::CoreData::reset_load() noexcept
 	while (count != 0);
 }
 
-void PwmLoadSensor::CoreData::init(uint16 pwm) noexcept
+void CoreData::init(uint16 pwm) noexcept
 {
 	pwm_slice = pwm;
 	pwm_set_wrap(pwm, 0xffff);
@@ -43,7 +57,7 @@ void PwmLoadSensor::CoreData::init(uint16 pwm) noexcept
 	reset_load();
 }
 
-void PwmLoadSensor::CoreData::update() noexcept
+void CoreData::update() noexcept
 {
 	// callback for measurement timer
 
@@ -56,22 +70,33 @@ void PwmLoadSensor::CoreData::update() noexcept
 	count = count + 1;
 }
 
-void PwmLoadSensor::calibrate() noexcept
+static void calibrate() noexcept;
+
+bool is_running() noexcept
+{
+	return alarm_id != -1; //
+}
+
+void recalibrate() noexcept
+{
+	if (is_running()) calibrate();
+}
+
+
+void calibrate() noexcept
 {
 	// called for initialization and also
 	// whenever the systerm clock is changed
 
-	sys_clock = system_clock;
-
-	float prediv = sys_clock / timer_freq / pwm_max_count + 1;
-	prediv		 = prediv + prediv / 2; // some safety
-	pwm_freq	 = float(sys_clock) / prediv;
+	float prediv  = system_clock / timer_frequency / pwm_max_count + 1;
+	prediv		  = prediv + prediv / 2; // some safety
+	pwm_frequency = float(system_clock) / prediv;
 
 	pwm_set_clkdiv(pwm0, prediv);
 	pwm_set_clkdiv(pwm1, prediv);
 }
 
-void PwmLoadSensor::start() noexcept
+void start() noexcept
 {
 	if (is_running()) return;
 
@@ -85,14 +110,14 @@ void PwmLoadSensor::start() noexcept
 	alarm_id = add_alarm_in_us(
 		timer_period_us,
 		[](alarm_id_t, void*) -> int64 {
-			loadsensor.core[0].update();
-			loadsensor.core[1].update();
+			core[0].update();
+			core[1].update();
 			return timer_period_us;
 		},
 		nullptr, false);
 }
 
-void PwmLoadSensor::stop() noexcept
+void stop() noexcept
 {
 	if (!is_running()) return;
 
@@ -100,33 +125,94 @@ void PwmLoadSensor::stop() noexcept
 	alarm_id = -1;
 }
 
-void PwmLoadSensor::getLoad(uint core_num, uint& min, uint& avg, uint& max) noexcept
+void getLoad(uint core_num, uint& min, uint& avg, uint& max) noexcept
 {
-	CoreData& core = this->core[core_num];
+	CoreData& my_core = core[core_num];
 
-	uint max_pwm_count = uint(pwm_freq / timer_freq + 0.5f);
-	uint sysclock	   = sys_clock / 100000; // 0.1 MHz
+	uint16 max_pwm_count = uint16(pwm_frequency / timer_frequency + 0.5f);
+	uint   sysclock		 = system_clock / 100000; // 0.1 MHz
 
 	for (;;)
 	{
-		uint count = core.count; // number of measurements since last reset
-		max		   = sysclock - map_range(core.min, max_pwm_count, sysclock);
-		min		   = sysclock - map_range(core.max, max_pwm_count, sysclock);
-		avg		   = sysclock - map_range((core.sum + count / 2) / count, max_pwm_count, sysclock);
-		if (core.count == count) break;
+		uint count = my_core.count; // number of measurements since last reset
+		max		   = sysclock - map_range(my_core.min, max_pwm_count, sysclock);
+		min		   = sysclock - map_range(my_core.max, max_pwm_count, sysclock);
+		avg		   = sysclock - map_range(uint16((my_core.sum + count / 2) / count), max_pwm_count, sysclock);
+		if (my_core.count == count) break;
 	}
 
-	core.reset_load();
+	my_core.reset_load();
 }
 
-void PwmLoadSensor::printLoad(uint core)
+void printLoad(uint core)
 {
 	uint min, max, avg;
-	loadsensor.getLoad(core, min, avg, max);
-	uint sys = loadsensor.sys_clock / 100000;
+	getLoad(core, min, avg, max);
+	uint sys = system_clock / 100000;
 	printf(
 		"sys: %i.%iMHz, load#%i: %i.%i, %i.%i, %i.%iMHz (min,avg,max)\n", sys / 10, sys % 10, core, min / 10, min % 10,
 		avg / 10, avg % 10, max / 10, max % 10);
 }
 
+} // namespace kio::LoadSensor
+
+
+namespace kio
+{
+
+void sleepy_us(int usec) noexcept
+{
+	if (usec > 0)
+	{
+		idle_start();
+		sleep_us(uint(usec));
+		idle_end();
+	}
+}
+
+
 } // namespace kio
+
+/* 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

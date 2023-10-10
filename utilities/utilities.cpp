@@ -245,17 +245,19 @@ int sm_print_load()
 
 	BEGIN
 	{
-		loadsensor.start();
+		using namespace LoadSensor;
 
-		printf("sys clock = %u Hz\n", loadsensor.sys_clock);
-		printf("pwm clock = %u Hz\n", uint(loadsensor.pwm_freq));
+		start();
+
+		printf("sys clock = %u Hz\n", system_clock);
+		printf("pwm clock = %u Hz\n", uint(pwm_frequency + 0.5f));
 
 		for (;;)
 		{
 			SLEEP_MS(10000);
 
-			loadsensor.printLoad(0);
-			loadsensor.printLoad(1);
+			printLoad(0);
+			printLoad(1);
 		}
 	}
 	FINISH
@@ -355,7 +357,7 @@ Error setSystemClock(uint32 new_clock)
 
 	// clk_peri has changed:
 	setup_default_uart();
-	loadsensor.recalibrate();
+	LoadSensor::recalibrate();
 	//	printf("system clock: set to %u MHz\n",new_clock/1000000);
 
 	return NO_ERROR;
