@@ -28,7 +28,7 @@ constexpr Color default_colormap_i2[4] = {
 constexpr Color default_colormap_i4[16] = {
 // table[%rgbc] -> r(rrcc0)+g(ggcc0)+b(bbcc0)
 
-#define RGBC(R, G, B, C) Color::fromRGB5(R * 24 + C * 6, G * 24 + C * 6, B * 24 + C * 6)
+#define RGBC(R, G, B, C) Color::fromRGB4(R * 12 + C * 3, G * 12 + C * 3, B * 12 + C * 3)
 #define RGBx(R, G, B)	 RGBC(R, G, B, 0), RGBC(R, G, B, 1)
 #define RGxx(R, G)		 RGBx(R, G, 0), RGBx(R, G, 1)
 #define Rxxx(R)			 RGxx(R, 0), RGxx(R, 1)
@@ -44,7 +44,7 @@ constexpr Color default_colormap_i4[16] = {
 constexpr Color default_colormap_i8[256] = {
 // table[%rrggbbcc] -> r(rrcc0)+g(ggcc0)+b(bbcc0)
 
-#define RGBC(R, G, B, C) Color::fromRGB5(R * 8 + C * 2, G * 8 + C * 2, B * 8 + C * 2)
+#define RGBC(R, G, B, C) Color::fromRGB4(R * 4 + C, G * 4 + C, B * 4 + C)
 
 #define RGBx(R, G, B) RGBC(R, G, B, 0), RGBC(R, G, B, 1), RGBC(R, G, B, 2), RGBC(R, G, B, 3)
 #define RGxx(R, G)	  RGBx(R, G, 0), RGBx(R, G, 1), RGBx(R, G, 2), RGBx(R, G, 3)
