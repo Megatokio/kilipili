@@ -4,6 +4,7 @@
 
 #include "PicoTerm.h"
 #include "ColorMap.h"
+#include "basic_text.h"
 
 
 namespace kio::Graphics
@@ -591,6 +592,13 @@ void PicoTerm::clearToEndOfLine()
 }
 
 
+void PicoTerm::clearToEndOfScreen()
+{
+	clearToEndOfLine();
+	if (row + 1 < screen_height) eraseRect(row + 1, 0, screen_height - (row + 1), screen_width);
+}
+
+
 void PicoTerm::printCharMatrix(CharMatrix charmatrix, int count)
 {
 	applyAttributes(charmatrix);
@@ -623,9 +631,11 @@ void PicoTerm::printText(cstr s)
 
 void PicoTerm::print(cstr s, bool auto_crlf)
 {
-	assert(s);
+	// print string up to char(0)
+	// char(0) is only detected on character positions, not argument positions,
+	// so char(0) can be used as argument to MOVE_TO_POSITION, SET_ATTRIBUTE etc.
 
-	auto getc = [&]() -> uchar { return *s ? *s++ : 0; };
+	assert(s);
 
 loop:
 	int repeat_count = 1;
@@ -657,14 +667,14 @@ loop_repeat:
 	case MOVE_TO_POSITION: // MOVE_TO_POSITION, <row>, <col>
 	{
 		hideCursor();
-		row = getc();
-		col = getc();
+		row = *s++;
+		col = *s++;
 		break;
 	}
 	case MOVE_TO_COL: // MOVE_TO_COL, <row>
 	{
 		hideCursor();
-		col = getc();
+		col = *s++;
 		break;
 	}
 	case PUSH_CURSOR_POSITION:
@@ -718,9 +728,14 @@ loop_repeat:
 		clearToEndOfLine();
 		break;
 	}
+	case CLEAR_TO_END_OF_SCREEN:
+	{
+		clearToEndOfScreen();
+		break;
+	}
 	case SCROLL_SCREEN: // SCROLL SCREEN u/d/l/r
 	{
-		uchar dir = getc();
+		uchar dir = *s++;
 		if (dir == 'u') scrollScreenUp(repeat_count);
 		else if (dir == 'd') scrollScreenDown(repeat_count);
 		else if (dir == 'l') scrollScreenLeft(repeat_count);
@@ -729,19 +744,39 @@ loop_repeat:
 	}
 	case REPEAT_NEXT_CHAR:
 	{
-		repeat_count = getc();
+		repeat_count = *s++;
 		goto loop_repeat;
 	}
 	case SET_ATTRIBUTES:
 	{
-		setPrintAttributes(getc());
+		setPrintAttributes(*s++);
 		break;
 	}
 	case PRINT_INLINE_GLYPH: // PRINT INLINE CHARACTER BMP
 	{
 		CharMatrix charmatrix;
-		for (int i = 0; i < CHAR_HEIGHT; i++) charmatrix[i] = getc();
+		for (int i = 0; i < CHAR_HEIGHT; i++) charmatrix[i] = *s++;
 		printCharMatrix(charmatrix, repeat_count);
+		break;
+	}
+	case ESC:
+	{
+		if (*s == '[')
+		{
+			cptr s0 = s++;
+			int	 n	= is_decimal_digit(*s) ? *s++ - '0' : repeat_count;
+			while (is_decimal_digit(*s)) { n = n * 10 + *s++ - '0'; }
+
+			switch (*s++)
+			{
+			case 'A': cursorUp(min(n, row)); goto loop;						  // VT100
+			case 'B': cursorDown(min(n, screen_height - 1 - row)); goto loop; // VT100
+			case 'C': cursorRight(min(n, screen_width - 1 - col)); goto loop; // VT100
+			case 'D': cursorLeft(min(n, col)); goto loop;					  // VT100
+			}
+			s = s0;
+		}
+		printText("[ESC]");
 		break;
 	}
 	default:
