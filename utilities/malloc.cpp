@@ -7,6 +7,13 @@
 #include <pico/malloc.h>
 #include <pico/mutex.h>
 
+
+/*
+	ATTN: This file must be linked into the exectutable directly, not in a library,
+	else parts of the application may use this version and others use the stdlib version of malloc.
+*/
+
+
 #define unlikely(x) __builtin_expect(!!(x), 0)
 using uint32 = uint32_t;
 using int32	 = int32_t;
