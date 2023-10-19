@@ -11,6 +11,8 @@ inline constexpr bool is_hex_digit(uchar c) noexcept
 	return uchar(c - '0') <= '9' - '0' || uchar((c | 0x20) - 'a') <= 'f' - 'a';
 }
 
+inline constexpr bool is_decimal_digit(char c) noexcept { return uchar(c - '0') <= '9' - '0'; }
+
 inline constexpr uint hex_digit_value(uchar c) noexcept // non-digits ≥ 36
 {
 	return c <= '9' ? uchar(c - '0') : uchar((c | 0x20) - 'a') + 10;
