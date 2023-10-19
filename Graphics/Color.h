@@ -5,9 +5,13 @@
 #pragma once
 #include "standard_types.h"
 #include <cstdio>
+#ifndef UNIT_TEST
+  #include <pico/config.h>
+#endif
 
 
 // the vgaboard doesn't define these
+// also use these for the test suite
 #ifndef PICO_SCANVIDEO_ALPHA_PIN
   #define PICO_SCANVIDEO_ALPHA_PIN 5u
 #endif

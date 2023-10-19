@@ -3,6 +3,9 @@
 
 // ==== CONFIG ====================================================
 
+// pull in board description file and defaults for vgaboard:
+#include "Color.h"
+
 //#ifndef PICO_SCANVIDEO_ALPHA_PIN
 //#define PICO_SCANVIDEO_ALPHA_PIN 5u
 //#endif

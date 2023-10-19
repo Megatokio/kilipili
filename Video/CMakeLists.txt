@@ -61,7 +61,7 @@ target_link_libraries(kilipili_video PUBLIC
 	kilipili_common
 	kilipili_utilities
 	kilipili_graphics
-	kilipili_usb_host
+	kilipili_usb_host  # wg. mouse
 	pico_stdlib
 	hardware_pio
 	hardware_dma

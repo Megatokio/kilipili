@@ -5,17 +5,19 @@ cmake_minimum_required(VERSION 3.13)
 #########################################
 # kilipili/CMakeLists.txt
 #
-# all kilipili subdirectories except USBHost
+# all kilipili subdirectories 
 
 
-if(CMAKE_BUILD_TYPE STREQUAL "TEST")
+if(${UNIT_TEST})
 
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}   -DDEBUG -DUNIT_TEST")
+		 
 	add_subdirectory(common)
 	add_subdirectory(Graphics)
 	
 	add_executable(unit_tests
 		unit_tests.cpp
-		common/unit_tests.cpp
+		common/unit_test.cpp
 		Graphics/Pixmap_unit_test.cpp
 		Graphics/Canvas_unit_test.cpp
 		Graphics/BitBlit_unit_test.cpp
@@ -43,6 +45,7 @@ else()
 	add_subdirectory(Graphics)
 	add_subdirectory(Video)
 	add_subdirectory(Devices)
+	add_subdirectory(USBHost)
 	
 	# add current dir to 'include search path':
 	target_include_directories(kilipili PUBLIC
@@ -56,6 +59,7 @@ else()
 		kilipili_graphics
 		kilipili_video
 		kilipili_devices
+		kilipili_usb_host
 		)
  
 endif() 

@@ -4,7 +4,7 @@
 
 #pragma once
 #include <cstdlib> // __CONCAT
-#ifdef TEST
+#ifdef UNIT_TEST
 extern __attribute__((format(printf, 1, 2))) __attribute__((__noreturn__)) void panic(const char* fmt, ...);
 #else
   #include <pico/platform.h> // panic()
