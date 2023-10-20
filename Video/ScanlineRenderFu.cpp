@@ -833,16 +833,21 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 		uint32 ctable[4];
 		interp_set_base(interp1, lane1, uint32(ctable));
 
+		uint32 color10_blk1;
+		uint32 color10_blk2 = 0;
+
 		for (uint i = 0; i < width / 16; i++)
 		{
 			interp_set_accumulator(interp1, lane0, uint(*pixels++) << 2);
 
+			color10_blk1 = attributes[0];
+			if (color10_blk1 != color10_blk2)
 			{
-				uint32 color10 = ctable[2] = *attributes++;
-				uint32 color01 = ctable[1] = (color10 >> 16) | (color10 << 16);
-				uint32 xxx				   = uint16(color01 ^ color10);
+				ctable[2]	   = color10_blk1;
+				uint32 color01 = ctable[1] = (color10_blk1 >> 16) | (color10_blk1 << 16);
+				uint32 xxx				   = uint16(color01 ^ color10_blk1);
 				ctable[0]				   = color01 ^ xxx;
-				ctable[3]				   = color10 ^ xxx;
+				ctable[3]				   = color10_blk1 ^ xxx;
 			}
 
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
@@ -850,18 +855,22 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 
+			color10_blk2 = attributes[1];
+			if (color10_blk2 != color10_blk1)
 			{
-				uint32 color10 = ctable[2] = *attributes++;
-				uint32 color01 = ctable[1] = (color10 >> 16) | (color10 << 16);
-				uint32 xxx				   = uint16(color01 ^ color10);
+				ctable[2]	   = color10_blk2;
+				uint32 color01 = ctable[1] = (color10_blk2 >> 16) | (color10_blk2 << 16);
+				uint32 xxx				   = uint16(color01 ^ color10_blk2);
 				ctable[0]				   = color01 ^ xxx;
-				ctable[3]				   = color10 ^ xxx;
+				ctable[3]				   = color10_blk2 ^ xxx;
 			}
 
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+
+			attributes += 2;
 		}
 	}
 }
