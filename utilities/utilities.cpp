@@ -319,8 +319,9 @@ Error setSystemClock(uint32 new_clock)
 	uint i = 0; // idx in maxf[]
 	while (new_clock > maxf[i]) i++;
 
-	//	uint zv = 85 + i * 5;	// centivolt
-	//	printf("set system clock = %u MHz and Vcore = %u.%02u V\n", new_clock/1000000, zv/100, zv%100);
+	uint cv = 85 + i * 5; // centivolt
+	printf("set system clock = %u MHz and Vcore = %u.%02u V\n", new_clock / 1000000, cv / 100, cv % 100);
+	stdio_flush();
 
 	uint32& old_clock = system_clock;
 	if (new_clock == old_clock)
