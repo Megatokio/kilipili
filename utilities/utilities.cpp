@@ -4,9 +4,9 @@
 
 #include "utilities.h"
 #include "PwmLoadSensor.h"
+#include "kilipili_common.h"
 #include <hardware/clocks.h>
 #include <hardware/vreg.h>
-
 
 // defined by linker:
 extern char end;

@@ -4,9 +4,12 @@
 
 #include "FatFS.h"
 #include "Logger.h"
+#include "basic_math.h"
+#include "basic_text.h"
 #include "devices_types.h"
 #include "ff15/source/diskio.h"
 #include "ff15/source/ffconf.h"
+#include "kilipili_cdefs.h"
 #include "utilities.h"
 
 
