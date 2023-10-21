@@ -15,6 +15,8 @@ add_library(kilipili_common STATIC
 	basic_math.h
 	basic_text.h
 	tempmem.h
+	cstrings.h
+	cstrings.cpp
 	)
  
 target_compile_definitions(kilipili_common PUBLIC
