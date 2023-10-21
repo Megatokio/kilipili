@@ -15,12 +15,6 @@
 static constexpr uint log2(uint n) { return n == 1 ? 0 : 1 + log2(n >> 1); }
 static_assert(log2(32) == 5, "");
 
-#ifdef DEBUG
-  #define debugstr printf
-#else
-  #define debugstr(...) (void)0
-#endif
-
 
 // clang-format off
 // assert unchanged definition, then replace c-style casting macros with c++ version:

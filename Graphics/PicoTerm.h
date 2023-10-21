@@ -59,7 +59,6 @@ public:
 	};
 
 	Canvas& pixmap;
-	Color*	colormap;
 
 	const ColorMode	 colormode;
 	const AttrHeight attrheight;
@@ -94,7 +93,7 @@ public:
 	bool   cursorVisible;  // currently visible?
 	uint32 cursorXorColor; // value used to xor the colors
 
-	PicoTerm(Canvas&, Color* colors);
+	PicoTerm(Canvas&);
 
 	void reset();
 	void cls();
@@ -126,7 +125,7 @@ public:
 	void scrollScreenLeft(int cols /*char*/);
 	void scrollScreenRight(int cols /*char*/);
 
-	char* identify(char* buffer);
+	char* identify();
 
 	void readBmp(CharMatrix, bool use_fgcolor);
 	void writeBmp(CharMatrix, uint8 attr);

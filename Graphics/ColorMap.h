@@ -26,7 +26,7 @@ extern const Color* const default_colormaps[5]; // ColorMode -> colormap
 
 inline const Color* getDefaultColorMap(ColorDepth CD) noexcept { return default_colormaps[CD]; }
 
-inline Color* newDefaultColorMap(ColorDepth CD) throws
+inline Color* newColorMap(ColorDepth CD) throws
 {
 	if (is_true_color(CD)) return nullptr;
 	Color* table = new Color[1 << (1 << CD)];
@@ -46,13 +46,13 @@ inline void resetColorMap(ColorDepth CD, Color* table) noexcept
 
 // ------------------- templates -------------------------------
 
-template<ColorDepth CD, typename = std::enable_if_t<is_indexed_color(CD)>>
+template<ColorDepth CD>
 const Color* getDefaultColorMap() noexcept
 {
 	return default_colormaps[CD];
 }
 
-template<ColorMode CM, typename = std::enable_if_t<is_indexed_color(CM)>>
+template<ColorMode CM>
 const Color* getDefaultColorMap() noexcept
 {
 	return getDefaultColorMap<get_colordepth(CM)>();

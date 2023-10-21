@@ -3,9 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "PicoTerm.h"
-#include "ColorMap.h"
-#include "basic_text.h"
-
+#include "kilipili_common.h"
 
 namespace kio::Graphics
 {
@@ -39,9 +37,8 @@ static constexpr const uint8 dblw[16] = {
 // =============================================================================
 
 
-PicoTerm::PicoTerm(Canvas& pixmap, Color* colors) :
+PicoTerm::PicoTerm(Canvas& pixmap) :
 	pixmap(pixmap),
-	colormap(colors),
 	colormode(pixmap.colormode),
 	attrheight(pixmap.attrheight),
 	colordepth(get_colordepth(colormode)), // 0 .. 4  log2 of bits per color in attributes[]
@@ -432,7 +429,8 @@ void PicoTerm::copyRect(int src_row, int src_col, int dest_row, int dest_col, in
 
 void PicoTerm::reset()
 {
-	// ALL SETTINGS := DEFAULT, CLS, HOME CURSOR
+	// all settings = default, home cursor
+	// does not clear screen
 
 	screen_width  = pixmap.width / CHAR_WIDTH;
 	screen_height = pixmap.height / CHAR_HEIGHT;
@@ -446,8 +444,10 @@ void PicoTerm::reset()
 	pushedCol  = 0;
 	pushedAttr = 0;
 
-	resetColorMap(colordepth, colormap);
-	cls();
+	row = col = 0;
+	dx = dy		  = 1;
+	attributes	  = 0;
+	cursorVisible = false;
 }
 
 
@@ -824,18 +824,19 @@ void PicoTerm::printf(cstr fmt, ...)
 }
 
 
-char* PicoTerm::identify(char* buffer)
+char* PicoTerm::identify()
 {
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=rgb
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=i8 attr=8*12
 
+	char buffer[64];
 	sprintf(
 		buffer, "PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s", pixmap.width, pixmap.height, screen_width,
 		screen_height, CHAR_WIDTH, CHAR_HEIGHT, tostr(colordepth));
 
 	if (attrmode != attrmode_none) sprintf(strchr(buffer, 0), " attr=%u*%u", 1 << attrwidth, attrheight);
 
-	return buffer;
+	return dupstr(buffer);
 }
 
 

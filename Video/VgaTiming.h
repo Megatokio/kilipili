@@ -21,8 +21,6 @@ enum ScreenSize : uint8 // screen size in pixels: width x height
 
 constexpr uint num_screensizes = screensize_1024x768 + 1;
 
-inline constexpr ScreenSize operator+(ScreenSize a, int b) noexcept { return ScreenSize(int(a) + b); }
-
 
 struct VgaTiming
 {
