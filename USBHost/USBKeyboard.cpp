@@ -3,14 +3,15 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "USBKeyboard.h"
+#include "common/tempmem.h"
 #include "hid_handler.h"
 #include "kilipili_cdefs.h"
 #include "utilities/BucketList.h"
 
 static constexpr int numbits(uint8 z)
 {
-	z = ((z & 0xAAu) >> 1) + (z & 0x55u);
-	z = ((z & 0xCCu) >> 2) + (z & 0x33u);
+	z = ((z >> 1) & 0x55u) + (z & 0x55u);
+	z = ((z >> 2) & 0x33u) + (z & 0x33u);
 	return (z >> 4) + (z & 0x0Fu);
 }
 
@@ -28,8 +29,8 @@ cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
 	if (mod == kio::USB::NO_MODIFIERS) return "NONE";
 	static constexpr char names[4][7] = {"CTRL+", "SHIFT+", "ALT+", "GUI+"};
 
-	static char bu[26]; // max: "lCTRL+lSHIFT+rCTRL+rSHIFT"
-	char*		p = bu;
+	char  bu[26]; // max: "lCTRL+lSHIFT+rCTRL+rSHIFT"
+	char* p = bu;
 
 	if (unified || numbits(mod) > 4)
 	{
@@ -57,7 +58,7 @@ cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
 		}
 	}
 	*--p = 0;
-	return bu;
+	return kio::dupstr(bu);
 }
 
 namespace kio::USB
