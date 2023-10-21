@@ -97,7 +97,7 @@ public:
 
 	void reset();
 	void cls();
-	void moveToPosition(int row, int col) noexcept;
+	void moveTo(int row, int col) noexcept;
 	void moveToCol(int col) noexcept;
 	void pushCursorPosition();
 	void popCursorPosition();
@@ -116,7 +116,7 @@ public:
 	void clearToEndOfLine();
 	void clearToEndOfScreen();
 	void copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols);
-	void showCursor();
+	void showCursor(bool on = true);
 	void hideCursor();
 	void validateCursorPosition();
 	void scrollScreen(coord dx, coord dy);

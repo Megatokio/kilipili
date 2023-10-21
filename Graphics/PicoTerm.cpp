@@ -51,18 +51,17 @@ PicoTerm::PicoTerm(Canvas& pixmap) :
 }
 
 
-void PicoTerm::showCursor()
+void PicoTerm::showCursor(bool on)
 {
-	if (cursorVisible) return;
-
+	if (cursorVisible == on) return;
 	validateCursorPosition();
-	show_cursor(true);
+	show_cursor(on);
 }
 
 
-inline void PicoTerm::hideCursor()
+void PicoTerm::hideCursor()
 {
-	if (unlikely(cursorVisible)) show_cursor(false);
+	if unlikely (cursorVisible) show_cursor(false);
 }
 
 
@@ -127,9 +126,9 @@ void PicoTerm::validateCursorPosition()
 	// col := in range [0 .. [screen_width
 	// row := in range [0 .. [screen_height
 
-	hideCursor();
+	if unlikely (cursorVisible) return;
 
-	if (unlikely(uint(col) >= uint(screen_width)))
+	if unlikely (uint(col) >= uint(screen_width))
 	{
 		col = int8(col - 0x40) + 0x40; // clamp to range -0x40 .. 0x80+0x40 (assuming 128 cols max)
 		while (col < 0)
@@ -144,7 +143,7 @@ void PicoTerm::validateCursorPosition()
 		}
 	}
 
-	if (unlikely(uint(row) >= uint(screen_height)))
+	if unlikely (uint(row) >= uint(screen_height))
 	{
 		row = int8(row - 0x60) + 0x60; // clamp to range -0x60 .. 0x40+0x60 (assuming 64 rows max)
 		if (row < 0)
@@ -464,7 +463,7 @@ void PicoTerm::cls()
 }
 
 
-void PicoTerm::moveToPosition(int row, int col) noexcept
+void PicoTerm::moveTo(int row, int col) noexcept
 {
 	hideCursor();
 	this->row = row;
