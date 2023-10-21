@@ -33,17 +33,20 @@
 		Long running programs should purge the tempmem regularly at a low function level.		 
 		This may also be done by using short running worker threads.
 		Functions which use a lot of tempmem should create a local TempMem pool.
-		In this case use xdupstr() to copy return values or exceptions into the surrounding pool.
+		In this case use xdupstr() to copy return values into the surrounding pool.
 		
 	Rolling tempmem buffers:
 		Microcontroller projects are often short of memory and an ever-growing tempmem may be fatal.
 		Therefore they use a statically allocated buffer (for each core).
 		This buffer never grows but repeatedly wraps around instead, thus overwriting older strings.
 		Functions which create a lot of temp strings should create a local pool to protect the caller's strings.
-		In this case use xdupstr() to copy return values or exceptions into the surrounding pool.
+		In this case use xdupstr() to copy return values into the surrounding pool.
 		Optimize by choosing the right buffer size, when to use a local pool and how long a string may be.
 */
 
+
+namespace kio
+{
 
 extern str emptystr; // non-const version of ""
 
@@ -56,19 +59,7 @@ extern cstr	 xdupstr(cstr) noexcept;	  // allocate  and copy string in the surro
 extern void	 purge_tempmem() noexcept;	  // purge the current pool
 
 
-/* convenience:
-   allocate in current pool: aligned, not initialized, not cleared.
-   type T must not have a destructor.
-*/
-template<typename T>
-T* tempmem(uint count) noexcept
-{
-	return reinterpret_cast<T*>(tempmem(count * sizeof(T)));
-}
-
-
-/* 
-   Class to create and auto-destruct a local TempMem pool.   
+/* Class to create and auto-destruct a local TempMem pool:
 */
 class TempMem
 {
@@ -80,6 +71,8 @@ public:
 	static void purge() noexcept { purge_tempmem(); }
 };
 
+
+} // namespace kio
 
 #if 0
 

@@ -14,6 +14,7 @@ add_library(kilipili_common STATIC
 	no_copy_move.h
 	basic_math.h
 	basic_text.h
+	tempmem.h
 	)
  
 target_compile_definitions(kilipili_common PUBLIC

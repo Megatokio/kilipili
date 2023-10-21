@@ -5,6 +5,7 @@
 #include "tempmem.h"
 #include "kilipili_cdefs.h"
 #include <cstring>
+#include <pico/platform.h>
 
 // this file provides rolling tempmem buffers on the RP2040 (Raspberry Pico).
 
@@ -16,6 +17,9 @@
   #define TEMPMEM_POOL_SIZE_CORE2 (4)
 #endif
 
+
+namespace kio
+{
 
 static constexpr uint size1 = TEMPMEM_POOL_SIZE_CORE1;
 static constexpr uint size2 = TEMPMEM_POOL_SIZE_CORE2;
@@ -31,7 +35,7 @@ struct Pool
 	uint  size;
 	uint  free;
 
-	char* alloc(uint size) noexcept
+	char* alloc(uint size, bool aligned = false) noexcept
 	{
 		if (free < size)
 		{
@@ -40,8 +44,11 @@ struct Pool
 		}
 
 		free -= size;
+		if (aligned) free &= ~(sizeof(ptr) - 1);
 		return data + free;
 	}
+
+	void purge() noexcept { free = size; }
 };
 
 
@@ -79,7 +86,7 @@ TempMem::~TempMem()
 	// dispose of the current pool for this core
 	// and replace it with the current previous one:
 
-	Pool& pool = ::pools[get_core_num()];
+	Pool& pool = pools[get_core_num()];
 	Pool* prev = pool.prev;
 	if (!prev) return;
 
@@ -89,10 +96,7 @@ TempMem::~TempMem()
 }
 
 
-void purge_tempmem() noexcept
-{
-	// rolling buffers can't be purged
-}
+void purge_tempmem() noexcept { pools[get_core_num()].purge(); }
 
 str newstr(uint len) noexcept
 {
@@ -126,13 +130,8 @@ char* tempmem(uint size) noexcept
 	// the memory is aligned to pointer size.
 
 	Pool& pool = pools[get_core_num()];
-
-	constexpr uint alignment = sizeof(ptr) - 1;
-	pool.free &= ~alignment;
-
-	return pool.alloc(size);
+	return pool.alloc(size, true);
 }
-
 
 char* tempstr(uint len) noexcept
 {
@@ -176,6 +175,7 @@ cstr xdupstr(cstr s) noexcept
 	return z;
 }
 
+} // namespace kio
 
 /*
 

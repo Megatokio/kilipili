@@ -6,6 +6,10 @@ cmake_minimum_required(VERSION 3.13)
 # utilities/CMakeLists.txt 
 
 
+set(TEMPMEM_POOL_SIZE_CORE1 "2000" CACHE STRING "size of pool for temporary strings")
+set(TEMPMEM_POOL_SIZE_CORE2 "0" CACHE STRING "size of pool for temporary strings")
+
+
 add_library(kilipili_utilities STATIC 
 	PwmLoadSensor.h
 	PwmLoadSensor.cpp
@@ -16,9 +20,14 @@ add_library(kilipili_utilities STATIC
 	#malloc.cpp  <-- must be included in add_executable directly
 	BucketList.h
 	tempmem.cpp
-	tempmem.h
 	Logger.h 
 	Logger.cpp
+	)
+
+target_compile_definitions(kilipili_utilities PUBLIC 
+	ON=1 OFF=0
+	TEMPMEM_POOL_SIZE_CORE1=${TEMPMEM_POOL_SIZE_CORE1}
+	TEMPMEM_POOL_SIZE_CORE2=${TEMPMEM_POOL_SIZE_CORE2}
 	)
 
 # add current dir to 'include search path':
