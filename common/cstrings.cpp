@@ -866,7 +866,7 @@ static int next_number(cptr& c, cptr e, int digits = 2) noexcept
 {
 	int n = 0;
 	while (c < e && no_dec_digit(*c)) { c++; }
-	while (digits-- && c < e && is_dec_digit(*c)) { n = n * 10 + *c++ - '0'; }
+	while (digits-- && c < e && is_decimal_digit(*c)) { n = n * 10 + *c++ - '0'; }
 	return n;
 }
 
@@ -1009,7 +1009,9 @@ bool eq(cptr s, cptr t) noexcept
 	if (s && t)
 	{
 		while (*s)
+		{
 			if (*s++ != *t++) return false;
+		}
 		return *t == 0;
 	}
 	else
@@ -1017,6 +1019,22 @@ bool eq(cptr s, cptr t) noexcept
 		return !(s && *s) && !(t && *t); // nullptr == ""
 	}
 }
+
+bool lceq(cstr s, cstr t) noexcept
+{
+	if (s && t)
+	{
+		while (*s)
+		{
+			if (to_lower(*s++) != to_lower(*t++)) return false;
+		}
+		return *t == 0;
+	}
+	{
+		return !(s && *s) && !(t && *t); // nullptr == ""
+	}
+}
+
 
 bool ne(cptr s, cptr t) noexcept
 {
