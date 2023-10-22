@@ -11,8 +11,8 @@ set(TEMPMEM_POOL_SIZE_CORE2 "0" CACHE STRING "size of pool for temporary strings
 
 
 add_library(kilipili_utilities STATIC 
-	PwmLoadSensor.h
-	PwmLoadSensor.cpp
+	LoadSensor.h
+	LoadSensor.cpp
 	utilities.h
 	utilities.cpp
 	Led.h

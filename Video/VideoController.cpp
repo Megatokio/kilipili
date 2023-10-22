@@ -12,7 +12,7 @@
 #include "VideoPlane.h"
 #include "VideoQueue.h"
 #include "composable_scanline.h"
-#include "utilities/PwmLoadSensor.h"
+#include "utilities/LoadSensor.h"
 #include "utilities/utilities.h"
 #include <hardware/clocks.h>
 #include <hardware/dma.h>

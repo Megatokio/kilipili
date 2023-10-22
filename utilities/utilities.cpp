@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "utilities.h"
-#include "PwmLoadSensor.h"
+#include "LoadSensor.h"
 #include "kilipili_common.h"
 #include <hardware/clocks.h>
 #include <hardware/pll.h>
@@ -390,5 +390,27 @@ Error set_system_clock(uint32 new_clock, uint32 max_error)
 
 	return NO_ERROR;
 }
+
+
+void sleep_us(int delay_usec) noexcept
+{
+	if (delay_usec > 0)
+	{
+		idle_start();
+		::sleep_us(uint(delay_usec));
+		idle_end();
+	}
+}
+
+void wfe_or_timeout(int timeout_usec) noexcept
+{
+	if (timeout_usec > 0)
+	{
+		idle_start();
+		::best_effort_wfe_or_timeout(from_us_since_boot(time_us_64() + uint(timeout_usec)));
+		idle_end();
+	}
+}
+
 
 } // namespace kio

@@ -2,9 +2,11 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "PwmLoadSensor.h"
+#include "LoadSensor.h"
 #include "basic_math.h"
+#include "kilipili_cdefs.h"
 #include "utilities.h"
+#include <stdio.h>
 
 namespace kio::LoadSensor
 {
@@ -19,7 +21,7 @@ static constexpr uint timer_period_us = uint((1000000 + timer_frequency / 2) / t
 
 
 static alarm_id_t alarm_id = -1;
-float			  pwm_frequency; // calibrated in start()
+static float	  pwm_frequency; // calibrated in start()
 
 
 static struct CoreData
@@ -88,12 +90,15 @@ void calibrate() noexcept
 	// called for initialization and also
 	// whenever the systerm clock is changed
 
-	float prediv  = system_clock / timer_frequency / pwm_max_count + 1;
+	float prediv  = get_system_clock() / timer_frequency / pwm_max_count + 1;
 	prediv		  = prediv + prediv / 2; // some safety
-	pwm_frequency = float(system_clock) / prediv;
+	pwm_frequency = float(get_system_clock()) / prediv;
 
 	pwm_set_clkdiv(pwm0, prediv);
 	pwm_set_clkdiv(pwm1, prediv);
+
+	uint f = uint(pwm_frequency + 500) / 1000;
+	debugstr("LoadSensor pwm_frequency = %u.%03u MHz\n", f / 1000, f % 1000);
 }
 
 void start() noexcept
@@ -128,50 +133,28 @@ void stop() noexcept
 void getLoad(uint core_num, uint& min, uint& avg, uint& max) noexcept
 {
 	CoreData& my_core = core[core_num];
-
-	uint16 max_pwm_count = uint16(pwm_frequency / timer_frequency + 0.5f);
-	uint   sysclock		 = system_clock / 100000; // 0.1 MHz
-
-	for (;;)
-	{
-		uint count = my_core.count; // number of measurements since last reset
-		max		   = sysclock - map_range(my_core.min, max_pwm_count, sysclock);
-		min		   = sysclock - map_range(my_core.max, max_pwm_count, sysclock);
-		avg		   = sysclock - map_range(uint16((my_core.sum + count / 2) / count), max_pwm_count, sysclock);
-		if (my_core.count == count) break;
+	uint	  count, core_min, core_max, core_sum;
+	do {
+		count	 = my_core.count;
+		core_min = my_core.min;
+		core_max = my_core.max;
+		core_sum = my_core.sum;
 	}
-
+	while (count != my_core.count);
 	my_core.reset_load();
-}
 
-void printLoad(uint core)
-{
-	uint min, max, avg;
-	getLoad(core, min, avg, max);
-	uint sys = system_clock / 100000;
-	printf(
-		"sys: %i.%iMHz, load#%i: %i.%i, %i.%i, %i.%iMHz (min,avg,max)\n", sys / 10, sys % 10, core, min / 10, min % 10,
-		avg / 10, avg % 10, max / 10, max % 10);
+	uint max_pwm_count = uint(pwm_frequency / timer_frequency + 0.5f);
+	uint sysclock	   = get_system_clock();
+
+	max = sysclock - map_range(core_min, max_pwm_count, sysclock);
+	min = sysclock - map_range(core_max, max_pwm_count, sysclock);
+	avg = sysclock - map_range((core_sum + count / 2) / count, max_pwm_count, sysclock);
+
+	if unlikely (min > avg) min = avg; // after set_system_clock(): core.max > max_pwm_count
 }
 
 } // namespace kio::LoadSensor
 
-
-namespace kio
-{
-
-void sleepy_us(int usec) noexcept
-{
-	if (usec > 0)
-	{
-		idle_start();
-		sleep_us(uint(usec));
-		idle_end();
-	}
-}
-
-
-} // namespace kio
 
 /* 
 
