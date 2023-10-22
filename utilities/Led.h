@@ -25,6 +25,5 @@ public:
 	void toggle() noexcept { gpio_xor_mask(1 << pin); }
 };
 
-extern int sm_blink_onboard_led(); // state machine
 
 } // namespace kio

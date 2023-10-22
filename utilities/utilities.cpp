@@ -209,61 +209,6 @@ void print_system_info(uint)
 
 // ===============================================================
 
-
-// note: drift-free definitions need static var initialized to current time:
-// static uint32 timeout = time_us_32();
-#define SLEEP_US(usec) \
-  for (timeout += usec; int(timeout - time_us_32()) > 0;) WAIT()
-#define SLEEP_MS(msec) SLEEP_US(msec * 1000)
-// definitions which allow drift:
-// static uint32 timeout;
-#define SLEEPY_US(usec) \
-  for (timeout = time_us_32() + usec; int(timeout - time_us_32()) > 0;) WAIT()
-#define SLEEPY_MS(msec) SLEEPY_US(msec * 1000)
-
-
-#define BEGIN             \
-  static uint _state = 0; \
-  switch (_state)         \
-  {                       \
-  default:
-#define FINISH \
-  return -1;   \
-  }
-#define WAIT()         \
-  do {                 \
-	_state = __LINE__; \
-	return 0;          \
-  case __LINE__:;      \
-  }                    \
-  while (0)
-
-
-int sm_print_load()
-{
-	static uint32 timeout = time_us_32();
-
-	BEGIN
-	{
-		using namespace LoadSensor;
-
-		start();
-
-		printf("sys clock = %u Hz\n", system_clock);
-		printf("pwm clock = %u Hz\n", uint(pwm_frequency + 0.5f));
-
-		for (;;)
-		{
-			SLEEP_MS(10000);
-
-			printLoad(0);
-			printLoad(1);
-		}
-	}
-	FINISH
-}
-
-
 // ===============================================================
 
 uint32 system_clock = 125 MHz;

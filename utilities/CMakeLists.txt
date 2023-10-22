@@ -16,12 +16,13 @@ add_library(kilipili_utilities STATIC
 	utilities.h
 	utilities.cpp
 	Led.h
-	Led.cpp
 	#malloc.cpp  <-- must be included in add_executable directly
 	BucketList.h
 	tempmem.cpp
 	Logger.h 
 	Logger.cpp
+	sm_utilities.h 
+	sm_utilities.cpp
 	)
 
 target_compile_definitions(kilipili_utilities PUBLIC 
