@@ -83,9 +83,7 @@ using KeyboardReportHandler = void(const KeyboardReport&);
 using KeyEventHandler		= void(const KeyEvent&);
 using CharEventHandler		= void(int character);
 
-extern void setKeyTranslationTables(
-	const KeyTable solo, const KeyTable shifted = nullptr, const KeyTable alt = nullptr,
-	const KeyTable altshift = nullptr);
+extern void setKeyTranslationTables(const HidKeyTable& table);
 
 inline bool isaModifier(HIDKey key) { return key >= KEY_CONTROL_LEFT && key <= KEY_GUI_RIGHT; }
 

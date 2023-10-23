@@ -70,15 +70,7 @@ static CharEventHandler*	  char_event_cb = nullptr;
 
 static KeyboardReport old_report; // most recent report
 
-static const uchar* key_table[2][2] = // [w/shift][w/alt]
-	{{
-		 key_table_us, // solo
-		 key_table_us  // alt
-	 },
-	 {
-		 key_table_us_shift, // shift
-		 key_table_us_shift	 // shift+alt
-	 }};
+static HidKeyTable key_table = key_table_us;
 
 struct KeyEventInfo
 {
@@ -112,9 +104,7 @@ static int calc_char(bool down, Modifiers modifiers, HIDKey hid_key)
 	//if (unlikely(modifiers & GUI))  	// ignore `gui` modifier
 	//	return -1;
 
-	int c = hid_key < KEY_TRANSLATION_TABLE_SIZE ?
-				key_table[modifiers & SHIFT ? 1 : 0][modifiers & ALT ? 1 : 0][hid_key] :
-				0;
+	int c = key_table.get_key(hid_key, modifiers & SHIFT, modifiers & ALT);
 
 	if (unlikely(c == 0)) // non-priting key
 		return HID_KEY_OTHER + hid_key + (modifiers << 16);
@@ -137,16 +127,7 @@ KeyEvent::KeyEvent(bool d, Modifiers m, HIDKey key) noexcept :
 
 // ================================================================
 
-void setKeyTranslationTables(const KeyTable solo, const KeyTable shifted, const KeyTable alt, const KeyTable altshift)
-{
-	assert(solo);
-	if (shifted == nullptr) shifted = solo;
-
-	key_table[0][0] = solo;
-	key_table[1][0] = shifted;
-	key_table[0][1] = alt ? alt : solo;
-	key_table[1][1] = altshift ? altshift : shifted;
-}
+void setKeyTranslationTables(const HidKeyTable& table) { key_table = table; }
 
 const KeyboardReport& getKeyboardReport()
 {
