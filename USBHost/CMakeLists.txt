@@ -37,6 +37,8 @@ else()
 		USBKeyboard.cpp
 		USBGamePad.h
 		USBGamePad.cpp
+		USBMouse.cpp
+		USBMouse.h
 		HidKeys.h
 		HidKeys.cpp
 		HidKeyTables.cpp
