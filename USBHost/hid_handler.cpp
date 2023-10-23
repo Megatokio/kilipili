@@ -23,7 +23,7 @@
 *
 */
 
-#if CFG_TUH_HID
+#if ENABLE_USB_HOST
 
 /*
 	TUH = TinyUSB Host
@@ -171,7 +171,7 @@ extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const
 	{
   #if ENABLE_USB_KEYBOARD
 	case HID_ITF_PROTOCOL_KEYBOARD:
-		//printf("HID receive boot keyboard report\n");
+		printf("HID receive boot keyboard report\n");
 		handle_hid_keyboard_event(reinterpret_cast<const hid_keyboard_report_t*>(report));
 		break;
   #endif
