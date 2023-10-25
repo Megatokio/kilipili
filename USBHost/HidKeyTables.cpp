@@ -55,7 +55,7 @@ static constexpr uchar us_alone[HidKeyTable::table_size] =
 	'0',  // 0x27
 	13,	  // 0x28  return
 	27,	  // 0x29  escape
-	127,  // 0x2a  backspace
+	0,    // 0x2a  backspace
 	9,	  // 0x2b  tab
 	32,	  // 0x2c  space
 	'-',  // 0x2d
@@ -163,7 +163,7 @@ static constexpr uchar us_shift[HidKeyTable::table_size] =
 	')', // 0x27
 	13,	 // 0x28
 	27,	 // 0x29
-	127, // 0x2a
+	0,   // 0x2a
 	9,	 // 0x2b
 	32,	 // 0x2c
 	'_', // 0x2d
@@ -271,7 +271,7 @@ static constexpr uchar ger_solo[HidKeyTable::table_size] =
 	'0',  // 0x27
 	13,	  // 0x28
 	27,	  // 0x29
-	127,  // 0x2a
+	0,    // 0x2a
 	9,	  // 0x2b
 	32,	  // 0x2c
 	223,  // 0x2d  "ß"
@@ -379,7 +379,7 @@ static constexpr uchar ger_shift[HidKeyTable::table_size] =
 	'=',  // 0x27
 	13,	  // 0x28
 	27,	  // 0x29
-	127,  // 0x2a
+	0,    // 0x2a
 	9,	  // 0x2b
 	32,	  // 0x2c
 	'?',  // 0x2d
