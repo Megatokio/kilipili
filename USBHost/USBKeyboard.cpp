@@ -8,6 +8,7 @@
 #include "kilipili_cdefs.h"
 #include "utilities/BucketList.h"
 
+
 static constexpr int numbits(uint8 z)
 {
 	z = ((z >> 1) & 0x55u) + (z & 0x55u);
@@ -224,8 +225,6 @@ static void handle_key_event(const KeyboardReport& new_report, void (*handler)(b
 	handle_key_event(new_report, old_report, true, handler);  // find & handle key down events
 }
 
-} // namespace kio::USB
-
 
 void handle_hid_keyboard_event(const hid_keyboard_report_t* report) noexcept
 {
@@ -273,3 +272,5 @@ void handle_hid_keyboard_event(const hid_keyboard_report_t* report) noexcept
 
 	old_report = new_report;
 }
+
+} // namespace kio::USB

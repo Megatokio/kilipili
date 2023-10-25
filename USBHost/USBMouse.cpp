@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "USBMouse.h"
+#include "hid_handler.h"
 #include "utilities/BucketList.h"
 
 namespace kio::USB

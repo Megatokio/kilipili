@@ -1,3 +1,7 @@
+// Copyright (c) 2022 - 2023 kio@little-bat.de
+// BSD-2-Clause license
+// https://opensource.org/licenses/BSD-2-Clause
+
 /*
 * The MIT License (MIT)
 *
@@ -31,6 +35,7 @@
 */
 
   #include "hid_handler.h"
+  #include "standard_types.h"
   #include <class/hid/hid_host.h>
   #include <tusb.h>
 
@@ -102,17 +107,17 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 		{
   #if ENABLE_USB_KEYBOARD
 		case HID_USAGE_DESKTOP_KEYBOARD:
-			printf("HID receive keyboard report\n");
+			//printf("HID receive keyboard report\n");
 			// Assume keyboard follow boot report layout
-			handle_hid_keyboard_event(reinterpret_cast<const hid_keyboard_report_t*>(report));
+			kio::USB::handle_hid_keyboard_event(reinterpret_cast<const hid_keyboard_report_t*>(report));
 			break;
   #endif
 
   #if ENABLE_USB_MOUSE
 		case HID_USAGE_DESKTOP_MOUSE:
-			printf("HID receive mouse report\n");
+			//printf("HID receive mouse report\n");
 			// Assume mouse follow boot report layout
-			handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
+			kio::USB::handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
 			break;
   #endif
 
@@ -171,15 +176,15 @@ extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const
 	{
   #if ENABLE_USB_KEYBOARD
 	case HID_ITF_PROTOCOL_KEYBOARD:
-		printf("HID receive boot keyboard report\n");
-		handle_hid_keyboard_event(reinterpret_cast<const hid_keyboard_report_t*>(report));
+		//printf("HID receive boot keyboard report\n");
+		kio::USB::handle_hid_keyboard_event(reinterpret_cast<const hid_keyboard_report_t*>(report));
 		break;
   #endif
 
   #if ENABLE_USB_MOUSE
 	case HID_ITF_PROTOCOL_MOUSE:
 		//printf("HID receive boot mouse report\n");
-		handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
+		kio::USB::handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
 		break;
   #endif
 

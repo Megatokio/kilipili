@@ -10,12 +10,13 @@
 #include <functional>
 
 
+namespace kio::USB
+{
+
 // keyboard keys can generate UCS-2 (wide) chars:
 using UCS2Char = uint16;
 
 
-namespace kio::USB
-{
 // Modifier key masks in KeyboardReport.modifiers:
 enum Modifiers : uint8 {
 	LEFTCTRL   = 1 << 0, // Left Control
@@ -102,4 +103,4 @@ extern int					 getChar();			  // get serialized char. TODO: auto repeat
 
 } // namespace kio::USB
 
-extern cstr tostr(kio::USB::Modifiers, bool lr_unified = true) noexcept;
+extern cstr tostr(kio::USB::Modifiers, bool left_right_unified = true) noexcept;
