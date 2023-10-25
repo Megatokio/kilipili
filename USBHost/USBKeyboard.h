@@ -40,7 +40,7 @@ inline Modifiers operator&(Modifiers a, Modifiers b) { return Modifiers(uint8(a)
 
 
 // LED bit masks
-// replicate TinyUSB enum hid_keyboard_led_bm_t
+// same as TinyUSB enum hid_keyboard_led_bm_t
 enum KeyboardLED : uint8 {
 	LED_NUMLOCK	   = 1 << 0, // Num Lock LED
 	LED_CAPSLOCK   = 1 << 1, // Caps Lock LED
@@ -50,14 +50,14 @@ enum KeyboardLED : uint8 {
 };
 
 
-// CharEventHandler() and getChar() return non-printing keys in a page of the "private area"
+// getChar() returns non-printing keys in a page of the "private area"
 // of the Unicode character set in range 0xE000..0xF8FF:
 // HIDKey + HID_KEY_OTHER = UCS2Char
 constexpr UCS2Char HID_KEY_OTHER = 0xE800u;
 
 
 // USB keyboard report in "boot" mode
-// replicate TinyUSB struct hid_keyboard_report_t
+// same as TinyUSB struct hid_keyboard_report_t
 struct HidKeyboardReport
 {
 	Modifiers modifiers; // Modifier keys
@@ -69,21 +69,20 @@ struct HidKeyboardReport
 // serialized key event
 struct KeyEvent
 {
-	bool	  down		= false; // key pressed or released?
-	char	  _padding	= 0;
+	bool	  down		= false;		// key pressed or released?
 	Modifiers modifiers = NO_MODIFIERS; // modifiers after key event (in case of a modifier key per se)
-	HIDKey	  key		= NO_KEY;		// USB/HID keycode of key which changed
-	UCS2Char  ucs2char	= 0;			// down only: decoded character from key translation table or 0
-										// function keys: ucs2char = HID_KEY_OTHER + HIDKey
+	HIDKey	  hidkey	= NO_KEY;		// USB/HID keycode of key which changed
 	KeyEvent() noexcept = default;
 	KeyEvent(bool, Modifiers, HIDKey) noexcept;
+
+	char getchar() const noexcept;
 };
 
 
 using HidKeyboardReportHandler = void(const HidKeyboardReport&);
 using KeyEventHandler		   = void(const KeyEvent&);
 
-extern void setKeyTranslationTables(const HidKeyTable& table);
+extern void setHidKeyTranslationTable(const HidKeyTable& table);
 
 inline bool isaModifier(HIDKey key) { return key >= KEY_CONTROL_LEFT && key <= KEY_GUI_RIGHT; }
 
@@ -95,10 +94,8 @@ extern void setHidKeyboardReportHandler(HidKeyboardReportHandler&);
 extern void setKeyEventHandler(KeyEventHandler&);
 
 // functions:
-extern const HidKeyboardReport&
-				getHidKeyboardReport(); // get latest USB report with current state of up to 6 pressed keys
-extern KeyEvent getKeyEvent();			// get serialized key up/down event
-extern int		getChar();				// get serialized char. TODO: auto repeat
+extern KeyEvent getKeyEvent(); // get serialized key up/down event
+extern int		getChar();	   // get serialized char. TODO: auto repeat
 
 } // namespace kio::USB
 

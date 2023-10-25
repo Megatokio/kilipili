@@ -3,10 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "USBKeyboard.h"
+#include "common/Queue.h"
 #include "common/tempmem.h"
 #include "hid_handler.h"
-#include "kilipili_cdefs.h"
-#include "utilities/BucketList.h"
 #include <pico/stdlib.h>
 
 #ifndef USB_KEY_DELAY1
@@ -75,127 +74,71 @@ cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
 namespace kio::USB
 {
 
-static HidKeyboardReportHandler* hid_keyboard_report_cb = nullptr;
-static KeyEventHandler*			 key_event_cb			= nullptr;
-
-static HidKeyboardReport old_report; // most recent report
-
 static HidKeyTable key_table = key_table_us;
 
-struct KeyEventInfo
-{
-	bool	  down;
-	Modifiers modifiers;
-	HIDKey	  key;
-};
-
-static BucketList<KeyEventInfo, 8, uint8> key_event_queue;
+static Queue<KeyEvent, 8, uint8> key_event_queue;
 static_assert(sizeof(key_event_queue) == 2 + 3 * 8);
 
 
 // ================================================================
 
-static int calc_char(bool down, Modifiers modifiers, HIDKey hid_key)
+static bool find(const HidKeyboardReport& report, HIDKey key)
 {
-	// calculate character code from key event
-	// key not calculated for key-up event. may differ from key-down because of changed modifiers anyway.
-	// keys are looked up with their `shift` and `alt` state in the translation tables.
-	// non-printing keys with no entry in the translation table are returned as `HID_KEY_OTHER + HidKey + modifiers<<16`.
-	// `control` modifier masks the character code with 0x1F.
-	// `gui` modifier is ignored.
-	//
-	// if application wishes to handle gui key and non-printing keys with modifiers
-	//   then it should use KeyEvent or HidKeyboardReport functions.
-	//   else it must keep track of the modifier keys and apply them itself.
-
-	if (unlikely(!down)) // 'no key' for key-up event.
-		return -1;
-
-	//if (unlikely(modifiers & GUI))  	// ignore `gui` modifier
-	//	return -1;
-
-	int c = key_table.get_key(hid_key, modifiers & SHIFT, modifiers & ALT);
-
-	if (unlikely(c == 0)) // non-priting key
-		return HID_KEY_OTHER + hid_key + (modifiers << 16);
-
-	if (unlikely(modifiers & CTRL)) // apply `control` modifier
-		c = c & 0x1f;
-
-	return c;
+	return memchr(report.keys, key, sizeof(report.keys)) != nullptr;
 }
 
-static bool find(HIDKey key, const HIDKey keys[6]) { return key != 0 && memchr(keys, key, 6) != nullptr; }
+KeyEvent::KeyEvent(bool d, Modifiers m, HIDKey key) noexcept : down(d), modifiers(m), hidkey(key) {}
 
-KeyEvent::KeyEvent(bool d, Modifiers m, HIDKey key) noexcept :
-	down(d),
-	modifiers(m),
-	key(key),
-	ucs2char(UCS2Char(calc_char(d, m, key)))
-{}
+char KeyEvent::getchar() const noexcept
+{
+	char c = key_table.get_key(hidkey, modifiers & SHIFT, modifiers & ALT);
+	if (modifiers & CTRL) c &= 0x1f;
+	return c;
+}
 
 
 // ================================================================
 
-void setKeyTranslationTables(const HidKeyTable& table) { key_table = table; }
-
-const HidKeyboardReport& getHidKeyboardReport()
-{
-	// get KeyboardReport
-	// returns the latest KeyboardReport which reflects the current state of keys
-
-	return old_report;
-}
+void setHidKeyTranslationTable(const HidKeyTable& table) { key_table = table; }
 
 KeyEvent getKeyEvent()
 {
 	// get next KeyEvent
 	// if no event handler is installed
-	//
-	// returns KeyEvent with event.key = NO_KEY if no event available
+	// returns KeyEvent with event.hidkey = NO_KEY if no event available
 
-	if (key_event_queue.ls_avail())
-	{
-		const KeyEventInfo& i	= key_event_queue.ls_get();
-		bool				d	= i.down;
-		Modifiers			m	= i.modifiers;
-		HIDKey				key = i.key;
-		key_event_queue.ls_push();
-		return KeyEvent {d, m, key};
-	}
-
-	return KeyEvent {};
+	if (key_event_queue.avail()) return key_event_queue.get();
+	else return KeyEvent {};
 }
 
 int getChar()
 {
 	// get next char
 	// return -1 if no char available
-	// keys with no entry in the translation table are returned as HID_KEY_OTHER + HidKey + modifiers<<16
+	// keys with no entry in the translation table are returned as
+	//		HID_KEY_OTHER + HidKey + modifiers<<16
 
 	static HIDKey repeat_key  = NO_KEY;
 	static int	  repeat_char = 0;
 	static int32  repeat_next = 0;
 
-	while (key_event_queue.ls_avail())
+	while (key_event_queue.avail())
 	{
-		const KeyEventInfo& i	= key_event_queue.ls_get();
-		bool				d	= i.down;
-		Modifiers			m	= i.modifiers;
-		HIDKey				key = i.key;
-		key_event_queue.ls_push();
+		const KeyEvent event = key_event_queue.get();
 
-		int c = calc_char(d, m, key);
-		if (c != -1)
+		if (event.down)
 		{
-			repeat_key	= key;
+			int c = uchar(event.getchar());
+			if (!c) c = HID_KEY_OTHER + event.hidkey + (event.modifiers << 16); // non-priting char
+
+			repeat_key	= event.hidkey;
 			repeat_char = c;
 			repeat_next = int(time_us_32()) + USB_KEY_DELAY1 * 1000;
 			return c;
 		}
 		else
 		{
-			if (key == repeat_key) repeat_key = NO_KEY;
+			if (event.hidkey == repeat_key) repeat_key = NO_KEY;
 		}
 	}
 
@@ -208,11 +151,23 @@ int getChar()
 	return -1;
 }
 
+static void push_key_event(const KeyEvent& event)
+{
+	// store KeyEvent for getChar() or getKeyEvent():
+	if unlikely (key_event_queue.free() == 0) key_event_queue.get(); // discard oldest
+	key_event_queue.put(event);
+}
+
+static HidKeyboardReportHandler* hid_keyboard_report_cb = nullptr;
+static KeyEventHandler*			 key_event_cb			= &push_key_event;
+
 static void reset_handlers()
 {
-	hid_keyboard_report_cb = nullptr;
-	key_event_cb		   = nullptr;
-	while (key_event_queue.ls_avail()) key_event_queue.ls_push(); // drain queue
+	hid_keyboard_report_cb		 = nullptr;
+	key_event_cb				 = &push_key_event;
+	hid_keyboard_report_t report = {0, 0, {0}};
+	handle_hid_keyboard_event(&report);
+	while (key_event_queue.avail()) key_event_queue.get(); // drain queue
 }
 
 void setHidKeyboardReportHandler(HidKeyboardReportHandler& handler)
@@ -224,28 +179,16 @@ void setHidKeyboardReportHandler(HidKeyboardReportHandler& handler)
 void setKeyEventHandler(KeyEventHandler& handler)
 {
 	reset_handlers();
-	key_event_cb = handler;
+	if (handler) key_event_cb = handler;
 }
 
-static void handle_key_event(
-	const HidKeyboardReport& new_report, const HidKeyboardReport& old_report, bool down,
-	void (*handler)(bool, Modifiers, HIDKey))
+static void handle_key_event(const HidKeyboardReport& new_report, const HidKeyboardReport& old_report, bool down)
 {
 	for (uint i = 0; i < 6; i++)
 	{
 		HIDKey key = new_report.keys[i];
-		if (key && !find(key, old_report.keys))
-		{
-			Modifiers mod = new_report.modifiers;
-			handler(down, mod, key);
-		}
+		if (key && !find(old_report, key)) key_event_cb(KeyEvent(down, new_report.modifiers, key));
 	}
-}
-
-static void handle_key_event(const HidKeyboardReport& new_report, void (*handler)(bool, Modifiers, HIDKey))
-{
-	handle_key_event(old_report, new_report, false, handler); // find & handle key up events
-	handle_key_event(new_report, old_report, true, handler);  // find & handle key down events
 }
 
 void handle_hid_keyboard_event(const hid_keyboard_report_t* report) noexcept
@@ -257,31 +200,14 @@ void handle_hid_keyboard_event(const hid_keyboard_report_t* report) noexcept
 	static_assert(sizeof(HidKeyboardReport) == sizeof(hid_keyboard_report_t));
 	const HidKeyboardReport& new_report = *reinterpret_cast<const HidKeyboardReport*>(report);
 
-	if (hid_keyboard_report_cb) { hid_keyboard_report_cb(new_report); }
-
-	else if (key_event_cb)
+	if (hid_keyboard_report_cb) hid_keyboard_report_cb(new_report);
+	else
 	{
-		handle_key_event(new_report, [](bool down, Modifiers modifiers, HIDKey key) {
-			key_event_cb(KeyEvent(down, modifiers, key));
-		});
+		static HidKeyboardReport old_report;
+		handle_key_event(old_report, new_report, false); // find & handle key up events
+		handle_key_event(new_report, old_report, true);	 // find & handle key down events
+		old_report = new_report;
 	}
-
-	else // no callback handler installed
-	{
-		handle_key_event(new_report, [](bool down, Modifiers modifiers, HIDKey key) {
-			if (unlikely(key_event_queue.hs_avail() == 0)) key_event_queue.ls_push(); // discard oldest
-
-			// store key into key_event_queue for later use by getKeyEvent() or getChar():
-
-			KeyEventInfo& i = key_event_queue.hs_get();
-			i.down			= down;
-			i.modifiers		= modifiers;
-			i.key			= key;
-			key_event_queue.hs_push();
-		});
-	}
-
-	old_report = new_report;
 }
 
 } // namespace kio::USB
