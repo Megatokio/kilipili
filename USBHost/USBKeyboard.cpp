@@ -30,7 +30,7 @@ cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
 	if (mod == kio::USB::NO_MODIFIERS) return "NONE";
 	static constexpr char names[4][7] = {"CTRL+", "SHIFT+", "ALT+", "GUI+"};
 
-	char  bu[26]; // max: "lCTRL+lSHIFT+rCTRL+rSHIFT"
+	char  bu[28]; // max 27: "lCTRL+lSHIFT+rCTRL+rSHIFT", '+', chr(0)
 	char* p = bu;
 
 	if (unified || numbits(mod) > 4)
@@ -40,7 +40,7 @@ cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
 		{
 			if (mod & (mask << i))
 			{
-				strncpy(p, names[i], 99);
+				strcpy(p, names[i]);
 				p = strchr(p, 0);
 			}
 		}
@@ -53,14 +53,17 @@ cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
 			if (mod & (mask << i))
 			{
 				*p++ = i < 4 ? 'l' : 'r';
-				strncpy(p, names[i & 3], 99);
+				strcpy(p, names[i & 3]);
 				p = strchr(p, 0);
 			}
 		}
 	}
+
+	assert(p > bu);
 	*--p = 0;
 	return kio::dupstr(bu);
 }
+
 
 namespace kio::USB
 {
