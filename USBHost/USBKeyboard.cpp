@@ -70,7 +70,6 @@ namespace kio::USB
 
 static HidKeyboardReportHandler* hid_keyboard_report_cb = nullptr;
 static KeyEventHandler*			 key_event_cb			= nullptr;
-static CharEventHandler*		 char_event_cb			= nullptr;
 
 static HidKeyboardReport old_report; // most recent report
 
@@ -185,7 +184,6 @@ static void reset_handlers()
 {
 	hid_keyboard_report_cb = nullptr;
 	key_event_cb		   = nullptr;
-	char_event_cb		   = nullptr;
 	while (key_event_queue.ls_avail()) key_event_queue.ls_push(); // drain queue
 }
 
@@ -199,12 +197,6 @@ void setKeyEventHandler(KeyEventHandler& handler)
 {
 	reset_handlers();
 	key_event_cb = handler;
-}
-
-void setCharEventHandler(CharEventHandler& handler)
-{
-	reset_handlers();
-	char_event_cb = handler;
 }
 
 static void handle_key_event(
@@ -244,15 +236,6 @@ void handle_hid_keyboard_event(const hid_keyboard_report_t* report) noexcept
 	{
 		handle_key_event(new_report, [](bool down, Modifiers modifiers, HIDKey key) {
 			key_event_cb(KeyEvent(down, modifiers, key));
-		});
-	}
-
-	else if (char_event_cb)
-	{
-		handle_key_event(new_report, old_report, true, [](bool down, Modifiers modifiers, HIDKey key) {
-			assert(down);
-			int c = calc_char(down, modifiers, key);
-			if (c != -1) char_event_cb(c);
 		});
 	}
 
