@@ -7,7 +7,14 @@
 #include "hid_handler.h"
 #include "kilipili_cdefs.h"
 #include "utilities/BucketList.h"
+#include <pico/stdlib.h>
 
+#ifndef USB_KEY_DELAY1
+  #define USB_KEY_DELAY1 600
+#endif
+#ifndef USB_KEY_DELAY
+  #define USB_KEY_DELAY 60
+#endif
 
 static constexpr int numbits(uint8 z)
 {
@@ -98,7 +105,7 @@ static int calc_char(bool down, Modifiers modifiers, HIDKey hid_key)
 	// `gui` modifier is ignored.
 	//
 	// if application wishes to handle gui key and non-printing keys with modifiers
-	//   then it should use KeyEvent or KeyboardReport functions.
+	//   then it should use KeyEvent or HidKeyboardReport functions.
 	//   else it must keep track of the modifier keys and apply them itself.
 
 	if (unlikely(!down)) // 'no key' for key-up event.
@@ -164,7 +171,11 @@ int getChar()
 {
 	// get next char
 	// return -1 if no char available
-	// function keys with no entry in the translation tables are returned as HID_KEY_OTHER + HidKey + modifiers<<16
+	// keys with no entry in the translation table are returned as HID_KEY_OTHER + HidKey + modifiers<<16
+
+	static HIDKey repeat_key  = NO_KEY;
+	static int	  repeat_char = 0;
+	static int32  repeat_next = 0;
 
 	while (key_event_queue.ls_avail())
 	{
@@ -173,8 +184,25 @@ int getChar()
 		Modifiers			m	= i.modifiers;
 		HIDKey				key = i.key;
 		key_event_queue.ls_push();
+
 		int c = calc_char(d, m, key);
-		if (c != -1) return c;
+		if (c != -1)
+		{
+			repeat_key	= key;
+			repeat_char = c;
+			repeat_next = int(time_us_32()) + USB_KEY_DELAY1 * 1000;
+			return c;
+		}
+		else
+		{
+			if (key == repeat_key) repeat_key = NO_KEY;
+		}
+	}
+
+	if (repeat_key && int(time_us_32()) - repeat_next >= 0)
+	{
+		repeat_next = int(time_us_32()) + USB_KEY_DELAY * 1000;
+		return repeat_char;
 	}
 
 	return -1;
@@ -219,7 +247,6 @@ static void handle_key_event(const HidKeyboardReport& new_report, void (*handler
 	handle_key_event(old_report, new_report, false, handler); // find & handle key up events
 	handle_key_event(new_report, old_report, true, handler);  // find & handle key down events
 }
-
 
 void handle_hid_keyboard_event(const hid_keyboard_report_t* report) noexcept
 {

@@ -45,6 +45,9 @@ else()
 	option(ENABLE_USB_HOST     "Enable USB host mode" ON)
 	option(ENABLE_USB_KEYBOARD "Enable USB keyboard in USB host mode" ON)
 	option(ENABLE_USB_MOUSE    "Enable USB mouse in USB host mode" ON)
+
+	set(USB_KEY_DELAY1 "600" CACHE STRING "USB keyboard: auto repeat delay for first repeat [msec]")
+	set(USB_KEY_DELAY  "60"  CACHE STRING "USB keyboard: auto repeat delay for following repeats [msec]")
 	
 	
 	target_compile_definitions(kilipili_usb_host PUBLIC
@@ -52,6 +55,8 @@ else()
 		ENABLE_USB_HOST=${ENABLE_USB_HOST}
 		ENABLE_USB_MOUSE=${ENABLE_USB_MOUSE}
 		ENABLE_USB_KEYBOARD=${ENABLE_USB_KEYBOARD}
+		USB_KEY_DELAY1=${USB_KEY_DELAY1}
+		USB_KEY_DELAY=${USB_KEY_DELAY}
 		)
 
 	# Make sure TinyUSB can find tusb_config.h
@@ -63,6 +68,7 @@ else()
 	target_link_libraries(kilipili_usb_host PUBLIC
 		kilipili_common
 		tinyusb_host
+		pico_stdlib
 		)
 	
 endif()
