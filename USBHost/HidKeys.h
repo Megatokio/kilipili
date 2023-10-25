@@ -13,7 +13,7 @@ enum HIDKey : uint8 {
 	// copied from TinyUSB: hid.h
 
 	NO_KEY,					 // 0x00
-	KEY_A,					 // 0x04
+	KEY_A = 4,				 // 0x04
 	KEY_B,					 // 0x05
 	KEY_C,					 // 0x06
 	KEY_D,					 // 0x07
@@ -174,15 +174,15 @@ enum HIDKey : uint8 {
 	KEY_CLEAR_AGAIN,		 // 0xA2
 	KEY_CRSEL_PROPS,		 // 0xA3
 	KEY_EXSEL,				 // 0xA4
-	// RESERVED				// 0xA5-DF
-	KEY_CONTROL_LEFT,  // 0xE0
-	KEY_SHIFT_LEFT,	   // 0xE1
-	KEY_ALT_LEFT,	   // 0xE2
-	KEY_GUI_LEFT,	   // 0xE3
-	KEY_CONTROL_RIGHT, // 0xE4
-	KEY_SHIFT_RIGHT,   // 0xE5
-	KEY_ALT_RIGHT,	   // 0xE6
-	KEY_GUI_RIGHT,	   // 0xE7
+	// RESERVED				 // 0xA5-DF
+	KEY_CONTROL_LEFT = 0xE0, // 0xE0
+	KEY_SHIFT_LEFT,			 // 0xE1
+	KEY_ALT_LEFT,			 // 0xE2
+	KEY_GUI_LEFT,			 // 0xE3
+	KEY_CONTROL_RIGHT,		 // 0xE4
+	KEY_SHIFT_RIGHT,		 // 0xE5
+	KEY_ALT_RIGHT,			 // 0xE6
+	KEY_GUI_RIGHT,			 // 0xE7
 };
 
 } // namespace kio::USB
