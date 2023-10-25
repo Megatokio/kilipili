@@ -16,6 +16,7 @@ add_library(kilipili_common STATIC
 	tempmem.h
 	cstrings.h
 	cstrings.cpp
+	Queue.h
 	)
  
 target_compile_definitions(kilipili_common PUBLIC
