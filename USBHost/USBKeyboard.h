@@ -58,7 +58,7 @@ constexpr UCS2Char HID_KEY_OTHER = 0xE800u;
 
 // USB keyboard report in "boot" mode
 // replicate TinyUSB struct hid_keyboard_report_t
-struct KeyboardReport
+struct HidKeyboardReport
 {
 	Modifiers modifiers; // Modifier keys
 	uint8	  reserved;	 // Reserved for OEM use, always set to 0
@@ -80,7 +80,7 @@ struct KeyEvent
 };
 
 
-using KeyboardReportHandler = void(const KeyboardReport&);
+using HidKeyboardReportHandler = void(const HidKeyboardReport&);
 using KeyEventHandler		= void(const KeyEvent&);
 using CharEventHandler		= void(int character);
 
@@ -92,12 +92,12 @@ inline bool isaModifier(HIDKey key) { return key >= KEY_CONTROL_LEFT && key <= K
 // The application should best stick to a single method.
 
 // callbacks:
-extern void setKeyboardReportHandler(KeyboardReportHandler&);
+extern void setHidKeyboardReportHandler(HidKeyboardReportHandler&);
 extern void setKeyEventHandler(KeyEventHandler&);
 extern void setCharEventHandler(CharEventHandler&); // TODO: auto repeat
 
 // functions:
-extern const KeyboardReport& getKeyboardReport(); // get latest USB report with current state of up to 6 pressed keys
+extern const HidKeyboardReport& getHidKeyboardReport(); // get latest USB report with current state of up to 6 pressed keys
 extern KeyEvent				 getKeyEvent();		  // get serialized key up/down event
 extern int					 getChar();			  // get serialized char. TODO: auto repeat
 

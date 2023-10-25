@@ -68,11 +68,11 @@ cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
 namespace kio::USB
 {
 
-static KeyboardReportHandler* kbd_report_cb = nullptr;
-static KeyEventHandler*		  key_event_cb	= nullptr;
-static CharEventHandler*	  char_event_cb = nullptr;
+static HidKeyboardReportHandler* hid_keyboard_report_cb = nullptr;
+static KeyEventHandler*			 key_event_cb			= nullptr;
+static CharEventHandler*		 char_event_cb			= nullptr;
 
-static KeyboardReport old_report; // most recent report
+static HidKeyboardReport old_report; // most recent report
 
 static HidKeyTable key_table = key_table_us;
 
@@ -133,7 +133,7 @@ KeyEvent::KeyEvent(bool d, Modifiers m, HIDKey key) noexcept :
 
 void setKeyTranslationTables(const HidKeyTable& table) { key_table = table; }
 
-const KeyboardReport& getKeyboardReport()
+const HidKeyboardReport& getHidKeyboardReport()
 {
 	// get KeyboardReport
 	// returns the latest KeyboardReport which reflects the current state of keys
@@ -183,16 +183,16 @@ int getChar()
 
 static void reset_handlers()
 {
-	kbd_report_cb = nullptr;
-	key_event_cb  = nullptr;
-	char_event_cb = nullptr;
+	hid_keyboard_report_cb = nullptr;
+	key_event_cb		   = nullptr;
+	char_event_cb		   = nullptr;
 	while (key_event_queue.ls_avail()) key_event_queue.ls_push(); // drain queue
 }
 
-void setKeyboardReportHandler(KeyboardReportHandler& handler)
+void setHidKeyboardReportHandler(HidKeyboardReportHandler& handler)
 {
 	reset_handlers();
-	kbd_report_cb = handler;
+	hid_keyboard_report_cb = handler;
 }
 
 void setKeyEventHandler(KeyEventHandler& handler)
@@ -208,7 +208,7 @@ void setCharEventHandler(CharEventHandler& handler)
 }
 
 static void handle_key_event(
-	const KeyboardReport& new_report, const KeyboardReport& old_report, bool down,
+	const HidKeyboardReport& new_report, const HidKeyboardReport& old_report, bool down,
 	void (*handler)(bool, Modifiers, HIDKey))
 {
 	for (uint i = 0; i < 6; i++)
@@ -222,7 +222,7 @@ static void handle_key_event(
 	}
 }
 
-static void handle_key_event(const KeyboardReport& new_report, void (*handler)(bool, Modifiers, HIDKey))
+static void handle_key_event(const HidKeyboardReport& new_report, void (*handler)(bool, Modifiers, HIDKey))
 {
 	handle_key_event(old_report, new_report, false, handler); // find & handle key up events
 	handle_key_event(new_report, old_report, true, handler);  // find & handle key down events
@@ -234,13 +234,11 @@ void handle_hid_keyboard_event(const hid_keyboard_report_t* report) noexcept
 	// this handler is called by `tuh_hid_report_received_cb()`
 	// which receives the USB Host events
 
-	using namespace kio::USB;
-
 	assert(report);
-	static_assert(sizeof(KeyboardReport) == sizeof(hid_keyboard_report_t));
-	const KeyboardReport& new_report = *reinterpret_cast<const KeyboardReport*>(report);
+	static_assert(sizeof(HidKeyboardReport) == sizeof(hid_keyboard_report_t));
+	const HidKeyboardReport& new_report = *reinterpret_cast<const HidKeyboardReport*>(report);
 
-	if (kbd_report_cb) { kbd_report_cb(new_report); }
+	if (hid_keyboard_report_cb) { hid_keyboard_report_cb(new_report); }
 
 	else if (key_event_cb)
 	{
