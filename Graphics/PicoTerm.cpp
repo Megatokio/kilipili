@@ -126,8 +126,6 @@ void PicoTerm::validateCursorPosition()
 	// col := in range [0 .. [screen_width
 	// row := in range [0 .. [screen_height
 
-	if unlikely (cursorVisible) return;
-
 	if unlikely (uint(col) >= uint(screen_width))
 	{
 		col = int8(col - 0x40) + 0x40; // clamp to range -0x40 .. 0x80+0x40 (assuming 128 cols max)
@@ -168,6 +166,7 @@ void PicoTerm::readBmp(CharMatrix bmp, bool use_fgcolor)
 	// use_fgcolor=1: set bits for pixels in fgcolor
 	// use_fgcolor=0: clr bits for pixels in bgcolor
 
+	hideCursor();
 	validateCursorPosition();
 
 	int x = col++ * CHAR_WIDTH;
@@ -185,6 +184,8 @@ void PicoTerm::writeBmp(CharMatrix bmp, uint8 attr)
 	//  - bold, italic, underline, inverted and graphics must already be applied
 	// at cursor position
 	// increment col
+
+	hideCursor();
 
 	if (unlikely(attr & ATTR_DOUBLE_WIDTH))
 	{
@@ -601,7 +602,6 @@ void PicoTerm::clearToEndOfScreen()
 void PicoTerm::printCharMatrix(CharMatrix charmatrix, int count)
 {
 	applyAttributes(charmatrix);
-
 	while (count--) { writeBmp(charmatrix, attributes); }
 }
 
