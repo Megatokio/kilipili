@@ -48,6 +48,9 @@ else()
 
 	set(USB_KEY_DELAY1 "600" CACHE STRING "USB keyboard: auto repeat delay for first repeat [msec]")
 	set(USB_KEY_DELAY  "60"  CACHE STRING "USB keyboard: auto repeat delay for following repeats [msec]")
+	set(DEFAULT_KEYTABLE "key_table_ger" CACHE STRING "USB keyboard: default key translation table")
+
+	set_property(CACHE DEFAULT_KEYTABLE PROPERTY STRINGS key_table_us key_table_ger)
 	
 	
 	target_compile_definitions(kilipili_usb_host PUBLIC
@@ -57,6 +60,7 @@ else()
 		ENABLE_USB_KEYBOARD=${ENABLE_USB_KEYBOARD}
 		USB_KEY_DELAY1=${USB_KEY_DELAY1}
 		USB_KEY_DELAY=${USB_KEY_DELAY}
+		DEFAULT_KEYTABLE=${DEFAULT_KEYTABLE}
 		)
 
 	# Make sure TinyUSB can find tusb_config.h
