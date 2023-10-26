@@ -15,6 +15,9 @@
 #ifndef USB_KEY_DELAY
   #define USB_KEY_DELAY 60
 #endif
+#ifndef DEFAULT_KEYTABLE
+  #define DEFAULT_KEYTABLE key_table_us
+#endif
 
 
 namespace kio::USB
