@@ -3,12 +3,15 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "HidKeys.h"
+#include "common/tempmem.h"
+#include "kilipili_cdefs.h"
+#include <string.h>
 
-const char* const hidkey[0xA4 + 1] = {
-	"NO_KEY", // 0x00
-	"rollover_error",
-	"post_failed",
-	"other_error",
+static const char* const hidkey[0xA4 + 1] = {
+	"NO_KEY",			   // 0x00
+	"rollover_error",	   // 0x01
+	"post_failed",		   // 0x02
+	"other_error",		   // 0x03
 	"A",				   // 0x04
 	"B",				   // 0x05
 	"C",				   // 0x06
@@ -174,7 +177,7 @@ const char* const hidkey[0xA4 + 1] = {
 
 // RESERVED				// 0xA5-DF
 
-const char* const modifier[8] = {
+static const char modifier[8][14] = {
 	"LEFT_CONTROL",	 // 0xE0
 	"LEFT_SHIFT",	 // 0xE1
 	"LEFT_ALT",		 // 0xE2
@@ -191,4 +194,58 @@ cstr tostr(kio::USB::HIDKey key)
 	if (key <= 0xA4) return hidkey[key];
 	if (key >= 0xE0 && key < 0xE8) return modifier[key - 0xE0];
 	return "undefined";
+}
+static constexpr int numbits(uint8 z)
+{
+	z = ((z >> 1) & 0x55u) + (z & 0x55u);
+	z = ((z >> 2) & 0x33u) + (z & 0x33u);
+	return (z >> 4) + (z & 0x0Fu);
+}
+
+cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
+{
+	//LEFTCTRL   = 1 << 0, // Left Control
+	//LEFTSHIFT  = 1 << 1, // Left Shift
+	//LEFTALT	 = 1 << 2, // Left Alt
+	//LEFTGUI	 = 1 << 3, // Left Window
+	//RIGHTCTRL  = 1 << 4, // Right Control
+	//RIGHTSHIFT = 1 << 5, // Right Shift
+	//RIGHTALT   = 1 << 6, // Right Alt
+	//RIGHTGUI   = 1 << 7, // Right Window
+
+	if (mod == kio::USB::NO_MODIFIERS) return "NONE";
+	static constexpr char names[4][7] = {"CTRL+", "SHIFT+", "ALT+", "GUI+"};
+
+	char  bu[28]; // max 27: "lCTRL+lSHIFT+rCTRL+rSHIFT", '+', chr(0)
+	char* p = bu;
+
+	if (unified || numbits(mod) > 4)
+	{
+		uint mask = 0x11;
+		for (uint i = 0; i < 4; i++)
+		{
+			if (mod & (mask << i))
+			{
+				strcpy(p, names[i]);
+				p = strchr(p, 0);
+			}
+		}
+	}
+	else
+	{
+		uint mask = 0x01;
+		for (uint i = 0; i < 8; i++)
+		{
+			if (mod & (mask << i))
+			{
+				*p++ = i < 4 ? 'l' : 'r';
+				strcpy(p, names[i & 3]);
+				p = strchr(p, 0);
+			}
+		}
+	}
+
+	assert(p > bu);
+	*--p = 0;
+	return kio::dupstr(bu);
 }

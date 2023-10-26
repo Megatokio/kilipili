@@ -185,7 +185,37 @@ enum HIDKey : uint8 {
 	KEY_GUI_RIGHT,			 // 0xE7
 };
 
+inline bool isaModifier(HIDKey key) noexcept { return key >= KEY_CONTROL_LEFT && key <= KEY_GUI_RIGHT; }
+
+// Modifier key masks in keyboard reports:
+enum Modifiers : uint8 {
+	LEFTCTRL   = 1 << 0, // Left Control
+	LEFTSHIFT  = 1 << 1, // Left Shift
+	LEFTALT	   = 1 << 2, // Left Alt
+	LEFTGUI	   = 1 << 3, // Left Window
+	RIGHTCTRL  = 1 << 4, // Right Control
+	RIGHTSHIFT = 1 << 5, // Right Shift
+	RIGHTALT   = 1 << 6, // Right Alt
+	RIGHTGUI   = 1 << 7, // Right Window
+
+	NO_MODIFIERS = 0,
+	CTRL		 = LEFTCTRL + RIGHTCTRL,
+	SHIFT		 = LEFTSHIFT + RIGHTSHIFT,
+	ALT			 = LEFTALT + RIGHTALT,
+	GUI			 = LEFTGUI + RIGHTGUI
+};
+
+// USB keyboard report in "boot" mode
+struct HidKeyboardReport
+{
+	Modifiers modifiers; // Modifier keys
+	uint8	  reserved;	 // Reserved for OEM use, always set to 0
+	HIDKey	  keys[6];	 // USB/HID Key codes of the currently pressed keys
+};
+
+
 } // namespace kio::USB
 
 
 extern cstr tostr(kio::USB::HIDKey key);
+extern cstr tostr(kio::USB::Modifiers, bool left_right_unified = true) noexcept;

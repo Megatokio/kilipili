@@ -35,7 +35,6 @@
 */
 
   #include "hid_handler.h"
-  #include "standard_types.h"
   #include <class/hid/hid_host.h>
   #include <tusb.h>
 
@@ -51,9 +50,15 @@ static struct
 } hid_info[CFG_TUH_HID];
 
 
-//--------------------------------------------------------------------
-// Generic Report
-//--------------------------------------------------------------------
+namespace kio::USB
+{
+static HidKeyboardEventHandler* keyboard_event_handler = defaultHidKeyboardEventHandler;
+
+void setHidKeyboardEventHandler(HidKeyboardEventHandler* handler) noexcept
+{
+	keyboard_event_handler = handler ? handler : defaultHidKeyboardEventHandler;
+}
+
 
 static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* report, uint16 len)
 {
@@ -109,7 +114,7 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 		case HID_USAGE_DESKTOP_KEYBOARD:
 			//printf("HID receive keyboard report\n");
 			// Assume keyboard follow boot report layout
-			kio::USB::handle_hid_keyboard_event(reinterpret_cast<const hid_keyboard_report_t*>(report));
+			keyboard_event_handler(reinterpret_cast<const HidKeyboardReport&>(*report));
 			break;
   #endif
 
@@ -117,7 +122,7 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 		case HID_USAGE_DESKTOP_MOUSE:
 			//printf("HID receive mouse report\n");
 			// Assume mouse follow boot report layout
-			kio::USB::handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
+			handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
 			break;
   #endif
 
@@ -125,6 +130,8 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 		}
 	}
 }
+
+} // namespace kio::USB
 
 
 //--------------------------------------------------------------------
@@ -172,19 +179,21 @@ extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const
 {
 	// Received report from device via interrupt endpoint
 
+	using namespace kio::USB;
+
 	switch (tuh_hid_interface_protocol(dev_addr, instance))
 	{
   #if ENABLE_USB_KEYBOARD
 	case HID_ITF_PROTOCOL_KEYBOARD:
 		//printf("HID receive boot keyboard report\n");
-		kio::USB::handle_hid_keyboard_event(reinterpret_cast<const hid_keyboard_report_t*>(report));
+		keyboard_event_handler(reinterpret_cast<const HidKeyboardReport&>(*report));
 		break;
   #endif
 
   #if ENABLE_USB_MOUSE
 	case HID_ITF_PROTOCOL_MOUSE:
 		//printf("HID receive boot mouse report\n");
-		kio::USB::handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
+		handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
 		break;
   #endif
 
