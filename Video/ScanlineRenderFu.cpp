@@ -755,99 +755,106 @@ template<>
 XRAM void
 scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	if constexpr (0)
+	// 2023-10-27
+	// this version displays 1024x768 with avg/max load = 247.1/259.3MHz
+
+	uint32 ctable[4];
+	interp_set_base(interp1, lane1, uint32(ctable));
+
+	if ((width & 31) == 0)
 	{
-		uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
-		const uint8*  pixels	 = _pixels;
+		uint32*		  dest		 = reinterpret_cast<uint32*>(_dest);
+		const uint32* pixels	 = reinterpret_cast<const uint32*>(_pixels);
 		const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
 
-		for (uint i = 0; i < width / 8; i++)
+		for (uint i = 0; i < width / 32; i++)
 		{
-			interp_set_base(interp1, lane1, uint32(attributes++));
-			interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
+			{
+				uint32 color10 = *attributes++;
+				uint32 color01 = (color10 >> 16) | (color10 << 16);
+				uint32 xxx	   = uint16(color01 ^ color10);
+				ctable[1]	   = color01;
+				ctable[2]	   = color10;
+				ctable[0]	   = color01 ^ xxx;
+				ctable[3]	   = color10 ^ xxx;
+			}
 
-			*dest++ = *next_color(interp1);
-			*dest++ = *next_color(interp1);
-			*dest++ = *next_color(interp1);
-			*dest++ = *next_color(interp1);
-			*dest++ = *next_color(interp1);
-			*dest++ = *next_color(interp1);
-			*dest++ = *next_color(interp1);
-			*dest++ = *next_color(interp1);
+			uint32 bits = *pixels++;
+			interp_set_accumulator(interp1, lane0, bits);
+
+			*dest++ = ctable[bits & 3];
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+
+			{
+				uint32 color10 = *attributes++;
+				uint32 color01 = (color10 >> 16) | (color10 << 16);
+				uint32 xxx	   = uint16(color01 ^ color10);
+				ctable[1]	   = color01;
+				ctable[2]	   = color10;
+				ctable[0]	   = color01 ^ xxx;
+				ctable[3]	   = color10 ^ xxx;
+			}
+
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+
+			{
+				uint32 color10 = *attributes++;
+				uint32 color01 = (color10 >> 16) | (color10 << 16);
+				uint32 xxx	   = uint16(color01 ^ color10);
+				ctable[1]	   = color01;
+				ctable[2]	   = color10;
+				ctable[0]	   = color01 ^ xxx;
+				ctable[3]	   = color10 ^ xxx;
+			}
+
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+
+			{
+				uint32 color10 = *attributes++;
+				uint32 color01 = (color10 >> 16) | (color10 << 16);
+				uint32 xxx	   = uint16(color01 ^ color10);
+				ctable[1]	   = color01;
+				ctable[2]	   = color10;
+				ctable[0]	   = color01 ^ xxx;
+				ctable[3]	   = color10 ^ xxx;
+			}
+
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 		}
 	}
-
-	else if constexpr (0)
+	else if constexpr (1)
 	{
-		uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
-		const int8*	  pixels	 = reinterpret_cast<const int8*>(_pixels);
-		const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
+		// 400*300: 400 = 16 * 25 => not a multiple of 32!
+		// 0x184 bytes in scratch_x
+		// avg/max load = 44.1/46.4MHz
 
-		for (uint i = 0; i < width / 8; i++)
-		{
-			int8   px	  = *pixels++;
-			uint32 colors = *attributes++;
-			uint16 color0 = uint16(colors);
-			uint16 color1 = colors >> 16;
-
-			*dest++ = int8(px << 7) < 0 ? color1 : color0;
-			*dest++ = int8(px << 6) < 0 ? color1 : color0;
-			*dest++ = int8(px << 5) < 0 ? color1 : color0;
-			*dest++ = int8(px << 4) < 0 ? color1 : color0;
-			*dest++ = int8(px << 3) < 0 ? color1 : color0;
-			*dest++ = int8(px << 2) < 0 ? color1 : color0;
-			*dest++ = int8(px << 1) < 0 ? color1 : color0;
-			*dest++ = int8(px << 0) < 0 ? color1 : color0;
-		}
-	}
-
-	else if constexpr (0)
-	{
-		uint16*		 dest		= reinterpret_cast<uint16*>(_dest);
-		const int8*	 pixels		= reinterpret_cast<const int8*>(_pixels);
-		const uint8* attributes = reinterpret_cast<const uint8*>(_attributes);
-
-		for (uint i = 0; i < width / 8; i++)
-		{
-			int8 px = *pixels++;
-
-			*dest++ = *reinterpret_cast<const uint16*>(attributes + ((px << 1) & 2));
-			*dest++ = *reinterpret_cast<const uint16*>(attributes + ((px >> 0) & 2));
-			*dest++ = *reinterpret_cast<const uint16*>(attributes + ((px >> 1) & 2));
-			*dest++ = *reinterpret_cast<const uint16*>(attributes + ((px >> 2) & 2));
-			*dest++ = *reinterpret_cast<const uint16*>(attributes + ((px >> 3) & 2));
-			*dest++ = *reinterpret_cast<const uint16*>(attributes + ((px >> 4) & 2));
-			*dest++ = *reinterpret_cast<const uint16*>(attributes + ((px >> 5) & 2));
-			*dest++ = *reinterpret_cast<const uint16*>(attributes + ((px >> 6) & 2));
-
-			attributes += 4;
-		}
-	}
-
-	else
-	{
 		uint32*		  dest		 = reinterpret_cast<uint32*>(_dest);
 		const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels);
 		const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
-
-		uint32 ctable[4];
-		interp_set_base(interp1, lane1, uint32(ctable));
-
-		uint32 color10_blk1;
-		uint32 color10_blk2 = 0;
 
 		for (uint i = 0; i < width / 16; i++)
 		{
 			interp_set_accumulator(interp1, lane0, uint(*pixels++) << 2);
 
-			color10_blk1 = attributes[0];
-			if (color10_blk1 != color10_blk2)
 			{
-				ctable[2]	   = color10_blk1;
-				uint32 color01 = ctable[1] = (color10_blk1 >> 16) | (color10_blk1 << 16);
-				uint32 xxx				   = uint16(color01 ^ color10_blk1);
-				ctable[0]				   = color01 ^ xxx;
-				ctable[3]				   = color10_blk1 ^ xxx;
+				uint32 color10 = *attributes++;
+				uint32 color01 = (color10 >> 16) | (color10 << 16);
+				uint32 xxx	   = uint16(color01 ^ color10);
+				ctable[1]	   = color01;
+				ctable[2]	   = color10;
+				ctable[0]	   = color01 ^ xxx;
+				ctable[3]	   = color10 ^ xxx;
 			}
 
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
@@ -855,29 +862,54 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 
-			color10_blk2 = attributes[1];
-			if (color10_blk2 != color10_blk1)
 			{
-				ctable[2]	   = color10_blk2;
-				uint32 color01 = ctable[1] = (color10_blk2 >> 16) | (color10_blk2 << 16);
-				uint32 xxx				   = uint16(color01 ^ color10_blk2);
-				ctable[0]				   = color01 ^ xxx;
-				ctable[3]				   = color10_blk2 ^ xxx;
+				uint32 color10 = *attributes++;
+				uint32 color01 = (color10 >> 16) | (color10 << 16);
+				uint32 xxx	   = uint16(color01 ^ color10);
+				ctable[1]	   = color01;
+				ctable[2]	   = color10;
+				ctable[0]	   = color01 ^ xxx;
+				ctable[3]	   = color10 ^ xxx;
 			}
 
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+		}
+	}
+	else
+	{
+		// 400*300: 400 = 16 * 25 => not a multiple of 32!
+		// 0x154 bytes in scratch_x
+		// avg/max load = 48.8/51.4MHz
 
-			attributes += 2;
+		uint32*		  dest		 = reinterpret_cast<uint32*>(_dest);
+		const uint8*  pixels	 = reinterpret_cast<const uint8*>(_pixels);
+		const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
+
+		for (uint i = 0; i < width / 8; i++)
+		{
+			interp_set_accumulator(interp1, lane0, uint(*pixels++) << 2);
+
+			{
+				uint32 color10 = *attributes++;
+				uint32 color01 = (color10 >> 16) | (color10 << 16);
+				uint32 xxx	   = uint16(color01 ^ color10);
+				ctable[1]	   = color01;
+				ctable[2]	   = color10;
+				ctable[0]	   = color01 ^ xxx;
+				ctable[3]	   = color10 ^ xxx;
+			}
+
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 		}
 	}
 }
 
-#if 0
-template void setupScanlineRenderer<colormode_a1w8_rgb>(const Color* colormap);
-#else
 template<>
 void setupScanlineRenderer<colormode_a1w8_rgb>(const Color* /*colormap*/)
 {
@@ -896,7 +928,6 @@ void setupScanlineRenderer<colormode_a1w8_rgb>(const Color* /*colormap*/)
 	interp_set_base(interp1, lane0, 0); // lane0: add nothing
 	//interp_set_base(interp1, lane1, uint32(temp_colors)); // lane1: add base of temp_colors[]
 }
-#endif
 
 template void teardownScanlineRenderer<colormode_a1w8_rgb>() noexcept;
 
