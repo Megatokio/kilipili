@@ -11,7 +11,7 @@
 #include "TimingSM.h"
 #include "VideoPlane.h"
 #include "VideoQueue.h"
-#include "composable_scanline.h"
+#include "kilipili_cdefs.h"
 #include "utilities/LoadSensor.h"
 #include "utilities/utilities.h"
 #include <hardware/clocks.h>
@@ -71,35 +71,94 @@ VideoController& VideoController::getRef() noexcept
 {
 	// may panic on first call if HW can't be claimed
 
-	static VideoController scanvideo;
-	return scanvideo;
+	static VideoController videocontroller;
+	return videocontroller;
 }
 
-Error VideoController::setup(const VgaMode* mode, const VgaTiming* timing)
+
+Error VideoController::setup(const VgaMode* mode, bool blocking)
 {
 	assert(get_core_num() == 0);
-	assert(!video_output_enabled);
+
+	assert(state == INVALID);
 	assert(num_planes == 0);
 	assert(num_vblank_actions == 0);
 	assert(idle_action == nullptr);
+	assert(mode != nullptr);
 
-	size.width	= mode->width;
-	size.height = mode->height;
+	vga_mode		= mode;
+	core1_error		= NO_ERROR;
+	requested_state = STOPPED;
+	multicore_launch_core1(start_core1);
+	while (blocking && state == INVALID && core1_error == NO_ERROR) { wfe(); }
+	return core1_error;
+}
+
+void VideoController::startVideo(bool blocking)
+{
+	assert(get_core_num() == 0);
+	assert(requested_state != INVALID);
+
+	requested_state = RUNNING;
+	__sev();
+	while (blocking && state != RUNNING && core1_error == NO_ERROR) { wfe(); }
+}
+
+void VideoController::stopVideo(bool blocking)
+{
+	assert(get_core_num() == 0);
+
+	requested_state = STOPPED;
+	__sev();
+	while (blocking && state != STOPPED) { wfe(); }
+}
+
+void VideoController::teardown(bool blocking) noexcept
+{
+	assert(get_core_num() == 0);
+
+	requested_state = INVALID;
+	while (blocking && state != INVALID) { wfe(); }
+}
+
+Error VideoController::do_setup() noexcept
+{
+	assert(get_core_num() == 1);
+	assert(vga_mode != nullptr);
+
+	size.width	= vga_mode->width;
+	size.height = vga_mode->height;
 
 	pio_set_sm_mask_enabled(video_pio, 0x0f, false); // stop all 4 state machines
 	pio_clear_instruction_memory(video_pio);
 
-	if (Error e = scanline_sm.setup(mode, timing)) return e;
-	if (Error e = timing_sm.setup(mode, timing)) return e;
-
-	is_initialized = true;
+	if (Error e = scanline_sm.setup(vga_mode)) return e;
+	if (Error e = timing_sm.setup(vga_mode->timing)) return e;
 	return NO_ERROR;
 }
 
-void VideoController::teardown() noexcept
+void VideoController::start_video()
 {
-	assert(get_core_num() == 0);
-	assert(!video_output_enabled);
+	assert(get_core_num() == 1);
+
+	video_queue.reset();
+	scanline_sm.start();
+	sleep_ms(1);
+	timing_sm.start();
+	pio_clkdiv_restart_sm_mask(video_pio, SM_MASK); // synchronize fractional divider
+}
+
+void VideoController::stop_video()
+{
+	assert(get_core_num() == 1);
+
+	timing_sm.stop();
+	scanline_sm.stop();
+}
+
+void VideoController::do_teardown() noexcept
+{
+	assert(get_core_num() == 1);
 
 	idle_action		   = nullptr;
 	num_vblank_actions = 0;
@@ -111,121 +170,13 @@ void VideoController::teardown() noexcept
 
 	while (num_planes)
 	{
-		num_planes--;
-		planes[num_planes]->teardown(num_planes, video_queue);
-	}
-
-	is_initialized = false;
-}
-
-void VideoController::addOneTimeAction(std::function<void()> fu) noexcept
-{
-	assert(is_initialized);
-	assert(num_onetime_actions < max_onetime_actions);
-	locker();
-	onetime_actions[num_onetime_actions++] = std::move(fu);
-}
-
-void VideoController::addPlane(VideoPlane* plane)
-{
-	assert(is_initialized);
-	assert(plane != nullptr);
-	assert(num_planes < max_planes);
-
-	// plane must be added by core1 because plane->setup() may initialize the hw interp:
-
-	addOneTimeAction([this, plane] {
-		assert(num_planes < max_planes);
-		planes[num_planes] = plane;
-		plane->setup(num_planes, width(), video_queue); // throws
-		num_planes++;
-	});
-}
-
-void VideoController::removePlane(VideoPlane* plane)
-{
-	// plane must be the last plane!
-	// note: normally not used because teardown() removes all planes.
-
-	locker();
-	assert(num_planes && planes[num_planes - 1] == plane);
-
-	// decrement early because video_runner() does not lock
-	plane->teardown(--num_planes, video_queue);
-}
-
-void VideoController::addVBlankAction(VBlankAction* fu, uint8 when) noexcept
-{
-	assert(is_initialized);
-	assert(fu != nullptr);
-
-	locker();
-	assert(num_vblank_actions < max_vblank_actions);
-
-	uint i = num_vblank_actions;
-	while (i && when > vblank_when[i])
-	{
-		vblank_actions[i] = vblank_actions[i - 1];
-		vblank_when[i]	  = vblank_when[i - 1];
-		i--;
-	}
-	vblank_actions[i] = fu;
-	vblank_when[i]	  = when;
-	num_vblank_actions += 1;
-}
-
-void VideoController::removeVBlankAction(VBlankAction* fu)
-{
-	locker();
-
-	for (uint i = 0; i < num_vblank_actions; i++)
-	{
-		if (vblank_actions[i] == fu)
-		{
-			while (++i < num_vblank_actions)
-			{
-				vblank_actions[i - 1] = vblank_actions[i];
-				vblank_when[i - 1]	  = vblank_when[i];
-			}
-			num_vblank_actions -= 1;
-			return;
-		}
+		planes[--num_planes]->teardown(num_planes, video_queue); //
 	}
 }
 
-void VideoController::startVideo()
-{
-	assert(get_core_num() == 0);
-	assert(is_initialized);
-	if (video_output_enabled) return;
-
-	video_queue.reset();
-	scanline_sm.start();
-	sleep_ms(1);
-	timing_sm.start();
-	pio_clkdiv_restart_sm_mask(video_pio, SM_MASK); // synchronize fractional divider
-
-	video_output_enabled = true;
-	multicore_launch_core1(core1_runner);
-}
-
-void VideoController::stopVideo()
-{
-	assert(get_core_num() == 0);
-	if (!video_output_enabled) return;
-
-	video_output_enabled = false;
-	while (video_output_running) wfe();
-	multicore_reset_core1();
-
-	timing_sm.stop();
-	scanline_sm.stop();
-}
-
-//static
 void VideoController::core1_runner() noexcept
 {
-	//debuginfo();
+	assert(get_core_num() == 1);
 
 	try
 	{
@@ -233,10 +184,34 @@ void VideoController::core1_runner() noexcept
 		print_stack_free();
 		init_stack_guard();
 
-		auto& scanvideo				   = getRef();
-		scanvideo.video_output_running = true;
-		scanvideo.video_runner();
-		scanvideo.video_output_running = false;
+		core1_error = do_setup();
+		if (core1_error)
+		{
+			__sev();
+			return;
+		}
+
+		state = STOPPED;
+		__sev();
+
+		while (requested_state != INVALID)
+		{
+			wfe();
+
+			if (requested_state == RUNNING)
+			{
+				start_video();
+				state = RUNNING;
+				__sev();
+				video_runner();
+				stop_video();
+				state = STOPPED;
+				__sev();
+			}
+		}
+
+		do_teardown();
+		state = INVALID;
 		__sev();
 	}
 	catch (std::exception& e)
@@ -276,7 +251,7 @@ void RAM VideoController::video_runner()
 		{
 			if (row > scanline->id.scanline) // next frame
 			{
-				if (unlikely(!video_output_enabled)) break;
+				if (unlikely(requested_state != RUNNING)) break;
 				locker();
 				if (unlikely(num_onetime_actions))
 				{
@@ -309,6 +284,81 @@ void RAM VideoController::video_runner()
 bool VideoController::in_hblank() noexcept { return scanline_sm.in_hblank(); }
 void VideoController::waitForVBlank() noexcept { scanline_sm.waitForVBlank(); }
 void VideoController::waitForScanline(ScanlineID n) noexcept { scanline_sm.waitForScanline(n); }
+
+void VideoController::addOneTimeAction(std::function<void()> fu) noexcept
+{
+	assert(state != INVALID);
+	assert(num_onetime_actions < max_onetime_actions);
+	locker();
+	onetime_actions[num_onetime_actions++] = std::move(fu);
+}
+
+void VideoController::addPlane(VideoPlane* plane)
+{
+	assert(state != INVALID);
+	assert(plane != nullptr);
+	assert(num_planes < max_planes);
+
+	// plane must be added by core1 because plane->setup() may initialize the hw interp:
+
+	addOneTimeAction([this, plane] {
+		assert(num_planes < max_planes);
+		planes[num_planes] = plane;
+		plane->setup(num_planes, width(), video_queue); // throws
+		num_planes++;
+	});
+}
+
+void VideoController::removePlane(VideoPlane* plane)
+{
+	// plane must be the last plane!
+	// note: normally not used because teardown() removes all planes.
+
+	locker();
+	assert(num_planes && planes[num_planes - 1] == plane);
+
+	// decrement early because video_runner() does not lock
+	plane->teardown(--num_planes, video_queue);
+}
+
+void VideoController::addVBlankAction(VBlankAction* fu, uint8 when) noexcept
+{
+	assert(state != INVALID);
+	assert(fu != nullptr);
+
+	locker();
+	assert(num_vblank_actions < max_vblank_actions);
+
+	uint i = num_vblank_actions;
+	while (i && when > vblank_when[i])
+	{
+		vblank_actions[i] = vblank_actions[i - 1];
+		vblank_when[i]	  = vblank_when[i - 1];
+		i--;
+	}
+	vblank_actions[i] = fu;
+	vblank_when[i]	  = when;
+	num_vblank_actions += 1;
+}
+
+void VideoController::removeVBlankAction(VBlankAction* fu)
+{
+	locker();
+
+	for (uint i = 0; i < num_vblank_actions; i++)
+	{
+		if (vblank_actions[i] == fu)
+		{
+			while (++i < num_vblank_actions)
+			{
+				vblank_actions[i - 1] = vblank_actions[i];
+				vblank_when[i - 1]	  = vblank_when[i];
+			}
+			num_vblank_actions -= 1;
+			return;
+		}
+	}
+}
 
 
 } // namespace kio::Video

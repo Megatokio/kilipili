@@ -225,8 +225,10 @@ void TimingSM::setup_timings(const VgaTiming* timing)
 	program[generate_v_backporch]  = {.program = prog_vblank, .count = count_of(prog_vblank) * v_back_porch};
 }
 
-Error TimingSM::setup(const VgaMode*, const VgaTiming* timing)
+Error TimingSM::setup(const VgaTiming* timing)
 {
+	assert(get_core_num() == 1);
+
 	configure_gpio_pins();
 	configure_dma_channel();
 	install_pio_program(timing->pixel_clock);
@@ -239,6 +241,8 @@ Error TimingSM::setup(const VgaMode*, const VgaTiming* timing)
 
 void TimingSM::start()
 {
+	assert(get_core_num() == 1);
+
 	// restart timing SM and IRQ
 	// can be called while SM is running or stopped
 	// SM will restart with vblank
@@ -259,11 +263,14 @@ void TimingSM::start()
 
 	dma_irqn_set_channel_enabled(DMA_IRQ, DMA_CHANNEL, true); // enable DMA_CHANNEL irqs on DMA_IRQ_0 or 1
 	irq_set_enabled(DMA_IRQ, true);							  // enable DMA_IRQ_0 or 1 interrupt on this core
-	isr();													  // irq_set_pending(DMA_IRQ);						// trigger first irq
+	isr();													  // irq_set_pending(DMA_IRQ);
+															  // trigger first irq
 }
 
 void TimingSM::stop()
 {
+	assert(get_core_num() == 1); // if irq_set_enabled() is called
+
 	// stop timing IRQ and SM
 
 	pio_sm_set_enabled(video_pio, TIMING_SM, false); // stop SM

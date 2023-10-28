@@ -154,7 +154,7 @@ inline void RAM ScanlineSM::prepare_for_active_scanline() noexcept
 	{
 	a:
 		video_queue.push_free(); // release the recent scanline
-		__sev(); 
+		__sev();
 	}
 
 	if (video_queue.full_avail())
@@ -462,25 +462,28 @@ static void configure_dma_channels(uint SM, uint DMA_CHANNEL, uint DMA_CB_CHANNE
 	}
 }*/
 
-Error ScanlineSM::setup(const VgaMode* mode, const VgaTiming* timing)
+Error ScanlineSM::setup(const VgaMode* mode)
 {
+	assert(get_core_num() == 1);
+
+	const VgaTiming* timing = mode->timing;
 	assert(mode->width * mode->xscale <= timing->h_active);
 	assert(mode->height * mode->yscale <= timing->v_active);
 	assert((ScanlineID(100, 10) + 5).scanline == 105);
 
 	setup_gpio_pins();
 
-	video_mode				  = *mode;
-	video_mode.default_timing = timing;
-	missing_scanline		  = pio_program->missing_scanline;
-	y_scale					  = mode->yscale;
-	y_repeat_countdown		  = 1;
-	current_scanline		  = missing_scanline;
-	current_id.frame		  = 0;
-	current_id.scanline		  = 0;
-	last_generated_id		  = current_id;
-	in_vblank				  = false; // true if in the vblank interval
-	scanlines_missed		  = 0;
+	video_mode			= *mode;
+	video_mode.timing	= timing;
+	missing_scanline	= pio_program->missing_scanline;
+	y_scale				= mode->yscale;
+	y_repeat_countdown	= 1;
+	current_scanline	= missing_scanline;
+	current_id.frame	= 0;
+	current_id.scanline = 0;
+	last_generated_id	= current_id;
+	in_vblank			= false; // true if in the vblank interval
+	scanlines_missed	= 0;
 	sem_init(&vblank_begin, 0, 1);
 
 	// get the program, modify it as needed and install it:
@@ -536,6 +539,8 @@ Error ScanlineSM::setup(const VgaMode* mode, const VgaTiming* timing)
 
 void ScanlineSM::start()
 {
+	assert(get_core_num() == 1);
+
 	stop();
 
 	uint jmp = pio_encode_jmp(wait_index);
@@ -549,6 +554,8 @@ void ScanlineSM::start()
 
 void ScanlineSM::stop()
 {
+	assert(get_core_num() == 1);
+
 	pio_set_sm_mask_enabled(video_pio, SM_MASK, false); // stop scanline state machines
 	irq_set_enabled(PIO0_IRQ_0, false);					// disable scanline interrupt
 	abort_all_dma_channels();

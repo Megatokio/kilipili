@@ -36,7 +36,7 @@ public:
 
 	ScanlineSM() = default;
 
-	Error setup(const VgaMode* mode, const VgaTiming* timing);
+	Error setup(const VgaMode* mode);
 	void  start(); // start or restart
 	void  stop();
 

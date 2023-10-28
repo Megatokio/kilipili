@@ -4,9 +4,9 @@
 
 #include "Mouse.h"
 #include "BucketList.h"
-#include "VideoController.h"
 #include "Sprites.h"
 #include "USBHost/hid_handler.h"
+#include "VideoController.h"
 #include "vga_types.h"
 #include <memory>
 
@@ -217,12 +217,13 @@ Mouse& Mouse::getRef() noexcept
 
 static void limit(coord& x, coord& y)
 {
-	Size size = VideoController::size;
+	int width  = VideoController::width();
+	int height = VideoController::height();
 
 	static_assert(int(uint(int16(-123))) == -123);
 
-	if (uint(x) >= uint(size.width)) { x = x < 0 ? 0 : size.width - 1; }
-	if (uint(y) >= uint(size.height)) { y = y < 0 ? 0 : size.height - 1; }
+	if (uint(x) >= uint(width)) { x = x < 0 ? 0 : width - 1; }
+	if (uint(y) >= uint(height)) { y = y < 0 ? 0 : height - 1; }
 }
 
 static void limit(Point& p) { limit(p.x, p.y); }

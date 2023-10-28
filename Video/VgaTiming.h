@@ -196,29 +196,8 @@ constexpr VgaTiming vga_timing_1024x768_50 = {
 static_assert(vga_timing_1024x768_50.h_total() == 1368);
 static_assert(vga_timing_1024x768_50.v_total() == 806);
 
-
-constexpr const VgaTiming* vga_timing[num_screensizes] {
-	&vga_timing_640x480_60, &vga_timing_800x600_60, &vga_timing_1024x768_60,
-	&vga_timing_640x480_60, &vga_timing_800x600_60, &vga_timing_1024x768_60,
-};
-
-
-// use these if you want type or range checking on the index:
-
-constexpr const VgaTiming* getVgaTiming(ScreenSize ss)
-{
-	assert(ss <= num_screensizes);
-	return vga_timing[ss];
-}
-
-template<ScreenSize SS>
-constexpr const VgaTiming* getVgaTiming()
-{
-	return vga_timing[SS];
-}
-
-
 } // namespace kio::Video
+
 
 inline cstr tostr(kio::Video::ScreenSize ss)
 {

@@ -34,7 +34,7 @@ struct TimingSM
 
 	uint8 video_htiming_load_offset;
 
-	Error setup(const VgaMode*, const VgaTiming*);
+	Error setup(const VgaTiming*);
 	void  start(); // start or restart
 	void  stop();
 
