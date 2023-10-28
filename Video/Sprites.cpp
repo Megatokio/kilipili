@@ -11,6 +11,8 @@
 #include <pico/sync.h>
 
 
+#if 0
+
 namespace kio::Video
 {
 
@@ -20,10 +22,10 @@ using namespace Graphics;
 // also, there should be no const data accessed in hot video code for the same reason.
 // the most timecritical things should go into core1 stack page because it is not contended.
 
-#define WRAP(X)	 #X
-#define XWRAP(X) WRAP(X)
-#define XRAM	 __attribute__((section(".scratch_x.spr" XWRAP(__LINE__))))		// the 4k page with the core1 stack
-#define RAM		 __attribute__((section(".time_critical.spr" XWRAP(__LINE__)))) // general ram
+  #define WRAP(X)  #X
+  #define XWRAP(X) WRAP(X)
+  #define XRAM	   __attribute__((section(".scratch_x.spr" XWRAP(__LINE__))))	  // the 4k page with the core1 stack
+  #define RAM	   __attribute__((section(".time_critical.spr" XWRAP(__LINE__)))) // general ram
 
 
 static spin_lock_t* spinlock = nullptr;
@@ -35,7 +37,7 @@ struct Locker
 	~Locker() noexcept { spin_unlock(spinlock, state); }
 };
 
-#define lock_list() Locker _locklist
+  #define lock_list() Locker _locklist
 
 
 // =============================================================
@@ -115,15 +117,15 @@ Shape::Shape(const Graphics::Pixmap_rgb& pixmap, int16 hot_x, int16 hot_y) :
 {}
 
 constexpr Color bitmap_test1[] = {
-#define _ transparent,
-#define b Color::fromRGB8(0, 0, 0),
-#define F Color::fromRGB8(0xEE, 0xEE, 0xFF),
+  #define _			  transparent,
+  #define b			  Color::fromRGB8(0, 0, 0),
+  #define F			  Color::fromRGB8(0xEE, 0xEE, 0xFF),
 
 	_ _ F _ _ F _ _ _ _ _ _ _ F F _
 
-#undef _
-#undef b
-#undef F
+  #undef _
+  #undef b
+  #undef F
 };
 
 static_assert(Shape::Row::calc_size(4, 4, bitmap_test1).second == 4);
@@ -134,8 +136,8 @@ static_assert(Shape::Row::calc_size(4, 4, bitmap_test1).first == 9);
 //		HotList and DisplayList::scanlineRenderer()
 // =============================================================
 
-#pragma GCC push_options
-#pragma GCC optimize("O3")
+  #pragma GCC push_options
+  #pragma GCC optimize("O3")
 
 static inline XRAM uint16* store_transp(uint16* dp, int cnt)
 {
@@ -688,7 +690,7 @@ RAM uint Sprites::renderScanline(int row, uint32* data_out) noexcept
 	return uint(dp - buffer) / 2; // return pointer behind data written
 }
 
-#pragma GCC pop_options
+  #pragma GCC pop_options
 
 
 // =============================================================
@@ -982,3 +984,6 @@ void RAM Sprites::vblank() noexcept
 }
 
 } // namespace kio::Video
+
+
+#endif

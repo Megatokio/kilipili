@@ -17,7 +17,7 @@
 
 namespace kio::Video
 {
-extern void framebuffer_setup_helper(uint plane, coord width, VideoQueue& vq);
+extern void framebuffer_setup_helper(coord width, VideoQueue& vq);
 
 
 /*
@@ -46,18 +46,18 @@ public:
 
 	virtual ~FrameBuffer() noexcept override = default;
 
-	virtual void setup(uint plane, coord width, VideoQueue& vq) override
+	virtual void setup(coord width, VideoQueue& vq) override
 	{
-		VideoPlane::setup(plane, width, vq); // setup buffers
+		VideoPlane::setup(width, vq);		 // setup buffers
 		setupScanlineRenderer<CM>(colormap); // setup render function
-		framebuffer_setup_helper(plane, width, vq);
-		FrameBuffer::vblank();				 // reset state variables
+		framebuffer_setup_helper(width, vq);
+		FrameBuffer::vblank(); // reset state variables
 	}
 
-	virtual void teardown(uint plane, VideoQueue& vq) noexcept override
+	virtual void teardown(VideoQueue& vq) noexcept override
 	{
 		teardownScanlineRenderer<CM>();
-		VideoPlane::teardown(plane, vq);
+		VideoPlane::teardown(vq);
 	}
 
 	virtual uint RAM renderScanline(int row, uint32* plane_data) noexcept override final
@@ -114,18 +114,18 @@ public:
 
 	virtual ~FrameBuffer() noexcept override = default;
 
-	virtual void setup(uint plane, coord width, VideoQueue& vq) override // may throw
+	virtual void setup(coord width, VideoQueue& vq) override // may throw
 	{
-		VideoPlane::setup(plane, width, vq); // setup buffers
+		VideoPlane::setup(width, vq);		 // setup buffers
 		setupScanlineRenderer<CM>(colormap); // setup render function
-		framebuffer_setup_helper(plane, width, vq);
-		FrameBuffer::vblank();				 // reset state variables
+		framebuffer_setup_helper(width, vq);
+		FrameBuffer::vblank(); // reset state variables
 	}
 
-	virtual void teardown(uint plane, VideoQueue& vq) noexcept override
+	virtual void teardown(VideoQueue& vq) noexcept override
 	{
 		teardownScanlineRenderer<CM>();
-		VideoPlane::teardown(plane, vq);
+		VideoPlane::teardown(vq);
 	}
 
 	virtual uint RAM renderScanline(int row, uint32* plane_data) noexcept override final

@@ -38,25 +38,15 @@ union ScanlineID
 struct Scanline
 {
 	ScanlineID id = 0;
-#if PICO_SCANVIDEO_PLANE1_FIXED_FRAGMENT_DMA || PICO_SCANVIDEO_PLANE2_FIXED_FRAGMENT_DMA || \
-	PICO_SCANVIDEO_PLANE3_FIXED_FRAGMENT_DMA
+#if PICO_SCANVIDEO_FIXED_FRAGMENT_DMA
 	uint16 fragment_words = 0;
 #else
 	static uint16 fragment_words; // nowhere declared, only for dead code
 #endif
 
-	struct PlaneData
-	{
-		uint32* data = nullptr;
-		uint16	used = 0;
-		uint16	max	 = 0;
-	};
-
-	PlaneData data[PICO_SCANVIDEO_PLANE_COUNT];
-
-	//Error allocate(uint a, uint b=0, uint c=0);
-	//bool is_allocated() const;
-	//void purge();
+	uint32* data = nullptr;
+	uint16	used = 0;
+	uint16	max	 = 0;
 };
 
 } // namespace kio::Video

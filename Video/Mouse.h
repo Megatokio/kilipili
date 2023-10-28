@@ -66,6 +66,7 @@ enum MouseShapeID {
 	MOUSE_MAGNIFY,
 };
 
+#if 0 
 
 class Mouse : public Sprite
 {
@@ -105,6 +106,9 @@ extern void setMouseReportHandler(MouseReportHandler&) noexcept;
 extern void setMouseEventHandler(MouseEventHandler&) noexcept;
 extern void enableMouseMoveEvents(bool = true) noexcept;
 extern void setMouseEventHandler(MouseEventHandler&, bool enable_mouse_move_events) noexcept;
+
+
+#endif
 
 
 } // namespace kio::Video

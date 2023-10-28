@@ -13,16 +13,6 @@ namespace kio::Video
 
 using namespace Graphics;
 
-#define PICO_SCANVIDEO_PLANE1_FRAGMENT_DMA \
-  (PICO_SCANVIDEO_PLANE1_VARIABLE_FRAGMENT_DMA || PICO_SCANVIDEO_PLANE1_FIXED_FRAGMENT_DMA)
-#define PICO_SCANVIDEO_PLANE2_FRAGMENT_DMA                                                      \
-  ((PICO_SCANVIDEO_PLANE2_VARIABLE_FRAGMENT_DMA || PICO_SCANVIDEO_PLANE2_FIXED_FRAGMENT_DMA) && \
-   PICO_SCANVIDEO_PLANE_COUNT >= 2)
-#define PICO_SCANVIDEO_PLANE3_FRAGMENT_DMA                                                      \
-  ((PICO_SCANVIDEO_PLANE3_VARIABLE_FRAGMENT_DMA || PICO_SCANVIDEO_PLANE3_FIXED_FRAGMENT_DMA) && \
-   PICO_SCANVIDEO_PLANE_COUNT >= 3)
-static_assert(!PICO_SCANVIDEO_PLANE3_FRAGMENT_DMA, "not implemented");
-
 #ifndef PICO_SCANVIDEO_MISSING_SCANLINE_COLOR
   #define PICO_SCANVIDEO_MISSING_SCANLINE_COLOR bright_red
 #endif
@@ -41,24 +31,7 @@ static uint32 missing_scanline_data[] = {
 	COMPOSABLE_COLOR_RUN | uint32(PICO_SCANVIDEO_MISSING_SCANLINE_COLOR << 16u),
 	/*width-3*/ 0u | (COMPOSABLE_RAW_1P << 16u), black | (COMPOSABLE_EOL_ALIGN << 16u)};
 
-#if 1 && PICO_SCANVIDEO_PLANE_COUNT >= 2
-static uint32 missing_scanline_data_overlay[] = {
-	// blank line
-	(COMPOSABLE_EOL_SKIP_ALIGN) | (COMPOSABLE_EOL_ALIGN << 16)};
-#endif
-
-#if PICO_SCANVIDEO_PLANE1_VARIABLE_FRAGMENT_DMA || PICO_SCANVIDEO_PLANE2_VARIABLE_FRAGMENT_DMA || \
-	PICO_SCANVIDEO_PLANE3_VARIABLE_FRAGMENT_DMA
-static uint32 variable_fragment_missing_scanline_data_chain[] = {
-	count_of(missing_scanline_data),
-	reinterpret_cast<uint32>(missing_scanline_data),
-	0,
-	0,
-};
-#endif
-
-#if PICO_SCANVIDEO_PLANE1_FIXED_FRAGMENT_DMA || PICO_SCANVIDEO_PLANE2_FIXED_FRAGMENT_DMA || \
-	PICO_SCANVIDEO_PLANE3_FIXED_FRAGMENT_DMA
+#if PICO_SCANVIDEO_FIXED_FRAGMENT_DMA
 static uint32 fixed_fragment_missing_scanline_data_chain[] = {
 	reinterpret_cast<uint32>(missing_scanline_data),
 	0,
@@ -67,40 +40,11 @@ static uint32 fixed_fragment_missing_scanline_data_chain[] = {
 
 static Scanline video_24mhz_composable_missing_scanline
 {
-#if PICO_SCANVIDEO_PLANE1_FIXED_FRAGMENT_DMA || PICO_SCANVIDEO_PLANE2_FIXED_FRAGMENT_DMA || \
-	PICO_SCANVIDEO_PLANE3_FIXED_FRAGMENT_DMA
-	.fragment_words = 0,
-#endif
-
-	.data = {
-#if PICO_SCANVIDEO_PLANE1_VARIABLE_FRAGMENT_DMA
-		variable_fragment_missing_scanline_data_chain,
-#elif PICO_SCANVIDEO_PLANE1_FIXED_FRAGMENT_DMA
-		fixed_fragment_missing_scanline_data_chain,
+#if PICO_SCANVIDEO_FIXED_FRAGMENT_DMA
+	.fragment_words = 0, fixed_fragment_missing_scanline_data_chain,
 #else
-		{.data = missing_scanline_data, .used = count_of(missing_scanline_data)},
+	.data = missing_scanline_data, .used = count_of(missing_scanline_data)
 #endif
-
-#if PICO_SCANVIDEO_PLANE_COUNT >= 2
-  #if PICO_SCANVIDEO_PLANE2_VARIABLE_FRAGMENT_DMA
-		variable_fragment_missing_scanline_data_chain,
-  #elif PICO_SCANVIDEO_PLANE2_VARIABLE_FRAGMENT_DMA
-		fixed_fragment_missing_scanline_data_chain,
-  #else
-		{.data = missing_scanline_data_overlay, .used = count_of(missing_scanline_data_overlay)},
-  #endif
-#endif
-
-#if PICO_SCANVIDEO_PLANE_COUNT >= 3
-  #if PICO_SCANVIDEO_PLANE3_VARIABLE_FRAGMENT_DMA
-		variable_fragment_missing_scanline_data_chain,
-  #elif PICO_SCANVIDEO_PLANE3_VARIABLE_FRAGMENT_DMA
-		fixed_fragment_missing_scanline_data_chain,
-  #else
-		{.data = missing_scanline_data_overlay, .used = count_of(missing_scanline_data_overlay)},
-  #endif
-#endif
-	}
 };
 
 

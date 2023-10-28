@@ -30,14 +30,10 @@
 namespace kio::Video
 {
 
-constexpr uint32 DMA_CHANNELS_MASK = (1u << PICO_SCANVIDEO_TIMING_DMA_CHANNEL) |
-									 (1u << PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL1) |
-									 ((PICO_SCANVIDEO_PLANE_COUNT >= 2) << PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL2) |
-									 ((PICO_SCANVIDEO_PLANE_COUNT >= 3) << PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL3);
+constexpr uint32 DMA_CHANNELS_MASK =
+	(1u << PICO_SCANVIDEO_TIMING_DMA_CHANNEL) | (1u << PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL);
 
-constexpr uint32 SM_MASK = (1u << PICO_SCANVIDEO_SCANLINE_SM1) | (1u << PICO_SCANVIDEO_TIMING_SM) |
-						   ((PICO_SCANVIDEO_PLANE_COUNT >= 2) << PICO_SCANVIDEO_SCANLINE_SM2) |
-						   ((PICO_SCANVIDEO_PLANE_COUNT >= 3) << PICO_SCANVIDEO_SCANLINE_SM3);
+constexpr uint32 SM_MASK = (1u << PICO_SCANVIDEO_SCANLINE_SM1) | (1u << PICO_SCANVIDEO_TIMING_SM);
 
 #define RAM __attribute__((section(".time_critical.Scanvideo")))
 
@@ -170,7 +166,7 @@ void VideoController::do_teardown() noexcept
 
 	while (num_planes)
 	{
-		planes[--num_planes]->teardown(num_planes, video_queue); //
+		planes[--num_planes]->teardown(video_queue); //
 	}
 }
 
@@ -272,9 +268,8 @@ void RAM VideoController::video_runner()
 
 		for (uint i = 0; i < num_planes; i++)
 		{
-			auto& data = scanline->data[i];
-			data.used  = uint16(planes[i]->renderScanline(row, data.data));
-			assert(data.used <= data.max);
+			scanline->used = uint16(planes[i]->renderScanline(row, scanline->data));
+			assert(scanline->used == scanline->max);
 		}
 
 		scanline_sm.pushGeneratedScanline();
@@ -304,7 +299,7 @@ void VideoController::addPlane(VideoPlane* plane)
 	addOneTimeAction([this, plane] {
 		assert(num_planes < max_planes);
 		planes[num_planes] = plane;
-		plane->setup(num_planes, width(), video_queue); // throws
+		plane->setup(width(), video_queue); // throws
 		num_planes++;
 	});
 }
@@ -318,7 +313,8 @@ void VideoController::removePlane(VideoPlane* plane)
 	assert(num_planes && planes[num_planes - 1] == plane);
 
 	// decrement early because video_runner() does not lock
-	plane->teardown(--num_planes, video_queue);
+	num_planes--;
+	plane->teardown(video_queue);
 }
 
 void VideoController::addVBlankAction(VBlankAction* fu, uint8 when) noexcept

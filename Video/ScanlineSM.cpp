@@ -33,34 +33,16 @@ namespace kio::Video
 
 #define PIO_WAIT_IRQ4 pio_encode_wait_irq(1, false, 4)
 
-constexpr uint DMA_CHANNEL1	   = PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL1;
-constexpr uint DMA_CHANNEL2	   = PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL2;
-constexpr uint DMA_CHANNEL3	   = PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL3;
-constexpr uint DMA_CB_CHANNEL1 = PICO_SCANVIDEO_SCANLINE_DMA_CB_CHANNEL1;
-constexpr uint DMA_CB_CHANNEL2 = PICO_SCANVIDEO_SCANLINE_DMA_CB_CHANNEL2;
-constexpr uint DMA_CB_CHANNEL3 = PICO_SCANVIDEO_SCANLINE_DMA_CB_CHANNEL3;
+constexpr uint DMA_CHANNEL	  = PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL;
+constexpr uint DMA_CB_CHANNEL = PICO_SCANVIDEO_SCANLINE_DMA_CB_CHANNEL;
 
-constexpr uint SM1 = PICO_SCANVIDEO_SCANLINE_SM1;
-constexpr uint SM2 = PICO_SCANVIDEO_SCANLINE_SM2;
-constexpr uint SM3 = PICO_SCANVIDEO_SCANLINE_SM3;
+constexpr uint SM = PICO_SCANVIDEO_SCANLINE_SM1;
 
-constexpr uint PLANE_COUNT = PICO_SCANVIDEO_PLANE_COUNT;
+constexpr uint32 DMA_CHANNELS_MASK = (1u << DMA_CHANNEL);
 
-constexpr uint32 DMA_CHANNELS_MASK =
-	(1u << DMA_CHANNEL1) | ((PLANE_COUNT >= 2) << DMA_CHANNEL2) | ((PLANE_COUNT >= 3) << DMA_CHANNEL3);
+constexpr uint32 SM_MASK = (1u << SM);
 
-constexpr uint32 SM_MASK = (1u << SM1) | ((PLANE_COUNT >= 2) << SM2) | ((PLANE_COUNT >= 3) << SM3);
-
-constexpr bool VARIABLE_FRAGMENT_DMA1 = PICO_SCANVIDEO_PLANE1_VARIABLE_FRAGMENT_DMA;
-constexpr bool FIXED_FRAGMENT_DMA1	  = PICO_SCANVIDEO_PLANE1_FIXED_FRAGMENT_DMA;
-constexpr bool VARIABLE_FRAGMENT_DMA2 = PICO_SCANVIDEO_PLANE2_VARIABLE_FRAGMENT_DMA;
-constexpr bool FIXED_FRAGMENT_DMA2	  = PICO_SCANVIDEO_PLANE2_FIXED_FRAGMENT_DMA;
-constexpr bool VARIABLE_FRAGMENT_DMA3 = PICO_SCANVIDEO_PLANE3_VARIABLE_FRAGMENT_DMA;
-constexpr bool FIXED_FRAGMENT_DMA3	  = PICO_SCANVIDEO_PLANE3_FIXED_FRAGMENT_DMA;
-
-constexpr bool FRAGMENT_DMA1 = (VARIABLE_FRAGMENT_DMA1 || FIXED_FRAGMENT_DMA1);
-constexpr bool FRAGMENT_DMA2 = (VARIABLE_FRAGMENT_DMA2 || FIXED_FRAGMENT_DMA2) && PLANE_COUNT >= 2;
-constexpr bool FRAGMENT_DMA3 = (VARIABLE_FRAGMENT_DMA3 || FIXED_FRAGMENT_DMA3) && PLANE_COUNT >= 3;
+constexpr bool FIXED_FRAGMENT_DMA = PICO_SCANVIDEO_FIXED_FRAGMENT_DMA;
 
 constexpr bool ENABLE_VIDEO_RECOVERY = PICO_SCANVIDEO_ENABLE_VIDEO_RECOVERY;
 constexpr bool ENABLE_CLOCK_PIN		 = PICO_SCANVIDEO_ENABLE_CLOCK_PIN;
@@ -81,9 +63,7 @@ static inline void RAM abort_all_dma_channels() noexcept
 
 	dma_hw->abort = DMA_CHANNELS_MASK;
 
-	while (dma_channel_is_busy(DMA_CHANNEL1)) tight_loop_contents();
-	while (PLANE_COUNT >= 2 && dma_channel_is_busy(DMA_CHANNEL2)) tight_loop_contents();
-	while (PLANE_COUNT >= 3 && dma_channel_is_busy(DMA_CHANNEL3)) tight_loop_contents();
+	while (dma_channel_is_busy(DMA_CHANNEL)) tight_loop_contents();
 
 	// we don't want any pending completion IRQ which may have happened in the interim
 	dma_hw->ints0 = DMA_CHANNELS_MASK; // this is probably not required because we don't use this IRQ
@@ -105,23 +85,9 @@ inline void RAM ScanlineSM::abort_all_scanline_sms() noexcept
 	const uint jmp = pio_encode_jmp(wait_index); // goto WAIT_IRQ4 position
 	//const uint drain = pio_encode_out(pio_null, 32);	// drain the OSR (rp2040 §3.4.7.2)
 
-	pio_sm_clear_fifos(video_pio, SM1); // drain the TX fifo
-	pio_sm_exec(video_pio, SM1, jmp);	// goto WAIT_IRQ4 position
+	pio_sm_clear_fifos(video_pio, SM); // drain the TX fifo
+	pio_sm_exec(video_pio, SM, jmp);   // goto WAIT_IRQ4 position
 	//pio_sm_exec(video_pio, SM1, drain);		// drain the OSR -> blocks & eats one word if OSR is empty (as it should be)
-
-	if (PLANE_COUNT >= 2)
-	{
-		pio_sm_clear_fifos(video_pio, SM2);
-		pio_sm_exec(video_pio, SM2, jmp);
-		//pio_sm_exec(video_pio, SM2, drain);
-	}
-
-	if (PLANE_COUNT >= 3)
-	{
-		pio_sm_clear_fifos(video_pio, SM3);
-		pio_sm_exec(video_pio, SM3, jmp);
-		//pio_sm_exec(video_pio, SM3, drain);
-	}
 }
 
 inline void RAM ScanlineSM::prepare_for_active_scanline() noexcept
@@ -162,8 +128,8 @@ inline void RAM ScanlineSM::prepare_for_active_scanline() noexcept
 		current_scanline = &video_queue.get_full();
 		if (current_scanline->id < current_id)
 			goto a; // outdated
-					// else if the scanline is too early then we display it too early
-					// and remain out of sync. but this should not happen.
+				// else if the scanline is too early then we display it too early
+				// and remain out of sync. but this should not happen.
 	}
 	else
 	{
@@ -175,23 +141,9 @@ start_dma:
 
 	auto* fsb = current_scanline;
 
-	if (FIXED_FRAGMENT_DMA1) dma_channel_hw_addr(DMA_CHANNEL1)->al3_transfer_count = fsb->fragment_words;
-	if (FRAGMENT_DMA1) dma_channel_hw_addr(DMA_CB_CHANNEL1)->al3_read_addr_trig = uintptr_t(fsb->data[0].data);
-	else dma_channel_transfer_from_buffer_now(DMA_CHANNEL1, fsb->data[0].data, fsb->data[0].used);
-
-	if (PLANE_COUNT >= 2)
-	{
-		if (FIXED_FRAGMENT_DMA2) dma_channel_hw_addr(DMA_CHANNEL2)->al3_transfer_count = fsb->fragment_words;
-		if (FRAGMENT_DMA2) dma_channel_hw_addr(DMA_CB_CHANNEL2)->al3_read_addr_trig = uintptr_t(fsb->data[1].data);
-		else dma_channel_transfer_from_buffer_now(DMA_CHANNEL2, fsb->data[1].data, fsb->data[1].used);
-	}
-
-	if (PLANE_COUNT >= 3)
-	{
-		if (FIXED_FRAGMENT_DMA3) dma_channel_hw_addr(DMA_CHANNEL3)->al3_transfer_count = fsb->fragment_words;
-		if (FRAGMENT_DMA3) dma_channel_hw_addr(DMA_CB_CHANNEL3)->al3_read_addr_trig = uintptr_t(fsb->data[2].data);
-		else dma_channel_transfer_from_buffer_now(DMA_CHANNEL3, fsb->data[2].data, fsb->data[2].used);
-	}
+	if (FIXED_FRAGMENT_DMA) dma_channel_hw_addr(DMA_CHANNEL)->al3_transfer_count = fsb->fragment_words;
+	if (FIXED_FRAGMENT_DMA) dma_channel_hw_addr(DMA_CB_CHANNEL)->al3_read_addr_trig = uintptr_t(fsb->data);
+	else dma_channel_transfer_from_buffer_now(DMA_CHANNEL, fsb->data, fsb->used);
 }
 
 inline void RAM ScanlineSM::prepare_for_vblank_scanline() noexcept
@@ -245,11 +197,6 @@ static void RAM isr_pio0_irq0()
 		video_pio->irq = 2; // clear irq
 		scanline_sm.prepare_for_vblank_scanline();
 	}
-
-	//else
-	//{
-	//	panic("unexpected pio0 irq");
-	//}
 }
 
 Scanline* RAM ScanlineSM::getScanlineForGenerating()
@@ -309,8 +256,8 @@ static void configure_sm(uint sm, uint program_load_offset, uint video_clock_dow
 	pio_sm_init(video_pio, sm, program_load_offset, &config); // sm paused
 }
 
-template<bool FIXED_FRAGMENT_DMA, bool VARIABLE_FRAGMENT_DMA>
-static void configure_dma_channels(uint SM, uint DMA_CHANNEL, uint DMA_CB_CHANNEL)
+template<bool FIXED_FRAGMENT_DMA>
+static void configure_dma_channels()
 {
 	// configue scanline dma:
 
@@ -319,7 +266,7 @@ static void configure_dma_channels(uint SM, uint DMA_CHANNEL, uint DMA_CB_CHANNE
 	// Select scanline dma dreq to be SCANLINE_SM TX FIFO not full:
 	channel_config_set_dreq(&config, DREQ_PIO0_TX0 + SM);
 
-	if (FIXED_FRAGMENT_DMA || VARIABLE_FRAGMENT_DMA)
+	if (FIXED_FRAGMENT_DMA)
 	{
 		channel_config_set_chain_to(&config, DMA_CB_CHANNEL);
 		channel_config_set_irq_quiet(&config, true);
@@ -329,140 +276,25 @@ static void configure_dma_channels(uint SM, uint DMA_CHANNEL, uint DMA_CB_CHANNE
 
 	// configure scanline dma channel CB:
 
-	if (FIXED_FRAGMENT_DMA || VARIABLE_FRAGMENT_DMA)
+	if (FIXED_FRAGMENT_DMA)
 	{
 		config = dma_channel_get_default_config(DMA_CB_CHANNEL);
 		channel_config_set_write_increment(&config, true);
 
 		// wrap the write at 4 or 8 bytes, so each transfer writes the same 1 or 2 ctrl registers:
-		channel_config_set_ring(&config, true, VARIABLE_FRAGMENT_DMA ? 3 : 2);
+		channel_config_set_ring(&config, true, 2);
 
 		dma_channel_configure(
 			DMA_CB_CHANNEL, &config,
-			VARIABLE_FRAGMENT_DMA ?
-				// ch DMA config (target "ring" buffer size 8) - this is (transfer_count, read_addr trigger)
-				&dma_channel_hw_addr(DMA_CHANNEL)->al3_transfer_count :
-				// ch DMA config (target "ring" buffer size 4) - this is (read_addr trigger)
-				&dma_channel_hw_addr(DMA_CHANNEL)->al3_read_addr_trig,
+			// ch DMA config (target "ring" buffer size 4) - this is (read_addr trigger)
+			&dma_channel_hw_addr(DMA_CHANNEL)->al3_read_addr_trig,
 			nullptr, // set later
-			// send 1 or 2 words to ctrl block of data chain per transfer:
-			VARIABLE_FRAGMENT_DMA ? 2 : 1, false);
+			// send 1 word to ctrl block of data chain per transfer:
+			1, false);
 	}
 }
 
-/*void ScanlineSM::configure_dma()
-{
-	//irq_set_priority(DMA_IRQ_0, 0x40);	// higher than other crud
-	//dma_set_irq0_channel_mask_enabled(DMA_CHANNELS_MASK, true);
-
-	// todo reset DMA channels
-
-	// configue scanline dma:
-	{
-		dma_channel_config channel_config = dma_channel_get_default_config(DMA_CHANNEL1);
-
-		// Select scanline dma dreq to be SCANLINE_SM TX FIFO not full:
-		channel_config_set_dreq(&channel_config, DREQ_PIO0_TX0 + SM1);
-
-		if (FRAGMENT_DMA1)
-		{
-			channel_config_set_chain_to(&channel_config, DMA_CB_CHANNEL1);
-			channel_config_set_irq_quiet(&channel_config, true);
-		}
-
-		dma_channel_configure(DMA_CHANNEL1,
-							  &channel_config,
-							  &video_pio->txf[SM1],
-							  nullptr, // set later
-							  0, // set later
-							  false);
-	}
-
-	// configure scanline dma channel CB:
-	if (FRAGMENT_DMA1)
-	{
-		dma_channel_config chain_config = dma_channel_get_default_config(DMA_CB_CHANNEL1);
-		channel_config_set_write_increment(&chain_config, true);
-
-		// wrap the write at 4 or 8 bytes, so each transfer writes the same 1 or 2 ctrl registers:
-		channel_config_set_ring(&chain_config, true, VARIABLE_FRAGMENT_DMA1 ? 3 : 2);
-
-		dma_channel_configure(DMA_CB_CHANNEL1,
-				&chain_config,
-				VARIABLE_FRAGMENT_DMA1 ?
-					// ch DMA config (target "ring" buffer size 8) - this is (transfer_count, read_addr trigger)
-					&dma_channel_hw_addr(DMA_CHANNEL1)->al3_transfer_count :
-					// ch DMA config (target "ring" buffer size 4) - this is (read_addr trigger)
-					&dma_channel_hw_addr(DMA_CHANNEL1)->al3_read_addr_trig,
-				nullptr, // set later
-				// send 1 or 2 words to ctrl block of data chain per transfer:
-				VARIABLE_FRAGMENT_DMA1 ? 2 : 1,
-				false);
-	}
-
-	// configure scanline dma for plane 2:
-	if (PLANE_COUNT >= 2)
-	{
-		dma_channel_config channel_config = dma_channel_get_default_config(DMA_CHANNEL2);
-
-		// Select scanline dma dreq to be SCANLINE_SM TX FIFO not full:
-		channel_config_set_dreq(&channel_config, DREQ_PIO0_TX0 + SM2);
-
-		if (FRAGMENT_DMA2)
-		{
-			channel_config_set_chain_to(&channel_config, DMA_CB_CHANNEL2);
-			channel_config_set_irq_quiet(&channel_config, true);
-		}
-
-		dma_channel_configure(DMA_CHANNEL2,
-					  &channel_config,
-					  &video_pio->txf[SM2],
-					  nullptr,	// set later
-					  0,		// set later
-					  false);
-	}
-
-	// configure scanline dma channel CB for plane 2:
-	if (FRAGMENT_DMA2)
-	{
-		dma_channel_config chain_config = dma_channel_get_default_config(DMA_CB_CHANNEL2);
-		channel_config_set_write_increment(&chain_config, true);
-
-		// wrap the write at 4 or 8 bytes, so each transfer writes the same 1 or 2 ctrl registers:
-		channel_config_set_ring(&chain_config, true, VARIABLE_FRAGMENT_DMA2 ? 3 : 2);
-
-		dma_channel_configure(DMA_CB_CHANNEL2,
-				&chain_config,
-				VARIABLE_FRAGMENT_DMA2 ?
-					// ch DMA config (target "ring" buffer size 8) - this is (transfer_count, read_addr trigger)
-					&dma_channel_hw_addr(DMA_CHANNEL2)->al3_transfer_count :
-					// ch DMA config (target "ring" buffer size 4) - this is (read_addr trigger)
-					&dma_channel_hw_addr(DMA_CHANNEL2)->al3_read_addr_trig,
-				nullptr, // set later
-				// send 1 or 2 words to ctrl block of data chain per transfer:
-				VARIABLE_FRAGMENT_DMA2 ? 2 : 1,
-				false);
-	}
-
-	// configure scanline dma for plane 3:
-	if (PLANE_COUNT >= 3)
-	{
-		static_assert(!FRAGMENT_DMA3);
-		dma_channel_config channel_config = dma_channel_get_default_config(DMA_CHANNEL3);
-
-		// Select scanline dma dreq to be SCANLINE_SM TX FIFO not full:
-		channel_config_set_dreq(&channel_config, DREQ_PIO0_TX0 + SM3);
-
-		dma_channel_configure(DMA_CHANNEL3,
-				  &channel_config,
-				  &video_pio->txf[SM3],
-				  nullptr, // set later
-				  0, // set later
-				  false);
-	}
-}*/
-
-Error ScanlineSM::setup(const VgaMode* mode)
+Error ScanlineSM::setup(const VgaMode* mode, uint32* scanlinebuffer[], int count, int size)
 {
 	assert(get_core_num() == 1);
 
@@ -515,9 +347,7 @@ Error ScanlineSM::setup(const VgaMode* mode)
 			return "System clock must be an integer multiple of the requested pixel clock";
 	}
 
-	configure_sm(SM1, program_load_offset, video_clock_down_times_2);
-	if (PLANE_COUNT >= 2) configure_sm(SM2, program_load_offset, video_clock_down_times_2);
-	if (PLANE_COUNT >= 3) configure_sm(SM3, program_load_offset, video_clock_down_times_2);
+	configure_sm(SM, program_load_offset, video_clock_down_times_2);
 
 	// configure scanline interrupts:
 
@@ -528,11 +358,7 @@ Error ScanlineSM::setup(const VgaMode* mode)
 	pio_set_irq0_source_mask_enabled(video_pio, (1u << (pis_interrupt0)) | (1u << (pis_interrupt1)), true);
 	irq_set_exclusive_handler(PIO0_IRQ_0, isr_pio0_irq0);
 
-	configure_dma_channels<FIXED_FRAGMENT_DMA1, VARIABLE_FRAGMENT_DMA1>(SM1, DMA_CHANNEL1, DMA_CB_CHANNEL1);
-	if (PLANE_COUNT >= 2)
-		configure_dma_channels<FIXED_FRAGMENT_DMA2, VARIABLE_FRAGMENT_DMA2>(SM2, DMA_CHANNEL2, DMA_CB_CHANNEL2);
-	if (PLANE_COUNT >= 3)
-		configure_dma_channels<FIXED_FRAGMENT_DMA3, VARIABLE_FRAGMENT_DMA3>(SM3, DMA_CHANNEL3, DMA_CB_CHANNEL3);
+	configure_dma_channels<FIXED_FRAGMENT_DMA>();
 
 	return NO_ERROR;
 }
@@ -544,9 +370,7 @@ void ScanlineSM::start()
 	stop();
 
 	uint jmp = pio_encode_jmp(wait_index);
-	pio_sm_exec(video_pio, SM1, jmp);
-	if (PLANE_COUNT >= 2) pio_sm_exec(video_pio, SM2, jmp);
-	if (PLANE_COUNT >= 3) pio_sm_exec(video_pio, SM3, jmp);
+	pio_sm_exec(video_pio, SM, jmp);
 
 	irq_set_enabled(PIO0_IRQ_0, true);
 	pio_set_sm_mask_enabled(video_pio, SM_MASK, true);
@@ -574,7 +398,7 @@ bool ScanlineSM::in_hblank()
 {
 	// if scanline pio is waiting for IRQ4 then it is not generating pixels:
 
-	return video_pio->sm[SM1].instr == PIO_WAIT_IRQ4;
+	return video_pio->sm[SM].instr == PIO_WAIT_IRQ4;
 }
 
 

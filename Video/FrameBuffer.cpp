@@ -8,11 +8,11 @@
 namespace kio::Video
 {
 
-void framebuffer_setup_helper(uint plane, coord width, VideoQueue& vq)
+void framebuffer_setup_helper(coord width, VideoQueue& vq)
 {
 	for (uint i = 0; i < vq.SIZE; i++) // initialize buffer contents to save time in render loop
 	{
-		auto& plane_data = vq.buckets[i].data[plane];
+		auto& plane_data = vq.buckets[i];
 
 		int size = (width + 4) / 2; // +4 = CMD, count, black, EOL;  /2 = uint16 -> uint32
 		assert_ge(plane_data.max, size);

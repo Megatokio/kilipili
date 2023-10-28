@@ -30,13 +30,13 @@ public:
 		Allocate buffers and initialize buffer with static data, if any, to speed up renderer.
 		The default implementation allocates buffers large enough if all pixels are set with CMD::RAW_RUN
 	*/
-	virtual void setup(uint plane, coord width, VideoQueue& vq)
+	virtual void setup(coord width, VideoQueue& vq)
 	{
 		uint size = uint(width + 4) / 2; // +4 = CMD::RAW_RUN, count, black, CMD::EOL
 
 		for (uint i = 0; i < vq.SIZE; i++)
 		{
-			auto& plane_data = vq.buckets[i].data[plane];
+			auto& plane_data = vq.buckets[i];
 			plane_data.data	 = new (std::nothrow) uint32[size];
 			if (plane_data.data == nullptr) throw OUT_OF_MEMORY;
 			plane_data.used = 0;
@@ -48,11 +48,11 @@ public:
 		Deallocate data buffers.
 		The default implementation deallocates the buffers.
 	*/
-	virtual void teardown(uint plane, VideoQueue& vq) noexcept
+	virtual void teardown(VideoQueue& vq) noexcept
 	{
 		for (uint i = 0; i < vq.SIZE; i++)
 		{
-			auto& plane_data = vq.buckets[i].data[plane];
+			auto& plane_data = vq.buckets[i];
 			delete[] plane_data.data;
 			plane_data.data = nullptr;
 			plane_data.used = 0;

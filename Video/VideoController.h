@@ -85,7 +85,7 @@ public:
 
 	static constexpr uint max_vblank_actions  = 8;
 	static constexpr uint max_onetime_actions = 4;
-	static constexpr uint max_planes		  = PICO_SCANVIDEO_PLANE_COUNT;
+	static constexpr uint max_planes		  = 4;
 
 
 public:

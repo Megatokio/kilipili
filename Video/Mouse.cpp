@@ -2,22 +2,26 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Mouse.h"
-#include "BucketList.h"
-#include "Sprites.h"
-#include "USBHost/hid_handler.h"
-#include "VideoController.h"
-#include "vga_types.h"
-#include <memory>
+
+#if 0
+
+
+  #include "Mouse.h"
+  #include "BucketList.h"
+  #include "Sprites.h"
+  #include "USBHost/hid_handler.h"
+  #include "VideoController.h"
+  #include "vga_types.h"
+  #include <memory>
 
 // all hot video code should go into ram to allow video while flashing.
 // also, there should be no const data accessed in hot video code for the same reason.
 // the most timecritical things should go into core1 stack page because it is not contended.
 
-#define WRAP(X)	 #X
-#define XWRAP(X) WRAP(X)
-#define XRAM	 __attribute__((section(".scratch_x.mouse" XWRAP(__LINE__))))	  // the 4k page with the core1 stack
-#define RAM		 __attribute__((section(".time_critical.mouse" XWRAP(__LINE__)))) // general ram
+  #define WRAP(X)  #X
+  #define XWRAP(X) WRAP(X)
+  #define XRAM	   __attribute__((section(".scratch_x.mouse" XWRAP(__LINE__))))		// the 4k page with the core1 stack
+  #define RAM	   __attribute__((section(".time_critical.mouse" XWRAP(__LINE__)))) // general ram
 
 
 namespace kio::Video
@@ -30,9 +34,9 @@ using namespace Graphics;
 //		MousePointer
 // =============================================================
 
-#define _ transparent,
-#define b Color(0, 0, 0),
-#define F Color::fromRGB8(0xEE, 0xEE, 0xFF),
+  #define _ transparent,
+  #define b Color(0, 0, 0),
+  #define F Color::fromRGB8(0xEE, 0xEE, 0xFF),
 
 // clang-format off
 
@@ -165,9 +169,9 @@ constexpr Color bitmap_busy4[] =
 
 // clang-format on
 
-#undef _
-#undef b
-#undef F
+  #undef _
+  #undef b
+  #undef F
 
 constexpr struct
 {
@@ -409,13 +413,13 @@ void handle_hid_mouse_event(const hid_mouse_report_t* report) noexcept
 }
 
 
-#if 0
+  #if 0
 
-  #include <bsp/ansi_escape.h>
+	#include <bsp/ansi_escape.h>
 
 // If your host terminal support ansi escape code such as TeraTerm
 // it can be use to simulate mouse cursor movement within terminal
-  #define USE_ANSI_ESCAPE 1
+	#define USE_ANSI_ESCAPE 1
 
 void cursor_movement(int8 x, int8 y, int8 wheel)
 {
@@ -464,5 +468,7 @@ void handle_hid_mouse_event(const hid_mouse_report_t* report)
 
 	cursor_movement(report->x, report->y, report->wheel);
 }
+
+  #endif
 
 #endif
