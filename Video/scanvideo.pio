@@ -1,58 +1,21 @@
-;
-; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
-;
-; SPDX-License-Identifier: BSD-3-Clause
-;
-
-; Default scanline program		"||" means aligned word boundary, "|" means hword boundary
+// Copyright (c) 2023 - 2023 kio@little-bat.de
+// BSD-2-Clause license
+// https://opensource.org/licenses/BSD-2-Clause
 
 
-.program video_24mhz_composable_default
-.origin 0				; must load at zero (offsets are hardcoded in instruction stream)
-.define extra0 0		; set later by code based on xscale
-.define extra1 1		; set later by code (1 more than extra0)
+.program video_scanline
 
-; note bpp must be a factor of 32
-.define bpp 16
-;.define bpp 8
+.define BPP 16				; BPP must be 2^N and num_pixels*BPP % 32 must be 0
 
-public end_of_scanline_skip_ALIGN:	; || jmp end_of_scanline_skip_ALIGN | ignored ||
-		out  null, 32				; discard the rest of the OSR
-
-public end_of_scanline_ALIGN:		; | jmp end_of_scanline_ALIGN ||
-
-public entry_point:
-		wait irq, 4					
-public nop_raw:
-		out  pc, bpp
-
-public color_run:					; | jmp color_run | color | count-3 |
-		out  pins, bpp
-		out  x, bpp
-color_loop:
-		jmp  x-- color_loop  [extra1]
-public nop_extra1:
-		out  pc, bpp   [extra1]
-
-public raw_run:						; | jmp raw_run | color | n | <n + 2 colors> |
-		out  pins, bpp [extra0]
-		out  x, bpp
-pixel_loop:
-		out  pins, bpp [extra0]
-		jmp  x-- pixel_loop
-.wrap_target
-public raw_1p:						; | jmp raw_1p | color |
-		out  pins, bpp [extra0]
-		out  pc, bpp
-
-public raw_2p:						; | jmp raw_2p | color | color |
-		out  pins, bpp  [extra1]
-.wrap
-
-public raw_1p_skip_ALIGN:			; | jmp raw_1p_skip_ALIGN | color | ignored ||
-		out  pins, 32				; requires correct out mask
-public nop_extra0:
-		out  pc, bpp [extra0]		; note moved extra0 from above line, so we can use this instruction for
+		out y, 32			; read num_pixels-1    note could use EXEC_CMD
+.wrap_target 
+		wait irq, 4			; wait for trigger by timing_sm
+		mov x, y			; reload count. also delays 1cc after wait as in original scanvideo code
+loop:
+		out  pins, BPP		; output pixel
+		jmp  x-- loop		; loop. also delays 1cc.
+		mov pins, null		; black
+.wrap 
 
 
 

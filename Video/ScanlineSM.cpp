@@ -8,7 +8,7 @@
 
 #include "ScanlineSM.h"
 #include "Color.h"
-#include "composable_scanline.h"
+#include "scanvideo.pio.h"
 #include <hardware/clocks.h>
 #include <hardware/dma.h>
 #include <hardware/irq.h>
@@ -49,30 +49,29 @@ constexpr bool ENABLE_CLOCK_PIN		 = PICO_SCANVIDEO_ENABLE_CLOCK_PIN;
 // =========================================================
 
 
-static uint32 missing_scanline_data[] = {
-	COMPOSABLE_COLOR_RUN | uint32(Graphics::bright_red << 16u),
-	/*width-3*/ 0u | (COMPOSABLE_RAW_1P << 16u), Graphics::black | (COMPOSABLE_EOL_ALIGN << 16u)};
-
-#if PICO_SCANVIDEO_FIXED_FRAGMENT_DMA
-static uint32 fixed_fragment_missing_scanline_data_chain[] = {
-	reinterpret_cast<uint32>(missing_scanline_data),
-	0,
-};
-#endif
+static uint32 missing_scanline_data[512] = {
+#define px16(c)		c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c
+#define px128(c, d) px16(c), px16(d), px16(c), px16(d), px16(c), px16(d), px16(c), px16(d)
+#define px512(c, d) px128(c, d), px128(c, d), px128(c, d), px128(c, d)
+	px512(Graphics::bright_red * 0x10001u, Graphics::bright_cyan * 0x10001u)};
 
 static Scanline missing_scanline
 {
 #if PICO_SCANVIDEO_FIXED_FRAGMENT_DMA
-	.fragment_words = 0, fixed_fragment_missing_scanline_data_chain,
-#else
-	.data = missing_scanline_data, .used = count_of(missing_scanline_data)
+  #error "PICO_SCANVIDEO_FIXED_FRAGMENT_DMA"
 #endif
+	.data = missing_scanline_data, .used = 0, .max = count_of(missing_scanline_data)
 };
+
+static uint				   program_load_offset;
+static uint				   program_wait_index; // address of PIO_WAIT_IRQ4 in pio program
+static const pio_program_t scanline_pio_program {video_scanline_program};
 
 
 // =========================================================
 
 
+// new:
 struct DMAScanlineBuffer
 {
 	uint8	 count = 0;			  // number of scanlines in buffer
@@ -86,20 +85,12 @@ struct DMAScanlineBuffer
 		assert((new_count & (new_count - 1)) == 0); // must be 2^N
 
 		yscale	  = uint8(videomode.yscale);
-		length	  = uint16(videomode.width / 2 + 2);
+		length	  = uint16(videomode.width / 2);
 		scanlines = new uint32*[new_count * yscale];
 
 		for (uint32** z = scanlines; count; count--)
 		{
 			uint32* sl = new uint32[length];
-			uint16* p  = uint16ptr(sl);
-			p[0]	   = CMD::RAW_RUN; // cmd
-			//p[1]     = p[2];				// 1st pixel
-			//p[2]     = uint16(width-3+1);	// count-3 +1 for final black pixel
-			//p[3++]   = pixels
-			p[length / 2 - 2] = 0;		  // final black pixel (actually transparent)
-			p[length / 2 - 1] = CMD::EOL; // end of line; total count of uint16 values must be even!
-
 			for (uint y = 0; y < yscale; y++) *z++ = sl;
 		}
 	}
@@ -124,9 +115,11 @@ static DMAScanlineBuffer dma_scanline_buffer;
 
 // =========================================================
 
+
 ScanlineSM			scanline_sm;
 std::atomic<uint32> scanlines_missed = 0;
 VideoQueue			video_queue;
+
 
 // =========================================================
 
@@ -156,7 +149,7 @@ inline void RAM ScanlineSM::abort_all_scanline_sms() noexcept
 	//constexpr uint32 CLR_IRQ_4 = 0xc044;
 	//pio_sm_exec(video_pio, SM1, CLR_IRQ_4);	// clear IRQ4 -> never needed. why?
 
-	const uint jmp = pio_encode_jmp(wait_index); // goto WAIT_IRQ4 position
+	const uint jmp = pio_encode_jmp(program_wait_index); // goto WAIT_IRQ4 position
 	//const uint drain = pio_encode_out(pio_null, 32);	// drain the OSR (rp2040 §3.4.7.2)
 
 	pio_sm_clear_fifos(video_pio, SM); // drain the TX fifo
@@ -323,42 +316,6 @@ static void setup_gpio_pins()
 }
 
 
-#define video_24mhz_composable_program __CONCAT(video_24mhz_composable_default, _program)
-//#define video_24mhz_composable_wrap_target __CONCAT(video_24mhz_composable_default, _wrap_target)
-//#define video_24mhz_composable_wrap __CONCAT(video_24mhz_composable_default, _wrap)
-
-
-pio_sm_config scanline_pio_program_configure_pio(pio_hw_t* pio, uint sm, uint offset)
-{
-	pio_sm_config config = video_24mhz_composable_default_program_get_default_config(offset);
-
-	pio_sm_set_consecutive_pindirs(pio, sm, PICO_SCANVIDEO_COLOR_PIN_BASE, PICO_SCANVIDEO_COLOR_PIN_COUNT, true);
-	sm_config_set_out_pins(&config, PICO_SCANVIDEO_COLOR_PIN_BASE, PICO_SCANVIDEO_COLOR_PIN_COUNT);
-	sm_config_set_out_shift(&config, true, true, 32); // autopull
-	sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
-
-	//bool overlay = sm != PICO_SCANVIDEO_SCANLINE_SM1;
-	//if (overlay) sm_config_set_out_special(&config, 1, 1, PICO_SCANVIDEO_ALPHA_PIN);
-	//else sm_config_set_out_special(&config, 1, 0, 0);
-
-	return config;
-}
-
-//static const ScanlinePioProgram video_24mhz_composable {
-//	video_24mhz_composable_program, video_24mhz_composable_program_extern(entry_point)};
-
-static const pio_program_t scanline_pio_program {video_24mhz_composable_program};
-static const uint16		   scanline_pio_program_wait_index {video_24mhz_composable_program_extern(entry_point)};
-
-
-static void configure_sm(uint sm, uint program_load_offset, uint video_clock_down_times_2)
-{
-	pio_sm_config config = scanline_pio_program_configure_pio(video_pio, sm, program_load_offset);
-	sm_config_set_clkdiv_int_frac(
-		&config, uint16(video_clock_down_times_2 / 2), uint8((video_clock_down_times_2 & 1u) << 7u));
-	pio_sm_init(video_pio, sm, program_load_offset, &config); // sm paused
-}
-
 template<bool FIXED_FRAGMENT_DMA>
 static void configure_dma_channels()
 {
@@ -419,16 +376,8 @@ Error ScanlineSM::setup(const VgaMode* mode)
 	scanlines_missed	= 0;
 	sem_init(&vblank_begin, 0, 1);
 
-	// install program:
 
-	uint program_load_offset = pio_add_program(video_pio, &scanline_pio_program);
-
-	assert(scanline_pio_program.instructions[scanline_pio_program_wait_index] == PIO_WAIT_IRQ4);
-	wait_index = program_load_offset + scanline_pio_program_wait_index;
-
-	reinterpret_cast<uint16*>(missing_scanline.data)[2] = mode->width / 2 - 3;
-
-	// setup scanline SMs:
+	missing_scanline.used = mode->width / 2;
 
 	uint sys_clk				  = clock_get_hz(clk_sys);
 	uint video_clock_down_times_2 = sys_clk / mode->pixel_clock;
@@ -444,7 +393,24 @@ Error ScanlineSM::setup(const VgaMode* mode)
 			return "System clock must be an integer multiple of the requested pixel clock";
 	}
 
-	configure_sm(SM, program_load_offset, video_clock_down_times_2);
+	// install program:
+
+	assert(scanline_pio_program.instructions[video_scanline_wrap_target] == PIO_WAIT_IRQ4);
+	program_load_offset = pio_add_program(video_pio, &scanline_pio_program);
+	program_wait_index	= program_load_offset + video_scanline_wrap_target;
+
+	// setup scanline SMs:
+
+	pio_sm_config config = video_scanline_program_get_default_config(program_load_offset);
+
+	pio_sm_set_consecutive_pindirs(video_pio, SM, PICO_SCANVIDEO_COLOR_PIN_BASE, PICO_SCANVIDEO_COLOR_PIN_COUNT, true);
+	sm_config_set_out_pins(&config, PICO_SCANVIDEO_COLOR_PIN_BASE, PICO_SCANVIDEO_COLOR_PIN_COUNT);
+	sm_config_set_out_shift(&config, true, true, 32); // autopull
+	sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
+
+	sm_config_set_clkdiv_int_frac(
+		&config, uint16(video_clock_down_times_2 / 2), uint8((video_clock_down_times_2 & 1u) << 7u));
+	pio_sm_init(video_pio, SM, program_load_offset, &config); // sm paused
 
 	// configure scanline interrupts:
 
@@ -466,8 +432,9 @@ void ScanlineSM::start()
 
 	stop();
 
-	uint jmp = pio_encode_jmp(wait_index);
+	uint jmp = pio_encode_jmp(program_wait_index - 1);
 	pio_sm_exec(video_pio, SM, jmp);
+	pio_sm_put(video_pio, SM, video_mode.width - 1);
 
 	irq_set_enabled(PIO0_IRQ_0, true);
 	pio_set_sm_mask_enabled(video_pio, SM_MASK, true);

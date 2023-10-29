@@ -269,7 +269,7 @@ void RAM VideoController::video_runner()
 		for (uint i = 0; i < num_planes; i++)
 		{
 			scanline->used = uint16(planes[i]->renderScanline(row, scanline->data));
-			assert(scanline->used == scanline->max);
+			assert_eq(scanline->used, scanline->max);
 		}
 
 		scanline_sm.pushGeneratedScanline();

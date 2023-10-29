@@ -32,7 +32,7 @@ public:
 	*/
 	virtual void setup(coord width, VideoQueue& vq)
 	{
-		uint size = uint(width + 4) / 2; // +4 = CMD::RAW_RUN, count, black, CMD::EOL
+		uint size = uint(width / 2);
 
 		for (uint i = 0; i < vq.SIZE; i++)
 		{

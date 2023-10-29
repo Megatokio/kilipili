@@ -5,7 +5,6 @@
 #include "Sprites.h"
 #include "Graphics/Pixmap.h"
 #include "StackInfo.h"
-#include "composable_scanline.h"
 #include <hardware/sync.h>
 #include <pico/stdlib.h>
 #include <pico/sync.h>

@@ -17,8 +17,6 @@
 
 namespace kio::Video
 {
-extern void framebuffer_setup_helper(coord width, VideoQueue& vq);
-
 
 /*
 	Template class FrameBuffer renders a whole scanline from a screen_width Pixmap.
@@ -50,8 +48,7 @@ public:
 	{
 		VideoPlane::setup(width, vq);		 // setup buffers
 		setupScanlineRenderer<CM>(colormap); // setup render function
-		framebuffer_setup_helper(width, vq);
-		FrameBuffer::vblank(); // reset state variables
+		FrameBuffer::vblank();				 // reset state variables
 	}
 
 	virtual void teardown(VideoQueue& vq) noexcept override
@@ -68,19 +65,11 @@ public:
 		}
 
 		uint width = uint(pixmap.width);
-		scanlineRenderFunction<CM>(plane_data + 1, width, pixels);
-
-		uint16* p = uint16ptr(plane_data);
-		//p[0] = CMD::RAW_RUN;		// cmd
-		p[1] = p[2];				  // 1st pixel
-		p[2] = uint16(width - 3 + 1); // count-3 +1 for final black pixel
-		//p[3++]   = pixels
-		//p[width+2] = 0;  			// final black pixel
-		//p[width+3] = CMD::EOL;  	// end of line; total count of uint16 values must be even!
+		scanlineRenderFunction<CM>(plane_data, width, pixels);
 
 		pixels += pixmap.row_offset;
 
-		return (width + 4) / 2; // count of uint32 values
+		return width / 2; // count of uint32 values
 	}
 
 	virtual void RAM vblank() noexcept override final
@@ -118,8 +107,7 @@ public:
 	{
 		VideoPlane::setup(width, vq);		 // setup buffers
 		setupScanlineRenderer<CM>(colormap); // setup render function
-		framebuffer_setup_helper(width, vq);
-		FrameBuffer::vblank(); // reset state variables
+		FrameBuffer::vblank();				 // reset state variables
 	}
 
 	virtual void teardown(VideoQueue& vq) noexcept override
@@ -141,15 +129,7 @@ public:
 		}
 
 		uint width = uint(pixmap.width);
-		scanlineRenderFunction<CM>(plane_data + 1, width, pixels, attributes);
-
-		uint16* p = uint16ptr(plane_data);
-		//p[0] = CMD::RAW_RUN;		// cmd
-		p[1] = p[2];				  // 1st pixel
-		p[2] = uint16(width - 3 + 1); // count-3 +1 for final black pixel
-		//p[3++]   = pixels
-		//p[width+2] = 0;  			// final black pixel
-		//p[width+3] = CMD::EOL;  	// end of line; total count of uint16 values must be even!
+		scanlineRenderFunction<CM>(plane_data, width, pixels, attributes);
 
 		pixels += pixmap.row_offset;
 		if (unlikely(++arow == pixmap.attrheight))
@@ -158,7 +138,7 @@ public:
 			attributes += pixmap.attributes.row_offset;
 		}
 
-		return (width + 4) / 2; // count of uint32 values
+		return width / 2; // count of uint32 values
 	}
 
 	virtual void RAM vblank() noexcept override final

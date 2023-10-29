@@ -7,7 +7,6 @@ cmake_minimum_required(VERSION 3.13)
 
 
 add_library(kilipili_video STATIC
-	FrameBuffer.cpp
 	FrameBuffer.h
 	Mouse.cpp
 	Mouse.h
@@ -31,7 +30,6 @@ add_library(kilipili_video STATIC
 	VBlankAction.h
 	VgaMode.h
 	VideoQueue.h
-	composable_scanline.h
 	scanvideo.pio
 	scanvideo_options.h
 	timing.pio

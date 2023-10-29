@@ -19,7 +19,7 @@ class ScanlineSM
 public:
 	VgaMode video_mode;
 
-	uint wait_index; // address of PIO_WAIT_IRQ4 in pio program
+	//uint wait_index; // address of PIO_WAIT_IRQ4 in pio program
 	bool in_vblank;
 
 	uint y_scale; // for line repetition in low-res modes
