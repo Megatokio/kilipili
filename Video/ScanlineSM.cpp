@@ -50,6 +50,58 @@ constexpr bool ENABLE_CLOCK_PIN		 = PICO_SCANVIDEO_ENABLE_CLOCK_PIN;
 
 // =========================================================
 
+
+struct DMAScanlineBuffer
+{
+	uint8	 count = 0;			  // number of scanlines in buffer
+	uint8	 yscale;			  // repetition of each scanline for lowres screen modes
+	uint16	 length;			  // length of scanlines in words
+	uint32** scanlines = nullptr; // array of pointers to scanlines, ready for fragment dma
+
+	void setup(VgaMode videomode, uint new_count) throws
+	{
+		assert(count == 0);							// must not be in use
+		assert((new_count & (new_count - 1)) == 0); // must be 2^N
+
+		yscale	  = uint8(videomode.yscale);
+		length	  = uint16(videomode.width / 2 + 2);
+		scanlines = new uint32*[new_count * yscale];
+
+		for (uint32** z = scanlines; count; count--)
+		{
+			uint32* sl = new uint32[length];
+			uint16* p  = uint16ptr(sl);
+			p[0]	   = CMD::RAW_RUN; // cmd
+			//p[1]     = p[2];				// 1st pixel
+			//p[2]     = uint16(width-3+1);	// count-3 +1 for final black pixel
+			//p[3++]   = pixels
+			p[length / 2 - 2] = 0;		  // final black pixel (actually transparent)
+			p[length / 2 - 1] = CMD::EOL; // end of line; total count of uint16 values must be even!
+
+			for (uint y = 0; y < yscale; y++) *z++ = sl;
+		}
+	}
+
+	void teardown()
+	{
+		if (scanlines)
+		{
+			for (uint32** z = scanlines; count; count--)
+			{
+				delete[] * z;
+				z += yscale;
+			}
+			delete[] scanlines;
+			scanlines = nullptr;
+		}
+	}
+};
+
+static DMAScanlineBuffer dma_scanline_buffer;
+
+
+// =========================================================
+
 ScanlineSM			scanline_sm;
 std::atomic<uint32> scanlines_missed = 0;
 VideoQueue			video_queue;
@@ -128,8 +180,8 @@ inline void RAM ScanlineSM::prepare_for_active_scanline() noexcept
 		current_scanline = &video_queue.get_full();
 		if (current_scanline->id < current_id)
 			goto a; // outdated
-				// else if the scanline is too early then we display it too early
-				// and remain out of sync. but this should not happen.
+					// else if the scanline is too early then we display it too early
+					// and remain out of sync. but this should not happen.
 	}
 	else
 	{
@@ -294,7 +346,8 @@ static void configure_dma_channels()
 	}
 }
 
-Error ScanlineSM::setup(const VgaMode* mode, uint32* scanlinebuffer[], int count, int size)
+//Error ScanlineSM::setup(const VgaMode* mode, uint32* scanlinebuffer[], int count, int size)
+Error ScanlineSM::setup(const VgaMode* mode)
 {
 	assert(get_core_num() == 1);
 
