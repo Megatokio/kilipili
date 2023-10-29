@@ -32,7 +32,6 @@ add_library(kilipili_video STATIC
 	VBlankAction.cpp
 	VBlankAction.h
 	VgaMode.h
-	VgaTiming.h
 	VideoQueue.h
 	composable_scanline.h
 	scanvideo.pio

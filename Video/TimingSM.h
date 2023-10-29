@@ -4,7 +4,6 @@
 
 #pragma once
 #include "VgaMode.h"
-#include "VgaTiming.h"
 #include <hardware/dma.h>
 
 namespace kio::Video
@@ -34,13 +33,13 @@ struct TimingSM
 
 	uint8 video_htiming_load_offset;
 
-	Error setup(const VgaTiming*);
+	Error setup(const VgaMode*);
 	void  start(); // start or restart
 	void  stop();
 
 	//private:
 	void configure_dma_channel();
-	void setup_timings(const VgaTiming*);
+	void setup_timings(const VgaMode*);
 	void install_pio_program(uint32 pixel_clock_frequency);
 	void isr();
 };

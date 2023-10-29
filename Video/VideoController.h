@@ -10,9 +10,9 @@
 #include "VgaMode.h"
 #include "VideoPlane.h"
 #include "geometry.h"
+#include <functional>
 #include <pico/sem.h>
 #include <pico/types.h>
-
 
 namespace kio::Video
 {

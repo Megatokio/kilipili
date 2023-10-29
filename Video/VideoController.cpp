@@ -129,7 +129,7 @@ Error VideoController::do_setup() noexcept
 	pio_clear_instruction_memory(video_pio);
 
 	if (Error e = scanline_sm.setup(vga_mode)) return e;
-	if (Error e = timing_sm.setup(vga_mode->timing)) return e;
+	if (Error e = timing_sm.setup(vga_mode)) return e;
 	return NO_ERROR;
 }
 

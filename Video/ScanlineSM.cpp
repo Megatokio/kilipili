@@ -180,8 +180,8 @@ inline void RAM ScanlineSM::prepare_for_active_scanline() noexcept
 		current_scanline = &video_queue.get_full();
 		if (current_scanline->id < current_id)
 			goto a; // outdated
-					// else if the scanline is too early then we display it too early
-					// and remain out of sync. but this should not happen.
+				// else if the scanline is too early then we display it too early
+				// and remain out of sync. but this should not happen.
 	}
 	else
 	{
@@ -351,15 +351,13 @@ Error ScanlineSM::setup(const VgaMode* mode)
 {
 	assert(get_core_num() == 1);
 
-	const VgaTiming* timing = mode->timing;
-	assert(mode->width <= timing->h_active);
-	assert(mode->height * mode->yscale <= timing->v_active);
+	assert(mode->width <= mode->h_active);
+	assert(mode->height * mode->yscale <= mode->v_active);
 	assert((ScanlineID(100, 10) + 5).scanline == 105);
 
 	setup_gpio_pins();
 
 	video_mode			= *mode;
-	video_mode.timing	= timing;
 	missing_scanline	= pio_program->missing_scanline;
 	y_scale				= mode->yscale;
 	y_repeat_countdown	= 1;
@@ -383,16 +381,16 @@ Error ScanlineSM::setup(const VgaMode* mode)
 	// setup scanline SMs:
 
 	uint sys_clk				  = clock_get_hz(clk_sys);
-	uint video_clock_down_times_2 = sys_clk / timing->pixel_clock;
+	uint video_clock_down_times_2 = sys_clk / mode->pixel_clock;
 
 	if (ENABLE_CLOCK_PIN)
 	{
-		if (video_clock_down_times_2 * timing->pixel_clock != sys_clk)
+		if (video_clock_down_times_2 * mode->pixel_clock != sys_clk)
 			return "System clock must be an even multiple of the requested pixel clock";
 	}
 	else
 	{
-		if (video_clock_down_times_2 * timing->pixel_clock != sys_clk) // TODO: check wg. odd multiple
+		if (video_clock_down_times_2 * mode->pixel_clock != sys_clk) // TODO: check wg. odd multiple
 			return "System clock must be an integer multiple of the requested pixel clock";
 	}
 

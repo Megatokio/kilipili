@@ -3,11 +3,12 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 // we need O3, also for the included headers!
+#include <string.h>
 #pragma GCC push_options
 #pragma GCC optimize("O3")
 
 #include "TimingSM.h"
-#include "VgaTiming.h"
+#include "VgaMode.h"
 #include "hardware/clocks.h"
 #include "hardware/dma.h"
 #include "scanvideo_options.h"
@@ -147,7 +148,7 @@ void TimingSM::install_pio_program(uint32 pixel_clock_frequency)
 	//pio_set_irq1_source_enabled(video_pio, pis_sm0_tx_fifo_not_full + TIMING_SM, true);	// TODO required?
 }
 
-void TimingSM::setup_timings(const VgaTiming* timing)
+void TimingSM::setup_timings(const VgaMode* timing)
 {
 	constexpr uint SET_IRQ_0 = 0xc000; //  0: irq nowait 0  side 0
 	constexpr uint SET_IRQ_1 = 0xc001; //  1: irq nowait 1  side 0
@@ -225,7 +226,7 @@ void TimingSM::setup_timings(const VgaTiming* timing)
 	program[generate_v_backporch]  = {.program = prog_vblank, .count = count_of(prog_vblank) * v_back_porch};
 }
 
-Error TimingSM::setup(const VgaTiming* timing)
+Error TimingSM::setup(const VgaMode* timing)
 {
 	assert(get_core_num() == 1);
 
