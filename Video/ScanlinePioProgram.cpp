@@ -53,25 +53,6 @@ static Scanline video_24mhz_composable_missing_scanline
 //#define video_24mhz_composable_wrap __CONCAT(video_24mhz_composable_default, _wrap)
 
 
-void ScanlinePioProgram::adapt_for_mode(const VgaMode* mode, uint16* modifiable_instructions) const
-{
-	uint delay0 = 2 * mode->xscale - 2;
-	uint delay1 = delay0 + 1;
-	assert(delay0 <= 31);
-	assert(delay1 <= 31);
-
-	reinterpret_cast<uint16*>(missing_scanline_data)[2] = mode->width / 2 - 3;
-
-	modifiable_instructions[video_24mhz_composable_program_extern(delay_a_1)] |= delay1 << 8u;
-	modifiable_instructions[video_24mhz_composable_program_extern(delay_b_1)] |= delay1 << 8u;
-	modifiable_instructions[video_24mhz_composable_program_extern(delay_c_0)] |= delay0 << 8u;
-	modifiable_instructions[video_24mhz_composable_program_extern(delay_d_0)] |= delay0 << 8u;
-	modifiable_instructions[video_24mhz_composable_program_extern(delay_e_0)] |= delay0 << 8u;
-	modifiable_instructions[video_24mhz_composable_program_extern(delay_f_1)] |= delay1 << 8u;
-	modifiable_instructions[video_24mhz_composable_program_extern(delay_g_0)] |= delay0 << 8u;
-	modifiable_instructions[video_24mhz_composable_program_extern(delay_h_0)] |= delay0 << 8u;
-}
-
 pio_sm_config ScanlinePioProgram::configure_pio(pio_hw_t* pio, uint sm, uint offset) const
 {
 	pio_sm_config config = video_24mhz_composable_default_program_get_default_config(offset);

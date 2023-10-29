@@ -352,7 +352,7 @@ Error ScanlineSM::setup(const VgaMode* mode)
 	assert(get_core_num() == 1);
 
 	const VgaTiming* timing = mode->timing;
-	assert(mode->width * mode->xscale <= timing->h_active);
+	assert(mode->width <= timing->h_active);
 	assert(mode->height * mode->yscale <= timing->v_active);
 	assert((ScanlineID(100, 10) + 5).scanline == 105);
 
@@ -371,18 +371,14 @@ Error ScanlineSM::setup(const VgaMode* mode)
 	scanlines_missed	= 0;
 	sem_init(&vblank_begin, 0, 1);
 
-	// get the program, modify it as needed and install it:
+	// install program:
 
-	uint16		  instructions[32];
-	pio_program_t program = pio_program->program;
-	memcpy(instructions, program.instructions, program.length * sizeof(uint16));
-	program.instructions = instructions;
+	uint program_load_offset = pio_add_program(video_pio, &pio_program->program);
 
-	pio_program->adapt_for_mode(mode, instructions);
-	uint program_load_offset = pio_add_program(video_pio, &program);
-
-	assert(instructions[pio_program->wait_index] == PIO_WAIT_IRQ4);
+	assert(pio_program->program.instructions[pio_program->wait_index] == PIO_WAIT_IRQ4);
 	wait_index = program_load_offset + pio_program->wait_index;
+
+	reinterpret_cast<uint16*>(missing_scanline->data)[2] = mode->width / 2 - 3;
 
 	// setup scanline SMs:
 

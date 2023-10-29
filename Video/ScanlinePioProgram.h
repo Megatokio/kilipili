@@ -18,9 +18,6 @@ struct ScanlinePioProgram
 	Scanline*	  missing_scanline;
 
 	virtual pio_sm_config configure_pio(pio_hw_t* pio, uint sm, uint offset) const;
-	virtual void		  adapt_for_mode(
-				 const VgaMode*, uint16 modifiable_instructions[]) const; // modifiable_instructions is of size program->length
-
 	virtual ~ScanlinePioProgram() = default;
 
 	ScanlinePioProgram(pio_program_t p, uint16 e, Scanline* s) noexcept : program(p), wait_index(e), missing_scanline(s)
