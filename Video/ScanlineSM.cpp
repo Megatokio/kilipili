@@ -202,8 +202,8 @@ inline void RAM ScanlineSM::prepare_for_active_scanline() noexcept
 		current_scanline = &video_queue.get_full();
 		if (current_scanline->id < current_id)
 			goto a; // outdated
-				// else if the scanline is too early then we display it too early
-				// and remain out of sync. but this should not happen.
+					// else if the scanline is too early then we display it too early
+					// and remain out of sync. but this should not happen.
 	}
 	else
 	{
