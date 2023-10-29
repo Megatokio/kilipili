@@ -4,7 +4,6 @@
 
 #pragma once
 #include "Scanline.h"
-#include "ScanlinePioProgram.h"
 #include "VgaMode.h"
 #include "VideoQueue.h"
 #include "scanvideo_options.h"
@@ -18,9 +17,7 @@ namespace kio::Video
 class ScanlineSM
 {
 public:
-	VgaMode							video_mode;
-	const ScanlinePioProgram* const pio_program = &video_24mhz_composable;
-	Scanline*						missing_scanline;
+	VgaMode video_mode;
 
 	uint wait_index; // address of PIO_WAIT_IRQ4 in pio program
 	bool in_vblank;

@@ -13,8 +13,6 @@ add_library(kilipili_video STATIC
 	Mouse.h
 	Scanline.cpp
 	Scanline.h
-	ScanlinePioProgram.cpp
-	ScanlinePioProgram.h
 	ScanlineRenderFu.cpp
 	ScanlineRenderFu.h
 	VideoPlane.cpp
