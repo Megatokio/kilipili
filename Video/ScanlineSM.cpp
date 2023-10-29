@@ -202,8 +202,8 @@ inline void RAM ScanlineSM::prepare_for_active_scanline() noexcept
 		current_scanline = &video_queue.get_full();
 		if (current_scanline->id < current_id)
 			goto a; // outdated
-					// else if the scanline is too early then we display it too early
-					// and remain out of sync. but this should not happen.
+				// else if the scanline is too early then we display it too early
+				// and remain out of sync. but this should not happen.
 	}
 	else
 	{
@@ -337,9 +337,9 @@ pio_sm_config scanline_pio_program_configure_pio(pio_hw_t* pio, uint sm, uint of
 	sm_config_set_out_shift(&config, true, true, 32); // autopull
 	sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
 
-	bool overlay = sm != PICO_SCANVIDEO_SCANLINE_SM1;
-	if (overlay) sm_config_set_out_special(&config, 1, 1, PICO_SCANVIDEO_ALPHA_PIN);
-	else sm_config_set_out_special(&config, 1, 0, 0);
+	//bool overlay = sm != PICO_SCANVIDEO_SCANLINE_SM1;
+	//if (overlay) sm_config_set_out_special(&config, 1, 1, PICO_SCANVIDEO_ALPHA_PIN);
+	//else sm_config_set_out_special(&config, 1, 0, 0);
 
 	return config;
 }
