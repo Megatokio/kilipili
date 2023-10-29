@@ -10,19 +10,6 @@
 namespace kio::Video
 {
 
-enum ScreenSize : uint8 // screen size in pixels: width x height
-{
-	screensize_320x240	= 0,
-	screensize_400x300	= 1,
-	screensize_512x384	= 2,
-	screensize_640x480	= 3,
-	screensize_800x600	= 4,
-	screensize_1024x768 = 5,
-};
-
-constexpr uint num_screensizes = screensize_1024x768 + 1;
-
-
 // clang-format off
 
 struct VgaMode
@@ -43,7 +30,7 @@ struct VgaMode
 
 	uint16 width;
 	uint16 height;
-	uint16 yscale;  // 1 == normal, 2 == double height
+	uint16 yscale;  // height * yscale = v_active 
 	
 	constexpr uint16 h_total() const { return h_front_porch + h_pulse + h_back_porch + h_active; }
 	constexpr uint16 v_total() const { return v_front_porch + v_pulse + v_back_porch + v_active; }
@@ -241,14 +228,108 @@ static_assert(vga_mode_1024x768_60.h_total() == 1344);
 static_assert(vga_mode_1024x768_60.v_total() == 806);
 
 
-constexpr const VgaMode* vga_mode[num_screensizes] =
+constexpr VgaMode vga_mode_1360x768_60 = 
 {
-	&vga_mode_320x240_60,
-	&vga_mode_400x300_60,
-	&vga_mode_512x384_60,
-	&vga_mode_640x480_60,
-	&vga_mode_800x600_60,
-	&vga_mode_1024x768_60
+	// this is VESA mode 1366*768@60Hz REDUCED BLANKING 	
+	// but we use only 1360 = int(1366/16)*16
+
+	// note: 1366 displays which need DCLK and DEN will not display properly
+	// TODO support width != h_active and add black padding to the scanlines in the scanline_buffer
+	
+	// this will probably never run a1w8_rgb ...
+	//   no need to make width a multiple of 32 for fastest a1w8_rgb scanline renderer
+	//   1028*768 is at absolute end and it has 1344 total pixels per scanline
+	//   1360*768 has 1500 pixels per scanline which is enough for up to ~1216 (38*32) pixels
+	
+	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                      vert                 polarity
+	// ----- --------- ---------- --------- ------------------------ -------------------- -------------
+	// VESA  72.00     48.000     60.000    1366 +14 +56 +64 = 1500  768 +1 +3 +28 = 800  +hsync +vsync
+	//       72.00     48.000     60.000    1360 +18 +56 +66 = 1500  768 +1 +3 +28 = 800  +hsync +vsync
+
+	.pixel_clock = 72000000,
+
+	.h_active = 1360,		 
+	.h_front_porch = 18, 
+	.h_pulse = 56, 
+	.h_back_porch = 66, 
+	.h_sync_polarity = 1,
+
+	.v_active = 768,		 
+	.v_front_porch = 1,  
+	.v_pulse = 3,	  
+	.v_back_porch = 28,  
+	.v_sync_polarity = 1,
+
+	.width	= 1360,
+	.height = 768,
+	.yscale = 1,
+};
+
+
+constexpr VgaMode vga_mode_1280x768_60 = 
+{
+	// this is VESA mode 1366*768@60Hz REDUCED BLANKING 	
+	// but we use only 1280 = 40*32 pixels which _may_ just work with colormode a1w8_rgb
+	
+	// note: 1366 displays which need DCLK and DEN will not display properly
+	// TODO support width != h_active and add black padding to the scanlines in the scanline_buffer
+		
+	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                       vert                 polarity
+	// ----- --------- ---------- --------- ------------------------ --------------------- -------------
+	// VESA  72.00     48.000     60.000    1366 +14 +56 +64 = 1500   768 +1 +3 +28 = 800  +hsync +vsync
+	//       72.00     48.000     60.000    1280 +56 +56 +108 = 1500  768 +1 +3 +28 = 800  +hsync +vsync
+
+	.pixel_clock = 72000000,
+
+	.h_active = 1280,		 
+	.h_front_porch = 56, 
+	.h_pulse = 56, 
+	.h_back_porch = 108, 
+	.h_sync_polarity = 1,
+
+	.v_active = 768,		 
+	.v_front_porch = 1,  
+	.v_pulse = 3,	  
+	.v_back_porch = 28,  
+	.v_sync_polarity = 1,
+
+	.width	= 1280,
+	.height = 768,
+	.yscale = 1,
+};
+
+
+constexpr VgaMode vga_mode_672x384_60 = 
+{
+	// this is VESA mode 1366*768@60Hz REDUCED BLANKING 	
+	// with some black padding l+r.
+	
+	// note: 672 = 21*32 = 84*8
+	// note: 1366 displays which need DCLK and DEN will not display properly
+	// TODO support width != h_active and add black padding to the scanlines in the scanline_buffer
+
+	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                       vert                 polarity
+	// ----- --------- ---------- --------- ------------------------ --------------------- -------------
+	// VESA  72.00     48.000     60.000    1366 +14 +56 +64 = 1500   768 +1 +3 +28 = 800  +hsync +vsync
+	// half  36.00                          672 +13 +28 +37 = 750 
+	
+	.pixel_clock = 72000000/2,
+
+	.h_active = 672,		 
+	.h_front_porch = 13, 
+	.h_pulse = 28, 
+	.h_back_porch = 37, 
+	.h_sync_polarity = 1,
+
+	.v_active = 768,		 
+	.v_front_porch = 1,  
+	.v_pulse = 3,	  
+	.v_back_porch = 28,  
+	.v_sync_polarity = 1,
+
+	.width	= 1360/2,
+	.height = 768,
+	.yscale = 2,
 };
 
 
@@ -336,29 +417,52 @@ static_assert(vga_mode_1024x768_50.h_total() == 1368);
 static_assert(vga_mode_1024x768_50.v_total() == 806);
 
 
-// clang-format on
-
-
-// use these if you want type or range checking on the index:
-
-constexpr const VgaMode* getVgaMode(ScreenSize ss)
+enum ScreenSize : uint8 // screen size in pixels: width x height
 {
-	assert(ss <= num_screensizes);
-	return vga_mode[ss];
-}
+	screensize_320x240	= 0,
+	screensize_400x300	= 1,
+	screensize_512x384	= 2,
+	screensize_640x480	= 3,
+	screensize_800x600	= 4,
+	screensize_1024x768 = 5,
+	screensize_1280x768 = 6,
+	screensize_672x384  = 7,
+};
 
-template<ScreenSize SS>
-constexpr const VgaMode* getVgaMode()
+constexpr uint num_screensizes = 8;
+
+
+constexpr const VgaMode* vga_mode[num_screensizes] =
 {
-	return vga_mode[SS];
-}
+	&vga_mode_320x240_60,
+	&vga_mode_400x300_60,
+	&vga_mode_512x384_60,
+	&vga_mode_640x480_60,
+	&vga_mode_800x600_60,
+	&vga_mode_1024x768_60,
+	&vga_mode_1360x768_60,
+	&vga_mode_672x384_60,
+};
+
 
 } // namespace kio::Video
 
 
 inline cstr tostr(kio::Video::ScreenSize ss)
 {
-	static constexpr char tbl[kio::Video::num_screensizes][9] = //
-		{"320*240", "400*300", "512*384", "640*480", "800*400", "1024*768"};
+	static constexpr char tbl[kio::Video::num_screensizes][9] = 
+	{
+		"320*240", 
+		"400*300", 
+		"512*384", 
+		"640*480", 
+		"800*400", 
+		"1024*768", 
+		"1360x768", 
+		"672x384"
+	};
 	return tbl[ss];
 }
+
+
+// clang-format on
