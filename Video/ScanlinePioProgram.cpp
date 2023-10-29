@@ -48,9 +48,9 @@ static Scanline video_24mhz_composable_missing_scanline
 };
 
 
-#define video_24mhz_composable_program __CONCAT(video_24mhz_composable_prefix, _program)
-//#define video_24mhz_composable_wrap_target __CONCAT(video_24mhz_composable_prefix, _wrap_target)
-//#define video_24mhz_composable_wrap __CONCAT(video_24mhz_composable_prefix, _wrap)
+#define video_24mhz_composable_program __CONCAT(video_24mhz_composable_default, _program)
+//#define video_24mhz_composable_wrap_target __CONCAT(video_24mhz_composable_default, _wrap_target)
+//#define video_24mhz_composable_wrap __CONCAT(video_24mhz_composable_default, _wrap)
 
 
 void ScanlinePioProgram::adapt_for_mode(const VgaMode* mode, uint16* modifiable_instructions) const
@@ -68,14 +68,7 @@ void ScanlinePioProgram::adapt_for_mode(const VgaMode* mode, uint16* modifiable_
 	modifiable_instructions[video_24mhz_composable_program_extern(delay_d_0)] |= delay0 << 8u;
 	modifiable_instructions[video_24mhz_composable_program_extern(delay_e_0)] |= delay0 << 8u;
 	modifiable_instructions[video_24mhz_composable_program_extern(delay_f_1)] |= delay1 << 8u;
-
-#if !PICO_SCANVIDEO_USE_RAW1P_2CYCLE
 	modifiable_instructions[video_24mhz_composable_program_extern(delay_g_0)] |= delay0 << 8u;
-#else
-	uint delay_half = mode->xscale - 2;
-	modifiable_instructions[video_24mhz_composable_program_extern(delay_g_0)] |= delay_half << 8u;
-#endif
-
 	modifiable_instructions[video_24mhz_composable_program_extern(delay_h_0)] |= delay0 << 8u;
 }
 
