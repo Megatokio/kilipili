@@ -10,8 +10,6 @@ add_library(kilipili_video STATIC
 	FrameBuffer.h
 	Mouse.cpp
 	Mouse.h
-	Scanline.cpp
-	Scanline.h
 	ScanlineRenderFu.cpp
 	ScanlineRenderFu.h
 	VideoPlane.cpp
@@ -27,11 +25,12 @@ add_library(kilipili_video STATIC
 	VBlankAction.cpp
 	VBlankAction.h
 	VgaMode.h
-	VideoQueue.h
 	scanvideo.pio
 	scanvideo_options.h
 	timing.pio
 	vga_types.h
+	ScanlineBuffer.h 
+	ScanlineBuffer.cpp
 )
 
 target_compile_definitions(kilipili_video PUBLIC
@@ -62,7 +61,7 @@ target_link_libraries(kilipili_video PUBLIC
 )
 
 
-
+ 
 
 
 

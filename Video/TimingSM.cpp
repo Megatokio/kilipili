@@ -43,8 +43,7 @@ inline void RAM TimingSM::isr()
 	dma_channel_transfer_from_buffer_now(DMA_CHANNEL, prog.program, prog.count);
 }
 
-//extern "C" void __isr RAM isr_dma_1()
-void RAM isr_dma()
+void RAM isr_dma() noexcept
 {
 	// DMA complete
 	// interrupt for for timing pio
@@ -226,7 +225,7 @@ void TimingSM::setup_timings(const VgaMode* timing)
 	program[generate_v_backporch]  = {.program = prog_vblank, .count = count_of(prog_vblank) * v_back_porch};
 }
 
-Error TimingSM::setup(const VgaMode* timing)
+void TimingSM::setup(const VgaMode* timing)
 {
 	assert(get_core_num() == 1);
 
@@ -237,10 +236,11 @@ Error TimingSM::setup(const VgaMode* timing)
 	static bool f = 0;
 	if (!f) irq_add_shared_handler(DMA_IRQ, isr_dma, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
 	f = 1;
-	return NO_ERROR;
 }
 
-void TimingSM::start()
+void TimingSM::teardown() noexcept { TODO(); }
+
+void TimingSM::start() noexcept
 {
 	assert(get_core_num() == 1);
 
@@ -268,7 +268,7 @@ void TimingSM::start()
 															  // trigger first irq
 }
 
-void TimingSM::stop()
+void TimingSM::stop() noexcept
 {
 	assert(get_core_num() == 1); // if irq_set_enabled() is called
 

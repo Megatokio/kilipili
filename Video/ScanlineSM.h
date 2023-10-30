@@ -3,13 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Scanline.h"
 #include "VgaMode.h"
-#include "VideoQueue.h"
-#include "scanvideo_options.h"
-#include <atomic>
-#include <pico/sem.h>
-
+#include "utilities.h"
 
 namespace kio::Video
 {
@@ -17,48 +12,34 @@ namespace kio::Video
 class ScanlineSM
 {
 public:
-	VgaMode video_mode;
-
-	//uint wait_index; // address of PIO_WAIT_IRQ4 in pio program
 	bool in_vblank;
-
-	uint y_scale; // for line repetition in low-res modes
-	uint y_repeat_countdown;
-
-	Scanline*  current_scanline = nullptr;
-	ScanlineID current_id;		  // frame,line: current (or the last) scanline displayed
-	ScanlineID last_generated_id; // frame,line: last scanline handed out for generating
-
-	semaphore_t vblank_begin;
+	int	 current_frame_start = 0; // rolling index of start of currently displayed frame
+	int	 current_scanline	 = 0; // rolling index of currently displayed scanline
 
 	ScanlineSM() = default;
 
-	Error setup(const VgaMode* mode);
-	void  start(); // start or restart
-	void  stop();
+	void setup(const VgaMode* mode) throws;
+	void teardown() noexcept;
+	void start(); // start or restart
+	void stop();
 
-	bool in_hblank();
-	void waitForVBlank() { sem_acquire_blocking(&vblank_begin); }
-	void waitForScanline(ScanlineID);
+	void waitForVBlank() const noexcept
+	{
+		while (!in_vblank) { wfe(); }
+	}
+	void waitForScanline(int scanline) const noexcept
+	{
+		while (current_scanline - scanline < 0) { wfe(); }
+	}
 
-
-	// Get next scanline for generating. The `id` field indicates the scanline and frame number.
-	// return nullptr if none available
-	Scanline* getScanlineForGenerating();
-
-	// Return a scanline that has been generated
-	void pushGeneratedScanline() noexcept { video_queue.push_full(); }
-	void pushGeneratedScanline(Scanline& s) noexcept { video_queue.push_full(s); } // with assert
-
-	//private:
-	void prepare_for_active_scanline() noexcept;
-	void prepare_for_vblank_scanline() noexcept;
-	void abort_all_scanline_sms() noexcept;
+private:
+	static void isr_pio0_irq0() noexcept;
+	void		prepare_active_scanline() noexcept;
+	void		prepare_vblank_scanline() noexcept;
+	void		abort_all_scanline_sms() noexcept;
 };
 
 
-extern VideoQueue		   video_queue;
-extern ScanlineSM		   scanline_sm;
-extern std::atomic<uint32> scanlines_missed;
+extern ScanlineSM scanline_sm;
 
 } // namespace kio::Video

@@ -80,7 +80,7 @@ int sm_print_load() noexcept
 
 namespace Video
 {
-extern volatile uint32 scanlines_missed;
+extern uint scanlines_missed;
 }
 
 int sm_print_missed_lines() noexcept

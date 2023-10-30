@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "Scanline.h"
 #include "VBlankAction.h"
 #include "VgaMode.h"
 #include "VideoPlane.h"
@@ -74,9 +73,8 @@ public:
 	void setIdleAction(idle_fu* fu) noexcept { idle_action = fu; }
 	void addOneTimeAction(std::function<void()> fu) noexcept;
 
-	static bool in_hblank() noexcept;
 	static void waitForVBlank() noexcept;
-	static void waitForScanline(ScanlineID n) noexcept;
+	static void waitForScanline(int n) noexcept;
 
 	static coord width() noexcept { return size.width; }
 	static coord height() noexcept { return size.height; }
@@ -118,10 +116,12 @@ private:
 	void  stop_video();
 	Error do_setup() noexcept;
 	void  do_teardown() noexcept;
+	void  wait_for_event() noexcept;
+	void  call_vblank_actions() noexcept;
 };
 
 
-extern std::atomic<uint32> scanlines_missed;
+extern uint scanlines_missed;
 
 
 } // namespace kio::Video

@@ -8,11 +8,14 @@
 
 #include "ScanlineSM.h"
 #include "Color.h"
+#include "ScanlineBuffer.h"
 #include "scanvideo.pio.h"
+#include "scanvideo_options.h"
 #include <hardware/clocks.h>
 #include <hardware/dma.h>
 #include <hardware/irq.h>
 #include <hardware/pio.h>
+#include <pico/sync.h>
 
 namespace kio::Video
 {
@@ -49,76 +52,10 @@ constexpr bool ENABLE_CLOCK_PIN		 = PICO_SCANVIDEO_ENABLE_CLOCK_PIN;
 // =========================================================
 
 
-static uint32 missing_scanline_data[512] = {
-#define px16(c)		c, c, c, c, c, c, c, c, c, c, c, c, c, c, c, c
-#define px128(c, d) px16(c), px16(d), px16(c), px16(d), px16(c), px16(d), px16(c), px16(d)
-#define px512(c, d) px128(c, d), px128(c, d), px128(c, d), px128(c, d)
-	px512(Graphics::bright_red * 0x10001u, Graphics::bright_cyan * 0x10001u)};
-
-static Scanline missing_scanline
-{
-#if PICO_SCANVIDEO_FIXED_FRAGMENT_DMA
-  #error "PICO_SCANVIDEO_FIXED_FRAGMENT_DMA"
-#endif
-	.data = missing_scanline_data, .used = 0, .max = count_of(missing_scanline_data)
-};
+ScanlineSM scanline_sm;
 
 static uint				   program_load_offset;
-static uint				   program_wait_index; // address of PIO_WAIT_IRQ4 in pio program
 static const pio_program_t scanline_pio_program {video_scanline_program};
-
-
-// =========================================================
-
-
-// new:
-struct DMAScanlineBuffer
-{
-	uint8	 count = 0;			  // number of scanlines in buffer
-	uint8	 yscale;			  // repetition of each scanline for lowres screen modes
-	uint16	 length;			  // length of scanlines in words
-	uint32** scanlines = nullptr; // array of pointers to scanlines, ready for fragment dma
-
-	void setup(VgaMode videomode, uint new_count) throws
-	{
-		assert(count == 0);							// must not be in use
-		assert((new_count & (new_count - 1)) == 0); // must be 2^N
-
-		yscale	  = uint8(videomode.yscale);
-		length	  = uint16(videomode.width / 2);
-		scanlines = new uint32*[new_count * yscale];
-
-		for (uint32** z = scanlines; count; count--)
-		{
-			uint32* sl = new uint32[length];
-			for (uint y = 0; y < yscale; y++) *z++ = sl;
-		}
-	}
-
-	void teardown()
-	{
-		if (scanlines)
-		{
-			for (uint32** z = scanlines; count; count--)
-			{
-				delete[] * z;
-				z += yscale;
-			}
-			delete[] scanlines;
-			scanlines = nullptr;
-		}
-	}
-};
-
-static DMAScanlineBuffer dma_scanline_buffer;
-
-
-// =========================================================
-
-
-ScanlineSM			scanline_sm;
-std::atomic<uint32> scanlines_missed = 0;
-VideoQueue			video_queue;
 
 
 // =========================================================
@@ -149,7 +86,7 @@ inline void RAM ScanlineSM::abort_all_scanline_sms() noexcept
 	//constexpr uint32 CLR_IRQ_4 = 0xc044;
 	//pio_sm_exec(video_pio, SM1, CLR_IRQ_4);	// clear IRQ4 -> never needed. why?
 
-	const uint jmp = pio_encode_jmp(program_wait_index); // goto WAIT_IRQ4 position
+	const uint jmp = pio_encode_jmp(program_load_offset + video_scanline_wrap_target); // WAIT_IRQ4 position
 	//const uint drain = pio_encode_out(pio_null, 32);	// drain the OSR (rp2040 §3.4.7.2)
 
 	pio_sm_clear_fifos(video_pio, SM); // drain the TX fifo
@@ -157,90 +94,44 @@ inline void RAM ScanlineSM::abort_all_scanline_sms() noexcept
 	//pio_sm_exec(video_pio, SM1, drain);		// drain the OSR -> blocks & eats one word if OSR is empty (as it should be)
 }
 
-inline void RAM ScanlineSM::prepare_for_active_scanline() noexcept
+inline void RAM ScanlineSM::prepare_active_scanline() noexcept
 {
 	// called for PIO_IRQ0 at start of hsync for active display scanline
 	// highest priority!
 
 	if (ENABLE_VIDEO_RECOVERY) abort_all_scanline_sms();
 
-	// check for line repetition in low-res modes:
-	if (unlikely(y_scale > 1))
+	in_vblank = false;
+	current_scanline += 1;
+
+	auto* fsb = scanline_buffer[current_scanline];
+
+	if constexpr (FIXED_FRAGMENT_DMA)
 	{
-		if (--y_repeat_countdown) goto start_dma;
-		y_repeat_countdown = y_scale;
+		dma_channel_hw_addr(DMA_CHANNEL)->al3_transfer_count	= scanline_buffer.width / 2;
+		dma_channel_hw_addr(DMA_CB_CHANNEL)->al3_read_addr_trig = uintptr_t(fsb);
 	}
-
-	// update current scanline and frame idx:
-	current_id.scanline += 1;
-	if (unlikely(in_vblank)) // => first scanline of frame
-	{
-		in_vblank			= false;
-		current_id.scanline = 0;
-		current_id.frame += 1;
-	}
-
-	// dispose old and get next scanline:
-	// TODO we could also repeat the last scanline if scanline missed
-
-	if (current_scanline != &missing_scanline)
-	{
-	a:
-		video_queue.push_free(); // release the recent scanline
-		__sev();
-	}
-
-	if (video_queue.full_avail())
-	{
-		current_scanline = &video_queue.get_full();
-		if (current_scanline->id < current_id)
-			goto a; // outdated
-					// else if the scanline is too early then we display it too early
-					// and remain out of sync. but this should not happen.
-	}
-	else
-	{
-		current_scanline = &missing_scanline;
-		scanlines_missed = scanlines_missed + 1; // atomic_fetch_add not implemented, but in the isr this should work
-	}
-
-start_dma:
-
-	auto* fsb = current_scanline;
-
-	if (FIXED_FRAGMENT_DMA) dma_channel_hw_addr(DMA_CHANNEL)->al3_transfer_count = fsb->fragment_words;
-	if (FIXED_FRAGMENT_DMA) dma_channel_hw_addr(DMA_CB_CHANNEL)->al3_read_addr_trig = uintptr_t(fsb->data);
-	else dma_channel_transfer_from_buffer_now(DMA_CHANNEL, fsb->data, fsb->used);
+	else dma_channel_transfer_from_buffer_now(DMA_CHANNEL, fsb, scanline_buffer.width / 2);
 }
 
-inline void RAM ScanlineSM::prepare_for_vblank_scanline() noexcept
+inline void RAM ScanlineSM::prepare_vblank_scanline() noexcept
 {
 	// called for PIO IRQ #1 at start of hsync for scanlines in vblank
 	// highest priority!
 
 	if (!in_vblank) // first scanline in vblank?
 	{
-		if (ENABLE_VIDEO_RECOVERY)
-		{
-			abort_all_dma_channels(); // we could also abort_all_scanline_sms() to stop runaway SMs
-		}
+		// we could also abort_all_scanline_sms() to stop runaway SMs:
+		if (ENABLE_VIDEO_RECOVERY) { abort_all_dma_channels(); }
 
-		if (current_scanline != &missing_scanline)
-		{
-			current_scanline = &missing_scanline;
-			video_queue.push_free(); // release the recent scanline
-									 //__sev(); // TODO
-		}
-
-		in_vblank		   = true;
-		y_repeat_countdown = 1; // => next prepare_for_active_scanline() will read next scanline
-
-		sem_release(&scanline_sm.vblank_begin);
+		in_vblank			= true;
+		current_frame_start = current_scanline;
+		__sev();
 	}
 }
 
-static void RAM isr_pio0_irq0()
-//extern "C" void __isr inline RAM isr_pio0_0(void)
+//static
+void RAM ScanlineSM::isr_pio0_irq0() noexcept
 {
 	// scanline pio interrupt at start of each scanline
 	// highest priority!
@@ -252,7 +143,7 @@ static void RAM isr_pio0_irq0()
 		//	 for active display scanline
 
 		video_pio->irq = 1; // clear irq
-		scanline_sm.prepare_for_active_scanline();
+		scanline_sm.prepare_active_scanline();
 	}
 
 	else //if (video_pio->irq & 2u)
@@ -262,32 +153,8 @@ static void RAM isr_pio0_irq0()
 		//	 for scanlines in vblank
 
 		video_pio->irq = 2; // clear irq
-		scanline_sm.prepare_for_vblank_scanline();
+		scanline_sm.prepare_vblank_scanline();
 	}
-}
-
-Scanline* RAM ScanlineSM::getScanlineForGenerating()
-{
-	if (unlikely(video_queue.free_avail() == 0)) return nullptr;
-
-	ScanlineID& id = last_generated_id;
-	id.scanline += 1;
-
-	if (unlikely(id <= current_id)) // scanline missed?
-	{
-		id = current_id + 1;
-	}
-
-	if (unlikely(id.scanline >= video_mode.height)) // next frame?
-	{
-		id.scanline = 0;
-		id.frame += 1;
-	}
-
-	Scanline* scanline = &video_queue.get_free();
-	scanline->id	   = id;
-
-	return scanline;
 }
 
 #pragma GCC pop_options
@@ -354,30 +221,24 @@ static void configure_dma_channels()
 	}
 }
 
-//Error ScanlineSM::setup(const VgaMode* mode, uint32* scanlinebuffer[], int count, int size)
-Error ScanlineSM::setup(const VgaMode* mode)
+void ScanlineSM::teardown() noexcept
+{
+	// TODO release SM and dma?
+}
+
+void ScanlineSM::setup(const VgaMode* mode) throws
 {
 	assert(get_core_num() == 1);
-
 	assert(mode->width <= mode->h_active);
 	assert(mode->height * mode->yscale <= mode->v_active);
-	assert((ScanlineID(100, 10) + 5).scanline == 105);
+	assert(scanline_buffer.is_valid());
+	assert(scanline_buffer.width == mode->h_active);
 
 	setup_gpio_pins();
 
-	video_mode			= *mode;
-	y_scale				= mode->yscale;
-	y_repeat_countdown	= 1;
-	current_scanline	= &missing_scanline;
-	current_id.frame	= 0;
-	current_id.scanline = 0;
-	last_generated_id	= current_id;
-	in_vblank			= false; // true if in the vblank interval
-	scanlines_missed	= 0;
-	sem_init(&vblank_begin, 0, 1);
-
-
-	missing_scanline.used = mode->width / 2;
+	in_vblank			= false;
+	current_frame_start = 0;
+	current_scanline	= 0;
 
 	uint sys_clk				  = clock_get_hz(clk_sys);
 	uint video_clock_down_times_2 = sys_clk / mode->pixel_clock;
@@ -385,19 +246,18 @@ Error ScanlineSM::setup(const VgaMode* mode)
 	if (ENABLE_CLOCK_PIN)
 	{
 		if (video_clock_down_times_2 * mode->pixel_clock != sys_clk)
-			return "System clock must be an even multiple of the requested pixel clock";
+			throw "System clock must be an even multiple of the requested pixel clock";
 	}
 	else
 	{
 		if (video_clock_down_times_2 * mode->pixel_clock != sys_clk) // TODO: check wg. odd multiple
-			return "System clock must be an integer multiple of the requested pixel clock";
+			throw "System clock must be an integer multiple of the requested pixel clock";
 	}
 
 	// install program:
 
 	assert(scanline_pio_program.instructions[video_scanline_wrap_target] == PIO_WAIT_IRQ4);
 	program_load_offset = pio_add_program(video_pio, &scanline_pio_program);
-	program_wait_index	= program_load_offset + video_scanline_wrap_target;
 
 	// setup scanline SMs:
 
@@ -422,8 +282,6 @@ Error ScanlineSM::setup(const VgaMode* mode)
 	irq_set_exclusive_handler(PIO0_IRQ_0, isr_pio0_irq0);
 
 	configure_dma_channels<FIXED_FRAGMENT_DMA>();
-
-	return NO_ERROR;
 }
 
 void ScanlineSM::start()
@@ -432,9 +290,9 @@ void ScanlineSM::start()
 
 	stop();
 
-	uint jmp = pio_encode_jmp(program_wait_index - 1);
+	uint jmp = pio_encode_jmp(program_load_offset);
 	pio_sm_exec(video_pio, SM, jmp);
-	pio_sm_put(video_pio, SM, video_mode.width - 1);
+	pio_sm_put(video_pio, SM, scanline_buffer.width - 1);
 
 	irq_set_enabled(PIO0_IRQ_0, true);
 	pio_set_sm_mask_enabled(video_pio, SM_MASK, true);
@@ -447,22 +305,6 @@ void ScanlineSM::stop()
 	pio_set_sm_mask_enabled(video_pio, SM_MASK, false); // stop scanline state machines
 	irq_set_enabled(PIO0_IRQ_0, false);					// disable scanline interrupt
 	abort_all_dma_channels();
-}
-
-
-// =====================================================================
-
-
-void ScanlineSM::waitForScanline(ScanlineID scanline)
-{
-	while (scanline_sm.current_id < scanline) { __wfe(); }
-}
-
-bool ScanlineSM::in_hblank()
-{
-	// if scanline pio is waiting for IRQ4 then it is not generating pixels:
-
-	return video_pio->sm[SM].instr == PIO_WAIT_IRQ4;
 }
 
 

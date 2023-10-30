@@ -33,9 +33,10 @@ struct TimingSM
 
 	uint8 video_htiming_load_offset;
 
-	Error setup(const VgaMode*);
-	void  start(); // start or restart
-	void  stop();
+	void setup(const VgaMode*);
+	void teardown() noexcept;
+	void start() noexcept; // start or restart
+	void stop() noexcept;
 
 	//private:
 	void configure_dma_channel();

@@ -44,20 +44,18 @@ public:
 
 	virtual ~FrameBuffer() noexcept override = default;
 
-	virtual void setup(coord width, VideoQueue& vq) override
+	virtual void setup(coord /*width*/) throws override
 	{
-		VideoPlane::setup(width, vq);		 // setup buffers
 		setupScanlineRenderer<CM>(colormap); // setup render function
 		FrameBuffer::vblank();				 // reset state variables
 	}
 
-	virtual void teardown(VideoQueue& vq) noexcept override
+	virtual void teardown() noexcept override
 	{
-		teardownScanlineRenderer<CM>();
-		VideoPlane::teardown(vq);
+		teardownScanlineRenderer<CM>(); //
 	}
 
-	virtual uint RAM renderScanline(int row, uint32* plane_data) noexcept override final
+	virtual void RAM renderScanline(int row, uint32* plane_data) noexcept override final
 	{
 		while (unlikely(++this->row <= row)) // increment row and check whether we missed some rows
 		{
@@ -68,8 +66,6 @@ public:
 		scanlineRenderFunction<CM>(plane_data, width, pixels);
 
 		pixels += pixmap.row_offset;
-
-		return width / 2; // count of uint32 values
 	}
 
 	virtual void RAM vblank() noexcept override final
@@ -103,20 +99,18 @@ public:
 
 	virtual ~FrameBuffer() noexcept override = default;
 
-	virtual void setup(coord width, VideoQueue& vq) override // may throw
+	virtual void setup(coord /*width*/) throws override
 	{
-		VideoPlane::setup(width, vq);		 // setup buffers
 		setupScanlineRenderer<CM>(colormap); // setup render function
 		FrameBuffer::vblank();				 // reset state variables
 	}
 
-	virtual void teardown(VideoQueue& vq) noexcept override
+	virtual void teardown() noexcept override
 	{
-		teardownScanlineRenderer<CM>();
-		VideoPlane::teardown(vq);
+		teardownScanlineRenderer<CM>(); //
 	}
 
-	virtual uint RAM renderScanline(int row, uint32* plane_data) noexcept override final
+	virtual void RAM renderScanline(int row, uint32* plane_data) noexcept override final
 	{
 		while (unlikely(++this->row <= row)) // increment row and check whether we missed some rows
 		{
@@ -137,8 +131,6 @@ public:
 			arow = 0;
 			attributes += pixmap.attributes.row_offset;
 		}
-
-		return width / 2; // count of uint32 values
 	}
 
 	virtual void RAM vblank() noexcept override final

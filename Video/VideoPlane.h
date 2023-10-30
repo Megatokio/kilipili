@@ -5,7 +5,7 @@
 #pragma once
 #include "Graphics/geometry.h"
 #include "VBlankAction.h"
-#include "VideoQueue.h"
+//#include "VideoQueue.h"
 #include <new>
 
 namespace kio::Video
@@ -26,39 +26,8 @@ protected:
 public:
 	virtual ~VideoPlane() noexcept override = default;
 
-	/*
-		Allocate buffers and initialize buffer with static data, if any, to speed up renderer.
-		The default implementation allocates buffers large enough if all pixels are set with CMD::RAW_RUN
-	*/
-	virtual void setup(coord width, VideoQueue& vq)
-	{
-		uint size = uint(width / 2);
-
-		for (uint i = 0; i < vq.SIZE; i++)
-		{
-			auto& plane_data = vq.buckets[i];
-			plane_data.data	 = new (std::nothrow) uint32[size];
-			if (plane_data.data == nullptr) throw OUT_OF_MEMORY;
-			plane_data.used = 0;
-			plane_data.max	= uint16(size);
-		}
-	}
-
-	/*
-		Deallocate data buffers.
-		The default implementation deallocates the buffers.
-	*/
-	virtual void teardown(VideoQueue& vq) noexcept
-	{
-		for (uint i = 0; i < vq.SIZE; i++)
-		{
-			auto& plane_data = vq.buckets[i];
-			delete[] plane_data.data;
-			plane_data.data = nullptr;
-			plane_data.used = 0;
-			plane_data.max	= 0;
-		}
-	}
+	virtual void setup(coord width)	 = 0;
+	virtual void teardown() noexcept = 0;
 
 	/*
 		reset internal counters and addresses for next frame.
@@ -74,7 +43,7 @@ public:
 		@param buffer destination for the pixel data
 		@return       number of uint32 words actually written
 	*/
-	virtual uint renderScanline(int row, uint32* buffer) noexcept = 0;
+	virtual void renderScanline(int row, uint32* buffer) noexcept = 0;
 };
 
 } // namespace kio::Video

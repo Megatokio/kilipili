@@ -6,12 +6,13 @@
  */
 
 #include "VideoController.h"
+#include "ScanlineBuffer.h"
 #include "ScanlineSM.h"
 #include "StackInfo.h"
 #include "TimingSM.h"
 #include "VideoPlane.h"
-#include "VideoQueue.h"
 #include "kilipili_cdefs.h"
+#include "scanvideo_options.h"
 #include "utilities/LoadSensor.h"
 #include "utilities/utilities.h"
 #include <hardware/clocks.h>
@@ -26,7 +27,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 namespace kio::Video
 {
 
@@ -38,7 +38,7 @@ constexpr uint32 SM_MASK = (1u << PICO_SCANVIDEO_SCANLINE_SM1) | (1u << PICO_SCA
 #define RAM __attribute__((section(".time_critical.Scanvideo")))
 
 
-using namespace Graphics;
+uint scanlines_missed = 0;
 
 Size VideoController::size = {0, 0};
 
@@ -55,6 +55,8 @@ struct Locker
 
 
 // =========================================================
+
+using namespace Graphics;
 
 VideoController::VideoController() noexcept
 {
@@ -128,16 +130,24 @@ Error VideoController::do_setup() noexcept
 	pio_set_sm_mask_enabled(video_pio, 0x0f, false); // stop all 4 state machines
 	pio_clear_instruction_memory(video_pio);
 
-	if (Error e = scanline_sm.setup(vga_mode)) return e;
-	if (Error e = timing_sm.setup(vga_mode)) return e;
-	return NO_ERROR;
+	try
+	{
+		scanline_buffer.setup(vga_mode, PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT);
+		scanline_sm.setup(vga_mode);
+		timing_sm.setup(vga_mode);
+		return NO_ERROR;
+	}
+	catch (Error e)
+	{
+		do_teardown();
+		return e;
+	}
 }
 
 void VideoController::start_video()
 {
 	assert(get_core_num() == 1);
 
-	video_queue.reset();
 	scanline_sm.start();
 	sleep_ms(1);
 	timing_sm.start();
@@ -156,6 +166,13 @@ void VideoController::do_teardown() noexcept
 {
 	assert(get_core_num() == 1);
 
+	scanline_sm.teardown();
+	timing_sm.teardown();
+	scanline_buffer.teardown();
+
+	pio_set_sm_mask_enabled(video_pio, 0x0f, false); // stop all 4 state machines
+	pio_clear_instruction_memory(video_pio);
+
 	idle_action		   = nullptr;
 	num_vblank_actions = 0;
 
@@ -166,13 +183,14 @@ void VideoController::do_teardown() noexcept
 
 	while (num_planes)
 	{
-		planes[--num_planes]->teardown(video_queue); //
+		planes[--num_planes]->teardown(); //
 	}
 }
 
 void VideoController::core1_runner() noexcept
 {
 	assert(get_core_num() == 1);
+	stackinfo();
 
 	try
 	{
@@ -224,61 +242,81 @@ void VideoController::core1_runner() noexcept
 	}
 }
 
+inline void RAM VideoController::wait_for_event() noexcept
+{
+	stackinfo();
+
+	idle_start();
+	if (auto* fu = idle_action) fu();
+	else __wfe();
+	idle_end();
+}
+
+inline void RAM VideoController::call_vblank_actions() noexcept
+{
+	stackinfo();
+
+	locker();
+	if (unlikely(num_onetime_actions))
+	{
+		for (uint i = 0; i < num_onetime_actions; i++)
+		{
+			auto& ota = onetime_actions[i];
+			ota();
+			ota = [] {};
+		}
+		num_onetime_actions = 0;
+	}
+	for (uint i = 0; i < num_vblank_actions; i++) { vblank_actions[i]->vblank(); }
+	for (uint i = 0; i < num_planes; i++) { planes[i]->vblank(); }
+}
+
 void RAM VideoController::video_runner()
 {
-	debuginfo();
+	stackinfo();
 
-	int row = 9999;
+	int height = vga_mode->v_active;
+	int row0   = scanline_sm.current_frame_start;
+	int row	   = scanline_sm.current_scanline;
 
-	while (1)
+	row += scanline_buffer.yscale - (row - row0) % scanline_buffer.yscale;
+
+	ScanlineBuffer& scanlines = scanline_buffer;
+
+	for (;; row += scanlines.yscale)
 	{
-	a:
-		Scanline* scanline = scanline_sm.getScanlineForGenerating();
-		if (unlikely(!scanline))
+		if unlikely (row - row0 >= height) // next frame
 		{
-			idle_start();
-			if (auto* fu = idle_action) fu();
-			else __wfe();
-			idle_end();
-			goto a;
+			row0 += height;
+
+			if unlikely (requested_state != RUNNING) break;
+			else call_vblank_actions();
 		}
 
-		if (unlikely(++row != scanline->id.scanline)) // next frame or missed row
-		{
-			if (row > scanline->id.scanline) // next frame
-			{
-				if (unlikely(requested_state != RUNNING)) break;
-				locker();
-				if (unlikely(num_onetime_actions))
-				{
-					for (uint i = 0; i < num_onetime_actions; i++)
-					{
-						auto& ota = onetime_actions[i];
-						ota();
-						ota = [] {};
-					}
-					num_onetime_actions = 0;
-				}
-				for (uint i = 0; i < num_vblank_actions; i++) { vblank_actions[i]->vblank(); }
-				for (uint i = 0; i < num_planes; i++) { planes[i]->vblank(); }
-			}
+		assert(uint(row - row0) < uint(height));
 
-			row = scanline->id.scanline;
+		while (unlikely(row + scanline_buffer.yscale - scanline_sm.current_scanline > scanlines.count))
+		{
+			wait_for_event(); //
 		}
+
+		uint32* scanline = scanlines[row];
 
 		for (uint i = 0; i < num_planes; i++)
 		{
-			scanline->used = uint16(planes[i]->renderScanline(row, scanline->data));
-			assert_eq(scanline->used, scanline->max);
+			planes[i]->renderScanline((row - row0) / scanlines.yscale, scanline); //
 		}
 
-		scanline_sm.pushGeneratedScanline();
+		if unlikely (scanline_sm.current_scanline >= row)
+		{
+			scanlines_missed++;
+			row += scanlines.yscale;
+		}
 	}
 }
 
-bool VideoController::in_hblank() noexcept { return scanline_sm.in_hblank(); }
 void VideoController::waitForVBlank() noexcept { scanline_sm.waitForVBlank(); }
-void VideoController::waitForScanline(ScanlineID n) noexcept { scanline_sm.waitForScanline(n); }
+void VideoController::waitForScanline(int n) noexcept { scanline_sm.waitForScanline(n); }
 
 void VideoController::addOneTimeAction(std::function<void()> fu) noexcept
 {
@@ -299,7 +337,7 @@ void VideoController::addPlane(VideoPlane* plane)
 	addOneTimeAction([this, plane] {
 		assert(num_planes < max_planes);
 		planes[num_planes] = plane;
-		plane->setup(width(), video_queue); // throws
+		plane->setup(size.width); // throws
 		num_planes++;
 	});
 }
@@ -314,7 +352,7 @@ void VideoController::removePlane(VideoPlane* plane)
 
 	// decrement early because video_runner() does not lock
 	num_planes--;
-	plane->teardown(video_queue);
+	plane->teardown();
 }
 
 void VideoController::addVBlankAction(VBlankAction* fu, uint8 when) noexcept
