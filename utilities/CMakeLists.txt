@@ -23,6 +23,8 @@ add_library(kilipili_utilities STATIC
 	Logger.cpp
 	sm_utilities.h 
 	sm_utilities.cpp
+	StackInfo.cpp
+	StackInfo.h
 	)
 
 target_compile_definitions(kilipili_utilities PUBLIC 
