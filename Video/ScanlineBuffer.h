@@ -17,7 +17,7 @@ struct ScanlineBuffer
 {
 	void setup(const VgaMode* videomode, uint count) throws;
 	void teardown() noexcept;
-	bool is_valid() const noexcept { return mask >= 1; }
+	bool is_valid() const noexcept { return count != 0; }
 
 	uint32* operator[](int rolling_index) noexcept
 	{
@@ -28,10 +28,10 @@ struct ScanlineBuffer
 	uint16 yscale;	  // repetition of each scanline for lowres screen modes
 	uint16 width;	  // length of scanlines in pixels
 	uint16 count = 0; // size of scanlines[]
-	uint16 mask	 = 0;
+	uint16 mask	 = 0; // size - 1
 
-private:
-	uint32** scanlines = nullptr; // array of pointers to scanlines, ready for fragment dma
+	static constexpr uint max_count = 32;		//4 .. 2^N .. 64
+	static uint32*		  scanlines[max_count]; // array of pointers to scanlines, ready for fragment dma
 };
 
 extern ScanlineBuffer scanline_buffer;

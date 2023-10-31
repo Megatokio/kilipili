@@ -10,54 +10,48 @@ namespace kio::Video
 
 ScanlineBuffer scanline_buffer;
 
+//static
+alignas(sizeof(ptr) * ScanlineBuffer::max_count) //
+	uint32* ScanlineBuffer::scanlines[max_count];
+
 
 void ScanlineBuffer::setup(const VgaMode* videomode, uint new_count) throws
 {
-	assert_eq(mask, 0);						   // must be invalid
-	assert_ge(new_count, 2);				   // at least 2 scanlines
-	assert_eq(new_count & (new_count - 1), 0); // must be 2^N
-
-	teardown();
+	assert_eq(count, 0); // must be invalid
 
 	width  = videomode->h_active;
 	yscale = videomode->v_active / videomode->height;
 
-	assert_eq(width % 2, 0);
-	assert_eq(yscale, videomode->yscale);
-	assert_eq(yscale & (yscale - 1), 0); // must be 2^N
+	assert_ge(new_count, 2);				   // at least 2 scanlines
+	assert_eq(new_count & (new_count - 1), 0); // must be 2^N
+	assert_le(new_count * yscale, max_count);  // must not exceed array
+	assert_eq(width % 2, 0);				   // dma transfer unit is uint32 = 2 pixels
+	assert_eq(yscale, videomode->yscale);	   // test for time beeing
+	assert_eq(yscale & (yscale - 1), 0);	   // must be 2^N
 	assert_eq(videomode->v_active, yscale * videomode->height);
-
-	new_count *= yscale;
-	scanlines = new uint32*[new_count];
 
 	try
 	{
-		for (count = 0; count < new_count; count += yscale)
+		for (/*count = 0*/; count < new_count * yscale; count += yscale)
 		{
 			uint32* sl = new uint32[width / 2];
 			for (uint y = 0; y < yscale; y++) scanlines[count + y] = sl;
 		}
-
 		mask = count - 1;
 	}
 	catch (...)
 	{
+		teardown();
 		throw OUT_OF_MEMORY;
 	}
 }
 
 void ScanlineBuffer::teardown() noexcept
 {
-	if (scanlines)
+	while (count)
 	{
-		mask = 0;
-		while (count)
-		{
-			count -= yscale;
-			delete[] scanlines[count];
-		}
-		delete[] scanlines;
-		scanlines = nullptr;
+		count -= yscale;
+		delete[] scanlines[count];
 	}
 }
 
