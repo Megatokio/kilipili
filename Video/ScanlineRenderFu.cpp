@@ -758,6 +758,10 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 	// 2023-10-27
 	// this version displays 1024x768 with avg/max load = 247.1/259.3MHz
 
+#ifndef VIDEO_OPTIMISTICAL_A1W8_RGB
+  #define VIDEO_OPTIMISTICAL_A1W8_RGB OFF
+#endif
+
 	uint32 ctable[4];
 	interp_set_base(interp1, lane1, uint32(ctable));
 
@@ -767,16 +771,20 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 		const uint32* pixels	 = reinterpret_cast<const uint32*>(_pixels);
 		const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
 
+		uint32 color10a;
+		uint32 color10b = 0;
+
 		for (uint i = 0; i < width / 32; i++)
 		{
+			color10a = *attributes++;
+			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
 			{
-				uint32 color10 = *attributes++;
-				uint32 color01 = (color10 >> 16) | (color10 << 16);
-				uint32 xxx	   = uint16(color01 ^ color10);
+				uint32 color01 = (color10a >> 16) | (color10a << 16);
+				uint32 xxx	   = uint16(color01 ^ color10a);
 				ctable[1]	   = color01;
-				ctable[2]	   = color10;
+				ctable[2]	   = color10a;
 				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10 ^ xxx;
+				ctable[3]	   = color10a ^ xxx;
 			}
 
 			uint32 bits = *pixels++;
@@ -787,14 +795,15 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 
+			color10b = *attributes++;
+			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
 			{
-				uint32 color10 = *attributes++;
-				uint32 color01 = (color10 >> 16) | (color10 << 16);
-				uint32 xxx	   = uint16(color01 ^ color10);
+				uint32 color01 = (color10b >> 16) | (color10b << 16);
+				uint32 xxx	   = uint16(color01 ^ color10b);
 				ctable[1]	   = color01;
-				ctable[2]	   = color10;
+				ctable[2]	   = color10b;
 				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10 ^ xxx;
+				ctable[3]	   = color10b ^ xxx;
 			}
 
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
@@ -802,14 +811,15 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 
+			color10a = *attributes++;
+			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
 			{
-				uint32 color10 = *attributes++;
-				uint32 color01 = (color10 >> 16) | (color10 << 16);
-				uint32 xxx	   = uint16(color01 ^ color10);
+				uint32 color01 = (color10a >> 16) | (color10a << 16);
+				uint32 xxx	   = uint16(color01 ^ color10a);
 				ctable[1]	   = color01;
-				ctable[2]	   = color10;
+				ctable[2]	   = color10a;
 				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10 ^ xxx;
+				ctable[3]	   = color10a ^ xxx;
 			}
 
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
@@ -817,14 +827,15 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 
+			color10b = *attributes++;
+			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
 			{
-				uint32 color10 = *attributes++;
-				uint32 color01 = (color10 >> 16) | (color10 << 16);
-				uint32 xxx	   = uint16(color01 ^ color10);
+				uint32 color01 = (color10b >> 16) | (color10b << 16);
+				uint32 xxx	   = uint16(color01 ^ color10b);
 				ctable[1]	   = color01;
-				ctable[2]	   = color10;
+				ctable[2]	   = color10b;
 				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10 ^ xxx;
+				ctable[3]	   = color10b ^ xxx;
 			}
 
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
