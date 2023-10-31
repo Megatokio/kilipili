@@ -14,8 +14,6 @@ add_library(kilipili_video STATIC
 	ScanlineRenderFu.h
 	VideoPlane.cpp
 	VideoPlane.h
-	ScanlineSM.cpp
-	ScanlineSM.h
 	VideoController.cpp
 	VideoController.h
 	Sprites.cpp
@@ -31,6 +29,8 @@ add_library(kilipili_video STATIC
 	vga_types.h
 	ScanlineBuffer.h 
 	ScanlineBuffer.cpp
+	VideoBackend.cpp
+	VideoBackend.h
 )
 
 target_compile_definitions(kilipili_video PUBLIC

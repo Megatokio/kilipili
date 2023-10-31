@@ -2,22 +2,22 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-// we need O3, also for the included headers!
-#pragma GCC push_options
-#pragma GCC optimize("O3")
-
-#include "ScanlineSM.h"
+#include "VideoBackend.h"
 #include "Color.h"
 #include "ScanlineBuffer.h"
+#include "VgaMode.h"
+#include "basic_math.h"
 #include "scanvideo.pio.h"
 #include "scanvideo_options.h"
+#include "timing.pio.h"
 #include <hardware/clocks.h>
 #include <hardware/dma.h>
 #include <hardware/irq.h>
 #include <hardware/pio.h>
 #include <pico/sync.h>
+#include <string.h>
 
-namespace kio::Video
+namespace kio ::Video
 {
 
 // clang-format off
@@ -30,30 +30,66 @@ namespace kio::Video
 #define dma_hw reinterpret_cast<dma_hw_t*>(DMA_BASE) // replace with c++-style definition
 // clang-format on
 
-#define RAM __attribute__((section(".time_critical.ScanlineSM")))
+#define WRAP(X)	 #X
+#define XWRAP(X) WRAP(X)
+#define XRAM	 __attribute__((section(".scratch_x.VB" XWRAP(__LINE__))))	   // the 4k page with the core1 stack
+#define RAM		 __attribute__((section(".time_critical.VB" XWRAP(__LINE__)))) // general ram
 
-#define PIO_WAIT_IRQ4 pio_encode_wait_irq(1, false, 4)
+static_assert(PICO_SCANVIDEO_PIXEL_RSHIFT + PICO_SCANVIDEO_PIXEL_RCOUNT <= PICO_SCANVIDEO_COLOR_PIN_COUNT);
+static_assert(PICO_SCANVIDEO_PIXEL_GSHIFT + PICO_SCANVIDEO_PIXEL_GCOUNT <= PICO_SCANVIDEO_COLOR_PIN_COUNT);
+static_assert(PICO_SCANVIDEO_PIXEL_BSHIFT + PICO_SCANVIDEO_PIXEL_BCOUNT <= PICO_SCANVIDEO_COLOR_PIN_COUNT);
 
-constexpr uint DMA_CHANNEL	  = PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL;
-constexpr uint DMA_CB_CHANNEL = PICO_SCANVIDEO_SCANLINE_DMA_CB_CHANNEL;
-
-constexpr uint SM = PICO_SCANVIDEO_SCANLINE_SM1;
-
-constexpr uint32 DMA_CHANNELS_MASK = (1u << DMA_CHANNEL);
-
-constexpr uint32 SM_MASK = (1u << SM);
-
-constexpr bool FIXED_FRAGMENT_DMA = PICO_SCANVIDEO_FIXED_FRAGMENT_DMA;
+#define video_pio pio0
 
 constexpr bool ENABLE_VIDEO_RECOVERY = PICO_SCANVIDEO_ENABLE_VIDEO_RECOVERY;
+constexpr uint SYNC_PIN_BASE		 = PICO_SCANVIDEO_SYNC_PIN_BASE;
 constexpr bool ENABLE_CLOCK_PIN		 = PICO_SCANVIDEO_ENABLE_CLOCK_PIN;
+constexpr uint CLOCK_POLARITY		 = PICO_SCANVIDEO_CLOCK_POLARITY;
+constexpr bool ENABLE_DEN_PIN		 = PICO_SCANVIDEO_ENABLE_DEN_PIN;
+constexpr uint DEN_POLARITY			 = PICO_SCANVIDEO_DEN_POLARITY;
+constexpr uint DMA_IRQ				 = DMA_IRQ_1; // for timing_dma
+constexpr uint TIMING_SM			 = 1u;
+constexpr uint SCANLINE_SM			 = 0u;
 
+constexpr uint	 DMA_CHANNEL		= PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL;
+constexpr uint	 DMA_CB_CHANNEL		= PICO_SCANVIDEO_SCANLINE_DMA_CB_CHANNEL;
+constexpr uint	 SM					= PICO_SCANVIDEO_SCANLINE_SM1;
+constexpr uint32 DMA_CHANNELS_MASK	= (1u << DMA_CHANNEL);
+constexpr uint32 SM_MASK			= (1u << SM);
+constexpr bool	 FIXED_FRAGMENT_DMA = PICO_SCANVIDEO_FIXED_FRAGMENT_DMA;
 
 // =========================================================
 
+bool in_vblank;
+int	 current_frame_start = 0; // rolling index of start of currently displayed frame
+int	 current_scanline	 = 0; // rolling index of currently displayed scanline
 
-ScanlineSM scanline_sm;
+class ScanlineSM
+{
+public:
+	void setup(const VgaMode* mode) throws;
+	void teardown() noexcept;
+	void start(); // start or restart
+	void stop();
 
+	void waitForVBlank() const noexcept
+	{
+		while (!in_vblank) { wfe(); }
+	}
+	void waitForScanline(int scanline) const noexcept
+	{
+		while (current_scanline - scanline < 0) { wfe(); }
+	}
+
+private:
+	static void isr_pio0_irq0() noexcept;
+	void		prepare_active_scanline() noexcept;
+	void		prepare_vblank_scanline() noexcept;
+	void		abort_all_scanline_sms() noexcept;
+};
+
+
+static ScanlineSM		   scanline_sm;
 static uint				   program_load_offset;
 static const pio_program_t scanline_pio_program {video_scanline_program};
 
@@ -157,8 +193,6 @@ void RAM ScanlineSM::isr_pio0_irq0() noexcept
 	}
 }
 
-#pragma GCC pop_options
-
 static void setup_gpio_pins()
 {
 	static_assert(
@@ -256,6 +290,7 @@ void ScanlineSM::setup(const VgaMode* mode) throws
 
 	// install program:
 
+	const uint PIO_WAIT_IRQ4 = pio_encode_wait_irq(1, false, 4);
 	assert(scanline_pio_program.instructions[video_scanline_wrap_target] == PIO_WAIT_IRQ4);
 	program_load_offset = pio_add_program(video_pio, &scanline_pio_program);
 
@@ -307,5 +342,70 @@ void ScanlineSM::stop()
 	abort_all_dma_channels();
 }
 
+void initialize() noexcept
+{
+	//
+}
+
+void VideoBackend::setup(const VgaMode* vga_mode, uint scanline_buffer_count) throws
+{
+	scanline_buffer.setup(vga_mode, scanline_buffer_count);
+	scanline_sm.setup(vga_mode);
+	//
+}
+
+void VideoBackend::teardown() noexcept
+{
+	scanline_sm.teardown();
+	scanline_buffer.teardown();
+}
+
+void VideoBackend::start() noexcept
+{
+	scanline_sm.start();
+	//
+}
+
+void VideoBackend::stop() noexcept
+{
+	scanline_sm.stop();
+	//
+}
+
 
 } // namespace kio::Video
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

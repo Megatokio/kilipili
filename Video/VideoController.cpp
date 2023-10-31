@@ -7,9 +7,9 @@
 
 #include "VideoController.h"
 #include "ScanlineBuffer.h"
-#include "ScanlineSM.h"
 #include "StackInfo.h"
 #include "TimingSM.h"
+#include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "kilipili_cdefs.h"
 #include "scanvideo_options.h"
@@ -132,8 +132,7 @@ Error VideoController::do_setup() noexcept
 
 	try
 	{
-		scanline_buffer.setup(vga_mode, PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT);
-		scanline_sm.setup(vga_mode);
+		VideoBackend::setup(vga_mode, PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT);
 		timing_sm.setup(vga_mode);
 		return NO_ERROR;
 	}
@@ -148,7 +147,7 @@ void VideoController::start_video()
 {
 	assert(get_core_num() == 1);
 
-	scanline_sm.start();
+	VideoBackend::start();
 	sleep_ms(1);
 	timing_sm.start();
 	pio_clkdiv_restart_sm_mask(video_pio, SM_MASK); // synchronize fractional divider
@@ -159,16 +158,15 @@ void VideoController::stop_video()
 	assert(get_core_num() == 1);
 
 	timing_sm.stop();
-	scanline_sm.stop();
+	VideoBackend::stop();
 }
 
 void VideoController::do_teardown() noexcept
 {
 	assert(get_core_num() == 1);
 
-	scanline_sm.teardown();
+	VideoBackend::teardown();
 	timing_sm.teardown();
-	scanline_buffer.teardown();
 
 	pio_set_sm_mask_enabled(video_pio, 0x0f, false); // stop all 4 state machines
 	pio_clear_instruction_memory(video_pio);
@@ -276,8 +274,8 @@ void RAM VideoController::video_runner()
 	stackinfo();
 
 	int height = vga_mode->v_active;
-	int row0   = scanline_sm.current_frame_start;
-	int row	   = scanline_sm.current_scanline;
+	int row0   = current_frame_start;
+	int row	   = current_scanline;
 
 	row += scanline_buffer.yscale - (row - row0) % scanline_buffer.yscale;
 
@@ -295,7 +293,7 @@ void RAM VideoController::video_runner()
 
 		assert(uint(row - row0) < uint(height));
 
-		while (unlikely(row + scanline_buffer.yscale - scanline_sm.current_scanline > scanlines.count))
+		while (unlikely(row + scanline_buffer.yscale - current_scanline > scanlines.count))
 		{
 			wait_for_event(); //
 		}
@@ -307,7 +305,7 @@ void RAM VideoController::video_runner()
 			planes[i]->renderScanline((row - row0) / scanlines.yscale, scanline); //
 		}
 
-		if unlikely (scanline_sm.current_scanline >= row)
+		if unlikely (current_scanline >= row)
 		{
 			scanlines_missed++;
 			row += scanlines.yscale;
@@ -315,8 +313,8 @@ void RAM VideoController::video_runner()
 	}
 }
 
-void VideoController::waitForVBlank() noexcept { scanline_sm.waitForVBlank(); }
-void VideoController::waitForScanline(int n) noexcept { scanline_sm.waitForScanline(n); }
+void VideoController::waitForVBlank() noexcept { Video::waitForVBlank(); }
+void VideoController::waitForScanline(int n) noexcept { Video::waitForScanline(n); }
 
 void VideoController::addOneTimeAction(std::function<void()> fu) noexcept
 {
