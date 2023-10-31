@@ -304,21 +304,24 @@ constexpr VgaMode vga_mode_672x384_60 =
 	// this is VESA mode 1366*768@60Hz REDUCED BLANKING 	
 	// with some black padding l+r.
 	
+	// note: my monitor recognizes this as 1280x768 and masks 16 pixels l+r.
+	
 	// note: 672 = 21*32 = 84*8
 	// note: 1366 displays which need DCLK and DEN will not display properly
 	// TODO support width != h_active and add black padding to the scanlines in the scanline_buffer
 
 	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                       vert                 polarity
 	// ----- --------- ---------- --------- ------------------------ --------------------- -------------
-	// VESA  72.00     48.000     60.000    1366 +14 +56 +64 = 1500   768 +1 +3 +28 = 800  +hsync +vsync
-	// half  36.00                          672 +13 +28 +37 = 750 
+	// VESA  72.00     48.000     60.000    1366 +14 +56 +64 = 1500  768 +1 +3 +28 = 800   +hsync +vsync
+	// half  36.00                          683 +7 +28 +32 = 750     768 +1 +3 +28 = 800   +hsync +vsync
+	//       36.00                          672 +12 +28 +38 =750
 	
 	.pixel_clock = 72000000/2,
 
 	.h_active = 672,		 
-	.h_front_porch = 13, 
+	.h_front_porch = 12, 
 	.h_pulse = 28, 
-	.h_back_porch = 37, 
+	.h_back_porch = 38, 
 	.h_sync_polarity = 1,
 
 	.v_active = 768,		 
@@ -327,8 +330,43 @@ constexpr VgaMode vga_mode_672x384_60 =
 	.v_back_porch = 28,  
 	.v_sync_polarity = 1,
 
-	.width	= 1360/2,
-	.height = 768,
+	.width	= 672,
+	.height = 384,
+	.yscale = 2,
+};
+
+
+constexpr VgaMode vga_mode_640x384_60 = 
+{
+	// this is VESA mode 1366*768@60Hz REDUCED BLANKING 	
+	// with some black padding l+r.
+	
+	// note: 640 = 20*32 = 80*8
+	// note: 1366 displays which need DCLK and DEN will not display properly
+	// TODO support width != h_active and add black padding to the scanlines in the scanline_buffer
+
+	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                       vert                 polarity
+	// ----- --------- ---------- --------- ------------------------ --------------------- -------------
+	// VESA  72.00     48.000     60.000    1366 +14 +56 +64 = 1500  768 +1 +3 +28 = 800   +hsync +vsync
+	// half  36.00                          683 +7 +28 +32 = 750     768 +1 +3 +28 = 800   +hsync +vsync
+	//       36.00                          640 +28 +28 +54 =750
+	
+	.pixel_clock = 72000000/2,
+
+	.h_active = 640,		 
+	.h_front_porch = 28, 
+	.h_pulse = 28, 
+	.h_back_porch = 54, 
+	.h_sync_polarity = 1,
+
+	.v_active = 768,		 
+	.v_front_porch = 1,  
+	.v_pulse = 3,	  
+	.v_back_porch = 28,  
+	.v_sync_polarity = 1,
+
+	.width	= 640,
+	.height = 384,
 	.yscale = 2,
 };
 
@@ -426,7 +464,7 @@ enum ScreenSize : uint8 // screen size in pixels: width x height
 	screensize_800x600	= 4,
 	screensize_1024x768 = 5,
 	screensize_1280x768 = 6,
-	screensize_672x384  = 7,
+	screensize_640x384  = 7,
 };
 
 constexpr uint num_screensizes = 8;
@@ -440,8 +478,8 @@ constexpr const VgaMode* vga_mode[num_screensizes] =
 	&vga_mode_640x480_60,
 	&vga_mode_800x600_60,
 	&vga_mode_1024x768_60,
-	&vga_mode_1360x768_60,
-	&vga_mode_672x384_60,
+	&vga_mode_1280x768_60,
+	&vga_mode_640x384_60,
 };
 
 
@@ -458,8 +496,8 @@ inline cstr tostr(kio::Video::ScreenSize ss)
 		"640*480", 
 		"800*400", 
 		"1024*768", 
-		"1360x768", 
-		"672x384"
+		"1280x768", 
+		"640x384"
 	};
 	return tbl[ss];
 }
