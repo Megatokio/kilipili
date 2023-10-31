@@ -47,16 +47,14 @@ constexpr bool ENABLE_CLOCK_PIN		 = PICO_SCANVIDEO_ENABLE_CLOCK_PIN;
 constexpr uint CLOCK_POLARITY		 = PICO_SCANVIDEO_CLOCK_POLARITY;
 constexpr bool ENABLE_DEN_PIN		 = PICO_SCANVIDEO_ENABLE_DEN_PIN;
 constexpr uint DEN_POLARITY			 = PICO_SCANVIDEO_DEN_POLARITY;
-constexpr uint TIMING_DMA_IRQ		 = DMA_IRQ_1; // for timing_dma
-constexpr uint TIMING_SM			 = 1u;
-constexpr uint TIMING_DMA_CHANNEL	 = PICO_SCANVIDEO_TIMING_DMA_CHANNEL;
+constexpr uint TIMING_DMA_IRQ		 = DMA_IRQ_1;
 
-constexpr uint	 SCANLINE_DMA_CHANNEL = PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL;
-constexpr uint	 DMA_CB_CHANNEL		  = PICO_SCANVIDEO_SCANLINE_DMA_CB_CHANNEL;
-constexpr uint	 SCANLINE_SM		  = PICO_SCANVIDEO_SCANLINE_SM1;
-constexpr uint32 DMA_CHANNELS_MASK	  = (1u << SCANLINE_DMA_CHANNEL);
-constexpr uint32 SM_MASK			  = (1u << SCANLINE_SM);
-constexpr bool	 FIXED_FRAGMENT_DMA	  = PICO_SCANVIDEO_FIXED_FRAGMENT_DMA;
+static uint TIMING_SM;
+static uint SCANLINE_SM;
+static uint TIMING_DMA_CHANNEL;
+static uint SCANLINE_DMA_CTRL_CHANNEL;
+static uint SCANLINE_DMA_DATA_CHANNEL;
+
 
 // =========================================================
 
@@ -64,73 +62,27 @@ bool in_vblank;
 int	 current_frame_start = 0; // rolling index of start of currently displayed frame
 int	 current_scanline	 = 0; // rolling index of currently displayed scanline
 
-class ScanlineSM
+alignas(16) static uint32 prog_active[4];
+alignas(16) static uint32 prog_vblank[4];
+alignas(16) static uint32 prog_vpulse[4];
+
+static struct
 {
-public:
-	void setup(const VgaMode* mode) throws;
-	void teardown() noexcept;
-	void start(); // start or restart
-	void stop();
+	uint32* program;
+	uint32	count; // scanlines
+} program[4];
 
-	void waitForVBlank() const noexcept
-	{
-		while (!in_vblank) { wfe(); }
-	}
-	void waitForScanline(int scanline) const noexcept
-	{
-		while (current_scanline - scanline < 0) { wfe(); }
-	}
-
-private:
-	static void isr_pio0_irq0() noexcept;
-	void		prepare_active_scanline() noexcept;
-	void		prepare_vblank_scanline() noexcept;
-	void		abort_all_scanline_sms() noexcept;
+enum State {
+	generate_v_active,
+	generate_v_frontporch,
+	generate_v_pulse,
+	generate_v_backporch,
+	video_off,
 };
 
-
-static ScanlineSM		   scanline_sm;
-static uint				   program_load_offset;
-static const pio_program_t scanline_pio_program {video_scanline_program};
-
-struct TimingSM
-{
-	alignas(16) uint32 prog_active[4];
-	alignas(16) uint32 prog_vblank[4];
-	alignas(16) uint32 prog_vpulse[4];
-
-	struct
-	{
-		uint32* program;
-		uint32	count;
-	} program[4];
-
-	enum State {
-		generate_v_active,
-		generate_v_frontporch,
-		generate_v_pulse,
-		generate_v_backporch,
-	};
-	uint state = generate_v_pulse;
-
-	uint timing_scanline;
-
-	uint8 video_htiming_load_offset;
-
-	void setup(const VgaMode*);
-	void teardown() noexcept;
-	void start() noexcept; // start or restart
-	void stop() noexcept;
-
-	//private:
-	void configure_dma_channel();
-	void setup_timings(const VgaMode*);
-	void install_pio_program(uint32 pixel_clock_frequency);
-	void isr();
-};
-
-
-static TimingSM timing_sm;
+static uint state = video_off;
+static uint scanline_program_load_offset;
+static uint video_htiming_load_offset;
 
 
 // =========================================================
@@ -140,15 +92,16 @@ static inline void RAM abort_all_dma_channels() noexcept
 {
 	// for irq handler only
 
-	dma_hw->abort = DMA_CHANNELS_MASK;
+	dma_hw->abort = (1u << SCANLINE_DMA_DATA_CHANNEL) | (1u << SCANLINE_DMA_CTRL_CHANNEL);
 
-	while (dma_channel_is_busy(SCANLINE_DMA_CHANNEL)) tight_loop_contents();
+	while (dma_channel_is_busy(SCANLINE_DMA_DATA_CHANNEL)) tight_loop_contents();
 
 	// we don't want any pending completion IRQ which may have happened in the interim
-	dma_hw->ints0 = DMA_CHANNELS_MASK; // this is probably not required because we don't use this IRQ
+	dma_hw->ints0 = (1u << SCANLINE_DMA_DATA_CHANNEL) |
+					(1u << SCANLINE_DMA_CTRL_CHANNEL); // this is probably not required because we don't use this IRQ
 }
 
-inline void RAM ScanlineSM::abort_all_scanline_sms() noexcept
+static inline void RAM abort_all_scanline_sms() noexcept
 {
 	// there's a lot to do:
 	// abort dma
@@ -161,7 +114,7 @@ inline void RAM ScanlineSM::abort_all_scanline_sms() noexcept
 	//constexpr uint32 CLR_IRQ_4 = 0xc044;
 	//pio_sm_exec(video_pio, SM1, CLR_IRQ_4);	// clear IRQ4 -> never needed. why?
 
-	const uint jmp = pio_encode_jmp(program_load_offset + video_scanline_wrap_target); // WAIT_IRQ4 position
+	const uint jmp = pio_encode_jmp(scanline_program_load_offset + video_scanline_wrap_target); // WAIT_IRQ4 position
 	//const uint drain = pio_encode_out(pio_null, 32);	// drain the OSR (rp2040 §3.4.7.2)
 
 	pio_sm_clear_fifos(video_pio, SCANLINE_SM); // drain the TX fifo
@@ -169,13 +122,7 @@ inline void RAM ScanlineSM::abort_all_scanline_sms() noexcept
 	//pio_sm_exec(video_pio, SM1, drain);		// drain the OSR -> blocks & eats one word if OSR is empty (as it should be)
 }
 
-inline void RAM TimingSM::isr()
-{
-	auto& prog = program[state++ & 3];
-	dma_channel_transfer_from_buffer_now(TIMING_DMA_CHANNEL, prog.program, prog.count);
-}
-
-void RAM isr_dma() noexcept
+static void RAM timing_isr() noexcept
 {
 	// DMA complete
 	// interrupt for for timing pio
@@ -185,154 +132,63 @@ void RAM isr_dma() noexcept
 	if (dma_irqn_get_channel_status(TIMING_DMA_IRQ, TIMING_DMA_CHANNEL))
 	{
 		dma_irqn_acknowledge_channel(TIMING_DMA_IRQ, TIMING_DMA_CHANNEL);
-		timing_sm.isr();
+
+		auto& prog = program[++state & 3];
+		dma_channel_transfer_from_buffer_now(TIMING_DMA_CHANNEL, prog.program, prog.count);
 	}
 }
 
-inline void RAM ScanlineSM::prepare_active_scanline() noexcept
+static void RAM isr_pio0_irq0() noexcept
 {
-	// called for PIO_IRQ0 at start of hsync for active display scanline
-	// highest priority!
-
-	if (ENABLE_VIDEO_RECOVERY) abort_all_scanline_sms();
-
-	in_vblank = false;
-	current_scanline += 1;
-
-	auto* fsb = scanline_buffer[current_scanline];
-
-	if constexpr (FIXED_FRAGMENT_DMA)
-	{
-		dma_channel_hw_addr(SCANLINE_DMA_CHANNEL)->al3_transfer_count = scanline_buffer.width / 2;
-		dma_channel_hw_addr(DMA_CB_CHANNEL)->al3_read_addr_trig		  = uintptr_t(fsb);
-	}
-	else dma_channel_transfer_from_buffer_now(SCANLINE_DMA_CHANNEL, fsb, scanline_buffer.width / 2);
-}
-
-inline void RAM ScanlineSM::prepare_vblank_scanline() noexcept
-{
-	// called for PIO IRQ #1 at start of hsync for scanlines in vblank
-	// highest priority!
-
-	if (!in_vblank) // first scanline in vblank?
-	{
-		// we could also abort_all_scanline_sms() to stop runaway SMs:
-		if (ENABLE_VIDEO_RECOVERY) { abort_all_dma_channels(); }
-
-		in_vblank			= true;
-		current_frame_start = current_scanline;
-		__sev();
-	}
-}
-
-//static
-void RAM ScanlineSM::isr_pio0_irq0() noexcept
-{
-	// scanline pio interrupt at start of each scanline
+	// scanline pio interrupt for PIO_IRQx at start of hsync for eachscanline
 	// highest priority!
 
 	if (video_pio->irq & 1u)
 	{
 		// handle PIO_IRQ0 from timing SM
 		//	 set at start of hsync
-		//	 for active display scanline
+		//	 for ACTIVE display scanline
 
 		video_pio->irq = 1; // clear irq
-		scanline_sm.prepare_active_scanline();
+
+		//if (ENABLE_VIDEO_RECOVERY) abort_all_scanline_sms();
+
+		current_scanline += 1;
+		if (in_vblank)
+		{
+			in_vblank			= false;
+			current_frame_start = current_scanline;
+			__sev();
+		}
 	}
 
 	else //if (video_pio->irq & 2u)
 	{
 		// handle PIO_IRQ1 from timing SM
 		//	 set at start of hsync
-		//	 for scanlines in vblank
+		//	 for scanlines in VBLANK
 
 		video_pio->irq = 2; // clear irq
-		scanline_sm.prepare_vblank_scanline();
-	}
-}
 
-static void setup_gpio_pins()
-{
-	static_assert(
-		PICO_SCANVIDEO_PIXEL_RSHIFT + PICO_SCANVIDEO_PIXEL_RCOUNT <= PICO_SCANVIDEO_COLOR_PIN_COUNT,
-		"red bits exceed pins");
-	static_assert(
-		PICO_SCANVIDEO_PIXEL_GSHIFT + PICO_SCANVIDEO_PIXEL_GCOUNT <= PICO_SCANVIDEO_COLOR_PIN_COUNT,
-		"green bits exceed pins");
-	static_assert(
-		PICO_SCANVIDEO_PIXEL_BSHIFT + PICO_SCANVIDEO_PIXEL_BCOUNT <= PICO_SCANVIDEO_COLOR_PIN_COUNT,
-		"blue bits exceed pins");
+		if (!in_vblank) // first scanline in vblank?
+		{
+			//if (ENABLE_VIDEO_RECOVERY) { abort_all_dma_channels(); }
 
-	constexpr uint32 RMASK = ((1u << PICO_SCANVIDEO_PIXEL_RCOUNT) - 1u) << PICO_SCANVIDEO_PIXEL_RSHIFT;
-	constexpr uint32 GMASK = ((1u << PICO_SCANVIDEO_PIXEL_GCOUNT) - 1u) << PICO_SCANVIDEO_PIXEL_GSHIFT;
-	constexpr uint32 BMASK = ((1u << PICO_SCANVIDEO_PIXEL_BCOUNT) - 1u) << PICO_SCANVIDEO_PIXEL_BSHIFT;
-
-	uint32 pin_mask = RMASK | GMASK | BMASK;
-	for (uint i = PICO_SCANVIDEO_COLOR_PIN_BASE; pin_mask; i++, pin_mask >>= 1)
-	{
-		if (pin_mask & 1) gpio_set_function(i, GPIO_FUNC_PIO0);
+			in_vblank = true;
+			__sev();
+		}
 	}
 }
 
 
-template<bool FIXED_FRAGMENT_DMA>
-static void configure_dma_channels()
+// =========================================================
+
+static void setup_scanline_sm(const VgaMode* mode) throws
 {
-	// configue scanline dma:
-
-	dma_channel_config config = dma_channel_get_default_config(SCANLINE_DMA_CHANNEL);
-
-	// Select scanline dma dreq to be SCANLINE_SM TX FIFO not full:
-	channel_config_set_dreq(&config, DREQ_PIO0_TX0 + SCANLINE_SM);
-
-	if (FIXED_FRAGMENT_DMA)
-	{
-		channel_config_set_chain_to(&config, DMA_CB_CHANNEL);
-		channel_config_set_irq_quiet(&config, true);
-	}
-
-	dma_channel_configure(
-		SCANLINE_DMA_CHANNEL, &config, &video_pio->txf[SCANLINE_SM], nullptr /*later*/, 0 /*later*/, false);
-
-	// configure scanline dma channel CB:
-
-	if (FIXED_FRAGMENT_DMA)
-	{
-		config = dma_channel_get_default_config(DMA_CB_CHANNEL);
-		channel_config_set_write_increment(&config, true);
-
-		// wrap the write at 4 or 8 bytes, so each transfer writes the same 1 or 2 ctrl registers:
-		channel_config_set_ring(&config, true, 2);
-
-		dma_channel_configure(
-			DMA_CB_CHANNEL, &config,
-			// ch DMA config (target "ring" buffer size 4) - this is (read_addr trigger)
-			&dma_channel_hw_addr(SCANLINE_DMA_CHANNEL)->al3_read_addr_trig,
-			nullptr, // set later
-			// send 1 word to ctrl block of data chain per transfer:
-			1, false);
-	}
-}
-
-void ScanlineSM::teardown() noexcept
-{
-	// TODO release SM and dma?
-}
-
-void ScanlineSM::setup(const VgaMode* mode) throws
-{
-	assert(get_core_num() == 1);
 	assert(mode->width <= mode->h_active);
 	assert(mode->height * mode->yscale <= mode->v_active);
 	assert(scanline_buffer.is_valid());
 	assert(scanline_buffer.width == mode->h_active);
-
-	setup_gpio_pins();
-
-	in_vblank			= false;
-	current_frame_start = 0;
-	current_scanline	= 0;
 
 	uint sys_clk				  = clock_get_hz(clk_sys);
 	uint video_clock_down_times_2 = sys_clk / mode->pixel_clock;
@@ -351,12 +207,12 @@ void ScanlineSM::setup(const VgaMode* mode) throws
 	// install program:
 
 	const uint PIO_WAIT_IRQ4 = pio_encode_wait_irq(1, false, 4);
-	assert(scanline_pio_program.instructions[video_scanline_wrap_target] == PIO_WAIT_IRQ4);
-	program_load_offset = pio_add_program(video_pio, &scanline_pio_program);
+	assert(video_scanline_program.instructions[video_scanline_wrap_target] == PIO_WAIT_IRQ4);
+	scanline_program_load_offset = pio_add_program(video_pio, &video_scanline_program);
 
 	// setup scanline SMs:
 
-	pio_sm_config config = video_scanline_program_get_default_config(program_load_offset);
+	pio_sm_config config = video_scanline_program_get_default_config(scanline_program_load_offset);
 
 	pio_sm_set_consecutive_pindirs(
 		video_pio, SCANLINE_SM, PICO_SCANVIDEO_COLOR_PIN_BASE, PICO_SCANVIDEO_COLOR_PIN_COUNT, true);
@@ -366,83 +222,15 @@ void ScanlineSM::setup(const VgaMode* mode) throws
 
 	sm_config_set_clkdiv_int_frac(
 		&config, uint16(video_clock_down_times_2 / 2), uint8((video_clock_down_times_2 & 1u) << 7u));
-	pio_sm_init(video_pio, SCANLINE_SM, program_load_offset, &config); // sm paused
+	pio_sm_init(video_pio, SCANLINE_SM, scanline_program_load_offset, &config); // sm paused
 
 	// configure scanline interrupts:
 
-	// set to highest priority:
-	irq_set_priority(PIO0_IRQ_0, 0);
-
 	// PIO_IRQ0 and PIO_IRQ1 can trigger IRQ0 of the video_pio:
 	pio_set_irq0_source_mask_enabled(video_pio, (1u << (pis_interrupt0)) | (1u << (pis_interrupt1)), true);
-	irq_set_exclusive_handler(PIO0_IRQ_0, isr_pio0_irq0);
-
-	configure_dma_channels<FIXED_FRAGMENT_DMA>();
 }
 
-void ScanlineSM::start()
-{
-	assert(get_core_num() == 1);
-
-	stop();
-
-	uint jmp = pio_encode_jmp(program_load_offset);
-	pio_sm_exec(video_pio, SCANLINE_SM, jmp);
-	pio_sm_put(video_pio, SCANLINE_SM, scanline_buffer.width - 1);
-
-	irq_set_enabled(PIO0_IRQ_0, true);
-	pio_set_sm_mask_enabled(video_pio, SM_MASK, true);
-}
-
-void ScanlineSM::stop()
-{
-	assert(get_core_num() == 1);
-
-	pio_set_sm_mask_enabled(video_pio, SM_MASK, false); // stop scanline state machines
-	irq_set_enabled(PIO0_IRQ_0, false);					// disable scanline interrupt
-	abort_all_dma_channels();
-}
-
-
-void TimingSM::configure_dma_channel()
-{
-	dma_channel_config config = dma_channel_get_default_config(TIMING_DMA_CHANNEL);
-
-	// Select timing dma dreq to be TIMING_SM TX FIFO not full:
-	channel_config_set_dreq(&config, DREQ_PIO0_TX0 + TIMING_SM);
-
-	// wrap the read at 4 words / 16 bytes, which is the size of the program arrays:
-	channel_config_set_ring(&config, false /*read*/, 4 /*log2(16)*/);
-
-	if ((1))
-	{
-		dma_channel_configure(
-			TIMING_DMA_CHANNEL, &config,
-			&video_pio->txf[TIMING_SM], // write address
-			nullptr /*later*/,			// read address
-			0 /*later*/,				// transfer count
-			false);						// don't start now
-	}
-	else
-	{
-		//dma_channel_set_read_addr(TIMING_DMA_CHANNEL, read_addr, false);
-		dma_channel_set_write_addr(TIMING_DMA_CHANNEL, &video_pio->txf[TIMING_SM] /*write_addr*/, false);
-		//dma_channel_set_trans_count(TIMING_DMA_CHANNEL, transfer_count, false);
-		dma_channel_set_config(TIMING_DMA_CHANNEL, &config, false);
-	}
-}
-
-static void configure_gpio_pins()
-{
-	uint32 pin_mask = 3u | (ENABLE_DEN_PIN << 2) | (ENABLE_CLOCK_PIN << 3);
-
-	for (uint i = SYNC_PIN_BASE; pin_mask; i++, pin_mask >>= 1)
-	{
-		if (pin_mask & 1) gpio_set_function(i, GPIO_FUNC_PIO0);
-	}
-}
-
-void TimingSM::install_pio_program(uint32 pixel_clock_frequency)
+static void setup_timing_sm(uint32 pixel_clock_frequency)
 {
 	// get the program, modify it as needed and install it:
 
@@ -484,11 +272,9 @@ void TimingSM::install_pio_program(uint32 pixel_clock_frequency)
 	pio_sm_set_consecutive_pindirs(video_pio, TIMING_SM, SYNC_PIN_BASE, pin_count, true);
 
 	pio_sm_init(video_pio, TIMING_SM, video_htiming_load_offset, &config); // now paused
-
-	//pio_set_irq1_source_enabled(video_pio, pis_sm0_tx_fifo_not_full + TIMING_SM, true);	// TODO required?
 }
 
-void TimingSM::setup_timings(const VgaMode* timing)
+static void setup_timing_programs(const VgaMode* timing)
 {
 	constexpr uint SET_IRQ_0 = 0xc000; //  0: irq nowait 0  side 0
 	constexpr uint SET_IRQ_1 = 0xc001; //  1: irq nowait 1  side 0
@@ -566,102 +352,145 @@ void TimingSM::setup_timings(const VgaMode* timing)
 	program[generate_v_backporch]  = {.program = prog_vblank, .count = count_of(prog_vblank) * v_back_porch};
 }
 
-void TimingSM::setup(const VgaMode* timing)
+static void setup_gpio_pins()
 {
-	assert(get_core_num() == 1);
+	constexpr uint32 RMASK = ((1u << PICO_SCANVIDEO_PIXEL_RCOUNT) - 1u) << PICO_SCANVIDEO_PIXEL_RSHIFT;
+	constexpr uint32 GMASK = ((1u << PICO_SCANVIDEO_PIXEL_GCOUNT) - 1u) << PICO_SCANVIDEO_PIXEL_GSHIFT;
+	constexpr uint32 BMASK = ((1u << PICO_SCANVIDEO_PIXEL_BCOUNT) - 1u) << PICO_SCANVIDEO_PIXEL_BSHIFT;
 
-	configure_gpio_pins();
-	configure_dma_channel();
-	install_pio_program(timing->pixel_clock);
-	setup_timings(timing);
-	static bool f = 0;
-	if (!f) irq_add_shared_handler(TIMING_DMA_IRQ, isr_dma, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
-	f = 1;
+	constexpr uint32 color_pins = (RMASK | GMASK | BMASK) << PICO_SCANVIDEO_COLOR_PIN_BASE;
+	constexpr uint32 sync_pins	= (3u | (ENABLE_DEN_PIN << 2) | (ENABLE_CLOCK_PIN << 3)) << SYNC_PIN_BASE;
+
+	for (uint pin_mask = color_pins | sync_pins, i = 0; pin_mask; i++, pin_mask >>= 1)
+	{
+		if (pin_mask & 1) gpio_set_function(i, GPIO_FUNC_PIO0);
+	}
 }
 
-void TimingSM::teardown() noexcept { TODO(); }
+static void setup_dma()
+{
+	dma_channel_config config = dma_channel_get_default_config(TIMING_DMA_CHANNEL);
 
-void TimingSM::start() noexcept
+	channel_config_set_dreq(&config, DREQ_PIO0_TX0 + TIMING_SM);  // dreq = TX FIFO not full
+	channel_config_set_ring(&config, false /*read*/, 4 /*log2*/); // wrap read at 4 words = sizeof program arrays
+
+	dma_channel_configure(
+		TIMING_DMA_CHANNEL, &config,
+		&video_pio->txf[TIMING_SM], // write address
+		nullptr /*later*/,			// read address: set by isr
+		0,							// transfer count: set by isr
+		false);						// don't start now
+
+	// configure scanline dma control channel:
+
+	config = dma_channel_get_default_config(SCANLINE_DMA_CTRL_CHANNEL);
+
+	channel_config_set_ring(&config, false /*read*/, msbit(scanline_buffer.count * 4) /*bytes*/);
+	//channel_config_set_ring(&config, false /*read*/, 4 /*bytes*/); //TEST
+
+	dma_channel_configure(
+		SCANLINE_DMA_CTRL_CHANNEL, &config,
+		&dma_channel_hw_addr(SCANLINE_DMA_DATA_CHANNEL)->al3_read_addr_trig, // write address
+		scanline_buffer.scanlines,											 // read address
+		1,		// send 1 word to data channel ctrl block per transfer
+		false); // don't start now
+
+	// configure scanline dma data channel:
+
+	config = dma_channel_get_default_config(SCANLINE_DMA_DATA_CHANNEL);
+
+	channel_config_set_dreq(&config, DREQ_PIO0_TX0 + SCANLINE_SM);	 // dreq = TX FIFO not full
+	channel_config_set_chain_to(&config, SCANLINE_DMA_CTRL_CHANNEL); // link to control channel
+	channel_config_set_irq_quiet(&config, true);					 // no irpt at end of transfer
+
+	dma_channel_configure(
+		SCANLINE_DMA_DATA_CHANNEL, &config,
+		&video_pio->txf[SCANLINE_SM], // write address
+		nullptr,					  // read address: set by control channel
+		scanline_buffer.width / 2,	  // count
+		false);						  // don't start now
+}
+
+void VideoBackend::start(const VgaMode* vga_mode, uint scanline_buffer_count) throws
 {
 	assert(get_core_num() == 1);
-
-	// restart timing SM and IRQ
-	// can be called while SM is running or stopped
-	// SM will restart with vblank
 
 	stop();
 
-	pio_sm_clear_fifos(video_pio, TIMING_SM); // drain TX fifo
-	//const uint drain = pio_encode_out(pio_null, 32);
-	//pio_sm_exec(video_pio, TIMING_SM, drain);		// drain the OSR
-	const uint jmp = pio_encode_jmp(video_htiming_load_offset + video_htiming_offset_entry_point);
-	pio_sm_exec(video_pio, TIMING_SM, jmp);
-	//constexpr uint CLR_IRQ_4 = 0xc044;  			//  3: irq clear  4  side 0
-	//pio_sm_exec(video_pio, TIMING_SM, CLR_IRQ_4);	// clear scanline irq (safety)
-
-	pio_sm_set_enabled(video_pio, TIMING_SM, true); // start SM
-
-	state = generate_v_pulse;
-
-	dma_irqn_set_channel_enabled(TIMING_DMA_IRQ, TIMING_DMA_CHANNEL, true); // enable DMA_CHANNEL irqs on DMA_IRQ_0 or 1
-	irq_set_enabled(TIMING_DMA_IRQ, true); // enable DMA_IRQ_0 or 1 interrupt on this core
-	isr();								   // irq_set_pending(DMA_IRQ);
-										   // trigger first irq
-}
-
-void TimingSM::stop() noexcept
-{
-	assert(get_core_num() == 1); // if irq_set_enabled() is called
-
-	// stop timing IRQ and SM
-
-	pio_sm_set_enabled(video_pio, TIMING_SM, false); // stop SM
-
-	//irq_set_enabled(DMA_IRQ, false);					// disable interrupt (good?)
-	dma_irqn_set_channel_enabled(TIMING_DMA_IRQ, TIMING_DMA_CHANNEL, false); // disable interrupt source
-	dma_channel_abort(TIMING_DMA_CHANNEL);
-}
-
-void VideoBackend::initialize() noexcept
-{
-	pio_claim_sm_mask(video_pio, 0x0f); // claim all because we clear instruction memory
-	dma_claim_mask((1u << TIMING_DMA_CHANNEL) | (1u << SCANLINE_DMA_CHANNEL));
-}
-
-void VideoBackend::setup(const VgaMode* vga_mode, uint scanline_buffer_count) throws
-{
-	pio_set_sm_mask_enabled(video_pio, 0x0f, false); // stop all 4 state machines
-	pio_clear_instruction_memory(video_pio);
+	in_vblank			= false;
+	current_frame_start = 0;
+	current_scanline	= 0;
 
 	scanline_buffer.setup(vga_mode, scanline_buffer_count);
-	scanline_sm.setup(vga_mode);
-	timing_sm.setup(vga_mode);
-}
+	setup_scanline_sm(vga_mode);
+	setup_timing_sm(vga_mode->pixel_clock);
+	setup_timing_programs(vga_mode);
+	setup_dma();
 
-void VideoBackend::teardown() noexcept
-{
-	scanline_sm.teardown();
-	scanline_buffer.teardown();
-	timing_sm.teardown();
+	// load line width into scanline sm and start sm:
+	pio_sm_restart(video_pio, SCANLINE_SM);
+	uint jmp = pio_encode_jmp(scanline_program_load_offset);
+	pio_sm_exec(video_pio, SCANLINE_SM, jmp);
+	pio_sm_put(video_pio, SCANLINE_SM, vga_mode->h_active - 1);
 
-	pio_set_sm_mask_enabled(video_pio, 0x0f, false); // stop all 4 state machines
-	pio_clear_instruction_memory(video_pio);
-}
+	// start timing sm:
+	pio_sm_restart(video_pio, TIMING_SM);
+	jmp = pio_encode_jmp(video_htiming_load_offset + video_htiming_offset_entry_point);
+	pio_sm_exec(video_pio, TIMING_SM, jmp);
 
-void VideoBackend::start() noexcept
-{
-	scanline_sm.start();
-	sleep_ms(1);
-	timing_sm.start();
-	pio_clkdiv_restart_sm_mask(
-		video_pio,
-		(1u << PICO_SCANVIDEO_SCANLINE_SM1) | (1u << PICO_SCANVIDEO_TIMING_SM)); // synchronize fractional divider
+	pio_enable_sm_mask_in_sync(video_pio, (1u << SCANLINE_SM) | (1 << TIMING_SM));
+
+	// start timing dma:
+	dma_irqn_set_channel_enabled(TIMING_DMA_IRQ, TIMING_DMA_CHANNEL, true); // enable DMA_CHANNEL irqs on DMA_IRQ
+	irq_set_enabled(TIMING_DMA_IRQ, true);									// enable DMA_IRQ interrupt on this core
+	irq_set_enabled(PIO0_IRQ_0, true);										// enable scanline interrupts
+
+	auto& prog = program[state = generate_v_pulse];
+	dma_channel_transfer_from_buffer_now(TIMING_DMA_CHANNEL, prog.program, prog.count); // trigger first irq
+
+	dma_channel_start(SCANLINE_DMA_CTRL_CHANNEL);
 }
 
 void VideoBackend::stop() noexcept
 {
-	timing_sm.stop();
-	scanline_sm.stop();
+	assert(get_core_num() == 1);
+
+	pio_set_sm_mask_enabled(video_pio, (1u << SCANLINE_SM) | (1u << TIMING_SM), false); // stop sm
+
+	//timing_sm:
+	//irq_set_enabled(DMA_IRQ, false);					// disable interrupt (good?)
+	dma_irqn_set_channel_enabled(TIMING_DMA_IRQ, TIMING_DMA_CHANNEL, false); // disable interrupt source
+	dma_channel_abort(TIMING_DMA_CHANNEL);
+
+	//scanline_sm:
+	irq_set_enabled(PIO0_IRQ_0, false); // disable scanline interrupt
+	abort_all_dma_channels();
+
+	if (state == video_off) return;
+	state = video_off;
+
+	//teardown:
+	pio_remove_program(video_pio, &video_scanline_program, scanline_program_load_offset);
+	pio_remove_program(video_pio, &video_htiming_program, video_htiming_load_offset);
+	scanline_buffer.teardown();
+}
+
+void VideoBackend::initialize() noexcept
+{
+	// any core
+
+	setup_gpio_pins();
+
+	TIMING_DMA_CHANNEL		  = uint(dma_claim_unused_channel(true));
+	SCANLINE_DMA_CTRL_CHANNEL = uint(dma_claim_unused_channel(true));
+	SCANLINE_DMA_DATA_CHANNEL = uint(dma_claim_unused_channel(true));
+	TIMING_SM				  = uint(pio_claim_unused_sm(video_pio, true));
+	SCANLINE_SM				  = uint(pio_claim_unused_sm(video_pio, true));
+
+	irq_add_shared_handler(TIMING_DMA_IRQ, timing_isr, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+
+	irq_set_priority(PIO0_IRQ_0, 0); // set to highest priority
+	irq_set_exclusive_handler(PIO0_IRQ_0, isr_pio0_irq0);
 }
 
 

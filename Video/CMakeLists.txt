@@ -32,7 +32,7 @@ add_library(kilipili_video STATIC
 )
 
 target_compile_definitions(kilipili_video PUBLIC
-	PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT=4
+	PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT=8
 	PICO_SCANVIDEO_ENABLE_VIDEO_RECOVERY=1
 )
 

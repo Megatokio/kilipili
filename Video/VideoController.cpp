@@ -111,31 +111,28 @@ void VideoController::teardown(bool blocking) noexcept
 	while (blocking && state != INVALID) { wfe(); }
 }
 
-Error VideoController::do_setup() noexcept
+void VideoController::do_setup() noexcept
 {
 	assert(get_core_num() == 1);
 	assert(vga_mode != nullptr);
 
 	size.width	= vga_mode->width;
 	size.height = vga_mode->height;
-
-	try
-	{
-		VideoBackend::setup(vga_mode, PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT);
-		return NO_ERROR;
-	}
-	catch (Error e)
-	{
-		do_teardown();
-		return e;
-	}
 }
 
 void VideoController::start_video()
 {
 	assert(get_core_num() == 1);
+	assert(vga_mode != nullptr);
 
-	VideoBackend::start();
+	try
+	{
+		VideoBackend::start(vga_mode, PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT);
+	}
+	catch (Error e)
+	{
+		panic("%s", e); // OOMEM
+	}
 }
 
 void VideoController::stop_video()
@@ -148,8 +145,6 @@ void VideoController::stop_video()
 void VideoController::do_teardown() noexcept
 {
 	assert(get_core_num() == 1);
-
-	VideoBackend::teardown();
 
 	idle_action		   = nullptr;
 	num_vblank_actions = 0;
@@ -176,13 +171,7 @@ void VideoController::core1_runner() noexcept
 		print_stack_free();
 		init_stack_guard();
 
-		core1_error = do_setup();
-		if (core1_error)
-		{
-			__sev();
-			return;
-		}
-
+		do_setup();
 		state = STOPPED;
 		__sev();
 
@@ -273,7 +262,7 @@ void RAM VideoController::video_runner()
 
 		assert(uint(row - row0) < uint(height));
 
-		while (unlikely(row + scanline_buffer.yscale - current_scanline > scanlines.count))
+		while (unlikely(row + scanline_buffer.yscale - current_scanline >= scanlines.count))
 		{
 			wait_for_event(); //
 		}

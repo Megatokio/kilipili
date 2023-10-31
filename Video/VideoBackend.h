@@ -19,13 +19,8 @@ class VideoBackend
 public:
 	static void initialize() noexcept; // panics
 
-	static void setup(const VgaMode*, uint) throws;
-	static void teardown() noexcept;
-	static void start() noexcept;
+	static void start(const VgaMode*, uint) throws;
 	static void stop() noexcept;
-
-private:
-	static void isr_pio0_irq0() noexcept;
 };
 
 

@@ -72,22 +72,3 @@
 #ifndef PICO_SCANVIDEO_ENABLE_VIDEO_RECOVERY
   #define PICO_SCANVIDEO_ENABLE_VIDEO_RECOVERY 0
 #endif
-
-
-// ==== CONFIG DMA =================================================
-
-#ifndef PICO_SCANVIDEO_FIXED_FRAGMENT_DMA
-  #define PICO_SCANVIDEO_FIXED_FRAGMENT_DMA 0
-#endif
-
-
-// ==== HARDWARE ASSIGNMENT =================================================
-
-#define video_pio pio0 // there's no choice about this!
-
-#define PICO_SCANVIDEO_SCANLINE_SM1 0u
-#define PICO_SCANVIDEO_TIMING_SM	1u
-
-#define PICO_SCANVIDEO_TIMING_DMA_CHANNEL	   0u // for timing SM
-#define PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL	   1u // for plane1
-#define PICO_SCANVIDEO_SCANLINE_DMA_CB_CHANNEL 2u // if plane1 fragment dma

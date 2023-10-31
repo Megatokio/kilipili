@@ -112,12 +112,12 @@ private:
 	void		core1_runner() noexcept;
 	void		video_runner();
 
-	void  start_video();
-	void  stop_video();
-	Error do_setup() noexcept;
-	void  do_teardown() noexcept;
-	void  wait_for_event() noexcept;
-	void  call_vblank_actions() noexcept;
+	void start_video();
+	void stop_video();
+	void do_setup() noexcept;
+	void do_teardown() noexcept;
+	void wait_for_event() noexcept;
+	void call_vblank_actions() noexcept;
 };
 
 
