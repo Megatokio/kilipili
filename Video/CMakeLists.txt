@@ -18,8 +18,6 @@ add_library(kilipili_video STATIC
 	VideoController.h
 	Sprites.cpp
 	Sprites.h
-	TimingSM.cpp
-	TimingSM.h
 	VBlankAction.cpp
 	VBlankAction.h
 	VgaMode.h

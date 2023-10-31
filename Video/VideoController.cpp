@@ -8,11 +8,9 @@
 #include "VideoController.h"
 #include "ScanlineBuffer.h"
 #include "StackInfo.h"
-#include "TimingSM.h"
 #include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "kilipili_cdefs.h"
-#include "scanvideo_options.h"
 #include "utilities/LoadSensor.h"
 #include "utilities/utilities.h"
 #include <hardware/clocks.h>
@@ -29,11 +27,6 @@
 
 namespace kio::Video
 {
-
-constexpr uint32 DMA_CHANNELS_MASK =
-	(1u << PICO_SCANVIDEO_TIMING_DMA_CHANNEL) | (1u << PICO_SCANVIDEO_SCANLINE_DMA_CHANNEL);
-
-constexpr uint32 SM_MASK = (1u << PICO_SCANVIDEO_SCANLINE_SM1) | (1u << PICO_SCANVIDEO_TIMING_SM);
 
 #define RAM __attribute__((section(".time_critical.Scanvideo")))
 
@@ -60,8 +53,7 @@ using namespace Graphics;
 
 VideoController::VideoController() noexcept
 {
-	pio_claim_sm_mask(video_pio, 0x0f); // claim all because we clear instruction memory
-	dma_claim_mask(DMA_CHANNELS_MASK);
+	VideoBackend::initialize();
 	if (!spinlock) spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
 }
 
@@ -127,13 +119,9 @@ Error VideoController::do_setup() noexcept
 	size.width	= vga_mode->width;
 	size.height = vga_mode->height;
 
-	pio_set_sm_mask_enabled(video_pio, 0x0f, false); // stop all 4 state machines
-	pio_clear_instruction_memory(video_pio);
-
 	try
 	{
 		VideoBackend::setup(vga_mode, PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT);
-		timing_sm.setup(vga_mode);
 		return NO_ERROR;
 	}
 	catch (Error e)
@@ -148,16 +136,12 @@ void VideoController::start_video()
 	assert(get_core_num() == 1);
 
 	VideoBackend::start();
-	sleep_ms(1);
-	timing_sm.start();
-	pio_clkdiv_restart_sm_mask(video_pio, SM_MASK); // synchronize fractional divider
 }
 
 void VideoController::stop_video()
 {
 	assert(get_core_num() == 1);
 
-	timing_sm.stop();
 	VideoBackend::stop();
 }
 
@@ -166,10 +150,6 @@ void VideoController::do_teardown() noexcept
 	assert(get_core_num() == 1);
 
 	VideoBackend::teardown();
-	timing_sm.teardown();
-
-	pio_set_sm_mask_enabled(video_pio, 0x0f, false); // stop all 4 state machines
-	pio_clear_instruction_memory(video_pio);
 
 	idle_action		   = nullptr;
 	num_vblank_actions = 0;
