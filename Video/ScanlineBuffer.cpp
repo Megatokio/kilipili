@@ -11,7 +11,7 @@ namespace kio::Video
 ScanlineBuffer scanline_buffer;
 
 //static
-alignas(sizeof(ptr) * ScanlineBuffer::max_count) //
+alignas(sizeof(ScanlineBuffer::scanlines)) //
 	uint32* ScanlineBuffer::scanlines[max_count];
 
 
@@ -28,14 +28,15 @@ void ScanlineBuffer::setup(const VgaMode* videomode, uint new_count) throws
 	assert_eq(width % 2, 0);				   // dma transfer unit is uint32 = 2 pixels
 	assert_eq(yscale, videomode->yscale);	   // test for time beeing
 	assert_eq(yscale & (yscale - 1), 0);	   // must be 2^N
+	assert_ge(yscale, 1);
 	assert_eq(videomode->v_active, yscale * videomode->height);
 
 	try
 	{
-		for (/*count = 0*/; count < new_count * yscale; count += yscale)
+		for (/*count = 0*/; count < new_count; count++)
 		{
 			uint32* sl = new uint32[width / 2];
-			for (uint y = 0; y < yscale; y++) scanlines[count + y] = sl;
+			for (uint y = 0; y < yscale; y++) { scanlines[count * yscale + y] = sl; }
 		}
 		mask = count - 1;
 	}
@@ -48,11 +49,7 @@ void ScanlineBuffer::setup(const VgaMode* videomode, uint new_count) throws
 
 void ScanlineBuffer::teardown() noexcept
 {
-	while (count)
-	{
-		count -= yscale;
-		delete[] scanlines[count];
-	}
+	while (count) { delete[] scanlines[--count * yscale]; }
 }
 
 

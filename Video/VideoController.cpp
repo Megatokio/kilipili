@@ -215,7 +215,7 @@ inline void RAM VideoController::wait_for_event() noexcept
 
 	idle_start();
 	if (auto* fu = idle_action) fu();
-	else __wfe();
+	else {} //__wfe();
 	idle_end();
 }
 
@@ -242,42 +242,61 @@ void RAM VideoController::video_runner()
 {
 	stackinfo();
 
-	int height = vga_mode->v_active;
-	int row0   = current_frame_start;
-	int row	   = current_scanline;
+	int height = vga_mode->height;
+	int row0   = line_at_frame_start;
+	int row	   = current_scanline() + 1;
 
-	row += scanline_buffer.yscale - (row - row0) % scanline_buffer.yscale;
-
-	ScanlineBuffer& scanlines = scanline_buffer;
-
-	for (;; row += scanlines.yscale)
+	for (;; row++)
 	{
-		if unlikely (row - row0 >= height) // next frame
+		if unlikely (row >= height) // next frame
 		{
-			row0 += height;
-
 			if unlikely (requested_state != RUNNING) break;
 			else call_vblank_actions();
+
+			// wait until this frame is fully done:
+			// TODO: the timing irpt is actually called ~2 lines early! :-(
+			while (!in_vblank && line_at_frame_start == row0)
+			{
+				wait_for_event(); //
+			}
+
+			row = 0;
+			row0 += height;
+
+			// now render the first lines of the screen:
+			for (uint n = 0; n < scanline_buffer.count; n++, row++)
+			{
+				uint32* scanline = scanline_buffer[row0 + row];
+				for (uint i = 0; i < num_planes; i++)
+				{
+					planes[i]->renderScanline(row, scanline); //
+				}
+			}
+
+			// wait until line_at_frame_start advances to next frame
+			while (in_vblank)
+			{
+				wait_for_event(); //
+			}
+
+			assert(line_at_frame_start == row0);
 		}
 
-		assert(uint(row - row0) < uint(height));
-
-		while (unlikely(row + scanline_buffer.yscale - current_scanline >= scanlines.count))
+		while (unlikely(row >= current_scanline() + scanline_buffer.count))
 		{
 			wait_for_event(); //
 		}
 
-		uint32* scanline = scanlines[row];
-
+		uint32* scanline = scanline_buffer[row0 + row];
 		for (uint i = 0; i < num_planes; i++)
 		{
-			planes[i]->renderScanline((row - row0) / scanlines.yscale, scanline); //
+			planes[i]->renderScanline(row, scanline); //
 		}
 
-		if unlikely (current_scanline >= row)
+		if unlikely (current_scanline() >= row)
 		{
 			scanlines_missed++;
-			row += scanlines.yscale;
+			row++;
 		}
 	}
 }

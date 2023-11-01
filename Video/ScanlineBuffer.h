@@ -22,15 +22,15 @@ struct ScanlineBuffer
 	uint32* operator[](int rolling_index) noexcept
 	{
 		assert(count);
-		return scanlines[rolling_index & mask];
+		return scanlines[(rolling_index & mask) * yscale];
 	}
 
 	uint16 yscale;	  // repetition of each scanline for lowres screen modes
 	uint16 width;	  // length of scanlines in pixels
-	uint16 count = 0; // size of scanlines[]
-	uint16 mask	 = 0; // size - 1
+	uint16 count = 0; // number of scanlines in buffer
+	uint16 mask	 = 0; // count - 1
 
-	static constexpr uint max_count = 32;		//4 .. 2^N .. 64
+	static constexpr uint max_count = 32;		// 4 .. 2^N .. 32
 	static uint32*		  scanlines[max_count]; // array of pointers to scanlines, ready for fragment dma
 };
 

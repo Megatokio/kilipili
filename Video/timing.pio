@@ -24,11 +24,3 @@ loop:
 .wrap
 
 
-; these are the values used in the OUT EXEC in TimingSM.cpp
-;
-.program  video_htiming_states
-.side_set 1
-	irq 0           side 0		; state 0 = set irq 0
-	irq 1           side 0		; state 1 = set irq 1
-	irq 4           side 0		; state 2 = set irq 4
-	irq clear 4     side 0		; state 3 = clear irq 4

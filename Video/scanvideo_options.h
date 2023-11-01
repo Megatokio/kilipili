@@ -65,10 +65,3 @@
 #ifndef PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT
   #define PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT 8
 #endif
-
-
-// ==== CODE OPTIONS =================================================
-
-#ifndef PICO_SCANVIDEO_ENABLE_VIDEO_RECOVERY
-  #define PICO_SCANVIDEO_ENABLE_VIDEO_RECOVERY 0
-#endif

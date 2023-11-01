@@ -470,7 +470,7 @@ enum ScreenSize : uint8 // screen size in pixels: width x height
 constexpr uint num_screensizes = 8;
 
 
-constexpr const VgaMode* vga_mode[num_screensizes] =
+constexpr const VgaMode* vga_modes[num_screensizes] =
 {
 	&vga_mode_320x240_60,
 	&vga_mode_400x300_60,

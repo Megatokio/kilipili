@@ -11,8 +11,8 @@
 */
 
 #include "ScanlineRenderFu.h"
-#include "kilipili_common.h"
 #include <hardware/interp.h>
+#include <string.h>
 
 // silence warnings:
 // clang-format off
