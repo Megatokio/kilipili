@@ -110,7 +110,7 @@ public:
 		teardownScanlineRenderer<CM>(); //
 	}
 
-	virtual void RAM renderScanline(int row, uint32* plane_data) noexcept override final
+	virtual void XRAM renderScanline(int row, uint32* plane_data) noexcept override final
 	{
 		while (unlikely(++this->row <= row)) // increment row and check whether we missed some rows
 		{

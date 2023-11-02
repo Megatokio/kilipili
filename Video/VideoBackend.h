@@ -24,7 +24,7 @@ extern volatile int	 line_at_frame_start; // rolling line number at start of cur
 	can be less than 0 (-1 or -2) immediately before frame start.
 	is greater or equal to `vga_mode.height` in vblank after the active display area.
 */
-extern int current_scanline() noexcept;
+inline int current_scanline() noexcept;
 
 
 class VideoBackend
@@ -48,5 +48,15 @@ inline void waitForScanline(int scanline) noexcept
 	while (current_scanline() - scanline < 0) { wfe(); }
 }
 
+
+extern uint32 time_us_at_frame_start;
+extern uint	  cc_per_frame_rest;
+inline int	  current_scanline() noexcept
+{
+	uint time_us_in_frame = time_us_32() - time_us_at_frame_start;
+	// uint cc_in_frame	  = time_us_in_frame * cc_per_us + cc_per_frame_rest;
+	uint cc_in_frame = time_us_in_frame * cc_per_us; // <-- for 1024x768 with 8 scanline buffers
+	return int(cc_in_frame) / int(cc_per_scanline);
+}
 
 } // namespace kio::Video

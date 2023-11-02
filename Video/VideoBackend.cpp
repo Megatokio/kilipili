@@ -66,11 +66,12 @@ uint		  cc_per_px;	   // cpu clock cycles per pixel
 uint		  cc_per_us;	   // cpu clock cycles per microsecond
 volatile bool in_vblank;
 volatile int  line_at_frame_start;
-static uint32 time_us_at_frame_start; // timestamp of start of active screen lines (set ~2 scanlines early)
+uint32		  time_us_at_frame_start; // timestamp of start of active screen lines (set ~2 scanlines early)
 
 static uint32 us_per_frame;
 static uint	  cc_per_frame_fract;
-static uint	  cc_per_frame_rest;
+uint		  cc_per_frame_rest;
+
 
 alignas(16) static uint32 prog_active[4];
 alignas(16) static uint32 prog_vblank[4];
@@ -96,14 +97,6 @@ static uint8 video_htiming_load_offset;
 
 
 // =========================================================
-
-int current_scanline() noexcept
-{
-	uint time_us_in_frame = time_us_32() - time_us_at_frame_start;
-	uint cc_in_frame	  = time_us_in_frame * cc_per_us + cc_per_frame_rest;
-	return int(cc_in_frame) / int(cc_per_scanline);
-}
-
 
 static inline void RAM abort_all_dma_channels() noexcept
 {
