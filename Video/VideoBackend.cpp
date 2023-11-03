@@ -6,9 +6,9 @@
 #include "ScanlineBuffer.h"
 #include "VgaMode.h"
 #include "basic_math.h"
-#include "scanvideo.pio.h"
-#include "scanvideo_options.h"
+#include "scanline.pio.h"
 #include "timing.pio.h"
+#include "video_options.h"
 #include <hardware/clocks.h>
 #include <hardware/dma.h>
 #include <hardware/irq.h>
@@ -38,12 +38,17 @@ namespace kio ::Video
 
 #define video_pio pio0
 
-constexpr uint SYNC_PIN_BASE	= VIDEO_SYNC_PIN_BASE;
-constexpr bool ENABLE_CLOCK_PIN = VIDEO_ENABLE_CLOCKS;
-constexpr bool ENABLE_DEN_PIN	= VIDEO_ENABLE_CLOCKS;
-constexpr uint CLOCK_POLARITY	= VIDEO_CLOCK_POLARITY;
-constexpr uint DEN_POLARITY		= VIDEO_DEN_POLARITY;
-constexpr uint TIMING_DMA_IRQ	= DMA_IRQ_1;
+constexpr uint SYNC_PIN_BASE  = VIDEO_SYNC_PIN_BASE;
+constexpr uint HSYNC_PIN	  = VIDEO_SYNC_PIN_BASE;
+constexpr uint VSYNC_PIN	  = VIDEO_SYNC_PIN_BASE + 1;
+constexpr uint CLOCK_PIN_BASE = VIDEO_CLOCK_PIN_BASE;
+constexpr uint CLOCK_PIN	  = VIDEO_CLOCK_PIN_BASE;
+constexpr uint DEN_PIN		  = VIDEO_CLOCK_PIN_BASE + 1;
+constexpr bool ENABLE_CLOCK	  = VIDEO_CLOCK_ENABLE;
+constexpr bool CLOCK_POLARITY = VIDEO_CLOCK_POLARITY;
+constexpr bool ENABLE_DEN	  = VIDEO_DEN_ENABLE;
+constexpr bool DEN_POLARITY	  = VIDEO_DEN_POLARITY;
+constexpr uint TIMING_DMA_IRQ = DMA_IRQ_1;
 
 static uint TIMING_SM;
 static uint SCANLINE_SM;
@@ -91,7 +96,7 @@ enum State {
 
 static State state = video_off;
 static uint8 scanline_program_load_offset;
-static uint8 video_htiming_load_offset;
+static uint8 timing_program_load_offset;
 
 
 // =========================================================
@@ -121,7 +126,7 @@ __unused static inline void RAM abort_all_scanline_sms() noexcept
 	//constexpr uint32 CLR_IRQ_4 = 0xc044;
 	//pio_sm_exec(video_pio, SM1, CLR_IRQ_4);	// clear IRQ4 -> never needed. why?
 
-	const uint jmp = pio_encode_jmp(scanline_program_load_offset + video_scanline_wrap_target); // WAIT_IRQ4 position
+	const uint jmp = pio_encode_jmp(scanline_program_load_offset + scanline_wrap_target); // WAIT_IRQ4 position
 	//const uint drain = pio_encode_out(pio_null, 32);	// drain the OSR (rp2040 §3.4.7.2)
 
 	pio_sm_clear_fifos(video_pio, SCANLINE_SM); // drain the TX fifo
@@ -170,7 +175,7 @@ static void RAM timing_isr() noexcept
 
 // =========================================================
 
-static void setup_scanline_sm(const VgaMode& vga_mode) throws
+static void setup_state_machines(const VgaMode& vga_mode) throws
 {
 	assert(scanline_buffer.is_valid());
 
@@ -182,129 +187,96 @@ static void setup_scanline_sm(const VgaMode& vga_mode) throws
 	if (cc_per_pixel * pixel_clock != system_clock)
 		throw "System clock must be an integer multiple of the requested pixel clock";
 
-	// install program:
+	// set signal polarity:
 
-	const uint PIO_WAIT_IRQ4 = pio_encode_wait_irq(1, false, 4);
-	assert(video_scanline_program.instructions[video_scanline_wrap_target] == PIO_WAIT_IRQ4);
-	scanline_program_load_offset = uint8(pio_add_program(video_pio, &video_scanline_program));
+	gpio_set_outover(HSYNC_PIN, vga_mode.h_sync_polarity);
+	gpio_set_outover(VSYNC_PIN, vga_mode.v_sync_polarity);
+	if (ENABLE_CLOCK) gpio_set_outover(CLOCK_PIN, CLOCK_POLARITY);
+	if (ENABLE_DEN) gpio_set_outover(DEN_PIN, DEN_POLARITY);
 
-	// setup scanline SMs:
+	// install state machine programs:
 
-	pio_sm_config config = video_scanline_program_get_default_config(scanline_program_load_offset);
+	timing_program_load_offset	 = uint8(pio_add_program(video_pio, &timing_program));
+	scanline_program_load_offset = uint8(pio_add_program(
+		video_pio, ENABLE_DEN	? &scanline_den_program :
+				   ENABLE_CLOCK ? &scanline_clk_program :
+								  &scanline_program));
 
+	// setup scanline state machine:
+
+	pio_sm_config config = scanline_program_get_default_config(scanline_program_load_offset);
 	pio_sm_set_consecutive_pindirs(video_pio, SCANLINE_SM, VIDEO_COLOR_PIN_BASE, VIDEO_COLOR_PIN_COUNT, true);
 	sm_config_set_out_pins(&config, VIDEO_COLOR_PIN_BASE, VIDEO_COLOR_PIN_COUNT);
 	sm_config_set_out_shift(&config, true, true, 32); // autopull
 	sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
-
 	sm_config_set_clkdiv_int_frac(&config, uint16(cc_per_pixel / 2), uint8((cc_per_pixel & 1u) << 7u));
+	sm_config_set_sideset_pins(&config, CLOCK_PIN_BASE); // side-set: den+clock
+	if (ENABLE_CLOCK) pio_sm_set_consecutive_pindirs(video_pio, SCANLINE_SM, CLOCK_PIN, 1, true);
+	if (ENABLE_DEN) pio_sm_set_consecutive_pindirs(video_pio, SCANLINE_SM, DEN_PIN, 1, true);
 	pio_sm_init(video_pio, SCANLINE_SM, scanline_program_load_offset, &config); // sm paused
+
+	// setup timing state machine:
+
+	config = timing_program_get_default_config(timing_program_load_offset);
+	sm_config_set_clkdiv_int_frac(&config, uint16(cc_per_pixel / 2), uint8((cc_per_pixel & 1u) << 7u));
+	sm_config_set_out_shift(&config, true, true, 32);  // autopull
+	sm_config_set_out_pins(&config, SYNC_PIN_BASE, 2); // hsync+vsync
+	pio_sm_set_consecutive_pindirs(video_pio, TIMING_SM, SYNC_PIN_BASE, 2, true /*out*/);
+	pio_sm_init(video_pio, TIMING_SM, timing_program_load_offset, &config); // now paused
 }
 
-static void setup_timing_sm(uint32 pixel_clock_frequency)
+static void setup_timing_programs(const VgaMode& vga_mode)
 {
-	// get the program, modify it as needed and install it:
-
-	uint16 instructions[32];
-	memcpy(instructions, video_htiming_program_instructions, sizeof(video_htiming_program_instructions));
-	pio_program_t program = video_htiming_program;
-	program.instructions  = instructions;
-
-	if constexpr (ENABLE_CLOCK_PIN && CLOCK_POLARITY != 0)
-	{
-		constexpr uint32 clock_pin_side_set_bitmask = 0x1000;
-		for (uint i = 0; i < program.length; i++) { instructions[i] ^= clock_pin_side_set_bitmask; }
-	}
-
-	video_htiming_load_offset = uint8(pio_add_program(video_pio, &program));
-
-	// configure state machine:
-
-	pio_sm_config config = video_htiming_program_get_default_config(video_htiming_load_offset);
-
-	uint system_clock		   = clock_get_hz(clk_sys);
-	uint clock_divider_times_2 = system_clock / pixel_clock_frequency; // assuming 2 clocks / pixel
-	sm_config_set_clkdiv_int_frac(
-		&config, uint16(clock_divider_times_2 / 2), uint8((clock_divider_times_2 & 1u) << 7u));
-
-	// enable auto-pull
-	sm_config_set_out_shift(&config, true, true, 32);
-
-	// hsync and vsync are +0 and +1, den is +2 if present, clock is side-set at +2, or +3 if den present
-	uint pin_count = ENABLE_DEN_PIN ? 3 : 2;
-	sm_config_set_out_pins(&config, SYNC_PIN_BASE, pin_count);
-
-	if constexpr (ENABLE_CLOCK_PIN)
-	{
-		sm_config_set_sideset_pins(&config, SYNC_PIN_BASE + pin_count);
-		pin_count++;
-	}
-
-	pio_sm_set_consecutive_pindirs(video_pio, TIMING_SM, SYNC_PIN_BASE, pin_count, true);
-
-	pio_sm_init(video_pio, TIMING_SM, video_htiming_load_offset, &config); // now paused
-}
-
-static void setup_timing_programs(const VgaMode& timing)
-{
-	const uint SET_IRQ_4 = pio_encode_irq_set(false, 4);   //  irq nowait 4  side 0
-	const uint CLR_IRQ_4 = pio_encode_irq_clear(false, 4); //  irq clear  4  side 0
-
-	constexpr int TIMING_CYCLE = 3u;
-	constexpr int HTIMING_MIN  = TIMING_CYCLE + 1;
-
-	assert(timing.h_active() >= HTIMING_MIN);
-	assert(timing.h_pulse >= HTIMING_MIN);
-	assert(timing.h_back_porch >= HTIMING_MIN);
-	assert(timing.h_front_porch >= HTIMING_MIN);
-	assert(timing.h_total() % 2 == 0);
-	assert(timing.h_pulse % 2 == 0);
+	constexpr int count_base = 3;
+	assert(vga_mode.h_active() >= count_base);
+	assert(vga_mode.h_pulse >= count_base);
+	assert(vga_mode.h_back_porch >= count_base);
+	assert(vga_mode.h_front_porch >= count_base);
+	assert(vga_mode.h_total() % 2 == 0);
+	assert(vga_mode.h_pulse % 2 == 0);
 
 	// horizontal timing:
 
 	// bits are read backwards (lsb to msb) by PIO pogram
 	// the scanline starts with the HSYNC pulse!
 
-	// polarity mask to toggle out bits, applied to whole cmd:
-	const uint32 polarity_mask = uint32(!timing.h_sync_polarity << 29) + uint32(!timing.v_sync_polarity << 30) +
-								 uint32(DEN_POLARITY << 31) + uint32(CLOCK_POLARITY << 12);
+	const uint set_irq_4 = pio_encode_irq_set(false, 4);
+	const uint clr_irq_4 = pio_encode_irq_clear(false, 4);
 
-	constexpr uint32 TIMING_CYCLES = 3u << 16;
-#define MK_CMD(CMD, CYCLES, BITS) ((CMD) | (CYCLES - TIMING_CYCLES) | (BITS)) ^ polarity_mask
+	constexpr uint32 hsync = 1u << 30;
+	constexpr uint32 vsync = 1u << 31;
 
-	constexpr uint32 hsync_bit = 1u << 29;
-	constexpr uint32 vsync_bit = 1u << 30;
-	constexpr uint32 den_bit   = 1u << 31;
-
-	const uint32 h_frontporch = uint32(timing.h_front_porch) << 16;
-	const uint32 h_active	  = uint32(timing.h_active()) << 16;
-	const uint32 h_backporch  = uint32(timing.h_back_porch) << 16;
-	const uint32 h_pulse	  = uint32(timing.h_pulse) << 16;
+	// clang-format off
+	const uint32 h_frontporch = uint32(vga_mode.h_front_porch - count_base) << 16;
+	const uint32 h_active	  = uint32(vga_mode.h_active()    - count_base) << 16;
+	const uint32 h_backporch  = uint32(vga_mode.h_back_porch  - count_base) << 16;
+	const uint32 h_pulse	  = uint32(vga_mode.h_pulse       - count_base) << 16;
 
 	// display area:
-	prog_active[0] = MK_CMD(CLR_IRQ_4, h_pulse, hsync_bit + !vsync_bit);
-	prog_active[1] = MK_CMD(CLR_IRQ_4, h_backporch, !hsync_bit + !vsync_bit);
-	prog_active[2] = MK_CMD(SET_IRQ_4, h_active, !hsync_bit + !vsync_bit + den_bit);
-	prog_active[3] = MK_CMD(CLR_IRQ_4, h_frontporch, !hsync_bit + !vsync_bit);
+	prog_active[0] = clr_irq_4 + h_pulse      +  hsync + !vsync;
+	prog_active[1] = clr_irq_4 + h_backporch  + !hsync + !vsync;
+	prog_active[2] = set_irq_4 + h_active     + !hsync + !vsync;
+	prog_active[3] = clr_irq_4 + h_frontporch + !hsync + !vsync;
 
 	// vblank, front & back porch:
-	prog_vblank[0] = MK_CMD(CLR_IRQ_4, h_pulse, hsync_bit + !vsync_bit);
-	prog_vblank[1] = MK_CMD(CLR_IRQ_4, h_backporch, !hsync_bit + !vsync_bit);
-	prog_vblank[2] = MK_CMD(CLR_IRQ_4, h_active, !hsync_bit + !vsync_bit);
-	prog_vblank[3] = MK_CMD(CLR_IRQ_4, h_frontporch, !hsync_bit + !vsync_bit);
+	prog_vblank[0] = clr_irq_4 + h_pulse      +  hsync + !vsync;
+	prog_vblank[1] = clr_irq_4 + h_backporch  + !hsync + !vsync;
+	prog_vblank[2] = clr_irq_4 + h_active     + !hsync + !vsync;
+	prog_vblank[3] = clr_irq_4 + h_frontporch + !hsync + !vsync;
 
 	// vblank, vsync pulse:
-	prog_vpulse[0] = MK_CMD(CLR_IRQ_4, h_pulse, hsync_bit + vsync_bit);
-	prog_vpulse[1] = MK_CMD(CLR_IRQ_4, h_backporch, !hsync_bit + vsync_bit);
-	prog_vpulse[2] = MK_CMD(CLR_IRQ_4, h_active, !hsync_bit + vsync_bit);
-	prog_vpulse[3] = MK_CMD(CLR_IRQ_4, h_frontporch, !hsync_bit + vsync_bit);
+	prog_vpulse[0] = clr_irq_4 + h_pulse	  +  hsync +  vsync;
+	prog_vpulse[1] = clr_irq_4 + h_backporch  + !hsync +  vsync;
+	prog_vpulse[2] = clr_irq_4 + h_active     + !hsync +  vsync;
+	prog_vpulse[3] = clr_irq_4 + h_frontporch + !hsync +  vsync;
+	//clang-format on
 
 	// vertical timing:
 
-	const uint v_active		 = timing.v_active();
-	const uint v_front_porch = timing.v_front_porch;
-	const uint v_pulse		 = timing.v_pulse;
-	const uint v_back_porch	 = timing.v_back_porch;
+	const uint v_active		 = vga_mode.v_active();
+	const uint v_front_porch = vga_mode.v_front_porch;
+	const uint v_pulse		 = vga_mode.v_pulse;
+	const uint v_back_porch	 = vga_mode.v_back_porch;
 
 	program[generate_v_active]	   = {.program = prog_active, .count = count_of(prog_active) * v_active};
 	program[generate_v_frontporch] = {.program = prog_vblank, .count = count_of(prog_vblank) * v_front_porch};
@@ -319,7 +291,7 @@ static void setup_gpio_pins()
 	constexpr uint32 BMASK = ((1u << VIDEO_PIXEL_BCOUNT) - 1u) << VIDEO_PIXEL_BSHIFT;
 
 	constexpr uint32 color_pins = (RMASK | GMASK | BMASK) << VIDEO_COLOR_PIN_BASE;
-	constexpr uint32 sync_pins	= (3u | (ENABLE_DEN_PIN << 2) | (ENABLE_CLOCK_PIN << 3)) << SYNC_PIN_BASE;
+	constexpr uint32 sync_pins	= (3 << SYNC_PIN_BASE) | (ENABLE_CLOCK << CLOCK_PIN) | (ENABLE_DEN << DEN_PIN);
 
 	for (uint pin_mask = color_pins | sync_pins, i = 0; pin_mask; i++, pin_mask >>= 1)
 	{
@@ -403,8 +375,7 @@ void VideoBackend::start(const VgaMode& vga_mode) throws
 	printf("cc_per_frame = %u\n", cc_per_frame);
 	printf("us_per_frame = %u, fract = %u/%u\n", us_per_frame, cc_per_frame_fract, cc_per_us);
 
-	setup_scanline_sm(vga_mode);
-	setup_timing_sm(vga_mode.pixel_clock);
+	setup_state_machines(vga_mode);
 	setup_timing_programs(vga_mode);
 	setup_dma();
 
@@ -416,7 +387,7 @@ void VideoBackend::start(const VgaMode& vga_mode) throws
 
 	// start timing sm:
 	pio_sm_restart(video_pio, TIMING_SM);
-	jmp = pio_encode_jmp(video_htiming_load_offset + video_htiming_offset_entry_point);
+	jmp = pio_encode_jmp(timing_program_load_offset + timing_offset_entry_point);
 	pio_sm_exec(video_pio, TIMING_SM, jmp);
 
 	pio_enable_sm_mask_in_sync(video_pio, (1u << SCANLINE_SM) | (1 << TIMING_SM));
@@ -453,8 +424,8 @@ void VideoBackend::stop() noexcept
 	state = video_off;
 
 	//teardown:
-	pio_remove_program(video_pio, &video_scanline_program, scanline_program_load_offset);
-	pio_remove_program(video_pio, &video_htiming_program, video_htiming_load_offset);
+	pio_remove_program(video_pio, &scanline_program, scanline_program_load_offset);
+	pio_remove_program(video_pio, &timing_program, timing_program_load_offset);
 }
 
 void VideoBackend::initialize() noexcept

@@ -24,8 +24,8 @@ add_library(kilipili_video STATIC
 	Sprites.cpp
 	Sprites.h
 	VgaMode.h
-	scanvideo.pio
-	scanvideo_options.h
+	scanline.pio
+	video_options.h
 	timing.pio
 	vga_types.h
 	ScanlineBuffer.h 
@@ -49,7 +49,7 @@ target_include_directories(kilipili_video PUBLIC
 
 # if there is a PIO assembler file:
 pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/timing.pio)
-pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/scanvideo.pio)
+pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/scanline.pio)
 
 # dependencies:
 target_link_libraries(kilipili_video PUBLIC 

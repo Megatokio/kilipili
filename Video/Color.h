@@ -3,9 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "scanvideo_options.h"
 #include "standard_types.h"
 #include "tempmem.h"
+#include "video_options.h"
 #include <cstdio>
 
 namespace kio::Video
