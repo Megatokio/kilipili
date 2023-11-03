@@ -3,43 +3,16 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "Video/scanvideo_options.h"
 #include "standard_types.h"
 #include <cstdio>
-#ifndef UNIT_TEST
-  #include <pico/config.h>
-#endif
-
-
-// the vgaboard doesn't define these
-// also use these for the test suite
-#ifndef PICO_SCANVIDEO_ALPHA_PIN
-  #define PICO_SCANVIDEO_ALPHA_PIN 5u
-#endif
-#ifndef PICO_SCANVIDEO_PIXEL_RSHIFT
-  #define PICO_SCANVIDEO_PIXEL_RSHIFT 0u
-#endif
-#ifndef PICO_SCANVIDEO_PIXEL_GSHIFT
-  #define PICO_SCANVIDEO_PIXEL_GSHIFT 6u
-#endif
-#ifndef PICO_SCANVIDEO_PIXEL_BSHIFT
-  #define PICO_SCANVIDEO_PIXEL_BSHIFT 11u
-#endif
-#ifndef PICO_SCANVIDEO_PIXEL_RCOUNT
-  #define PICO_SCANVIDEO_PIXEL_RCOUNT 5
-#endif
-#ifndef PICO_SCANVIDEO_PIXEL_GCOUNT
-  #define PICO_SCANVIDEO_PIXEL_GCOUNT 5
-#endif
-#ifndef PICO_SCANVIDEO_PIXEL_BCOUNT
-  #define PICO_SCANVIDEO_PIXEL_BCOUNT 5
-#endif
 
 
 namespace kio::Graphics
 {
 
-#if PICO_SCANVIDEO_PIXEL_RCOUNT == 5 && PICO_SCANVIDEO_PIXEL_GCOUNT == 5 && PICO_SCANVIDEO_PIXEL_BCOUNT == 5 && \
-	PICO_SCANVIDEO_PIXEL_RSHIFT == 0 && PICO_SCANVIDEO_PIXEL_GSHIFT == 6 && PICO_SCANVIDEO_PIXEL_BSHIFT == 11
+#if VIDEO_PIXEL_RCOUNT == 5 && VIDEO_PIXEL_GCOUNT == 5 && VIDEO_PIXEL_BCOUNT == 5 && VIDEO_PIXEL_RSHIFT == 0 && \
+	VIDEO_PIXEL_GSHIFT == 6 && VIDEO_PIXEL_BSHIFT == 11
 
 struct Color
 {
@@ -86,8 +59,8 @@ static_assert(Color::fromRGB5(0x22, 0x33, 0x44, 5).blue == 4);
 static_assert(Color::fromRGB5(0x22, 0x33, 0x44, 5).alpha == 1);
 #endif
 
-#if PICO_SCANVIDEO_PIXEL_RCOUNT == 4 && PICO_SCANVIDEO_PIXEL_GCOUNT == 4 && PICO_SCANVIDEO_PIXEL_BCOUNT == 4 && \
-	PICO_SCANVIDEO_PIXEL_RSHIFT == 0 && PICO_SCANVIDEO_PIXEL_GSHIFT == 4 && PICO_SCANVIDEO_PIXEL_BSHIFT == 8
+#if VIDEO_PIXEL_RCOUNT == 4 && VIDEO_PIXEL_GCOUNT == 4 && VIDEO_PIXEL_BCOUNT == 4 && VIDEO_PIXEL_RSHIFT == 0 && \
+	VIDEO_PIXEL_GSHIFT == 4 && VIDEO_PIXEL_BSHIFT == 8
 
 struct Color
 {

@@ -14,6 +14,7 @@
 #include <hardware/irq.h>
 #include <hardware/pio.h>
 #include <pico/sync.h>
+#include <stdio.h>
 #include <string.h>
 
 namespace kio ::Video
@@ -34,17 +35,14 @@ namespace kio ::Video
 #define XRAM	 __attribute__((section(".scratch_x.VB" XWRAP(__LINE__))))	   // the 4k page with the core1 stack
 #define RAM		 __attribute__((section(".time_critical.VB" XWRAP(__LINE__)))) // general ram
 
-static_assert(PICO_SCANVIDEO_PIXEL_RSHIFT + PICO_SCANVIDEO_PIXEL_RCOUNT <= PICO_SCANVIDEO_COLOR_PIN_COUNT);
-static_assert(PICO_SCANVIDEO_PIXEL_GSHIFT + PICO_SCANVIDEO_PIXEL_GCOUNT <= PICO_SCANVIDEO_COLOR_PIN_COUNT);
-static_assert(PICO_SCANVIDEO_PIXEL_BSHIFT + PICO_SCANVIDEO_PIXEL_BCOUNT <= PICO_SCANVIDEO_COLOR_PIN_COUNT);
 
 #define video_pio pio0
 
-constexpr uint SYNC_PIN_BASE	= PICO_SCANVIDEO_SYNC_PIN_BASE;
-constexpr bool ENABLE_CLOCK_PIN = PICO_SCANVIDEO_ENABLE_CLOCK_PIN;
-constexpr uint CLOCK_POLARITY	= PICO_SCANVIDEO_CLOCK_POLARITY;
-constexpr bool ENABLE_DEN_PIN	= PICO_SCANVIDEO_ENABLE_DEN_PIN;
-constexpr uint DEN_POLARITY		= PICO_SCANVIDEO_DEN_POLARITY;
+constexpr uint SYNC_PIN_BASE	= VIDEO_SYNC_PIN_BASE;
+constexpr bool ENABLE_CLOCK_PIN = VIDEO_ENABLE_CLOCKS;
+constexpr bool ENABLE_DEN_PIN	= VIDEO_ENABLE_CLOCKS;
+constexpr uint CLOCK_POLARITY	= VIDEO_CLOCK_POLARITY;
+constexpr uint DEN_POLARITY		= VIDEO_DEN_POLARITY;
 constexpr uint TIMING_DMA_IRQ	= DMA_IRQ_1;
 
 static uint TIMING_SM;
@@ -194,9 +192,8 @@ static void setup_scanline_sm(const VgaMode& vga_mode) throws
 
 	pio_sm_config config = video_scanline_program_get_default_config(scanline_program_load_offset);
 
-	pio_sm_set_consecutive_pindirs(
-		video_pio, SCANLINE_SM, PICO_SCANVIDEO_COLOR_PIN_BASE, PICO_SCANVIDEO_COLOR_PIN_COUNT, true);
-	sm_config_set_out_pins(&config, PICO_SCANVIDEO_COLOR_PIN_BASE, PICO_SCANVIDEO_COLOR_PIN_COUNT);
+	pio_sm_set_consecutive_pindirs(video_pio, SCANLINE_SM, VIDEO_COLOR_PIN_BASE, VIDEO_COLOR_PIN_COUNT, true);
+	sm_config_set_out_pins(&config, VIDEO_COLOR_PIN_BASE, VIDEO_COLOR_PIN_COUNT);
 	sm_config_set_out_shift(&config, true, true, 32); // autopull
 	sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
 
@@ -317,11 +314,11 @@ static void setup_timing_programs(const VgaMode& timing)
 
 static void setup_gpio_pins()
 {
-	constexpr uint32 RMASK = ((1u << PICO_SCANVIDEO_PIXEL_RCOUNT) - 1u) << PICO_SCANVIDEO_PIXEL_RSHIFT;
-	constexpr uint32 GMASK = ((1u << PICO_SCANVIDEO_PIXEL_GCOUNT) - 1u) << PICO_SCANVIDEO_PIXEL_GSHIFT;
-	constexpr uint32 BMASK = ((1u << PICO_SCANVIDEO_PIXEL_BCOUNT) - 1u) << PICO_SCANVIDEO_PIXEL_BSHIFT;
+	constexpr uint32 RMASK = ((1u << VIDEO_PIXEL_RCOUNT) - 1u) << VIDEO_PIXEL_RSHIFT;
+	constexpr uint32 GMASK = ((1u << VIDEO_PIXEL_GCOUNT) - 1u) << VIDEO_PIXEL_GSHIFT;
+	constexpr uint32 BMASK = ((1u << VIDEO_PIXEL_BCOUNT) - 1u) << VIDEO_PIXEL_BSHIFT;
 
-	constexpr uint32 color_pins = (RMASK | GMASK | BMASK) << PICO_SCANVIDEO_COLOR_PIN_BASE;
+	constexpr uint32 color_pins = (RMASK | GMASK | BMASK) << VIDEO_COLOR_PIN_BASE;
 	constexpr uint32 sync_pins	= (3u | (ENABLE_DEN_PIN << 2) | (ENABLE_CLOCK_PIN << 3)) << SYNC_PIN_BASE;
 
 	for (uint pin_mask = color_pins | sync_pins, i = 0; pin_mask; i++, pin_mask >>= 1)
@@ -350,7 +347,7 @@ static void setup_dma()
 
 	channel_config_set_ring(
 		&config, false /*read*/, //
-		msbit((scanline_buffer.count * sizeof(ptr))) + scanline_buffer.vss /*log2bytes*/);
+		msbit((scanline_buffer.count * sizeof(ptr) << scanline_buffer.vss)) /*log2bytes*/);
 
 	dma_channel_configure(
 		SCANLINE_DMA_CTRL_CHANNEL, &config,
