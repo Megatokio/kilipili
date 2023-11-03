@@ -17,6 +17,9 @@
 #endif
 
 
+#if 0 
+
+
 namespace kio::Graphics
 {
 template<ColorMode CM, typename>
@@ -258,3 +261,5 @@ inline void Sprites::remove(Sprite* s, bool wait) noexcept { s->hide(wait); }
 
 
 } // namespace kio::Video
+
+#endif

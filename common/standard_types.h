@@ -22,6 +22,7 @@ static constexpr bool disabled = false;
 #define kB	*0x400u
 #define MB	*0x100000u
 #define GB	*0x40000000ul
+#define kHz *1000u
 #define MHz *1000000u
 
 

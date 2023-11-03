@@ -34,30 +34,31 @@ public:
 
 	// Control Characters:
 	enum : uchar {
-		RESET				 = 0,
-		CLS					 = 1,
-		MOVE_TO_POSITION	 = 2,
-		MOVE_TO_COL			 = 3,
-		PUSH_CURSOR_POSITION = 5,
-		POP_CURSOR_POSITION	 = 6,
-		SHOW_CURSOR			 = 7,  //				(BELL)
-		CURSOR_LEFT			 = 8,  // scrolls		(BS)
-		TAB					 = 9,  // scrolls
-		CURSOR_DOWN			 = 10, // scrolls		(NL)
-		CURSOR_UP			 = 11, // scrolls
-		CURSOR_RIGHT		 = 12, // scrolls		(FF)
-		RETURN				 = 13, // COL := 0
-		CLEAR_TO_END_OF_LINE = 14,
-		PRINT_INLINE_GLYPH	 = 15,
-		SET_ATTRIBUTES		 = 16,
-		XON					 = 17,
-		REPEAT_NEXT_CHAR	 = 18,
-		XOFF				 = 19,
-		SCROLL_SCREEN		 = 21,
+		RESET				   = 0,
+		CLS					   = 1,
+		MOVE_TO_POSITION	   = 2,
+		MOVE_TO_COL			   = 3,
+		PUSH_CURSOR_POSITION   = 5,
+		POP_CURSOR_POSITION	   = 6,
+		SHOW_CURSOR			   = 7,	 //				(BELL)
+		CURSOR_LEFT			   = 8,	 // scrolls		(BS)
+		TAB					   = 9,	 // scrolls
+		CURSOR_DOWN			   = 10, // scrolls		(NL)
+		CURSOR_UP			   = 11, // scrolls
+		CURSOR_RIGHT		   = 12, // scrolls		(FF)
+		RETURN				   = 13, // COL := 0
+		CLEAR_TO_END_OF_LINE   = 14,
+		CLEAR_TO_END_OF_SCREEN = 15,
+		SET_ATTRIBUTES		   = 16,
+		XON					   = 17,
+		PRINT_INLINE_GLYPH	   = 18,
+		XOFF				   = 19,
+		REPEAT_NEXT_CHAR	   = 20,
+		SCROLL_SCREEN		   = 21,
+		ESC					   = 27,
 	};
 
-        Canvas& pixmap;
-	Color*	 colormap;
+	Canvas& pixmap;
 
 	const ColorMode	 colormode;
 	const AttrHeight attrheight;
@@ -92,11 +93,11 @@ public:
 	bool   cursorVisible;  // currently visible?
 	uint32 cursorXorColor; // value used to xor the colors
 
-        PicoTerm(Canvas&, Color* colors);
+	PicoTerm(Canvas&);
 
 	void reset();
 	void cls();
-	void moveToPosition(int row, int col) noexcept;
+	void moveTo(int row, int col) noexcept;
 	void moveToCol(int col) noexcept;
 	void pushCursorPosition();
 	void popCursorPosition();
@@ -104,7 +105,6 @@ public:
 	void printCharMatrix(CharMatrix, int count = 1);
 	void printChar(char c, int count = 1);
 	void printText(cstr text);
-	//void print(std::function<char(void*data)>);
 	void print(cstr text_w_controlcodes, bool auto_crlf = true);
 	void printf(cstr fmt, ...) __printflike(2, 3);
 	void cursorLeft(int count = 1);
@@ -114,8 +114,9 @@ public:
 	void cursorTab(int count = 1);
 	void cursorReturn();
 	void clearToEndOfLine();
+	void clearToEndOfScreen();
 	void copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols);
-	void showCursor();
+	void showCursor(bool on = true);
 	void hideCursor();
 	void validateCursorPosition();
 	void scrollScreen(coord dx, coord dy);
@@ -124,7 +125,7 @@ public:
 	void scrollScreenLeft(int cols /*char*/);
 	void scrollScreenRight(int cols /*char*/);
 
-	char* identify(char* buffer);
+	char* identify();
 
 	void readBmp(CharMatrix, bool use_fgcolor);
 	void writeBmp(CharMatrix, uint8 attr);

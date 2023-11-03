@@ -1,3 +1,7 @@
+// Copyright (c) 2022 - 2023 kio@little-bat.de
+// BSD-2-Clause license
+// https://opensource.org/licenses/BSD-2-Clause
+
 /*
 * The MIT License (MIT)
 *
@@ -23,16 +27,16 @@
 *
 */
 
-#if CFG_TUH_HID
+#if ENABLE_USB_HOST
 
 /*
 	TUH = TinyUSB Host
 	HID = Human Interface Device
 */
 
-#include "hid_handler.h"
-#include <tusb.h>
-#include <class/hid/hid_host.h>
+  #include "hid_handler.h"
+  #include <class/hid/hid_host.h>
+  #include <tusb.h>
 
 
 // Each HID instance can have multiple reports
@@ -40,24 +44,29 @@ static constexpr uint MAX_REPORT = 4;
 
 static struct
 {
-	uint8 report_count;
-	uint8 _;
+	uint8				  report_count;
+	uint8				  _;
 	tuh_hid_report_info_t report_info[MAX_REPORT];
+} hid_info[CFG_TUH_HID];
+
+
+namespace kio::USB
+{
+static HidKeyboardEventHandler* keyboard_event_handler = defaultHidKeyboardEventHandler;
+
+void setHidKeyboardEventHandler(HidKeyboardEventHandler* handler) noexcept
+{
+	keyboard_event_handler = handler ? handler : defaultHidKeyboardEventHandler;
 }
-hid_info[CFG_TUH_HID];
 
-
-//--------------------------------------------------------------------
-// Generic Report
-//--------------------------------------------------------------------
 
 static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* report, uint16 len)
 {
-	(void) dev_addr;
+	(void)dev_addr;
 
-	const uint8 rpt_count = hid_info[instance].report_count;
+	const uint8			   rpt_count	= hid_info[instance].report_count;
 	tuh_hid_report_info_t* rpt_info_arr = hid_info[instance].report_info;
-	tuh_hid_report_info_t* rpt_info = nullptr;
+	tuh_hid_report_info_t* rpt_info		= nullptr;
 
 	if (rpt_count == 1 && rpt_info_arr[0].report_id == 0)
 	{
@@ -70,7 +79,7 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 		const uint8 rpt_id = report[0];
 
 		// Find report id in the arrray
-		for (uint8 i=0; i<rpt_count; i++)
+		for (uint8 i = 0; i < rpt_count; i++)
 		{
 			if (rpt_id == rpt_info_arr[i].report_id)
 			{
@@ -101,23 +110,28 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 	{
 		switch (rpt_info->usage)
 		{
+  #if ENABLE_USB_KEYBOARD
 		case HID_USAGE_DESKTOP_KEYBOARD:
-			printf("HID receive keyboard report\n");
+			//printf("HID receive keyboard report\n");
 			// Assume keyboard follow boot report layout
-			handle_hid_keyboard_event( reinterpret_cast<const hid_keyboard_report_t*>(report));
+			keyboard_event_handler(reinterpret_cast<const HidKeyboardReport&>(*report));
 			break;
+  #endif
 
+  #if ENABLE_USB_MOUSE
 		case HID_USAGE_DESKTOP_MOUSE:
-			printf("HID receive mouse report\n");
+			//printf("HID receive mouse report\n");
 			// Assume mouse follow boot report layout
 			handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
 			break;
+  #endif
 
-		default:
-			break;
+		default: break;
 		}
 	}
 }
+
+} // namespace kio::USB
 
 
 //--------------------------------------------------------------------
@@ -135,8 +149,8 @@ extern "C" void tuh_hid_mount_cb(uint8 dev_addr, uint8 instance, const uint8* de
 	printf("HID device address = %i, instance = %i mounted\n", dev_addr, instance);
 
 	// Interface protocol (hid_interface_protocol_enum_t)
-	constexpr char protocol_str[3][9] = { "None", "Keyboard", "Mouse" };
-	const uint8 itf_protocol = tuh_hid_interface_protocol(dev_addr, instance);
+	constexpr char protocol_str[3][9] = {"None", "Keyboard", "Mouse"};
+	const uint8	   itf_protocol		  = tuh_hid_interface_protocol(dev_addr, instance);
 
 	printf("HID Interface Protocol = %s\n", protocol_str[itf_protocol]);
 
@@ -144,16 +158,14 @@ extern "C" void tuh_hid_mount_cb(uint8 dev_addr, uint8 instance, const uint8* de
 	// Therefore for this simple example, we only need to parse generic report descriptor (with built-in parser)
 	if (itf_protocol == HID_ITF_PROTOCOL_NONE)
 	{
-		hid_info[instance].report_count = tuh_hid_parse_report_descriptor(hid_info[instance].report_info, MAX_REPORT, desc_report, desc_len);
+		hid_info[instance].report_count =
+			tuh_hid_parse_report_descriptor(hid_info[instance].report_info, MAX_REPORT, desc_report, desc_len);
 		printf("HID has %u reports\n", hid_info[instance].report_count);
 	}
 
 	// request to receive report
 	// tuh_hid_report_received_cb() will be invoked when report is available
-	if (!tuh_hid_receive_report(dev_addr, instance))
-	{
-		printf("Error: cannot request to receive report\n");
-	}
+	if (!tuh_hid_receive_report(dev_addr, instance)) { printf("Error: cannot request to receive report\n"); }
 }
 
 extern "C" void tuh_hid_umount_cb(uint8_t dev_addr, uint8_t instance)
@@ -167,17 +179,23 @@ extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const
 {
 	// Received report from device via interrupt endpoint
 
+	using namespace kio::USB;
+
 	switch (tuh_hid_interface_protocol(dev_addr, instance))
 	{
+  #if ENABLE_USB_KEYBOARD
 	case HID_ITF_PROTOCOL_KEYBOARD:
 		//printf("HID receive boot keyboard report\n");
-		handle_hid_keyboard_event(reinterpret_cast<const hid_keyboard_report_t*>(report));
+		keyboard_event_handler(reinterpret_cast<const HidKeyboardReport&>(*report));
 		break;
+  #endif
 
+  #if ENABLE_USB_MOUSE
 	case HID_ITF_PROTOCOL_MOUSE:
 		//printf("HID receive boot mouse report\n");
 		handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
 		break;
+  #endif
 
 	default:
 		// Generic report requires matching ReportID and contents with previous parsed report info
@@ -186,35 +204,8 @@ extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const
 	}
 
 	// continue to request to receive report
-	if (!tuh_hid_receive_report(dev_addr, instance))
-	{
-		printf("Error: cannot request to receive report\n");
-	}
+	if (!tuh_hid_receive_report(dev_addr, instance)) { printf("Error: cannot request to receive report\n"); }
 }
 
 
 #endif // CFG_TUH_HID
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

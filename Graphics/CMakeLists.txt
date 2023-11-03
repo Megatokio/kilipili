@@ -16,10 +16,7 @@ add_library(kilipili_graphics STATIC
 	Pixmap.cpp
 	Pixmap_wAttr.h
 	Pixmap_wAttr.cpp
-	ColorMap.cpp
-	ColorMap.h
 	graphics_types.h
-	Color.h
 	BitBlit.h
 	BitBlit.cpp
 	rsrc/font_12x8.h
@@ -35,11 +32,23 @@ target_include_directories(kilipili_graphics PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
 	)
 
-# dependencies:
-target_link_libraries(kilipili_graphics PUBLIC
-	kilipili_common
-	)
 
+if(${UNIT_TEST})
+
+	# dependencies:
+	target_link_libraries(kilipili_graphics PUBLIC
+		kilipili_common
+		)
+
+else()
+	
+	# dependencies:
+	target_link_libraries(kilipili_graphics PUBLIC
+		kilipili_common
+		pico_stdlib
+		)
+
+endif()
 
 
 

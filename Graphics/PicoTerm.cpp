@@ -3,8 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "PicoTerm.h"
-#include "ColorMap.h"
-
+#include "kilipili_common.h"
 
 namespace kio::Graphics
 {
@@ -38,9 +37,8 @@ static constexpr const uint8 dblw[16] = {
 // =============================================================================
 
 
-PicoTerm::PicoTerm(Canvas& pixmap, Color* colors) :
+PicoTerm::PicoTerm(Canvas& pixmap) :
 	pixmap(pixmap),
-	colormap(colors),
 	colormode(pixmap.colormode),
 	attrheight(pixmap.attrheight),
 	colordepth(get_colordepth(colormode)), // 0 .. 4  log2 of bits per color in attributes[]
@@ -53,18 +51,17 @@ PicoTerm::PicoTerm(Canvas& pixmap, Color* colors) :
 }
 
 
-void PicoTerm::showCursor()
+void PicoTerm::showCursor(bool on)
 {
-	if (cursorVisible) return;
-
+	if (cursorVisible == on) return;
 	validateCursorPosition();
-	show_cursor(true);
+	show_cursor(on);
 }
 
 
-inline void PicoTerm::hideCursor()
+void PicoTerm::hideCursor()
 {
-	if (unlikely(cursorVisible)) show_cursor(false);
+	if unlikely (cursorVisible) show_cursor(false);
 }
 
 
@@ -129,9 +126,7 @@ void PicoTerm::validateCursorPosition()
 	// col := in range [0 .. [screen_width
 	// row := in range [0 .. [screen_height
 
-	hideCursor();
-
-	if (unlikely(uint(col) >= uint(screen_width)))
+	if unlikely (uint(col) >= uint(screen_width))
 	{
 		col = int8(col - 0x40) + 0x40; // clamp to range -0x40 .. 0x80+0x40 (assuming 128 cols max)
 		while (col < 0)
@@ -146,7 +141,7 @@ void PicoTerm::validateCursorPosition()
 		}
 	}
 
-	if (unlikely(uint(row) >= uint(screen_height)))
+	if unlikely (uint(row) >= uint(screen_height))
 	{
 		row = int8(row - 0x60) + 0x60; // clamp to range -0x60 .. 0x40+0x60 (assuming 64 rows max)
 		if (row < 0)
@@ -171,6 +166,7 @@ void PicoTerm::readBmp(CharMatrix bmp, bool use_fgcolor)
 	// use_fgcolor=1: set bits for pixels in fgcolor
 	// use_fgcolor=0: clr bits for pixels in bgcolor
 
+	hideCursor();
 	validateCursorPosition();
 
 	int x = col++ * CHAR_WIDTH;
@@ -188,6 +184,8 @@ void PicoTerm::writeBmp(CharMatrix bmp, uint8 attr)
 	//  - bold, italic, underline, inverted and graphics must already be applied
 	// at cursor position
 	// increment col
+
+	hideCursor();
 
 	if (unlikely(attr & ATTR_DOUBLE_WIDTH))
 	{
@@ -431,7 +429,8 @@ void PicoTerm::copyRect(int src_row, int src_col, int dest_row, int dest_col, in
 
 void PicoTerm::reset()
 {
-	// ALL SETTINGS := DEFAULT, CLS, HOME CURSOR
+	// all settings = default, home cursor
+	// does not clear screen
 
 	screen_width  = pixmap.width / CHAR_WIDTH;
 	screen_height = pixmap.height / CHAR_HEIGHT;
@@ -445,8 +444,10 @@ void PicoTerm::reset()
 	pushedCol  = 0;
 	pushedAttr = 0;
 
-	resetColorMap(colordepth, colormap);
-	cls();
+	row = col = 0;
+	dx = dy		  = 1;
+	attributes	  = 0;
+	cursorVisible = false;
 }
 
 
@@ -463,7 +464,7 @@ void PicoTerm::cls()
 }
 
 
-void PicoTerm::moveToPosition(int row, int col) noexcept
+void PicoTerm::moveTo(int row, int col) noexcept
 {
 	hideCursor();
 	this->row = row;
@@ -591,10 +592,16 @@ void PicoTerm::clearToEndOfLine()
 }
 
 
+void PicoTerm::clearToEndOfScreen()
+{
+	clearToEndOfLine();
+	if (row + 1 < screen_height) eraseRect(row + 1, 0, screen_height - (row + 1), screen_width);
+}
+
+
 void PicoTerm::printCharMatrix(CharMatrix charmatrix, int count)
 {
 	applyAttributes(charmatrix);
-
 	while (count--) { writeBmp(charmatrix, attributes); }
 }
 
@@ -623,9 +630,11 @@ void PicoTerm::printText(cstr s)
 
 void PicoTerm::print(cstr s, bool auto_crlf)
 {
-	assert(s);
+	// print string up to char(0)
+	// char(0) is only detected on character positions, not argument positions,
+	// so char(0) can be used as argument to MOVE_TO_POSITION, SET_ATTRIBUTE etc.
 
-	auto getc = [&]() -> uchar { return *s ? *s++ : 0; };
+	assert(s);
 
 loop:
 	int repeat_count = 1;
@@ -657,14 +666,14 @@ loop_repeat:
 	case MOVE_TO_POSITION: // MOVE_TO_POSITION, <row>, <col>
 	{
 		hideCursor();
-		row = getc();
-		col = getc();
+		row = *s++;
+		col = *s++;
 		break;
 	}
 	case MOVE_TO_COL: // MOVE_TO_COL, <row>
 	{
 		hideCursor();
-		col = getc();
+		col = *s++;
 		break;
 	}
 	case PUSH_CURSOR_POSITION:
@@ -718,9 +727,14 @@ loop_repeat:
 		clearToEndOfLine();
 		break;
 	}
+	case CLEAR_TO_END_OF_SCREEN:
+	{
+		clearToEndOfScreen();
+		break;
+	}
 	case SCROLL_SCREEN: // SCROLL SCREEN u/d/l/r
 	{
-		uchar dir = getc();
+		uchar dir = *s++;
 		if (dir == 'u') scrollScreenUp(repeat_count);
 		else if (dir == 'd') scrollScreenDown(repeat_count);
 		else if (dir == 'l') scrollScreenLeft(repeat_count);
@@ -729,19 +743,39 @@ loop_repeat:
 	}
 	case REPEAT_NEXT_CHAR:
 	{
-		repeat_count = getc();
+		repeat_count = *s++;
 		goto loop_repeat;
 	}
 	case SET_ATTRIBUTES:
 	{
-		setPrintAttributes(getc());
+		setPrintAttributes(*s++);
 		break;
 	}
 	case PRINT_INLINE_GLYPH: // PRINT INLINE CHARACTER BMP
 	{
 		CharMatrix charmatrix;
-		for (int i = 0; i < CHAR_HEIGHT; i++) charmatrix[i] = getc();
+		for (int i = 0; i < CHAR_HEIGHT; i++) charmatrix[i] = *s++;
 		printCharMatrix(charmatrix, repeat_count);
+		break;
+	}
+	case ESC:
+	{
+		if (*s == '[')
+		{
+			cptr s0 = s++;
+			int	 n	= is_decimal_digit(*s) ? *s++ - '0' : repeat_count;
+			while (is_decimal_digit(*s)) { n = n * 10 + *s++ - '0'; }
+
+			switch (*s++)
+			{
+			case 'A': cursorUp(min(n, row)); goto loop;						  // VT100
+			case 'B': cursorDown(min(n, screen_height - 1 - row)); goto loop; // VT100
+			case 'C': cursorRight(min(n, screen_width - 1 - col)); goto loop; // VT100
+			case 'D': cursorLeft(min(n, col)); goto loop;					  // VT100
+			}
+			s = s0;
+		}
+		printText("[ESC]");
 		break;
 	}
 	default:
@@ -789,18 +823,19 @@ void PicoTerm::printf(cstr fmt, ...)
 }
 
 
-char* PicoTerm::identify(char* buffer)
+char* PicoTerm::identify()
 {
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=rgb
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=i8 attr=8*12
 
+	char buffer[64];
 	sprintf(
 		buffer, "PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s", pixmap.width, pixmap.height, screen_width,
 		screen_height, CHAR_WIDTH, CHAR_HEIGHT, tostr(colordepth));
 
 	if (attrmode != attrmode_none) sprintf(strchr(buffer, 0), " attr=%u*%u", 1 << attrwidth, attrheight);
 
-	return buffer;
+	return dupstr(buffer);
 }
 
 

@@ -4,7 +4,9 @@
 
 #include "USBGamePad.h"
 
-USBGamePad::USBGamePad()
+namespace kio::USB
 {
 
-}
+USBGamePad::USBGamePad() {}
+
+} // namespace kio::USB

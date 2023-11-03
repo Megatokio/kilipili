@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Graphics/ColorMap.h"
-#include "Graphics/Pixmap.h"
+#include "ColorMap.h"
+#include "Pixmap.h"
 #include "ScanlineRenderFu.h"
 #include "VideoPlane.h"
 
@@ -17,8 +17,6 @@
 
 namespace kio::Video
 {
-extern void framebuffer_setup_helper(uint plane, coord width, VideoQueue& vq);
-
 
 /*
 	Template class FrameBuffer renders a whole scanline from a screen_width Pixmap.
@@ -34,8 +32,8 @@ template<ColorMode CM>
 class FrameBuffer<CM, std::enable_if_t<is_direct_color(CM)>> final : public VideoPlane
 {
 public:
-	using Pixmap   = Graphics::Pixmap<CM>;
-	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
+	using Pixmap   = Video::Pixmap<CM>;
+	using ColorMap = Video::ColorMap<get_colordepth(CM)>;
 
 	const Pixmap&	   pixmap;
 	const Color* const colormap;
@@ -46,21 +44,18 @@ public:
 
 	virtual ~FrameBuffer() noexcept override = default;
 
-	virtual void setup(uint plane, coord width, VideoQueue& vq) override
+	virtual void setup(coord /*width*/) throws override
 	{
-		VideoPlane::setup(plane, width, vq); // setup buffers
 		setupScanlineRenderer<CM>(colormap); // setup render function
-		framebuffer_setup_helper(plane, width, vq);
 		FrameBuffer::vblank();				 // reset state variables
 	}
 
-	virtual void teardown(uint plane, VideoQueue& vq) noexcept override
+	virtual void teardown() noexcept override
 	{
-		teardownScanlineRenderer<CM>();
-		VideoPlane::teardown(plane, vq);
+		teardownScanlineRenderer<CM>(); //
 	}
 
-	virtual uint RAM renderScanline(int row, uint32* plane_data) noexcept override final
+	virtual void RAM renderScanline(int row, uint32* plane_data) noexcept override final
 	{
 		while (unlikely(++this->row <= row)) // increment row and check whether we missed some rows
 		{
@@ -68,19 +63,9 @@ public:
 		}
 
 		uint width = uint(pixmap.width);
-		scanlineRenderFunction<CM>(plane_data + 1, width, pixels);
-
-		uint16* p = uint16ptr(plane_data);
-		//p[0] = CMD::RAW_RUN;		// cmd
-		p[1] = p[2];				  // 1st pixel
-		p[2] = uint16(width - 3 + 1); // count-3 +1 for final black pixel
-		//p[3++]   = pixels
-		//p[width+2] = 0;  			// final black pixel
-		//p[width+3] = CMD::EOL;  	// end of line; total count of uint16 values must be even!
+		scanlineRenderFunction<CM>(plane_data, width, pixels);
 
 		pixels += pixmap.row_offset;
-
-		return (width + 4) / 2; // count of uint32 values
 	}
 
 	virtual void RAM vblank() noexcept override final
@@ -100,8 +85,8 @@ template<ColorMode CM>
 class FrameBuffer<CM, std::enable_if_t<is_attribute_mode(CM)>> final : public VideoPlane
 {
 public:
-	using Pixmap   = Graphics::Pixmap<CM>;
-	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
+	using Pixmap   = Video::Pixmap<CM>;
+	using ColorMap = Video::ColorMap<get_colordepth(CM)>;
 
 	const Pixmap&	   pixmap;
 	const Color* const colormap;
@@ -114,21 +99,18 @@ public:
 
 	virtual ~FrameBuffer() noexcept override = default;
 
-	virtual void setup(uint plane, coord width, VideoQueue& vq) override // may throw
+	virtual void setup(coord /*width*/) throws override
 	{
-		VideoPlane::setup(plane, width, vq); // setup buffers
 		setupScanlineRenderer<CM>(colormap); // setup render function
-		framebuffer_setup_helper(plane, width, vq);
 		FrameBuffer::vblank();				 // reset state variables
 	}
 
-	virtual void teardown(uint plane, VideoQueue& vq) noexcept override
+	virtual void teardown() noexcept override
 	{
-		teardownScanlineRenderer<CM>();
-		VideoPlane::teardown(plane, vq);
+		teardownScanlineRenderer<CM>(); //
 	}
 
-	virtual uint RAM renderScanline(int row, uint32* plane_data) noexcept override final
+	virtual void XRAM renderScanline(int row, uint32* plane_data) noexcept override final
 	{
 		while (unlikely(++this->row <= row)) // increment row and check whether we missed some rows
 		{
@@ -141,15 +123,7 @@ public:
 		}
 
 		uint width = uint(pixmap.width);
-		scanlineRenderFunction<CM>(plane_data + 1, width, pixels, attributes);
-
-		uint16* p = uint16ptr(plane_data);
-		//p[0] = CMD::RAW_RUN;		// cmd
-		p[1] = p[2];				  // 1st pixel
-		p[2] = uint16(width - 3 + 1); // count-3 +1 for final black pixel
-		//p[3++]   = pixels
-		//p[width+2] = 0;  			// final black pixel
-		//p[width+3] = CMD::EOL;  	// end of line; total count of uint16 values must be even!
+		scanlineRenderFunction<CM>(plane_data, width, pixels, attributes);
 
 		pixels += pixmap.row_offset;
 		if (unlikely(++arow == pixmap.attrheight))
@@ -157,8 +131,6 @@ public:
 			arow = 0;
 			attributes += pixmap.attributes.row_offset;
 		}
-
-		return (width + 4) / 2; // count of uint32 values
 	}
 
 	virtual void RAM vblank() noexcept override final

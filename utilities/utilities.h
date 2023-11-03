@@ -3,7 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "kilipili_common.h"
+#include "LoadSensor.h"
+#include "standard_types.h"
+#include <hardware/clocks.h>
 #include <hardware/timer.h>
 #include <pico/stdlib.h>
 
@@ -20,7 +22,14 @@ namespace kio
 {
 
 inline float now() noexcept { return float(time_us_64()) / 1e6f; }
-inline void	 sleep(float d) noexcept { sleep_us(uint64(d * 1e6f)); }
+extern void	 sleep_us(int usec) noexcept; // power saving mode
+inline void	 sleep_ms(int msec) noexcept { sleep_us(msec * 1000); }
+inline void	 sleep(float d) noexcept { sleep_us(int32(d * 1e6f)); }
+
+inline void wfe() noexcept;
+inline void wfi() noexcept;
+extern void wfe_or_timeout(int timeout_usec) noexcept;
+
 
 extern size_t flash_size();
 extern size_t flash_used();
@@ -48,14 +57,48 @@ extern void test_stack_guard(uint core);
 extern uint calc_stack_guard_min_free(uint core);
 
 
-extern int sm_print_load(); // state machine
+inline uint32 get_system_clock() { return clock_get_hz(clk_sys); }
+extern Error  set_system_clock(uint32 sys_clock = 125 MHz, uint32 max_error = 1 MHz);
 
 
-extern uint32 system_clock;
+//
+// **************** Implementations *************************
+//
 
-extern Error checkSystemClock(uint32 new_clock);
-extern Error checkSystemClock(uint32 new_clock, uint* f_vco, uint* div1, uint* div2);
-extern Error setSystemClock(uint32 sys_clock = 125 MHz);
+inline void wfe() noexcept
+{
+	idle_start();
+	__asm volatile("wfe");
+	idle_end();
+}
+
+inline void wfi() noexcept
+{
+	idle_start();
+	__asm volatile("wfi");
+	idle_end();
+}
 
 
 } // namespace kio
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

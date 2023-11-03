@@ -64,8 +64,4 @@ extern void setMouseEventHandler(MouseEventHandler&) noexcept;
 extern void enableMouseEvents(bool btn_up, bool move_w_btn_dn, bool move) noexcept;
 extern void setMouseEventHandler(MouseEventHandler&, bool btn_up, bool move_w_btn_dn, bool move) noexcept;
 
-
-// callback for USB Host events from `tuh_hid_report_received_cb()`:
-extern void handle_hid_mouse_event(const hid_mouse_report_t* report) noexcept;
-
 } // namespace kio::USB

@@ -5,103 +5,142 @@
 
 #pragma once
 
-#include "Scanline.h"
-#include "VBlankAction.h"
 #include "VgaMode.h"
-#include "VgaTiming.h"
 #include "VideoPlane.h"
-#include "VideoQueue.h"
 #include "geometry.h"
-#include "scanvideo_options.h"
+#include <functional>
 #include <pico/sem.h>
 #include <pico/types.h>
 
 namespace kio::Video
 {
 
-/*
+/** the Video Frontend:
+  
 	use:
 
 	getRef()
 	loop:
 		setup()
 		loop:
-			addScanlineRenderer(), ...	  (calls removeScanlineRenderer() if needed) -- throws!
-			addVBlankCallback(), ...
-			setIdleProc()
+			addPlane(), ...		
+			addVBlankAction(), ...
+			setIdleAction()
 			startVideo()
 			...
 			stopVideo()
-			removeVBlankCallback(), ...   (also done by teardown)
-			removeScanlineRenderer(), ... (also done by teardown)
+			removeVBlankAction(), ...   (also done by teardown)
+			removePlane(), ...			(also done by teardown)
 		teardown()
 
-	addScanlineRenderer()    calls renderer.setup()    for all video_buffer.scanlines[].data[plane]
-	removeScanlineRenderer() calls renderer.teardown() for all video_buffer.scanlines[].data[plane]
+	addPlane()    calls renderer.setup()    for all video_buffer.scanlines[].data[plane]
+	removePlane() calls renderer.teardown() for all video_buffer.scanlines[].data[plane]
 */
 
 
 class VideoController
 {
-	static void core1_runner() noexcept;
-	void		video_runner();
-
 public:
-	using coord = Graphics::coord;
-	using Size	= Graphics::Size;
+	using IdleAction	= std::function<void()>;
+	using VBlankAction	= std::function<void()>;
+	using OneTimeAction = std::function<void()>;
+	using coord			= Graphics::coord;
+	using Size			= Graphics::Size;
 
-	static constexpr uint max_vblank_actions  = 8;
-	static constexpr uint max_onetime_actions = 4;
-	static constexpr uint max_planes		  = PICO_SCANVIDEO_PLANE_COUNT;
-	using idle_fu							  = void();
+	enum State : uint8 {
+		INVALID,
+		STOPPED,
+		RUNNING,
+	};
 
-	idle_fu* idle_action = nullptr;
+	/**	get reference to singleton 
+		panics on first call if it can't claim the required hardware
+	*/
+	static VideoController& getRef() noexcept;
 
-	uint		num_planes		   = 0;
-	VideoPlane* planes[max_planes] = {nullptr};
+	/** setup internal state, buffers and hardware for the requested VideoMode.
+		The supplied VideoMode struct must be static.
+		If blocking = false then caller must later test `getState()` and `core1_error`.
+	*/
+	Error setup(const VgaMode&, bool blocking = true);
 
-	uint		  num_vblank_actions = 0;
-	VBlankAction* vblank_actions[max_vblank_actions];
-	uint8		  vblank_when[max_vblank_actions];
-
-	uint				  num_onetime_actions = 0;
-	std::function<void()> onetime_actions[max_onetime_actions]; // TODO this could be a queue
-
-	bool		  video_output_enabled = false;
-	volatile bool video_output_running = false;
-	bool		  is_initialized	   = false;
-
-	static Size	 size;
-	static coord width() noexcept { return size.width; }
-	static coord height() noexcept { return size.height; }
-
-
-	static VideoController& getRef() noexcept; // get reference to singleton (and claim hardware)
-
-	Error setup(const VgaMode*, const VgaTiming*);
-	Error setup(const VgaMode* mode) { return setup(mode, mode->default_timing); }
-	void  teardown() noexcept;
-
+	void teardown(bool blocking = true) noexcept;
+	void startVideo(int log2_scanline_buffer_size = 2, bool blocking = true);
+	void stopVideo(bool blocking = true);
 	void addPlane(VideoPlane*);
 	void removePlane(VideoPlane*);
-	void addVBlankAction(VBlankAction* fu, uint8 when) noexcept;
-	void removeVBlankAction(VBlankAction*);
-	void setIdleAction(idle_fu* fu) noexcept { idle_action = fu; }
-	void addOneTimeAction(std::function<void()> fu) noexcept;
+	void setVBlankAction(const VBlankAction& fu) noexcept;
+	void setIdleAction(const IdleAction& fu) noexcept;
+	void addOneTimeAction(const OneTimeAction& fu) noexcept;
 
-	void startVideo();
-	void stopVideo();
+	State getState() const noexcept { return state; }
 
-	static bool in_hblank() noexcept;
-	static void waitForVBlank() noexcept;
-	static void waitForScanline(ScanlineID n) noexcept;
+	static Error core1_error;
 
 private:
+	static constexpr uint max_planes = 4;
+
+	uint		  num_planes;
+	VideoPlane*	  planes[max_planes] = {nullptr};
+	IdleAction	  idle_action		 = nullptr;
+	VBlankAction  vblank_action		 = nullptr;
+	OneTimeAction onetime_action	 = nullptr;
+
+	volatile State state		   = INVALID;
+	volatile State requested_state = INVALID;
+
+	uint8 _padding;
+
+
 	VideoController() noexcept;
+
+	static void start_core1() noexcept { getRef().core1_runner(); }
+	void		core1_runner() noexcept;
+	void		video_runner();
+
+	void do_start_video();
+	void do_stop_video();
+	void do_setup() noexcept;
+	void do_teardown() noexcept;
+	void wait_for_event() noexcept;
+	void call_vblank_actions() noexcept;
 };
 
 
-extern std::atomic<uint32> scanlines_missed;
-
+extern uint scanlines_missed;
 
 } // namespace kio::Video
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

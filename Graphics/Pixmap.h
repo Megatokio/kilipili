@@ -5,7 +5,6 @@
 #pragma once
 #include "BitBlit.h"
 #include "Canvas.h"
-#include "ColorMap.h"
 #include "geometry.h"
 
 
@@ -333,7 +332,7 @@ void DirectColorPixmap::xor_rect(coord x1, coord y1, coord w, coord h, uint xor_
 		assert(is_inside(x1 + w - 1, y1 + h - 1));
 	}
 
-	bitblit::xor_rect<colordepth>(pixmap + y1 * row_offset, x1, row_offset, w, h, xor_color);
+	bitblit::xor_rect<colordepth>(pixmap + y1 * row_offset, row_offset, x1, w, h, xor_color);
 }
 
 template<ColorMode CM>

@@ -3,33 +3,38 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "USBMouse.h"
-#include "common/BucketList.h"
+#include "hid_handler.h"
+#include "utilities/BucketList.h"
 
-namespace kipili::USB
+namespace kio::USB
 {
 
-static bool enable_button_up_events = true;
+static bool enable_button_up_events				= true;
 static bool enable_move_with_button_down_events = true;
-static bool enable_move_events = false;
+static bool enable_move_events					= false;
 
-static BucketList<MouseReport,8,uint8> mouse_event_queue;
+static BucketList<MouseReport, 8, uint8> mouse_event_queue;
 //ON_INIT([](){mouse_event_queue.hs_push();}); // push empty bucket: always one 'current' bucket in the list
 static MouseReport no_report; // old buttons and dx,dy,wheel,pan all zero
 
-static void queueMouseReport(const MouseReport& e) noexcept;
+static void				   queueMouseReport(const MouseReport& e) noexcept;
 static MouseReportHandler* mouse_report_cb = &queueMouseReport;
-static MouseEventHandler* mouse_event_cb = nullptr;
+static MouseEventHandler*  mouse_event_cb  = nullptr;
 
 
 // ====================================================================
 
 MouseEvent::MouseEvent(const MouseReport& r, MouseButtons oldbuttons) noexcept :
-	buttons(r.buttons), toggled(r.buttons ^ oldbuttons),
-	dx(r.dx), dy(r.dy), wheel(r.wheel), pan(r.pan)
+	buttons(r.buttons),
+	toggled(r.buttons ^ oldbuttons),
+	dx(r.dx),
+	dy(r.dy),
+	wheel(r.wheel),
+	pan(r.pan)
 {}
 
-bool mouseReportAvailable() noexcept { return mouse_event_queue.ls_avail()>1; }
-bool mouseEventAvailable() noexcept  { return mouse_event_queue.ls_avail()>1; }
+bool mouseReportAvailable() noexcept { return mouse_event_queue.ls_avail() > 1; }
+bool mouseEventAvailable() noexcept { return mouse_event_queue.ls_avail() > 1; }
 
 const MouseReport& getMouseReport() noexcept
 {
@@ -45,13 +50,10 @@ const MouseReport& getMouseReport() noexcept
 
 		// get next report:
 		const MouseReport& r = mouse_event_queue.ls_get();
-		no_report.buttons = r.buttons;
+		no_report.buttons	 = r.buttons;
 		return r;
 	}
-	else
-	{
-		return no_report;
-	}
+	else { return no_report; }
 }
 
 MouseEvent getMouseEvent() noexcept
@@ -70,30 +72,29 @@ static void queueMouseReport(const MouseReport& e) noexcept
 }
 
 
-
 void setMouseReportHandler(MouseReportHandler& handler) noexcept
 {
 	mouse_report_cb = handler ? handler : queueMouseReport;
-	mouse_event_cb = nullptr;
+	mouse_event_cb	= nullptr;
 }
 
 void setMouseEventHandler(MouseEventHandler& handler) noexcept
 {
-	mouse_event_cb = handler;
+	mouse_event_cb	= handler;
 	mouse_report_cb = handler ? nullptr : queueMouseReport;
 }
 
 void enableMouseEvents(bool btn_up, bool move_w_btn_dn, bool move) noexcept
 {
-	enable_button_up_events = btn_up;
+	enable_button_up_events				= btn_up;
 	enable_move_with_button_down_events = move_w_btn_dn;
-	enable_move_events = move;
+	enable_move_events					= move;
 }
 
 void setMouseEventHandler(MouseEventHandler& handler, bool up, bool move_w_btn_dn, bool move) noexcept
 {
 	setMouseEventHandler(handler);
-	enableMouseEvents(up,move_w_btn_dn,move);
+	enableMouseEvents(up, move_w_btn_dn, move);
 }
 
 
@@ -104,31 +105,20 @@ void handle_hid_mouse_event(const hid_mouse_report_t* report) noexcept
 	static_assert(sizeof(hid_mouse_report_t) == sizeof(MouseReport)); // minimal checking
 	const MouseReport& new_report = *reinterpret_cast<const MouseReport*>(report);
 
-	if (mouse_report_cb)
-	{
-		mouse_report_cb(new_report);
-	}
-	else
-	{
-		mouse_event_cb(MouseEvent(new_report,NO_BUTTON));
-	}
+	if (mouse_report_cb) { mouse_report_cb(new_report); }
+	else { mouse_event_cb(MouseEvent(new_report, NO_BUTTON)); }
 }
 
-} // namespace
-
-
-
-
-
+} // namespace kio::USB
 
 
 #if 0
 
-#include <bsp/ansi_escape.h>
+  #include <bsp/ansi_escape.h>
 
 // If your host terminal support ansi escape code such as TeraTerm
 // it can be use to simulate mouse cursor movement within terminal
-#define USE_ANSI_ESCAPE   1
+  #define USE_ANSI_ESCAPE 1
 
 void cursor_movement(int8 x, int8 y, int8 wheel)
 {
@@ -179,9 +169,3 @@ void handle_hid_mouse_event(const hid_mouse_report_t* report)
 }
 
 #endif
-
-
-
-
-
-

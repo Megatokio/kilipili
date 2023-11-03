@@ -4,11 +4,6 @@
 
 #pragma once
 #include <cstdlib> // __CONCAT
-#ifdef TEST
-extern __attribute__((format(printf, 1, 2))) __attribute__((__noreturn__)) void panic(const char* fmt, ...);
-#else
-  #include <pico/platform.h> // panic()
-#endif
 
 
 // test for DEBUG and RELEASE are preferred:
@@ -30,8 +25,8 @@ extern __attribute__((format(printf, 1, 2))) __attribute__((__noreturn__)) void 
 #define throws		noexcept(false)
 #define NELEM(feld) (sizeof(feld) / sizeof((feld)[0])) // UNSIGNED !!
 
-#define likely(x)	__builtin_expect(!!(x), 1)
-#define unlikely(x) __builtin_expect(!!(x), 0)
+#define likely(x)	(__builtin_expect(!!(x), 1))
+#define unlikely(x) (__builtin_expect(!!(x), 0))
 
 #define __deprecated __attribute__((__deprecated__))
 #define __noreturn	 __attribute__((__noreturn__))
@@ -62,6 +57,7 @@ __unused static constexpr const char* filenamefrompath(const char* path)
 	return path;
 }
 
+extern "C" __printflike(1, 2) __noreturn void panic(const char* fmt, ...);
 #define IERR() panic("IERR: %s:%u", filenamefrompath(__FILE__), __LINE__)
 #define TODO() panic("TODO: %s:%u", filenamefrompath(__FILE__), __LINE__)
 #define OMEM() panic("OMEM: %s:%u", filenamefrompath(__FILE__), __LINE__)

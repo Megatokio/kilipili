@@ -9,14 +9,23 @@
 namespace kio::USB
 {
 
-constexpr uint KEY_TRANSLATION_TABLE_SIZE = 0x68;
-using KeyTable							  = uchar[KEY_TRANSLATION_TABLE_SIZE];
+struct HidKeyTable
+{
+	static constexpr uint table_size = 0x68;
 
+	const uchar* solo;
+	const uchar* with_shift;
+	const uchar* with_alt;
+	const uchar* with_shift_alt;
 
-extern const KeyTable key_table_us;
-extern const KeyTable key_table_us_shift;
+	uchar get_key(uint key, bool shift, bool alt) const noexcept
+	{
+		const uchar* table = (&solo)[(shift) + (2 * alt)];
+		return key < table_size ? table[key] : 0;
+	}
+};
 
-extern const KeyTable key_table_ger;
-extern const KeyTable key_table_ger_shift;
+extern const HidKeyTable key_table_us;
+extern const HidKeyTable key_table_ger;
 
 } // namespace kio::USB
