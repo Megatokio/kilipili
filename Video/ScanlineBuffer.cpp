@@ -15,28 +15,24 @@ alignas(sizeof(ScanlineBuffer::scanlines)) //
 	uint32* ScanlineBuffer::scanlines[max_count];
 
 
-void ScanlineBuffer::setup(const VgaMode* videomode, uint new_count) throws
+void ScanlineBuffer::setup(const VgaMode& videomode, uint new_count) throws
 {
 	assert_eq(count, 0); // must be invalid
 
-	width  = videomode->h_active;
-	yscale = videomode->v_active / videomode->height;
+	width = videomode.h_active();
+	vss	  = videomode.vss;
 
 	assert_ge(new_count, 2);				   // at least 2 scanlines
 	assert_eq(new_count & (new_count - 1), 0); // must be 2^N
-	assert_le(new_count * yscale, max_count);  // must not exceed array
+	assert_le(new_count << vss, max_count);	   // must not exceed array
 	assert_eq(width % 2, 0);				   // dma transfer unit is uint32 = 2 pixels
-	assert_eq(yscale, videomode->yscale);	   // test for time beeing
-	assert_eq(yscale & (yscale - 1), 0);	   // must be 2^N
-	assert_ge(yscale, 1);
-	assert_eq(videomode->v_active, yscale * videomode->height);
 
 	try
 	{
 		for (/*count = 0*/; count < new_count; count++)
 		{
 			uint32* sl = new uint32[width / 2];
-			for (uint y = 0; y < yscale; y++) { scanlines[count * yscale + y] = sl; }
+			for (uint y = 0; y < (1 << vss); y++) { scanlines[(count << vss) + y] = sl; }
 		}
 		mask = count - 1;
 	}
@@ -49,7 +45,7 @@ void ScanlineBuffer::setup(const VgaMode* videomode, uint new_count) throws
 
 void ScanlineBuffer::teardown() noexcept
 {
-	while (count) { delete[] scanlines[--count * yscale]; }
+	while (count) { delete[] scanlines[--count << vss]; }
 }
 
 

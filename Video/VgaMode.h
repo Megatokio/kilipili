@@ -3,7 +3,6 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "kilipili_cdefs.h"
 #include "standard_types.h"
 
 
@@ -16,24 +15,24 @@ struct VgaMode
 {
 	uint32 pixel_clock;
 
-	uint16 h_active;
-	uint16 h_front_porch;
-	uint16 h_pulse;
-	uint16 h_back_porch;
-	bool   h_sync_polarity, _padding = 0;
+	constexpr uint h_active() const noexcept { return uint(width); }
+	uint8 h_front_porch;
+	uint8 h_pulse;
+	uint8 h_back_porch;
+	bool  h_sync_polarity;
 
-	uint16 v_active;
-	uint16 v_front_porch;
-	uint16 v_pulse;
-	uint16 v_back_porch;
-	bool   v_sync_polarity, _padding2 = 0;
+	constexpr uint v_active() const noexcept { return uint(height) << vss; }
+	uint8 v_front_porch;
+	uint8 v_pulse;
+	uint8 v_back_porch;
+	bool  v_sync_polarity;
 
-	uint16 width;
-	uint16 height;
-	uint16 yscale;  // height * yscale = v_active 
+	int   vss;    // height << vss = v_active 
+	int   width;  
+	int   height;
 	
-	constexpr uint16 h_total() const { return h_front_porch + h_pulse + h_back_porch + h_active; }
-	constexpr uint16 v_total() const { return v_front_porch + v_pulse + v_back_porch + v_active; }
+	constexpr uint h_total() const { return h_front_porch + h_pulse + h_back_porch + h_active(); }
+	constexpr uint v_total() const { return v_front_porch + v_pulse + v_back_porch + v_active(); }
 };
 
 
@@ -56,21 +55,19 @@ constexpr VgaMode vga_mode_320x240_60 =
 
 	.pixel_clock = 25000000 / 2,
 
-	.h_active = 640 / 2,		 
 	.h_front_porch = 16 / 2, 
 	.h_pulse = 96 / 2, 
 	.h_back_porch = 48 / 2, 
 	.h_sync_polarity = 0,
 
-	.v_active = 480,		 
 	.v_front_porch = 3,  
 	.v_pulse = 2,	 
 	.v_back_porch = 40, 
 	.v_sync_polarity = 0,
 
+	.vss = 1,
 	.width	= 320,
 	.height = 240,
-	.yscale = 2,
 };
 
 
@@ -82,21 +79,19 @@ constexpr VgaMode vga_mode_400x300_60 =
 
 	.pixel_clock = 40000000 / 2,
 
-	.h_active = 800 / 2,		 
 	.h_front_porch = 40 / 2, 
 	.h_pulse = 128 / 2, 
 	.h_back_porch = 88 / 2, 
 	.h_sync_polarity = 1,
 
-	.v_active = 600,		 
 	.v_front_porch = 1,  
 	.v_pulse = 4,	  
 	.v_back_porch = 23, 
 	.v_sync_polarity = 1,
 
+	.vss = 1,
 	.width	= 400,
 	.height = 300,
-	.yscale = 2,
 };
 
 
@@ -112,21 +107,19 @@ constexpr VgaMode vga_mode_512x384_60 =
 
 	.pixel_clock = 65000000 / 2,
 
-	.h_active = 1024 / 2,		 
 	.h_front_porch = 24 / 2, 
 	.h_pulse = 136 / 2, 
 	.h_back_porch = 160 / 2, 
 	.h_sync_polarity = 0,
 
-	.v_active = 768,		 
 	.v_front_porch = 3,  
 	.v_pulse = 6,	  
 	.v_back_porch = 29,  
 	.v_sync_polarity = 0,
 
+	.vss = 1,
 	.width	= 512,
 	.height = 384,
-	.yscale = 2,
 };
 
 
@@ -145,21 +138,19 @@ constexpr VgaMode vga_mode_640x480_60 =
 
 	.pixel_clock = 25000000,
 
-	.h_active = 640,		 
 	.h_front_porch = 16, 
 	.h_pulse = 96, 
 	.h_back_porch = 48, 
 	.h_sync_polarity = 0,
 
-	.v_active = 480,		 
 	.v_front_porch = 3,  
 	.v_pulse = 2,	 
 	.v_back_porch = 40, 
 	.v_sync_polarity = 0,
 
+	.vss = 0,
 	.width	= 640,
 	.height = 480,
-	.yscale = 1,
 };
 
 static_assert(vga_mode_640x480_60.h_total() == 800);
@@ -174,21 +165,19 @@ constexpr VgaMode vga_mode_800x600_60 =
 
 	.pixel_clock = 40000000,
 
-	.h_active = 800,		 
 	.h_front_porch = 40, 
 	.h_pulse = 128, 
 	.h_back_porch = 88, 
 	.h_sync_polarity = 1,
 
-	.v_active = 600,		 
 	.v_front_porch = 1,  
 	.v_pulse = 4,	  
 	.v_back_porch = 23, 
 	.v_sync_polarity = 1,
 
+	.vss = 0,
 	.width	= 800,
 	.height = 600,
-	.yscale = 1,
 };
 
 static_assert(vga_mode_800x600_60.h_total() == 1056);
@@ -207,21 +196,19 @@ constexpr VgaMode vga_mode_1024x768_60 =
 
 	.pixel_clock = 65000000,
 
-	.h_active = 1024,		 
 	.h_front_porch = 24, 
 	.h_pulse = 136, 
 	.h_back_porch = 160, 
 	.h_sync_polarity = 0,
 
-	.v_active = 768,		 
 	.v_front_porch = 3,  
 	.v_pulse = 6,	  
 	.v_back_porch = 29,  
 	.v_sync_polarity = 0,
 
+	.vss = 0,
 	.width	= 1024,
 	.height = 768,
-	.yscale = 1,
 };
 
 static_assert(vga_mode_1024x768_60.h_total() == 1344);
@@ -248,21 +235,19 @@ constexpr VgaMode vga_mode_1360x768_60 =
 
 	.pixel_clock = 72000000,
 
-	.h_active = 1360,		 
 	.h_front_porch = 18, 
 	.h_pulse = 56, 
 	.h_back_porch = 66, 
 	.h_sync_polarity = 1,
 
-	.v_active = 768,		 
 	.v_front_porch = 1,  
 	.v_pulse = 3,	  
 	.v_back_porch = 28,  
 	.v_sync_polarity = 1,
 
+	.vss = 0,
 	.width	= 1360,
 	.height = 768,
-	.yscale = 1,
 };
 
 
@@ -281,21 +266,19 @@ constexpr VgaMode vga_mode_1280x768_60 =
 
 	.pixel_clock = 72000000,
 
-	.h_active = 1280,		 
 	.h_front_porch = 56, 
 	.h_pulse = 56, 
 	.h_back_porch = 108, 
 	.h_sync_polarity = 1,
 
-	.v_active = 768,		 
 	.v_front_porch = 1,  
 	.v_pulse = 3,	  
 	.v_back_porch = 28,  
 	.v_sync_polarity = 1,
 
+	.vss = 0,
 	.width	= 1280,
 	.height = 768,
-	.yscale = 1,
 };
 
 
@@ -318,21 +301,19 @@ constexpr VgaMode vga_mode_672x384_60 =
 	
 	.pixel_clock = 72000000/2,
 
-	.h_active = 672,		 
 	.h_front_porch = 12, 
 	.h_pulse = 28, 
 	.h_back_porch = 38, 
 	.h_sync_polarity = 1,
 
-	.v_active = 768,		 
 	.v_front_porch = 1,  
 	.v_pulse = 3,	  
 	.v_back_porch = 28,  
 	.v_sync_polarity = 1,
 
+	.vss = 1,
 	.width	= 672,
 	.height = 384,
-	.yscale = 2,
 };
 
 
@@ -353,21 +334,19 @@ constexpr VgaMode vga_mode_640x384_60 =
 	
 	.pixel_clock = 72000000/2,
 
-	.h_active = 640,		 
 	.h_front_porch = 28, 
 	.h_pulse = 28, 
 	.h_back_porch = 54, 
 	.h_sync_polarity = 1,
 
-	.v_active = 768,		 
 	.v_front_porch = 1,  
 	.v_pulse = 3,	  
 	.v_back_porch = 28,  
 	.v_sync_polarity = 1,
 
+	.vss = 1,
 	.width	= 640,
 	.height = 384,
-	.yscale = 2,
 };
 
 
@@ -383,21 +362,19 @@ constexpr VgaMode vga_mode_640x480_50 =
 
 	.pixel_clock = 22000000,
 
-	.h_active = 640,		 
 	.h_front_porch = 16, 
 	.h_pulse = 64,
 	.h_back_porch	 = 80, // 80+64+16+640=800
 	.h_sync_polarity = 0,
 
-	.v_active = 480,		 
 	.v_front_porch = 16, 
 	.v_pulse = 2,
 	.v_back_porch	 = 52, // 52+480+16+2=550
 	.v_sync_polarity = 0,
 
+	.vss = 0,
 	.width	= 640,
 	.height = 480,
-	.yscale = 1,
 };
 
 static_assert(vga_mode_640x480_50.h_total() == 800);
@@ -434,21 +411,19 @@ constexpr VgaMode vga_mode_1024x768_50 =
 	// htotal=1368 => a1w8_rgb: clock=270MHz, avg=256.9MHz, max=270.0MHz  <-- the current absolute limit!
 
 	.pixel_clock = 54000000, 
-	.h_active = 1024,	   
 	.h_front_porch = 32,
 	.h_pulse	  = 160, // right side of the pulse seemingly doesn't matter for my TV
 	.h_back_porch = 160 - 8, 
 	.h_sync_polarity = 0,
 
-	.v_active = 768,		 
 	.v_front_porch = 3,   
 	.v_pulse = 6,		
 	.v_back_porch = 29, 
 	.v_sync_polarity = 0,
 
+	.vss = 0,
 	.width	= 1024,
 	.height = 768,
-	.yscale = 1,
 };
 
 static_assert(vga_mode_1024x768_50.h_total() == 1368);

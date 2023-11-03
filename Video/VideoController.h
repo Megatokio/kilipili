@@ -15,7 +15,8 @@
 namespace kio::Video
 {
 
-/*
+/** the Video Frontend:
+  
 	use:
 
 	getRef()
@@ -61,7 +62,7 @@ public:
 		The supplied VideoMode struct must be static.
 		If blocking = false then caller must later test `getState()` and `core1_error`.
 	*/
-	Error setup(const VgaMode*, bool blocking = true);
+	Error setup(const VgaMode&, bool blocking = true);
 
 	void teardown(bool blocking = true) noexcept;
 	void startVideo(bool blocking = true);
@@ -72,27 +73,22 @@ public:
 	void setIdleAction(const IdleAction& fu) noexcept;
 	void addOneTimeAction(const OneTimeAction& fu) noexcept;
 
-	static coord width() noexcept { return size.width; }
-	static coord height() noexcept { return size.height; }
-
 	State getState() const noexcept { return state; }
 
 	static Error core1_error;
-	static Size	 size;
 
 private:
 	static constexpr uint max_planes = 4;
 
-	const VgaMode* vga_mode			  = nullptr;
-	VideoPlane*	   planes[max_planes] = {nullptr};
-	IdleAction	   idle_action		  = nullptr;
-	VBlankAction   vblank_action	  = nullptr;
-	OneTimeAction  onetime_action	  = nullptr;
-
-	uint num_planes;
+	uint		  num_planes;
+	VideoPlane*	  planes[max_planes] = {nullptr};
+	IdleAction	  idle_action		 = nullptr;
+	VBlankAction  vblank_action		 = nullptr;
+	OneTimeAction onetime_action	 = nullptr;
 
 	volatile State state		   = INVALID;
 	volatile State requested_state = INVALID;
+	uint16		   _padding;
 
 
 	VideoController() noexcept;

@@ -4,12 +4,13 @@
 
 #pragma once
 #include "VgaMode.h"
+#include "kilipili_cdefs.h"
 #include "utilities.h"
 
 namespace kio::Video
 {
 
-extern const VgaMode* vga_mode; // VGAMode in use
+extern VgaMode vga_mode; // VGAMode in use
 
 extern uint32		 px_per_scanline;	  // pixel per scanline
 extern uint32		 cc_per_scanline;	  //
@@ -19,6 +20,7 @@ extern uint			 cc_per_px;			  // cpu clock cycles per pixel octet
 extern uint			 cc_per_us;			  // cpu clock cycles per microsecond
 extern volatile bool in_vblank;			  // set while in vblank (set and reset ~2 scanlines early)
 extern volatile int	 line_at_frame_start; // rolling line number at start of current frame
+extern uint32		 time_us_at_frame_start;
 
 /** get currently displayed line number.
 	can be less than 0 (-1 or -2) immediately before frame start.
@@ -31,7 +33,7 @@ class VideoBackend
 {
 public:
 	static void initialize() noexcept; // panics
-	static void start(const VgaMode*, uint) throws;
+	static void start(const VgaMode&, uint) throws;
 	static void stop() noexcept;
 };
 
@@ -49,13 +51,10 @@ inline void waitForScanline(int scanline) noexcept
 }
 
 
-extern uint32 time_us_at_frame_start;
-extern uint	  cc_per_frame_rest;
-inline int	  current_scanline() noexcept
+inline int current_scanline() noexcept
 {
 	uint time_us_in_frame = time_us_32() - time_us_at_frame_start;
-	// uint cc_in_frame	  = time_us_in_frame * cc_per_us + cc_per_frame_rest;
-	uint cc_in_frame = time_us_in_frame * cc_per_us; // <-- for 1024x768 with 8 scanline buffers
+	uint cc_in_frame	  = time_us_in_frame * cc_per_us;
 	return int(cc_in_frame) / int(cc_per_scanline);
 }
 

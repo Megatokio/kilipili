@@ -56,7 +56,7 @@ static uint SCANLINE_DMA_DATA_CHANNEL;
 
 // =========================================================
 
-const VgaMode* vga_mode;
+VgaMode vga_mode;
 
 uint32		  px_per_scanline; // pixel per scanline
 uint32		  px_per_frame;	   // pixel per frame
@@ -70,7 +70,7 @@ uint32		  time_us_at_frame_start; // timestamp of start of active screen lines (
 
 static uint32 us_per_frame;
 static uint	  cc_per_frame_fract;
-uint		  cc_per_frame_rest;
+static uint	  cc_per_frame_rest;
 
 
 alignas(16) static uint32 prog_active[4];
@@ -155,7 +155,7 @@ static void RAM timing_isr() noexcept
 		else if (state == generate_v_active)
 		{
 			in_vblank			= false;
-			line_at_frame_start = line_at_frame_start + vga_mode->height;
+			line_at_frame_start = line_at_frame_start + vga_mode.height;
 
 			time_us_at_frame_start += cc_per_frame / cc_per_us;
 			if ((cc_per_frame_rest += cc_per_frame_fract) >= cc_per_us)
@@ -172,15 +172,12 @@ static void RAM timing_isr() noexcept
 
 // =========================================================
 
-static void setup_scanline_sm(const VgaMode* vga_mode) throws
+static void setup_scanline_sm(const VgaMode& vga_mode) throws
 {
-	assert(vga_mode->width <= vga_mode->h_active);
-	assert(vga_mode->height * vga_mode->yscale <= vga_mode->v_active);
 	assert(scanline_buffer.is_valid());
-	assert(scanline_buffer.width == vga_mode->h_active);
 
 	uint32 system_clock = get_system_clock();
-	uint32 pixel_clock	= vga_mode->pixel_clock;
+	uint32 pixel_clock	= vga_mode.pixel_clock;
 	uint   cc_per_pixel = system_clock / pixel_clock;
 
 	if (cc_per_pixel < 2) throw "System clock is too low for the requested pixel clock";
@@ -251,7 +248,7 @@ static void setup_timing_sm(uint32 pixel_clock_frequency)
 	pio_sm_init(video_pio, TIMING_SM, video_htiming_load_offset, &config); // now paused
 }
 
-static void setup_timing_programs(const VgaMode* timing)
+static void setup_timing_programs(const VgaMode& timing)
 {
 	const uint SET_IRQ_4 = pio_encode_irq_set(false, 4);   //  irq nowait 4  side 0
 	const uint CLR_IRQ_4 = pio_encode_irq_clear(false, 4); //  irq clear  4  side 0
@@ -259,12 +256,12 @@ static void setup_timing_programs(const VgaMode* timing)
 	constexpr int TIMING_CYCLE = 3u;
 	constexpr int HTIMING_MIN  = TIMING_CYCLE + 1;
 
-	assert(timing->h_active >= HTIMING_MIN);
-	assert(timing->h_pulse >= HTIMING_MIN);
-	assert(timing->h_back_porch >= HTIMING_MIN);
-	assert(timing->h_front_porch >= HTIMING_MIN);
-	assert(timing->h_total() % 2 == 0);
-	assert(timing->h_pulse % 2 == 0);
+	assert(timing.h_active() >= HTIMING_MIN);
+	assert(timing.h_pulse >= HTIMING_MIN);
+	assert(timing.h_back_porch >= HTIMING_MIN);
+	assert(timing.h_front_porch >= HTIMING_MIN);
+	assert(timing.h_total() % 2 == 0);
+	assert(timing.h_pulse % 2 == 0);
 
 	// horizontal timing:
 
@@ -272,7 +269,7 @@ static void setup_timing_programs(const VgaMode* timing)
 	// the scanline starts with the HSYNC pulse!
 
 	// polarity mask to toggle out bits, applied to whole cmd:
-	const uint32 polarity_mask = uint32(!timing->h_sync_polarity << 29) + uint32(!timing->v_sync_polarity << 30) +
+	const uint32 polarity_mask = uint32(!timing.h_sync_polarity << 29) + uint32(!timing.v_sync_polarity << 30) +
 								 uint32(DEN_POLARITY << 31) + uint32(CLOCK_POLARITY << 12);
 
 	constexpr uint32 TIMING_CYCLES = 3u << 16;
@@ -282,10 +279,10 @@ static void setup_timing_programs(const VgaMode* timing)
 	constexpr uint32 vsync_bit = 1u << 30;
 	constexpr uint32 den_bit   = 1u << 31;
 
-	const uint32 h_frontporch = uint32(timing->h_front_porch) << 16;
-	const uint32 h_active	  = uint32(timing->h_active) << 16;
-	const uint32 h_backporch  = uint32(timing->h_back_porch) << 16;
-	const uint32 h_pulse	  = uint32(timing->h_pulse) << 16;
+	const uint32 h_frontporch = uint32(timing.h_front_porch) << 16;
+	const uint32 h_active	  = uint32(timing.h_active()) << 16;
+	const uint32 h_backporch  = uint32(timing.h_back_porch) << 16;
+	const uint32 h_pulse	  = uint32(timing.h_pulse) << 16;
 
 	// display area:
 	prog_active[0] = MK_CMD(CLR_IRQ_4, h_pulse, hsync_bit + !vsync_bit);
@@ -307,10 +304,10 @@ static void setup_timing_programs(const VgaMode* timing)
 
 	// vertical timing:
 
-	const uint v_active		 = timing->v_active;
-	const uint v_front_porch = timing->v_front_porch;
-	const uint v_pulse		 = timing->v_pulse;
-	const uint v_back_porch	 = timing->v_back_porch;
+	const uint v_active		 = timing.v_active();
+	const uint v_front_porch = timing.v_front_porch;
+	const uint v_pulse		 = timing.v_pulse;
+	const uint v_back_porch	 = timing.v_back_porch;
 
 	program[generate_v_active]	   = {.program = prog_active, .count = count_of(prog_active) * v_active};
 	program[generate_v_frontporch] = {.program = prog_vblank, .count = count_of(prog_vblank) * v_front_porch};
@@ -353,7 +350,7 @@ static void setup_dma()
 
 	channel_config_set_ring(
 		&config, false /*read*/, //
-		msbit((scanline_buffer.count * scanline_buffer.yscale * sizeof(ptr))) /*log2bytes*/);
+		msbit((scanline_buffer.count * sizeof(ptr))) + scanline_buffer.vss /*log2bytes*/);
 
 	dma_channel_configure(
 		SCANLINE_DMA_CTRL_CHANNEL, &config,
@@ -378,28 +375,28 @@ static void setup_dma()
 		false);						  // don't start now
 }
 
-void VideoBackend::start(const VgaMode* vga_mode, uint scanline_buffer_count) throws
+void VideoBackend::start(const VgaMode& vga_mode, uint scanline_buffer_count) throws
 {
 	assert(get_core_num() == 1);
-	assert(get_system_clock() % vga_mode->pixel_clock == 0);
+	assert(get_system_clock() % vga_mode.pixel_clock == 0);
 	assert(get_system_clock() % 1000000 == 0);
 
 	stop();
 	Video::vga_mode = vga_mode;
 
-	cc_per_us		= get_system_clock() / 1000000;				  // non fract
-	cc_per_px		= get_system_clock() / vga_mode->pixel_clock; // non fract
-	px_per_scanline = vga_mode->h_total() * vga_mode->yscale;	  // non fract
-	px_per_frame	= vga_mode->h_total() * vga_mode->v_total();  // non fract
-	cc_per_scanline = cc_per_px * px_per_scanline;				  // non fract
-	cc_per_frame	= cc_per_px * px_per_frame;					  // non fract
+	cc_per_us		= get_system_clock() / 1000000;				 // non fract
+	cc_per_px		= get_system_clock() / vga_mode.pixel_clock; // non fract
+	px_per_scanline = vga_mode.h_total() << vga_mode.vss;		 // non fract
+	px_per_frame	= vga_mode.h_total() * vga_mode.v_total();	 // non fract
+	cc_per_scanline = cc_per_px * px_per_scanline;				 // non fract
+	cc_per_frame	= cc_per_px * px_per_frame;					 // non fract
 
 	us_per_frame	   = cc_per_frame / cc_per_us; // fract
 	cc_per_frame_fract = cc_per_frame % cc_per_us; // remainder
 	cc_per_frame_rest  = 0;						   // correction counter
 
 	printf("system clock = %u\n", get_system_clock());
-	printf("pixel clock  = %u\n", vga_mode->pixel_clock);
+	printf("pixel clock  = %u\n", vga_mode.pixel_clock);
 	printf("cc_per_us = %u\n", cc_per_us);
 	printf("cc_per_px = %u\n", cc_per_px);
 	printf("px_per_scanline = %u\n", px_per_scanline);
@@ -413,7 +410,7 @@ void VideoBackend::start(const VgaMode* vga_mode, uint scanline_buffer_count) th
 
 	scanline_buffer.setup(vga_mode, scanline_buffer_count);
 	setup_scanline_sm(vga_mode);
-	setup_timing_sm(vga_mode->pixel_clock);
+	setup_timing_sm(vga_mode.pixel_clock);
 	setup_timing_programs(vga_mode);
 	setup_dma();
 
@@ -421,7 +418,7 @@ void VideoBackend::start(const VgaMode* vga_mode, uint scanline_buffer_count) th
 	pio_sm_restart(video_pio, SCANLINE_SM);
 	uint jmp = pio_encode_jmp(scanline_program_load_offset);
 	pio_sm_exec(video_pio, SCANLINE_SM, jmp);
-	pio_sm_put(video_pio, SCANLINE_SM, vga_mode->h_active - 1);
+	pio_sm_put(video_pio, SCANLINE_SM, vga_mode.h_active() - 1);
 
 	// start timing sm:
 	pio_sm_restart(video_pio, TIMING_SM);

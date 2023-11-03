@@ -33,7 +33,6 @@ namespace kio::Video
 using namespace kio::Graphics;
 
 uint  scanlines_missed			   = 0;
-Size  VideoController::size		   = {0, 0};
 Error VideoController::core1_error = NO_ERROR;
 
 static spin_lock_t* spinlock = nullptr;
@@ -66,11 +65,9 @@ VideoController& VideoController::getRef() noexcept
 	return videocontroller;
 }
 
-
-Error VideoController::setup(const VgaMode* mode, bool blocking)
+Error VideoController::setup(const VgaMode& mode, bool blocking)
 {
 	assert(get_core_num() == 0);
-	assert(mode != nullptr);
 	assert(state == INVALID);
 
 	vga_mode	   = mode;
@@ -86,14 +83,7 @@ Error VideoController::setup(const VgaMode* mode, bool blocking)
 	return core1_error;
 }
 
-void VideoController::do_setup() noexcept
-{
-	assert(get_core_num() == 1);
-	assert(vga_mode != nullptr);
-
-	size.width	= vga_mode->width;
-	size.height = vga_mode->height;
-}
+void VideoController::do_setup() noexcept { assert(get_core_num() == 1); }
 
 void VideoController::startVideo(bool blocking)
 {
@@ -108,7 +98,6 @@ void VideoController::startVideo(bool blocking)
 void VideoController::do_start_video()
 {
 	assert(get_core_num() == 1);
-	assert(vga_mode != nullptr);
 
 	try
 	{
@@ -255,7 +244,7 @@ void RAM VideoController::video_runner()
 
 	call_vblank_actions(); // guaranteed to be called before renderScanline
 
-	int height = vga_mode->height;
+	int height = vga_mode.height;
 	int row0   = line_at_frame_start;
 	int row	   = current_scanline() + 1;
 
@@ -296,7 +285,7 @@ void RAM VideoController::video_runner()
 			assert(line_at_frame_start == row0);
 		}
 
-		while (unlikely(row >= current_scanline() + scanline_buffer.count))
+		while (unlikely(row >= current_scanline() + int(scanline_buffer.count)))
 		{
 			// wait until video backend no longer displays from this scanline
 			wait_for_event(); //
@@ -327,7 +316,7 @@ void VideoController::addPlane(VideoPlane* plane)
 	addOneTimeAction([this, plane] {
 		assert(num_planes < max_planes);
 		planes[num_planes] = plane;
-		plane->setup(size.width); // throws
+		plane->setup(vga_mode.width); // throws
 		num_planes++;
 	});
 }
