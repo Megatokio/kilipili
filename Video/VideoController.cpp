@@ -25,6 +25,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+#ifndef VIDEO_RECOVERY_PER_LINE
+  #define VIDEO_RECOVERY_PER_LINE OFF
+#endif
+
+
 namespace kio::Video
 {
 
@@ -258,10 +264,17 @@ void RAM VideoController::video_runner()
 
 	for (;; row++)
 	{
-		if unlikely (row >= height) // next frame
+		if unlikely (in_vblank || row >= height) // next frame
 		{
 			if unlikely (requested_state != RUNNING) break;
-			else call_vblank_actions();
+
+			if constexpr (!VIDEO_RECOVERY_PER_LINE)
+			{
+				int missed = current_scanline() - row;
+				if (missed > 0) { scanlines_missed += uint(missed); }
+			}
+
+			call_vblank_actions();
 
 			while (!in_vblank && line_at_frame_start == row0)
 			{
@@ -305,10 +318,13 @@ void RAM VideoController::video_runner()
 			planes[i]->renderScanline(row, scanline); //
 		}
 
-		if unlikely (current_scanline() >= row)
+		if constexpr (VIDEO_RECOVERY_PER_LINE)
 		{
-			scanlines_missed++;
-			row++;
+			if unlikely (current_scanline() >= row)
+			{
+				scanlines_missed++;
+				row++;
+			}
 		}
 	}
 }

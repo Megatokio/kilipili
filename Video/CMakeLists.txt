@@ -10,7 +10,7 @@ cmake_minimum_required(VERSION 3.13)
 # OPTIONS:
 
 option(VIDEO_OPTIMISTICAL_A1W8_RGB "optimize a1w8_rgb mode for moderate color usage. makes 1280x768 work. poor display of many colors." OFF)
-
+option(VIDEO_RECOVERY_PER_LINE "check for missed scanlines after every line. failing screens look better. makes 1024x768 fail." OFF)
 
 add_library(kilipili_video STATIC
 	FrameBuffer.h
@@ -36,6 +36,7 @@ add_library(kilipili_video STATIC
 
 target_compile_definitions(kilipili_video PUBLIC
 	VIDEO_OPTIMISTICAL_A1W8_RGB=${VIDEO_OPTIMISTICAL_A1W8_RGB}
+	VIDEO_RECOVERY_PER_LINE=${VIDEO_RECOVERY_PER_LINE}
 )
 
 # add current dir to 'include search path':
