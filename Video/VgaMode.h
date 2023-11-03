@@ -219,14 +219,8 @@ constexpr VgaMode vga_mode_1360x768_60 =
 {
 	// this is VESA mode 1366*768@60Hz REDUCED BLANKING 	
 	// but we use only 1360 = int(1366/16)*16
-
-	// note: 1366 displays which need DCLK and DEN will not display properly
-	// TODO support width != h_active and add black padding to the scanlines in the scanline_buffer
 	
-	// this will probably never run a1w8_rgb ...
-	//   no need to make width a multiple of 32 for fastest a1w8_rgb scanline renderer
-	//   1028*768 is at absolute end and it has 1344 total pixels per scanline
-	//   1360*768 has 1500 pixels per scanline which is enough for up to ~1216 (38*32) pixels
+	// this will probably never display colormode `a1w8_rgb` ...
 	
 	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                      vert                 polarity
 	// ----- --------- ---------- --------- ------------------------ -------------------- -------------
@@ -256,8 +250,7 @@ constexpr VgaMode vga_mode_1280x768_60 =
 	// this is VESA mode 1366*768@60Hz REDUCED BLANKING 	
 	// but we use only 1280 = 40*32 pixels which _may_ just work with colormode a1w8_rgb
 	
-	// note: 1366 displays which need DCLK and DEN will not display properly
-	// TODO support width != h_active and add black padding to the scanlines in the scanline_buffer
+	// displays colormode `a1w8_rgb` with option VIDEO_OPTIMISTICAL_A1W8_RGB enabled
 		
 	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                       vert                 polarity
 	// ----- --------- ---------- --------- ------------------------ --------------------- -------------
@@ -282,16 +275,11 @@ constexpr VgaMode vga_mode_1280x768_60 =
 };
 
 
-constexpr VgaMode vga_mode_672x384_60 = 
+constexpr VgaMode vga_mode_672x384_60_v1 = 
 {
 	// this is VESA mode 1366*768@60Hz REDUCED BLANKING 	
-	// with some black padding l+r.
-	
-	// note: my monitor recognizes this as 1280x768 and masks 16 pixels l+r.
-	
-	// note: 672 = 21*32 = 84*8
-	// note: 1366 displays which need DCLK and DEN will not display properly
-	// TODO support width != h_active and add black padding to the scanlines in the scanline_buffer
+	// with black padding l+r.	
+	// my monitor recognizes this as 1280x768 and masks 16 pixels l+r. :-(
 
 	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                       vert                 polarity
 	// ----- --------- ---------- --------- ------------------------ --------------------- -------------
@@ -317,14 +305,41 @@ constexpr VgaMode vga_mode_672x384_60 =
 };
 
 
+constexpr VgaMode vga_mode_672x384_60_v2 = 
+{
+	// this is VESA mode 1366*768@60Hz NORMAL BLANKING 	
+	// but we use only 1366/2/16*16 = 672 px = 84 char
+
+	// again, my monitor thinks this is 1280x768.
+	// the placement of the image on my monitor is poor.
+	// only clock 2*85.5 MHz possible to achieve full Mhz.
+	
+	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                      vert                 polarity
+	// ----- --------- ---------- --------- ------------------------ -------------------- -------------
+	// VESA  85.50     47.712     60.000    1366 +70 +143 +213 = 1792  768 +3 +3 +24 = 798  +hsync +vsync
+	//       85.50     47.712     60.000    672  +40 +72  +112 = 896   768 +3 +3 +24 = 798  +hsync +vsync
+
+	.pixel_clock = 85500000/2,
+
+	.h_front_porch = 80/2, 
+	.h_pulse = 144/2, 
+	.h_back_porch = 224/2, 
+	.h_sync_polarity = 1,
+
+	.v_front_porch = 3,  
+	.v_pulse = 3,	  
+	.v_back_porch = 24,  
+	.v_sync_polarity = 1,
+
+	.vss = 1,
+	.width	= 672,
+	.height = 384,
+};
+
 constexpr VgaMode vga_mode_640x384_60 = 
 {
 	// this is VESA mode 1366*768@60Hz REDUCED BLANKING 	
-	// with some black padding l+r.
-	
-	// note: 640 = 20*32 = 80*8
-	// note: 1366 displays which need DCLK and DEN will not display properly
-	// TODO support width != h_active and add black padding to the scanlines in the scanline_buffer
+	// with black padding l+r.
 
 	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                       vert                 polarity
 	// ----- --------- ---------- --------- ------------------------ --------------------- -------------
@@ -348,6 +363,7 @@ constexpr VgaMode vga_mode_640x384_60 =
 	.width	= 640,
 	.height = 384,
 };
+
 
 
 // #####################################################################
@@ -457,6 +473,7 @@ constexpr const VgaMode* vga_modes[num_screensizes] =
 	&vga_mode_640x384_60,
 };
 
+static_assert(sizeof(kio::Video::vga_modes) == num_screensizes * sizeof(ptr));
 
 } // namespace kio::Video
 
@@ -474,6 +491,7 @@ inline cstr tostr(kio::Video::ScreenSize ss)
 		"1280x768", 
 		"640x384"
 	};
+	static_assert(sizeof(tbl) == kio::Video::num_screensizes * 9);
 	return tbl[ss];
 }
 
