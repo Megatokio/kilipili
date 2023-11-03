@@ -85,10 +85,12 @@ Error VideoController::setup(const VgaMode& mode, bool blocking)
 
 void VideoController::do_setup() noexcept { assert(get_core_num() == 1); }
 
-void VideoController::startVideo(bool blocking)
+void VideoController::startVideo(int log2_scanline_buffer_size, bool blocking)
 {
 	assert(get_core_num() == 0);
-	assert(requested_state != INVALID);
+	assert(requested_state == STOPPED);
+
+	scanline_buffer.setup(vga_mode, log2_scanline_buffer_size);
 
 	requested_state = RUNNING;
 	__sev();
@@ -101,10 +103,15 @@ void VideoController::do_start_video()
 
 	try
 	{
-		VideoBackend::start(vga_mode, PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT);
+		VideoBackend::start(vga_mode);
 	}
 	catch (Error e)
 	{
+		if ((0))
+		{
+			core1_error = e;
+			scanline_buffer.teardown();
+		}
 		panic("%s", e); // OOMEM
 	}
 }
@@ -123,6 +130,7 @@ void VideoController::do_stop_video()
 	assert(get_core_num() == 1);
 
 	VideoBackend::stop();
+	scanline_buffer.teardown();
 }
 
 void VideoController::teardown(bool blocking) noexcept

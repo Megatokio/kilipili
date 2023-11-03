@@ -375,11 +375,12 @@ static void setup_dma()
 		false);						  // don't start now
 }
 
-void VideoBackend::start(const VgaMode& vga_mode, uint scanline_buffer_count) throws
+void VideoBackend::start(const VgaMode& vga_mode) throws
 {
 	assert(get_core_num() == 1);
 	assert(get_system_clock() % vga_mode.pixel_clock == 0);
 	assert(get_system_clock() % 1000000 == 0);
+	assert(scanline_buffer.is_valid());
 
 	stop();
 	Video::vga_mode = vga_mode;
@@ -403,12 +404,8 @@ void VideoBackend::start(const VgaMode& vga_mode, uint scanline_buffer_count) th
 	printf("cc_per_scanline = %u\n", cc_per_scanline);
 	printf("px_per_frame = %u\n", px_per_frame);
 	printf("cc_per_frame = %u\n", cc_per_frame);
-	printf(
-		"us_per_frame = %u, fract = %u/%u %s\n", us_per_frame, cc_per_frame_fract, cc_per_us,
-		cc_per_frame_fract ? "***FRACTIONAL!***" : "");
+	printf("us_per_frame = %u, fract = %u/%u\n", us_per_frame, cc_per_frame_fract, cc_per_us);
 
-
-	scanline_buffer.setup(vga_mode, scanline_buffer_count);
 	setup_scanline_sm(vga_mode);
 	setup_timing_sm(vga_mode.pixel_clock);
 	setup_timing_programs(vga_mode);
@@ -461,7 +458,6 @@ void VideoBackend::stop() noexcept
 	//teardown:
 	pio_remove_program(video_pio, &video_scanline_program, scanline_program_load_offset);
 	pio_remove_program(video_pio, &video_htiming_program, video_htiming_load_offset);
-	scanline_buffer.teardown();
 }
 
 void VideoBackend::initialize() noexcept

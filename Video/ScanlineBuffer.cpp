@@ -15,17 +15,16 @@ alignas(sizeof(ScanlineBuffer::scanlines)) //
 	uint32* ScanlineBuffer::scanlines[max_count];
 
 
-void ScanlineBuffer::setup(const VgaMode& videomode, uint new_count) throws
+void ScanlineBuffer::setup(const VgaMode& videomode, int log2_buffer_size) throws
 {
 	assert_eq(count, 0); // must be invalid
 
-	width = videomode.h_active();
-	vss	  = videomode.vss;
+	width		   = videomode.h_active();
+	vss			   = videomode.vss;
+	uint new_count = 1 << log2_buffer_size;
 
-	assert_ge(new_count, 2);				   // at least 2 scanlines
-	assert_eq(new_count & (new_count - 1), 0); // must be 2^N
-	assert_le(new_count << vss, max_count);	   // must not exceed array
-	assert_eq(width % 2, 0);				   // dma transfer unit is uint32 = 2 pixels
+	assert_le(count << vss, max_count); // must not exceed array
+	assert_eq(width % 2, 0);			// dma transfer unit is uint32 = 2 pixels
 
 	try
 	{

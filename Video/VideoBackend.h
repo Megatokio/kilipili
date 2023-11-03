@@ -33,7 +33,7 @@ class VideoBackend
 {
 public:
 	static void initialize() noexcept; // panics
-	static void start(const VgaMode&, uint) throws;
+	static void start(const VgaMode&) throws;
 	static void stop() noexcept;
 };
 

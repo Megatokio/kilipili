@@ -16,7 +16,7 @@ namespace kio::Video
 */
 struct ScanlineBuffer
 {
-	void setup(const VgaMode& videomode, uint count) throws;
+	void setup(const VgaMode& videomode, int log2_buffer_size) throws;
 	void teardown() noexcept;
 	bool is_valid() const noexcept { return count != 0; }
 

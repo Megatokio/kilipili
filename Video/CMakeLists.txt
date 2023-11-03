@@ -6,6 +6,9 @@ cmake_minimum_required(VERSION 3.13)
 # Video/CMakeLists.txt
 
 
+####################################################################
+# OPTIONS:
+
 option(VIDEO_OPTIMISTICAL_A1W8_RGB "optimize a1w8_rgb mode for moderate color usage. makes 1280x768 work. poor display of many colors." OFF)
 
 
@@ -32,7 +35,6 @@ add_library(kilipili_video STATIC
 )
 
 target_compile_definitions(kilipili_video PUBLIC
-	PICO_SCANVIDEO_SCANLINE_BUFFER_COUNT=8
 	VIDEO_OPTIMISTICAL_A1W8_RGB=${VIDEO_OPTIMISTICAL_A1W8_RGB}
 )
 

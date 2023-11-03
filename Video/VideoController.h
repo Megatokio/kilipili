@@ -65,7 +65,7 @@ public:
 	Error setup(const VgaMode&, bool blocking = true);
 
 	void teardown(bool blocking = true) noexcept;
-	void startVideo(bool blocking = true);
+	void startVideo(int log2_scanline_buffer_size = 2, bool blocking = true);
 	void stopVideo(bool blocking = true);
 	void addPlane(VideoPlane*);
 	void removePlane(VideoPlane*);
@@ -88,7 +88,8 @@ private:
 
 	volatile State state		   = INVALID;
 	volatile State requested_state = INVALID;
-	uint16		   _padding;
+
+	uint8 _padding;
 
 
 	VideoController() noexcept;
