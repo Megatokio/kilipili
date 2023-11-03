@@ -15,14 +15,11 @@ add_library(kilipili_video STATIC
 	Mouse.h
 	ScanlineRenderFu.cpp
 	ScanlineRenderFu.h
-	VideoPlane.cpp
 	VideoPlane.h
 	VideoController.cpp
 	VideoController.h
 	Sprites.cpp
 	Sprites.h
-	VBlankAction.cpp
-	VBlankAction.h
 	VgaMode.h
 	scanvideo.pio
 	scanvideo_options.h

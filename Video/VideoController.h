@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "VBlankAction.h"
 #include "VgaMode.h"
 #include "VideoPlane.h"
 #include "geometry.h"
@@ -41,16 +40,17 @@ namespace kio::Video
 class VideoController
 {
 public:
-	using idle_fu = void();
-	using coord	  = Graphics::coord;
-	using Size	  = Graphics::Size;
+	using IdleAction	= std::function<void()>;
+	using VBlankAction	= std::function<void()>;
+	using OneTimeAction = std::function<void()>;
+	using coord			= Graphics::coord;
+	using Size			= Graphics::Size;
 
 	enum State : uint8 {
 		INVALID,
 		STOPPED,
 		RUNNING,
 	};
-
 
 	/**	get reference to singleton 
 		panics on first call if it can't claim the required hardware
@@ -68,42 +68,31 @@ public:
 	void stopVideo(bool blocking = true);
 	void addPlane(VideoPlane*);
 	void removePlane(VideoPlane*);
-	void addVBlankAction(VBlankAction* fu, uint8 when) noexcept;
-	void removeVBlankAction(VBlankAction*);
-	void setIdleAction(idle_fu* fu) noexcept { idle_action = fu; }
-	void addOneTimeAction(std::function<void()> fu) noexcept;
-
-	static void waitForVBlank() noexcept;
-	static void waitForScanline(int n) noexcept;
+	void setVBlankAction(const VBlankAction& fu) noexcept;
+	void setIdleAction(const IdleAction& fu) noexcept;
+	void addOneTimeAction(const OneTimeAction& fu) noexcept;
 
 	static coord width() noexcept { return size.width; }
 	static coord height() noexcept { return size.height; }
 
 	State getState() const noexcept { return state; }
 
-	static constexpr uint max_vblank_actions  = 8;
-	static constexpr uint max_onetime_actions = 4;
-	static constexpr uint max_planes		  = 4;
-
-
-public:
-	Error core1_error = NO_ERROR;
+	static Error core1_error;
+	static Size	 size;
 
 private:
-	static Size size;
+	static constexpr uint max_planes = 4;
+
+	const VgaMode* vga_mode			  = nullptr;
+	VideoPlane*	   planes[max_planes] = {nullptr};
+	IdleAction	   idle_action		  = nullptr;
+	VBlankAction   vblank_action	  = nullptr;
+	OneTimeAction  onetime_action	  = nullptr;
+
+	uint num_planes;
 
 	volatile State state		   = INVALID;
 	volatile State requested_state = INVALID;
-
-	const VgaMode*		  vga_mode			 = nullptr;
-	idle_fu*			  idle_action		 = nullptr;
-	uint				  num_planes		 = 0;
-	VideoPlane*			  planes[max_planes] = {nullptr};
-	uint				  num_vblank_actions = 0;
-	VBlankAction*		  vblank_actions[max_vblank_actions];
-	uint8				  vblank_when[max_vblank_actions];
-	uint				  num_onetime_actions = 0;
-	std::function<void()> onetime_actions[max_onetime_actions]; // TODO this could be a queue
 
 
 	VideoController() noexcept;
@@ -112,8 +101,8 @@ private:
 	void		core1_runner() noexcept;
 	void		video_runner();
 
-	void start_video();
-	void stop_video();
+	void do_start_video();
+	void do_stop_video();
 	void do_setup() noexcept;
 	void do_teardown() noexcept;
 	void wait_for_event() noexcept;
@@ -123,5 +112,38 @@ private:
 
 extern uint scanlines_missed;
 
-
 } // namespace kio::Video
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

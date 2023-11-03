@@ -18,6 +18,10 @@ if(${UNIT_TEST})
 	add_executable(unit_tests
 		unit_tests.cpp
 		common/unit_test.cpp
+		common/Array.test.cpp
+		common/sort.h
+		common/relational_operators.h
+		common/template_helpers.h
 		Graphics/Pixmap_unit_test.cpp
 		Graphics/Canvas_unit_test.cpp
 		Graphics/BitBlit_unit_test.cpp

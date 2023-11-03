@@ -4,27 +4,24 @@
 
 #pragma once
 #include "Graphics/geometry.h"
-#include "VBlankAction.h"
-//#include "VideoQueue.h"
-#include <new>
+
 
 namespace kio::Video
 {
 using coord = Graphics::coord;
-using Size	= Graphics::Size;
 
 /*
 	Class VideoPlane is the base class for all VideoPlanes which can be added to the Scanvideo engine.
 	The primary method is renderScanline() which is called to create the pixel data for one scanline.
 	Method vblank() is called at the start of each frame.
 */
-class VideoPlane : public VBlankAction
+class VideoPlane
 {
 protected:
 	VideoPlane() noexcept {}
 
 public:
-	virtual ~VideoPlane() noexcept override = default;
+	virtual ~VideoPlane() noexcept = default;
 
 	virtual void setup(coord width)	 = 0;
 	virtual void teardown() noexcept = 0;
@@ -34,14 +31,13 @@ public:
 		note: this function must go into RAM else no video during flash lock-out!
 		this function is always called before a new frame, even before the first one!
 	*/
-	virtual void vblank() noexcept override = 0;
+	virtual void vblank() noexcept = 0;
 
 	/*
 		render one scanline into the buffer.
 		note: this function must go into RAM else no video during flash lock-out!
 		@param row    the current row, starting at 0
 		@param buffer destination for the pixel data
-		@return       number of uint32 words actually written
 	*/
 	virtual void renderScanline(int row, uint32* buffer) noexcept = 0;
 };
