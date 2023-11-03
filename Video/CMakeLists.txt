@@ -32,6 +32,9 @@ add_library(kilipili_video STATIC
 	ScanlineBuffer.cpp
 	VideoBackend.cpp
 	VideoBackend.h
+	ColorMap.cpp
+	ColorMap.h
+	Color.h
 )
 
 target_compile_definitions(kilipili_video PUBLIC

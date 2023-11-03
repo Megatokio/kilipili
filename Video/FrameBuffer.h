@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Graphics/ColorMap.h"
-#include "Graphics/Pixmap.h"
+#include "ColorMap.h"
+#include "Pixmap.h"
 #include "ScanlineRenderFu.h"
 #include "VideoPlane.h"
 
@@ -32,8 +32,8 @@ template<ColorMode CM>
 class FrameBuffer<CM, std::enable_if_t<is_direct_color(CM)>> final : public VideoPlane
 {
 public:
-	using Pixmap   = Graphics::Pixmap<CM>;
-	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
+	using Pixmap   = Video::Pixmap<CM>;
+	using ColorMap = Video::ColorMap<get_colordepth(CM)>;
 
 	const Pixmap&	   pixmap;
 	const Color* const colormap;
@@ -85,8 +85,8 @@ template<ColorMode CM>
 class FrameBuffer<CM, std::enable_if_t<is_attribute_mode(CM)>> final : public VideoPlane
 {
 public:
-	using Pixmap   = Graphics::Pixmap<CM>;
-	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
+	using Pixmap   = Video::Pixmap<CM>;
+	using ColorMap = Video::ColorMap<get_colordepth(CM)>;
 
 	const Pixmap&	   pixmap;
 	const Color* const colormap;

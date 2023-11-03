@@ -4,7 +4,7 @@
 
 #include "ColorMap.h"
 
-namespace kio::Graphics
+namespace kio::Video
 {
 
 constexpr Color default_colormap_i1[2] = {
@@ -66,4 +66,4 @@ constexpr const Color* const default_colormaps[5] {
 	default_colormap_i1, default_colormap_i2, default_colormap_i4, default_colormap_i8, nullptr};
 
 
-} // namespace kio::Graphics
+} // namespace kio::Video

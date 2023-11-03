@@ -7,8 +7,9 @@
 #include "graphics_types.h"
 #include "kilipili_common.h"
 
-namespace kio::Graphics
+namespace kio::Video
 {
+using namespace Graphics;
 
 template<ColorDepth CD>
 using ColorMap = Color[1 << (1 << CD)];
@@ -70,4 +71,4 @@ inline void resetColorMap<colordepth_16bpp>(Color*) noexcept
 {}
 
 
-} // namespace kio::Graphics
+} // namespace kio::Video

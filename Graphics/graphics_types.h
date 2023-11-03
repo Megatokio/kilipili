@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Color.h"
 #include "kilipili_cdefs.h"
+#include "standard_types.h"
 
 /*	This file defines some enum types used in the Pixmap and graphics engine.
 	- ColorDepth: enumeration for 1, 2, 4, 8 and 16 bit per pixel

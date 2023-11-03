@@ -3,12 +3,12 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Video/scanvideo_options.h"
+#include "scanvideo_options.h"
 #include "standard_types.h"
+#include "tempmem.h"
 #include <cstdio>
 
-
-namespace kio::Graphics
+namespace kio::Video
 {
 
 #if VIDEO_PIXEL_RCOUNT == 5 && VIDEO_PIXEL_GCOUNT == 5 && VIDEO_PIXEL_BCOUNT == 5 && VIDEO_PIXEL_RSHIFT == 0 && \
@@ -125,13 +125,13 @@ constexpr Color bright_yellow  = Color::fromRGB8(0xFF, 0xFF, 0x00);
 constexpr Color bright_white   = Color::fromRGB8(0xFF, 0xFF, 0xFF);
 constexpr Color grey		   = Color::fromRGB8(0x88, 0x88, 0x88);
 
-} // namespace kio::Graphics
+} // namespace kio::Video
 
 
-inline cstr tostr(kio::Graphics::Color c)
+inline cstr tostr(kio::Video::Color c)
 {
-	static char bu[16];
+	char bu[16];
 	if (c.is_transparent()) snprintf(bu, 16, "rgba=%u,%u,%u,1", c.red, c.green, c.blue);
 	else snprintf(bu, 16, "rgb=%u,%u,%u", c.red, c.green, c.blue);
-	return bu;
+	return kio::dupstr(bu);
 }

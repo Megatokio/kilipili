@@ -16,10 +16,7 @@ add_library(kilipili_graphics STATIC
 	Pixmap.cpp
 	Pixmap_wAttr.h
 	Pixmap_wAttr.cpp
-	ColorMap.cpp
-	ColorMap.h
 	graphics_types.h
-	Color.h
 	BitBlit.h
 	BitBlit.cpp
 	rsrc/font_12x8.h

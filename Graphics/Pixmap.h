@@ -5,7 +5,6 @@
 #pragma once
 #include "BitBlit.h"
 #include "Canvas.h"
-#include "ColorMap.h"
 #include "geometry.h"
 
 
