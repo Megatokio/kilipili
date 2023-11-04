@@ -61,19 +61,15 @@ static uint SCANLINE_DMA_DATA_CHANNEL;
 
 VgaMode vga_mode;
 
-uint32		  px_per_scanline; // pixel per scanline
-uint32		  px_per_frame;	   // pixel per frame
 uint32		  cc_per_scanline; //
 uint32		  cc_per_frame;	   //
-uint		  cc_per_px;	   // cpu clock cycles per pixel
 uint		  cc_per_us;	   // cpu clock cycles per microsecond
 volatile bool in_vblank;
 volatile int  line_at_frame_start;
 uint32		  time_us_at_frame_start; // timestamp of start of active screen lines (set ~2 scanlines early)
 
-static uint32 us_per_frame;
-static uint	  cc_per_frame_fract;
-static uint	  cc_per_frame_rest;
+static uint cc_per_frame_fract;
+static uint cc_per_frame_rest;
 
 
 alignas(16) static uint32 prog_active[4];
@@ -269,7 +265,7 @@ static void setup_timing_programs(const VgaMode& vga_mode)
 	prog_vpulse[1] = clr_irq_4 + h_backporch  + !hsync +  vsync;
 	prog_vpulse[2] = clr_irq_4 + h_active     + !hsync +  vsync;
 	prog_vpulse[3] = clr_irq_4 + h_frontporch + !hsync +  vsync;
-	//clang-format on
+	// clang-format on
 
 	// vertical timing:
 
@@ -354,16 +350,15 @@ void VideoBackend::start(const VgaMode& vga_mode) throws
 	stop();
 	Video::vga_mode = vga_mode;
 
-	cc_per_us		= get_system_clock() / 1000000;				 // non fract
-	cc_per_px		= get_system_clock() / vga_mode.pixel_clock; // non fract
-	px_per_scanline = vga_mode.h_total() << vga_mode.vss;		 // non fract
-	px_per_frame	= vga_mode.h_total() * vga_mode.v_total();	 // non fract
-	cc_per_scanline = cc_per_px * px_per_scanline;				 // non fract
-	cc_per_frame	= cc_per_px * px_per_frame;					 // non fract
-
-	us_per_frame	   = cc_per_frame / cc_per_us; // fract
-	cc_per_frame_fract = cc_per_frame % cc_per_us; // remainder
-	cc_per_frame_rest  = 0;						   // correction counter
+	cc_per_us			   = get_system_clock() / 1000000;				// non fract
+	uint32 cc_per_px	   = get_system_clock() / vga_mode.pixel_clock; // non fract
+	uint32 px_per_scanline = vga_mode.h_total() << vga_mode.vss;		// non fract
+	uint32 px_per_frame	   = vga_mode.h_total() * vga_mode.v_total();	// non fract
+	cc_per_scanline		   = cc_per_px * px_per_scanline;				// non fract
+	cc_per_frame		   = cc_per_px * px_per_frame;					// non fract
+	uint32 us_per_frame	   = cc_per_frame / cc_per_us;					// fract
+	cc_per_frame_fract	   = cc_per_frame % cc_per_us;					// remainder
+	cc_per_frame_rest	   = 0;											// correction counter
 
 	printf("system clock = %u\n", get_system_clock());
 	printf("pixel clock  = %u\n", vga_mode.pixel_clock);
