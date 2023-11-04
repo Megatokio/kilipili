@@ -25,7 +25,15 @@ extern const Color* const default_colormaps[5]; // ColorMode -> colormap
 
 // ---------------------- inline functions --------------------------
 
-inline const Color* getDefaultColorMap(ColorDepth CD) noexcept { return default_colormaps[CD]; }
+inline const Color* getDefaultColorMap(ColorDepth CD) noexcept
+{
+	return default_colormaps[CD]; //
+}
+
+inline const Color* getDefaultColorMap(ColorMode CM) noexcept
+{
+	return getDefaultColorMap(get_colordepth(CM)); //
+}
 
 inline Color* newColorMap(ColorDepth CD) throws
 {
@@ -33,6 +41,11 @@ inline Color* newColorMap(ColorDepth CD) throws
 	Color* table = new Color[1 << (1 << CD)];
 	memcpy(table, default_colormaps[CD], sizeof(Color) << (1 << CD));
 	return table;
+}
+
+inline Color* newColorMap(ColorMode CM) noexcept
+{
+	return newColorMap(get_colordepth(CM)); //
 }
 
 inline void resetColorMap(ColorDepth CD, Color* table) noexcept

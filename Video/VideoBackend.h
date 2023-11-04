@@ -12,13 +12,13 @@ namespace kio::Video
 
 extern VgaMode vga_mode; // VGAMode in use
 
-extern uint32		 cc_per_scanline;	  //
-extern uint32		 cc_per_frame;		  //
-extern uint			 cc_per_px;			  // cpu clock cycles per pixel octet
-extern uint			 cc_per_us;			  // cpu clock cycles per microsecond
-extern volatile bool in_vblank;			  // set while in vblank (set and reset ~2 scanlines early)
-extern volatile int	 line_at_frame_start; // rolling line number at start of current frame
-extern uint32		 time_us_at_frame_start;
+extern uint32		   cc_per_scanline;		//
+extern uint32		   cc_per_frame;		//
+extern uint			   cc_per_px;			// cpu clock cycles per pixel octet
+extern uint			   cc_per_us;			// cpu clock cycles per microsecond
+extern volatile bool   in_vblank;			// set while in vblank (set and reset ~2 scanlines early)
+extern volatile int	   line_at_frame_start; // rolling line number at start of current frame
+extern volatile uint32 time_us_at_frame_start;
 
 /** get currently displayed line number.
 	can be less than 0 (-1 or -2) immediately before frame start.
@@ -105,16 +105,18 @@ public:
 
 	/*
 		Start video display in the requested resolution found in VgaMode.
-		Pixels will be display from the rolling scanline_buffer, 
+		Pixels will be display from the cyclic scanline_buffer, 
 		starting at scanline_buffer[0] for the first scanline in the first frame.
 	*/
-	static void start(const VgaMode&) throws;
+	static void start(const VgaMode&, uint32 min_sys_clock = 0) throws;
 
 	/*
 		Stop video display, releasing all resources.
-		Actually the backend holds no own resources, but it no longer accesses the scanline_buffer. 
-		(though, who cares if the backend displays some invalid data for a screen or two?)
-		Actually the video output is not stopped, the backend still produces a valid video signal. 
+		Actually we do not stop video output. Only the scanlines in the scanline_buffer are cleared to 0.
+		We resume outputting a video signal from the scanline_buffer.
+		The ScanlineBuffer does not delete the scanlines[] array itself and does not clear the addresses within 
+		that array when purged, so everything remains 'valid' until data in the deleted scanlines is overwritten.
+		The expectation is that the video output is restarted immediately after beeing stopped.		
 	*/
 	static void stop() noexcept;
 };
@@ -129,6 +131,7 @@ inline void waitForScanline(int scanline) noexcept
 {
 	// TODO: we no longer get events for every scanline!
 	//		 we could setup a timer
+	if (uint(scanline) >= uint(vga_mode.height)) return waitForVBlank();
 	while (current_scanline() - scanline < 0) {} // wfe();
 }
 
