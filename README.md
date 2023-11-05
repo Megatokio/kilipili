@@ -1,7 +1,7 @@
 # kilipili
 Kio's Little Pico Library
 
-A library for video, audio and input devices.
+A library for video, audio and input devices for the RP2040.
 
 **This is work in progress**  
 **current state:**  
@@ -24,7 +24,7 @@ Anybody who runs into a bug is welcome to file a bug report or a merge request.
 	- cpu usage varies widely
 	- runs entirely in RAM (at least it should. to be tested)
 	- can be stopped and restarted in different video mode
-	- screen size 320\*240 up to 1280\*768 pixel (or what you define)
+	- screen size 160\*120 up to 1280\*768 pixel (or what you define)
 	- true color and indexed color 
 	- direct color and attribute modes 
 	- tiled modes **TODO**
@@ -70,30 +70,35 @@ Anybody who runs into a bug is welcome to file a bug report or a merge request.
 ```cpp
 main()
 {
-	// VGA Video 800 x 600 pixel 
-	// with 8x12 pixel true color attributes (character size used in PicoTerm)
-	
-	#include "kilipili/Graphics/Pixmap_wAttr.h"
-	#include "kilipili/Video/FrameBuffer.h"
-	#include "kilipili/Video/VideoController.h"
-	#include "kilipili/utilities/utilities.h"
-	#include <tusb.h>
-	
-	int main()
-	{
-		using namespace kio::Video;
-	
-		stdio_init_all();
-		kio::set_system_clock(200 MHz);
-		tuh_init(BOARD_TUH_RHPORT);
-		auto* pixmap          = new Pixmap<colormode_a1w8_rgb>(800, 600, attrheight_12px);
-		auto* framebuffer     = new FrameBuffer<colormode_a1w8_rgb>(*pixmap, nullptr);
-		auto& videocontroller = VideoController::getRef();
-		videocontroller.setup(vga_mode_800x600_60);
-		videocontroller.addPlane(framebuffer);
-		videocontroller.startVideo();
-		for (;;) {} // your main action
-	}
+// VGA Video 800 x 600 pixel
+// with 8x12 pixel true color attributes (character size used in PicoTerm)
+
+#include "kilipili/Graphics/PicoTerm.h"
+#include "kilipili/Graphics/Pixmap_wAttr.h"
+#include "kilipili/Video/FrameBuffer.h"
+#include "kilipili/Video/VideoController.h"
+#include "pico/stdio.h"
+#include <tusb.h>
+
+int main()
+{
+    using namespace kio::Video;
+
+    stdio_init_all();
+    tuh_init(BOARD_TUH_RHPORT);
+
+    auto* pixmap          = new Pixmap<colormode_a1w8_rgb>(800, 600, attrheight_12px);
+    auto* framebuffer     = new FrameBuffer<colormode_a1w8_rgb>(*pixmap, nullptr);
+    auto& videocontroller = VideoController::getRef();
+    videocontroller.addPlane(framebuffer);
+    videocontroller.startVideo(vga_mode_800x600_60);
+
+    PicoTerm* picoterm = new PicoTerm(*pixmap);
+    picoterm->cls();
+    picoterm->printf("%s\n", picoterm->identify());
+
+    for (;;) {} // your main action
+}
 ```
 
 
