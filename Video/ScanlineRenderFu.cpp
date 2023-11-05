@@ -762,10 +762,18 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
   #define VIDEO_OPTIMISTICAL_A1W8_RGB OFF
 #endif
 
+	// if 200x150 or 400x300 are not supported but displayed, this causes a bus error!
+#ifndef VIDEO_SUPPORT_200x150_A1W8_RGB
+  #define VIDEO_SUPPORT_200x150_A1W8_RGB true
+#endif
+#ifndef VIDEO_SUPPORT_400x300_A1W8_RGB
+  #define VIDEO_SUPPORT_400x300_A1W8_RGB true
+#endif
+
 	uint32 ctable[4];
 	interp_set_base(interp1, lane1, uint32(ctable));
 
-	if ((width & 31) == 0)
+	if (!(VIDEO_SUPPORT_200x150_A1W8_RGB || VIDEO_SUPPORT_400x300_A1W8_RGB) || (width & 31) == 0)
 	{
 		uint32*		  dest		 = reinterpret_cast<uint32*>(_dest);
 		const uint32* pixels	 = reinterpret_cast<const uint32*>(_pixels);
@@ -844,9 +852,39 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 		}
 	}
-	else if constexpr (1)
+	else if constexpr (VIDEO_SUPPORT_200x150_A1W8_RGB)
 	{
-		// 400*300: 400 = 16 * 25 => not a multiple of 32!
+		// 200*150: 200 = 8 * 25 => odd!
+		// 0x154 bytes in scratch_x
+		// avg/max load = 48.8/51.4MHz
+
+		uint32*		  dest		 = reinterpret_cast<uint32*>(_dest);
+		const uint8*  pixels	 = reinterpret_cast<const uint8*>(_pixels);
+		const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
+
+		for (uint i = 0; i < width / 8; i++)
+		{
+			interp_set_accumulator(interp1, lane0, uint(*pixels++) << 2);
+
+			{
+				uint32 color10 = *attributes++;
+				uint32 color01 = (color10 >> 16) | (color10 << 16);
+				uint32 xxx	   = uint16(color01 ^ color10);
+				ctable[1]	   = color01;
+				ctable[2]	   = color10;
+				ctable[0]	   = color01 ^ xxx;
+				ctable[3]	   = color10 ^ xxx;
+			}
+
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+		}
+	}
+	else if constexpr (VIDEO_SUPPORT_400x300_A1W8_RGB)
+	{
+		// 400*300: 400 = 32 * 12.5 => not a multiple of 32!
 		// 0x184 bytes in scratch_x
 		// avg/max load = 44.1/46.4MHz
 
@@ -872,36 +910,6 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
 			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-
-			{
-				uint32 color10 = *attributes++;
-				uint32 color01 = (color10 >> 16) | (color10 << 16);
-				uint32 xxx	   = uint16(color01 ^ color10);
-				ctable[1]	   = color01;
-				ctable[2]	   = color10;
-				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10 ^ xxx;
-			}
-
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-		}
-	}
-	else
-	{
-		// 400*300: 400 = 16 * 25 => not a multiple of 32!
-		// 0x154 bytes in scratch_x
-		// avg/max load = 48.8/51.4MHz
-
-		uint32*		  dest		 = reinterpret_cast<uint32*>(_dest);
-		const uint8*  pixels	 = reinterpret_cast<const uint8*>(_pixels);
-		const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
-
-		for (uint i = 0; i < width / 8; i++)
-		{
-			interp_set_accumulator(interp1, lane0, uint(*pixels++) << 2);
 
 			{
 				uint32 color10 = *attributes++;

@@ -81,6 +81,10 @@
   #define VIDEO_CLOCK_PIN_BASE 0
 #endif
 
+#ifndef VIDEO_MAX_SYSCLOCK_MHz
+  #define VIDEO_MAX_SYSCLOCK_MHz 290
+#endif
+
 
 // check minimal plausibility:
 static_assert(VIDEO_PIXEL_RSHIFT + VIDEO_PIXEL_RCOUNT <= VIDEO_COLOR_PIN_COUNT);

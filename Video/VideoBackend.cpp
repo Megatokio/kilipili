@@ -356,8 +356,8 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 	min_sys_clock			   = max(min_sys_clock, 60 MHz);
 	const uint32 pixel_clock   = vga_mode.pixel_clock;
 	uint32		 new_sys_clock = (min_sys_clock + pixel_clock - 1 MHz) / pixel_clock * pixel_clock;
-	while (new_sys_clock % (1 MHz) && new_sys_clock < SYSCLOCK_fMAX) new_sys_clock += pixel_clock;
-	while (new_sys_clock % (1 MHz) || new_sys_clock > SYSCLOCK_fMAX) new_sys_clock -= pixel_clock;
+	while (new_sys_clock % (1 MHz) && new_sys_clock < VIDEO_MAX_SYSCLOCK_MHz MHz) new_sys_clock += pixel_clock;
+	while (new_sys_clock % (1 MHz) || new_sys_clock > VIDEO_MAX_SYSCLOCK_MHz MHz) new_sys_clock -= pixel_clock;
 	const uint cc_per_pixel = new_sys_clock / pixel_clock;
 	if (cc_per_pixel < 2) throw "No system clock found for the requested vga mode"; // this means: there is none!
 
