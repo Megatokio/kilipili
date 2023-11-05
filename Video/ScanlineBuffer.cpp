@@ -3,7 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "ScanlineBuffer.h"
+#include "basic_math.h"
 #include "kilipili_cdefs.h"
+#include <stdio.h>
 
 namespace kio::Video
 {
@@ -15,22 +17,22 @@ alignas(sizeof(ScanlineBuffer::scanlines)) //
 	uint32* ScanlineBuffer::scanlines[max_count];
 
 
-void ScanlineBuffer::setup(const VgaMode& videomode, int log2_buffer_size) throws
+void ScanlineBuffer::setup(const VgaMode& vga_mode, uint buffer_size) throws
 {
-	assert_eq(count, 0); // must be invalid
+	assert_eq(count, 0);						   // must be invalid
+	assert_eq(buffer_size & (buffer_size - 1), 0); // must be 2^N
+	assert_ge(buffer_size, 2u);					   // must buffer at least 2 lines
+	assert_eq(vga_mode.h_active() % 2, 0);		   // dma transfer unit is uint32 = 2 pixels
 
-	width		   = videomode.h_active();
-	vss			   = videomode.vss;
-	uint new_count = 1 << log2_buffer_size;
-
-	assert_le(count << vss, max_count); // must not exceed array
-	assert_eq(width % 2, 0);			// dma transfer unit is uint32 = 2 pixels
+	uint size	   = vga_mode.h_active() / 2;
+	vss			   = vga_mode.vss;
+	uint new_count = min(buffer_size, max_count >> vss);
 
 	try
 	{
-		for (/*count = 0*/; count < new_count; count++)
+		for (count = 0; count < new_count; count++)
 		{
-			uint32* sl = new uint32[width / 2];
+			uint32* sl = new uint32[size];
 			for (uint y = 0; y < (1 << vss); y++) { scanlines[(count << vss) + y] = sl; }
 		}
 		mask = count - 1;

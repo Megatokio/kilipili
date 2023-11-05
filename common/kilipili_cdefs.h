@@ -98,4 +98,9 @@ extern "C" __printflike(1, 2) __noreturn void panic(const char* fmt, ...);
   #define debug_break() __asm__ volatile("bkpt")
 #endif
 
-#define LOL ::printf("@%s:%u\n", filenamefrompath(__FILE__), __LINE__);
+#define LOL                                                     \
+  do {                                                          \
+	::printf("@%s:%u\n", filenamefrompath(__FILE__), __LINE__); \
+	stdio_flush();                                              \
+  }                                                             \
+  while (0);

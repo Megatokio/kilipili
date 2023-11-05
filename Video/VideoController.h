@@ -15,7 +15,8 @@
 namespace kio::Video
 {
 
-/** the Video Frontend:
+/*
+	The Video Frontend:
   
 	use:
 
@@ -48,24 +49,21 @@ public:
 	using Size			= Graphics::Size;
 
 	enum State : uint8 {
-		INVALID,
 		STOPPED,
 		RUNNING,
 	};
 
-	/**	get reference to singleton 
+	/*	
+		get reference to singleton 
 		panics on first call if it can't claim the required hardware
 	*/
 	static VideoController& getRef() noexcept;
 
-	/** setup internal state, buffers and hardware for the requested VideoMode.
-		The supplied VideoMode struct must be static.
+	/* 
+		setup internal state, buffers and hardware for the requested VideoMode.
 		If blocking = false then caller must later test `getState()` and `core1_error`.
 	*/
-	Error setup(const VgaMode&, bool blocking = true);
-
-	void teardown(bool blocking = true) noexcept;
-	void startVideo(int log2_scanline_buffer_size = 2, bool blocking = true);
+	void startVideo(const VgaMode& mode, uint32 system_clock = 0, uint scanline_buffer_size = 2, bool blocking = true);
 	void stopVideo(bool blocking = true);
 	void addPlane(VideoPlane*);
 	void removePlane(VideoPlane*);
@@ -86,22 +84,17 @@ private:
 	VBlankAction  vblank_action		 = nullptr;
 	OneTimeAction onetime_action	 = nullptr;
 
-	volatile State state		   = INVALID;
-	volatile State requested_state = INVALID;
-
-	uint8 _padding;
+	volatile State state		   = STOPPED;
+	volatile State requested_state = STOPPED;
+	uint8		   _padding[2];
+	uint32		   requested_system_clock;
 
 
 	VideoController() noexcept;
 
-	static void start_core1() noexcept { getRef().core1_runner(); }
-	void		core1_runner() noexcept;
-	void		video_runner();
+	void core1_runner() noexcept;
+	void video_runner();
 
-	void do_start_video();
-	void do_stop_video();
-	void do_setup() noexcept;
-	void do_teardown() noexcept;
 	void wait_for_event() noexcept;
 	void call_vblank_actions() noexcept;
 };
