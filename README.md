@@ -1,67 +1,57 @@
 # kilipili
 Kio's Little Pico Library
 
-A library for video, audio and input devices for the RP2040.
+A c++ library for video, audio and input devices for the RP2040.
 
-**This is work in progress**  
-**current state:**  
-- Video output, graphics and USB keyboard and mouse work as far as tested.
-- The video engine displays up to 1280x768 pixel in 16 bit true color¹.  
-  e.g. 1024x768 with true color attribute mode uses only 132kB of Ram, leaving over 100kB for the application.
-- I am currently fixing bugs. Please checkout the current `work` branch. (`work_2023_11` as of writing)  
-
+**This is work in progress**   
 Anybody who runs into a bug is welcome to file a bug report or a merge request.
 
-## A C++ library for:
-- graphics
-	- true color and indexed color
-	- direct color and attribute modes for colorful graphics with little memory
-	- drawing primitives
-	- PicoTerm terminal	
-- video
-	- originally based on Scanvideo
-	- runs entirely on core 1
-	- cpu usage varies widely
-	- runs entirely in RAM (at least it should. to be tested)
-	- can be stopped and restarted in different video mode
-	- screen size 160\*120 up to 1280\*768 pixel (or what you define)
-	- true color and indexed color 
-	- direct color and attribute modes 
-	- tiled modes **TODO**
-	- **sprites** and mouse pointer in separate plane (no longer supported)
-	- framebuffer, sprites and mouse pointer rendered into single scanline buffer **TODO**
-	- pixel clock and display enable signals supported (untested)
-- audio
-	- **TODO**
-- USB host mode
-	- uses usb tiny host 
-	- Keyboard
-	- Mouse (API not yet fixed)
-	- game pad **TODO**
-	- usb stick **TODO**
-- and more
-	- set system clock
-	- cpu load sensor
-	- **malloc** replacement which doesn't fail to return available memory
-	- SDcard **TODO**
-
-¹) of course there is a catch :-)
-
-## Advantages (VGA Video)
-
+## Video 
+- Video output fully functional and tested.
 - start-and-forget.
-- low RAM usage.
-- colorful display in high resolutions.
-- runs in RAM: no need to lockout core 1 while writing to the internal flash.
-- can be stopped and restarted in different video mode.
+- The video engine can display **up to 1280 x 768 pixel** in **16 bit true color**.  
+- Low RAM usage by use of attributes. =\> colorful display in high resolutions.  
+  e.g. **1024 x 768** with 8 x 12 pixel **true color** attributes uses **only 132 kB of Ram**, leaving over 100 kB to the application.
+- runs entirely in RAM: stable video while writing to the internal flash possible.
+- can be restarted in different video mode.
+- automatically sets the required system clock  
+- Sprites **WIP**
+- Tiled background mode **TODO**
 
-## Disadvantages
+## USB Host
+- USB keyboard supported. 
+- USB mouse usable but **WIP**. Mouse pointer waits for sprite support.
 
-- this is work in progress
-- uses CPU core 1, 3 DMA channels and 2 state machines in PIO 1.
-- some video modes require excessive high system clock in higher screen resolutions.
-- pixel clocks restricted to full MHz.
-- system clock must be a multiple of the pixel clock.
+## SDCard support
+- Access SC card in SPI mode
+- FAT file system support by using FatFS **WIP**
+
+## Graphics
+- **Direct pixel color modes**: 1, 2, 4, 8 and 16 bpp.  
+  16 bpp is normally true color while i1 .. i8 are normally indexed color.
+- **Attribute modes**: The image is composed from a 1 bpp or 2 bpp pixmap and lower resolution color cells.  
+  The attributes cells normally match the character cell size which is normally 8 x 12 pixels.  
+  By using templates all graphics functions are supported in all modes.  
+  Supported attribute modes:
+  - 1 or 2 bit per pixel in the pixmap selecting from 2 or 4 colors in the corresponding attribute cell
+  - 1, 2, 4 or 8 pixel wide attributes
+  - attribute cell height from 1 to 99
+  - 4, 8 and 16 bit colors in the attributes, where i4 and i8 are normally indexed colors  
+- Graphics primitives
+- Text output
+- Graphics still lack some functionality.
+
+## Other
+- cpu load sensor
+- **malloc** replacement which doesn't fail to return available memory
+- Audio: TODO
+
+## Resources & restrictions
+- Uses CPU core 1, 3 DMA channels and 2 state machines in PIO 1.  
+  (The 2 other state machines will probably be used by audio)
+- Some video modes require excessive high system clock in high screen resolutions.
+- Pixel clock restricted to full MHz.
+- System clock must be a multiple of the pixel clock.
 
 ## Example
 
