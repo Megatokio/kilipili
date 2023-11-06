@@ -15,6 +15,7 @@
 #include "utilities/utilities.h"
 #include <hardware/clocks.h>
 #include <hardware/dma.h>
+#include <hardware/exception.h>
 #include <hardware/gpio.h>
 #include <hardware/irq.h>
 #include <hardware/pio.h>
@@ -108,6 +109,7 @@ void VideoController::core1_runner() noexcept
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
 	stackinfo();
+	exception_set_exclusive_handler(HARDFAULT_EXCEPTION, [] { panic("CORE1: HARD FAULT\n"); });
 
 	try
 	{

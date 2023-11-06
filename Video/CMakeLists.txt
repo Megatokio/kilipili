@@ -69,6 +69,7 @@ target_link_libraries(kilipili_video PUBLIC
 	hardware_dma
 	pico_multicore
 	hardware_interp
+	hardware_exception
 )
 
 
