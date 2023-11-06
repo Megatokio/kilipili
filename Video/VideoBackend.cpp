@@ -436,13 +436,21 @@ void VideoBackend::stop() noexcept
 	assert(get_core_num() == 1);
 	assert(state != not_initialized);
 
-	// clear the currently used scanline buffers to all-black and continue displaying from them.
-	// the ScanlineBuffer does not delete the scanlines[] array and does not clear the addresses within
-	// that array, so everything remains 'valid' until data in the deleted scanlines is overwritten.
-	// By then video output is already started again or some void non-black pixels will be displayed.
+	static uint32  two_black_pixels			   = 0;
+	static uint32* address_of_two_black_pixels = &two_black_pixels;
 
-	for (uint i = 0; i < scanline_buffer.count << vga_mode.vss; i++)
-		memset(scanline_buffer.scanlines[i], 0, vga_mode.h_active() * sizeof(uint16));
+	// set data dma to fixed source address:
+	dma_channel_hw_t* hw = dma_channel_hw_addr(SCANLINE_DMA_DATA_CHANNEL);
+	hw->al1_ctrl		 = hw->al1_ctrl & ~DMA_CH0_CTRL_TRIG_INCR_READ_BITS;
+
+	// set ctrl dma to fixed source address & source address = &address_of_two_black_pixels:
+	hw			  = dma_channel_hw_addr(SCANLINE_DMA_CTRL_CHANNEL);
+	hw->al1_ctrl  = hw->al1_ctrl & ~DMA_CH0_CTRL_TRIG_INCR_READ_BITS;
+	hw->read_addr = uint32(&address_of_two_black_pixels);
+
+	// wait for data dma to read from two_black_pixels:
+	hw = dma_channel_hw_addr(SCANLINE_DMA_DATA_CHANNEL);
+	while (hw->read_addr != uint32(&two_black_pixels)) {}
 }
 
 void VideoBackend::initialize() noexcept
