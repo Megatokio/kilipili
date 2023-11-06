@@ -10,22 +10,22 @@
 // this file provides rolling tempmem buffers on the RP2040 (Raspberry Pico).
 
 
-#ifndef TEMPMEM_POOL_SIZE_CORE1
-  #define TEMPMEM_POOL_SIZE_CORE1 (2 kB)
+#ifndef TEMPMEM_POOL_SIZE_CORE0
+  #define TEMPMEM_POOL_SIZE_CORE0 2000
 #endif
-#ifndef TEMPMEM_POOL_SIZE_CORE2
-  #define TEMPMEM_POOL_SIZE_CORE2 (4)
+#ifndef TEMPMEM_POOL_SIZE_CORE1
+  #define TEMPMEM_POOL_SIZE_CORE1 80
 #endif
 
 
 namespace kio
 {
 
+static constexpr uint size0 = TEMPMEM_POOL_SIZE_CORE0;
 static constexpr uint size1 = TEMPMEM_POOL_SIZE_CORE1;
-static constexpr uint size2 = TEMPMEM_POOL_SIZE_CORE2;
 
+alignas(ptr) static char data0[size0];
 alignas(ptr) static char data1[size1];
-alignas(ptr) static char data2[size2];
 
 
 struct Pool
@@ -54,7 +54,7 @@ struct Pool
 
 static char null	 = 0;
 str			emptystr = &null;
-static Pool pools[2] = {Pool {nullptr, data1, size1, size1}, Pool {nullptr, data2, size2, size2}};
+static Pool pools[2] = {Pool {nullptr, data0, size0, size0}, Pool {nullptr, data1, size1, size1}};
 
 
 TempMem::TempMem(uint size)
@@ -63,7 +63,7 @@ TempMem::TempMem(uint size)
 	// the TempMem object itself contains no data.
 	// the local pool with all required data is 'static pools[core]'
 
-	if (!size) size = size1;
+	if (!size) size = size0;
 	constexpr uint alignment = sizeof(ptr) - 1;
 	size &= ~alignment;
 
