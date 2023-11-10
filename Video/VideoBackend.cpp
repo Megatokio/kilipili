@@ -67,6 +67,7 @@ uint			cc_per_us;		 // cpu clock cycles per microsecond
 volatile bool	in_vblank;
 volatile int	line_at_frame_start;
 volatile uint32 time_us_at_frame_start; // timestamp of start of active screen lines (updated ~1 scanline early)
+volatile int	current_frame = 0;
 
 static uint cc_per_frame_fract;
 static uint cc_per_frame_rest;
@@ -115,7 +116,8 @@ static void RAM timing_isr() noexcept
 
 		if (state == in_frontporch)
 		{
-			in_vblank = true;
+			in_vblank	  = true;
+			current_frame = current_frame + 1;
 			__sev();
 		}
 		else if (state == in_active_screen)
