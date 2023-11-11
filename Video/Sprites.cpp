@@ -4,11 +4,11 @@
 
 #include "Sprites.h"
 #include "StackInfo.h"
+#include "VideoBackend.h"
 #include "kilipili_cdefs.h"
 #include <pico/platform.h>
 #include <pico/stdlib.h>
 #include <pico/sync.h>
-
 
 namespace kio::Video
 {
@@ -37,14 +37,12 @@ struct Locker
 #define lock_display_list() Locker _locklist
 
 
-static volatile int hot_row		  = 0; // set by renderScanline(): the currently displayed screen row
-static int			screen_width  = 0; // set by setup()
-static int16		current_frame = 0;
+static volatile int hot_row = 0; // set by renderScanline(): the currently displayed screen row
 
 Sprite* Sprites::displaylist = nullptr;
 
 
-struct HotShape : public Shape
+struct HotShape : public Shape<NotAnimated>
 {
 	int x; // effective x position: x = sprite.x + row.xoffs, adjusted by all previous dx
 	int z; // z value
@@ -69,7 +67,7 @@ void RAM check_hotlist() noexcept
 		const HotShape& shape = hot_shapes[i];
 		assert(shape.is_pfx());
 		assert(i == 0 || hot_shapes[i - 1].z <= shape.z);
-		const Color* pixels = shape.pixels + sizeof(Shape::PFX) / sizeof(Color);
+		const Color* pixels = shape.pixels + sizeof(Shape<NotAnimated>::PFX) / sizeof(Color);
 		assert(shape.width() == 0 || pixels[0].is_opaque());
 		assert(shape.width() == 0 || pixels[shape.width() - 1].is_opaque());
 	}
@@ -144,7 +142,7 @@ void XRAM Sprites::renderScanline(int hot_row, uint32* scanline) noexcept
 	Sprite* s = next_sprite;
 	while (s && s->y <= hot_row)
 	{
-		if (s->x < screen_width && s->x + s->width() > 0) { s->add_to_hotlist(hot_row - s->y); }
+		if (s->x < screen_width() && s->x + s->width() > 0) { s->add_to_hotlist(hot_row - s->y); }
 		next_sprite = s = s->next;
 	}
 
@@ -178,7 +176,7 @@ void XRAM Sprites::renderScanline(int hot_row, uint32* scanline) noexcept
 				pixels -= a;
 				a = 0;
 			}
-			if (e > screen_width) e = screen_width;
+			if (e > screen_width()) e = screen_width();
 			while (a < e) scanline[a++] = *pixels++;
 		}
 
@@ -331,8 +329,8 @@ void Sprite::_move(coord new_x, coord new_y) noexcept
 	stackinfo();
 	assert(is_spin_locked(displaylist_spinlock));
 
-	this->x = new_x - hot_x;
-	this->y = new_y -= hot_y;
+	this->x = new_x - hot_x();
+	this->y = new_y -= hot_y();
 
 	Sprite* p;
 	if ((p = prev) && new_y < p->y)
@@ -456,7 +454,6 @@ void Sprites::setup(coord width)
 	stackinfo();
 	assert(get_core_num() == 1);
 
-	screen_width = width;
 	if (!displaylist_spinlock) displaylist_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
 }
 
@@ -494,9 +491,6 @@ void RAM Sprites::vblank() noexcept
 
 	// clear list early because sprite.hide(true) may wait for a sprite extending below screen
 	num_hot_shapes = 0;
-
-	// used to tell which sprites were already called (in case of reordering):
-	current_frame += 1;
 
 	// use hotlist.next_sprite because this is taken care for in sprite.unlink().
 	// we can use it because while we are in vblank() on core1 no scanlines can be generated.

@@ -3,8 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Color.h"
-#include "Shapes.h"
+#include "Shape.h"
 #include "VideoPlane.h"
 #include <tuple>
 
@@ -35,8 +34,7 @@ class Sprite
 	Sprite* next = nullptr;
 
 public:
-	static constexpr uint16 zMin = 0;
-	static constexpr uint16 zMax = 0xffffu;
+	using Shape = Video::Shape<NotAnimated>;
 
 	Shape shape; // the compressed image of the sprite.
 
@@ -55,7 +53,6 @@ public:
 	coord  ypos() const noexcept { return y + hot_y(); }
 	uint16 zpos() const noexcept { return z; }
 
-	//Sprite() noexcept = default;
 	Sprite(const Shape& shape, int x, int y, uint16 z) noexcept : shape(shape), x(x - hot_x()), y(y - hot_y()), z(z) {}
 	virtual ~Sprite() noexcept; // does not delete the shape
 
@@ -116,6 +113,7 @@ public:
 
 
 // ============================================================================
+
 
 inline bool Sprite::is_in_displaylist() const noexcept { return prev || this == Sprites::displaylist; }
 
