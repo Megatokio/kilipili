@@ -39,8 +39,10 @@ add_library(kilipili_video STATIC
 	ColorMap.cpp
 	ColorMap.h
 	Color.h
-	Shapes.h 
-	Shapes.cpp
+	Shape.h
+	Shape.cpp
+	SingleSprite.h
+	SingleSprite.cpp
 )
 
 target_compile_definitions(kilipili_video PUBLIC
