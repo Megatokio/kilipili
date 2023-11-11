@@ -135,12 +135,15 @@ inline void waitForScanline(int scanline) noexcept
 	idle_end();
 }
 
-
 inline int current_scanline() noexcept
 {
 	uint time_us_in_frame = time_us_32() - time_us_at_frame_start;
 	uint cc_in_frame	  = time_us_in_frame * cc_per_us;
 	return int(cc_in_frame) / int(cc_per_scanline);
 }
+
+inline int screen_width() noexcept { return vga_mode.width; }
+inline int screen_height() noexcept { return vga_mode.height; }
+
 
 } // namespace kio::Video
