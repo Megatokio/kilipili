@@ -25,110 +25,305 @@ using namespace Graphics;
 #define RAM		 __attribute__((section(".time_critical.spr" XWRAP(__LINE__)))) // general ram
 
 
-static spin_lock_t* displaylist_spinlock = nullptr;
+spin_lock_t*		displaylist_spinlock = nullptr;
+static volatile int hot_row				 = 0; // set by renderScanline(): the currently displayed screen row
+bool				hotlist_overflow	 = false;
 
-struct Locker
+
+// =======================================================================
+// Sprite:
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+bool Sprite<WZ, ANIM, SOFT>::is_hot() const noexcept
 {
-	static uint32 state; // status register
-	Locker() noexcept { state = spin_lock_blocking(displaylist_spinlock); }
-	~Locker() noexcept { spin_unlock(displaylist_spinlock, state); }
-};
-
-#define lock_display_list() Locker _locklist
-
-
-static volatile int hot_row = 0; // set by renderScanline(): the currently displayed screen row
-
-Sprite* Sprites::displaylist = nullptr;
-
-
-struct HotShape : public Shape<NotAnimated>
-{
-	int x; // effective x position: x = sprite.x + row.xoffs, adjusted by all previous dx
-	int z; // z value
-};
-
-static HotShape hot_shapes[MAX_HOT_SPRITES]; // sorted by z
-static uint		num_hot_shapes		= 0;
-static Sprite* volatile next_sprite = nullptr; // in displaylist. access & modify only when locked
-
-
-// =============================================================
-//		HotList and DisplayList::scanlineRenderer()
-// =============================================================
-
-
-void RAM check_hotlist() noexcept
-{
-	assert(num_hot_shapes <= int(count_of(hot_shapes)));
-
-	for (uint i = 0; i < num_hot_shapes; i++)
-	{
-		const HotShape& shape = hot_shapes[i];
-		assert(shape.is_pfx());
-		assert(i == 0 || hot_shapes[i - 1].z <= shape.z);
-		const Color* pixels = shape.pixels + sizeof(Shape<NotAnimated>::PFX) / sizeof(Color);
-		assert(shape.width() == 0 || pixels[0].is_opaque());
-		assert(shape.width() == 0 || pixels[shape.width() - 1].is_opaque());
-	}
+	return hot_row >= y && hot_row < y + height();
 }
 
-#pragma GCC push_options
-#pragma GCC optimize("O3")
-
-void RAM Sprite::add_to_hotlist(int dy) const noexcept
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprite<WZ, ANIM, SOFT>::wait_while_hot() const noexcept
 {
-	// insert sprite into sorted hotlist.
-	//
-	// dy: lines to skip before inserting
-	//	   normally 0
-	//	   may be > 0 if a scanline was missed
-	//	   may be > 0 if sprite starts above screen
-	//
-	// handles hotlist overflow => sprite not added, will not be visible in this frame
-	// handles sprites starting above screen or starting in missed scanline (dy > 0)
-	// handles empty sprites with height = 0 (first line = stopper) => not added
-	// handles sprites ending above screen => not added
+	while (is_hot()) sleep_us(500);
+}
+
+
+// =======================================================================
+// Sprites:
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+Sprites<WZ, ANIM, SOFT>::~Sprites() noexcept
+{
+	assert(displaylist == nullptr); // else teardown not called => plane still in planes[] ?
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::Sprites::setup(coord __unused width)
+{
+	// called by VideoController before first vblank()
+	// we don't clear the displaylist and keep all sprites if there are already any
+
+	if (!displaylist_spinlock) displaylist_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::Sprites::teardown() noexcept
+{
+	// called by VideoController
 
 	stackinfo();
 	assert(get_core_num() == 1);
 
-	Shape shape = this->shape;
+	clear_displaylist();
+	assert(displaylist == nullptr);
+}
 
-	if (num_hot_shapes < count_of(hot_shapes) && !shape.is_end())
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::Sprites::_unlink(Sprite* s) noexcept
+{
+	assert(is_in_displaylist(s));
+	assert(is_spin_locked(displaylist_spinlock));
+
+	if unlikely (next_sprite == s) next_sprite = s->next;
+
+	if (s->prev) s->prev->next = s->next;
+	else displaylist = s->next;
+	s->prev = nullptr;
+
+	if (s->next) s->next->prev = s->prev;
+	// s->next = nullptr;	  don't clear s->next: vblank() may need it!
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::Sprites::_link_after(Sprite* s, Sprite* other) noexcept
+{
+	assert(!is_in_displaylist(s));
+	assert(other && is_in_displaylist(other));
+	assert(is_spin_locked(displaylist_spinlock));
+
+	s->prev = other;
+	s->next = other->next;
+
+	if (s->next) s->next->prev = s;
+	other->next = s;
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::Sprites::_link_before(Sprite* s, Sprite* other) noexcept
+{
+	assert(!is_in_displaylist(s));
+	assert(other && is_in_displaylist(other));
+	assert(is_spin_locked(displaylist_spinlock));
+
+	s->next = other;
+	s->prev = other->prev;
+
+	other->prev = s;
+	if (s->prev) s->prev->next = s;
+	else displaylist = s;
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::Sprites::_link(Sprite* s) noexcept
+{
+	stackinfo();
+	assert(!is_in_displaylist(s));
+	assert(is_spin_locked(displaylist_spinlock));
+
+	Sprite* other = displaylist;
+	int		y	  = s->y;
+
+	if (other && y > other->y)
 	{
-		// calc x position xa:
-		int xa = x + shape.dx();
-
-		// skip over dy rows if dy != 0:
-		if unlikely (dy)
-		{
-			assert(dy > 0);
-			do {
-				shape.next_row();
-				if unlikely (shape.is_end()) return;
-				xa += shape.dx();
-			}
-			while (--dy);
-		}
-
-		// find position in sorted hotlist and make room:
-		uint i = num_hot_shapes++;
-		while (i && z < hot_shapes[i - 1].z)
-		{
-			hot_shapes[i] = hot_shapes[i - 1];
-			i--;
-		}
-
-		// store it:
-		hot_shapes[i].pixels = shape.pixels;
-		hot_shapes[i].x		 = xa;
-		hot_shapes[i].z		 = z;
+		Sprite* next;
+		while ((next = other->next) && y > next->y) { other = next; }
+		_link_after(s, other);
+	}
+	else
+	{
+		s->next		= displaylist;
+		s->prev		= nullptr;
+		displaylist = s;
 	}
 }
 
-void XRAM Sprites::renderScanline(int hot_row, uint32* scanline) noexcept
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::Sprites::_move(Sprite* s, coord x, coord y) noexcept
 {
+	stackinfo();
+	assert(is_spin_locked(displaylist_spinlock));
+
+	s->x = x;
+	s->y = y;
+
+	Sprite* other;
+	if ((other = s->prev) && y < other->y)
+	{
+		_unlink(s);
+		Sprite* prev = other->prev;
+		do other = prev;
+		while ((prev = other->prev) && y < prev->y);
+		_link_before(s, other);
+	}
+	else if ((other = s->next) && y > other->y)
+	{
+		_unlink(s);
+		Sprite* next = other->next;
+		do other = next;
+		while ((next = other->next) && y > next->y);
+		_link_after(s, other);
+	}
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::Sprites::add(Shape shape, int x, int y, uint8 z) throws
+{
+	stackinfo();
+
+	Sprite* s = new Sprite(shape, x, y, z);
+	Lock	_;
+	_link(s);
+	return s;
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::Sprites::remove(Sprite* s) noexcept
+{
+	stackinfo();
+	assert(is_in_displaylist(s));
+
+	{
+		Lock _;
+		_unlink(s);
+	}
+	delete s;
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::move(Sprite* s, coord x, coord y) noexcept
+{
+	stackinfo();
+	assert(is_in_displaylist(s));
+
+	Lock _;
+	_move(s, x, y);
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::move(Sprite* s, const Point& p) noexcept
+{
+	stackinfo();
+	assert(is_in_displaylist(s));
+
+	Lock _;
+	_move(s, p.x, p.y);
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::Sprites::clear_displaylist() noexcept
+{
+	stackinfo();
+
+	while (displaylist)
+	{
+		Sprite* s;
+		{
+			Lock _;
+			s = displaylist;
+			if (s) _unlink(s);
+		}
+		delete s;
+	}
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::vblank() noexcept
+{
+	// called by VideoController before first renderScanline().
+	// called by VideoController at start of each frame.
+	// variants: with and without animation.
+
+	stackinfo();
+	assert(get_core_num() == 1);
+
+	num_hot		= 0;
+	hot_row		= -9999;
+	next_sprite = displaylist;
+
+	if constexpr (ANIM == Animated)
+	{
+		// in a RC the other thread may have just unlinked the sprite.
+		// remove(): the sprite will be deleted and subsequently overwritten.
+		//			 but sprite.next was not nulled and can be used if we act fast!
+		// move():   we will miss this animation. depending on whether the sprite is moved up or down
+		//			 animations for other sprites will be done twice or missed as well.
+
+		for (Sprite* sprite = displaylist; sprite; sprite = sprite->next)
+		{
+			if (--sprite->countdown > 0) continue;
+
+			Lock _;
+
+			if (is_in_displaylist(sprite))
+			{
+				Shape& s		  = sprite->shape;
+				int	   x		  = sprite->x + s.hot_x();
+				int	   y		  = sprite->y + s.hot_y();
+				s				  = s.next_frame();
+				sprite->countdown = s.duration() - 1;
+				_move(sprite, x - s.hot_x(), y - s.hot_y());
+			}
+		}
+	}
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::add_to_hotlist(Shape shape, int x, int dy, uint8 z) noexcept
+{
+	// add shape to the hotlist.
+	// variants: with or without Z
+	//			 with or without animation
+
+	if unlikely (num_hot == max_hot)
+	{
+		hotlist_overflow = true;
+		return;
+	}
+
+	shape.skip_preamble();
+
+	for (; dy < 0; dy++) // skip over dy rows if dy < 0:
+	{
+		assert(shape.is_pfx());
+		x += shape.dx();
+		shape.next_row();
+		if unlikely (shape.is_end()) return;
+	}
+
+	uint idx = num_hot++;
+
+	if constexpr (WZ == HasZ)
+	{
+		while (idx && z < hotlist[idx - 1].z)
+		{
+			hotlist[idx] = hotlist[idx - 1];
+			idx--;
+		}
+	}
+
+	assert(shape.is_pfx());
+	hotlist[idx].x		= x;
+	hotlist[idx].pixels = shape.pixels;
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) noexcept
+{
+	// render all sprites into the scanline
+	// variants: with or without Z --> add_to_hotlist()
+	// variants: with or without animation --> add_to_hotlist()
+	// variants: normal or softened --> hot_shape.render_one_row()			TODO
+	// flag:     ghostly --> hot_shape.render_one_row()
+
 	stackinfo();
 	assert(get_core_num() == 1);
 
@@ -142,381 +337,29 @@ void XRAM Sprites::renderScanline(int hot_row, uint32* scanline) noexcept
 	Sprite* s = next_sprite;
 	while (s && s->y <= hot_row)
 	{
-		if (s->x < screen_width() && s->x + s->width() > 0) { s->add_to_hotlist(hot_row - s->y); }
+		if (s->x < screen_width() && s->x + s->width() > 0) { add_to_hotlist(s->shape, s->x, hot_row - s->y, s->z); }
 		next_sprite = s = s->next;
 	}
-
-#ifdef DEBUG
-	check_hotlist();
-#endif
 
 	// render shapes into framebuffer and
 	// advance shapes to next row and remove finished shapes
 
-	HotShape* z = &hot_shapes[0];
-	HotShape* q = z;
-	HotShape* e = z + num_hot_shapes;
-
-	for (; q < e; q++)
+	for (uint i = num_hot; i;)
 	{
-		int x = q->x + q->dx();
-		z->x  = x;
-	a:
-		int count = q->width();
-		q->skip_pfx();
-		const Color* pixels = q->pixels;
-		q->pixels += count;
-
-		{
-			int a = x;
-			int e = x + count;
-			// adjust l+r and go:
-			if (a < 0)
-			{
-				pixels -= a;
-				a = 0;
-			}
-			if (e > screen_width()) e = screen_width();
-			while (a < e) scanline[a++] = *pixels++;
-		}
-
-		if (q->is_pfx())
-		{
-			z->z	  = q->z;
-			z->pixels = q->pixels;
-			z++;
-		}
-		else if (q->is_skip())
-		{
-			q->skip_cmd();
-			assert(q->is_pfx());
-			x += count + q->dx();
-			goto a;
-		}
-		// else is_end: don't advance z and continue with next hot_shape
-	}
-
-	num_hot_shapes = uint(z - &hot_shapes[0]);
-}
-
-#pragma GCC pop_options
-
-
-// =============================================================
-//		class Sprite
-// =============================================================
-
-
-bool Sprite::is_hot() const noexcept
-{
-	// test whether sprite currently in hotlist.
-	// the result may be outdated on return!
-	//
-	// to add some time `is_hot()` reports `hot` 2 rows early.
-
-	int row = hot_row;
-	return num_hot_shapes != 0 && row >= y - 2 && row < y + height();
-}
-
-void Sprite::wait_while_hot() const noexcept
-{
-	for (uint i = 0; i < 100000 / 60 && num_hot_shapes != 0; i++)
-	{
-		int row = hot_row;
-		if (row < y || row >= y + height()) break;
-		sleep_us(10);
+		HotShape& hot_shape = hotlist[--i];
+		bool	  finished	= hot_shape.render_one_row(hot_shape.x, reinterpret_cast<Color*>(scanline), s->ghostly);
+		if unlikely (finished) hot_shape = hotlist[--num_hot];
 	}
 }
 
-void Sprite::_unlink() noexcept
-{
-	assert(is_in_displaylist());
-	assert(is_spin_locked(displaylist_spinlock));
-
-	if (prev) prev->next = next;
-	else Sprites::displaylist = next;
-	__compiler_memory_barrier();
-	if (next) next->prev = prev;
-	__compiler_memory_barrier();
-	prev = nullptr;
-
-	if unlikely (next_sprite == this)
-	{
-		if (hot_row == 9999)
-		{
-			// next_sprite.vsync() is in progress.
-			//   core0: wait until finished. then proceed
-			//   core1: we are called from vsync(). the sprite is deleting itself. go on!
-
-			if (get_core_num() == 0)
-				while (next_sprite == this) { sleep_us(1); }
-		}
-		else
-		{
-			// we are in active display area and this is the next sprite that will go into context
-			// possibly it is right now read by the scanline_renderer.
-			// wer are _not_ in the scanline_renderer itself: it doesn't call unlink()
-			// and we are _not_ in vsync(): hot_row != 9999
-			// => we are in some ordinary program, probably on core 0 but possibly on core1 too.
-			// if .y == hot_row then wait for the scanline_renderer to advance
-			// else set next_sprite to .next
-
-			while (hot_row == y && next_sprite == this) {}
-			uint32_t save = save_and_disable_interrupts();
-			if (next_sprite == this) next_sprite = next;
-			restore_interrupts(save);
-		}
-	}
-
-	// don't clear .next: vsync() will need it!
-	// next = nullptr;
-}
-
-void Sprite::_link_after(Sprite* other) noexcept
-{
-	assert(!is_in_displaylist());
-	assert(other && other->is_in_displaylist());
-	assert(is_spin_locked(displaylist_spinlock));
-
-	prev = other;
-	next = other->next;
-	__compiler_memory_barrier();
-	if (next) next->prev = this;
-	__compiler_memory_barrier();
-	other->next = this;
-}
-
-void Sprite::_link_before(Sprite* other) noexcept
-{
-	assert(!is_in_displaylist());
-	assert(other && other->is_in_displaylist());
-	assert(is_spin_locked(displaylist_spinlock));
-
-	next = other;
-	prev = other->prev;
-	__compiler_memory_barrier();
-	other->prev = this;
-	__compiler_memory_barrier();
-	if (prev) prev->next = this;
-	else Sprites::displaylist = this;
-}
-
-void Sprite::_link() noexcept
-{
-	stackinfo();
-	assert(!is_in_displaylist());
-	assert(is_spin_locked(displaylist_spinlock));
-
-	last_frame = current_frame;
-
-	if (Sprite* p = Sprites::displaylist)
-	{
-		if (y > p->y)
-		{
-			while (p->next && y > p->next->y) { p = p->next; }
-			_link_after(p);
-		}
-		else // before first:
-		{
-			_link_before(p);
-		}
-	}
-	else { Sprites::displaylist = this; }
-}
-
-void Sprite::_move(coord new_x, coord new_y) noexcept
-{
-	stackinfo();
-	assert(is_spin_locked(displaylist_spinlock));
-
-	this->x = new_x - hot_x();
-	this->y = new_y -= hot_y();
-
-	Sprite* p;
-	if ((p = prev) && new_y < p->y)
-	{
-		_unlink();
-		while (p->prev && new_y < p->prev->y) { p = p->prev; }
-		_link_before(p);
-	}
-	else if ((p = next) && new_y > p->y)
-	{
-		_unlink();
-		while (p->next && new_y > p->next->y) { p = p->next; }
-		_link_after(p);
-	}
-}
-
-void Sprite::show() noexcept
-{
-	if (!is_in_displaylist())
-	{
-		stackinfo();
-		lock_display_list();
-		_link();
-	}
-}
-
-void Sprite::hide(bool wait) noexcept
-{
-	if (is_in_displaylist())
-	{
-		stackinfo();
-		if (wait) wait_while_hot();
-		lock_display_list();
-		_unlink();
-	}
-}
-
-Sprite::~Sprite() noexcept { hide(); }
-
-void Sprite::move(coord new_x, coord new_y) noexcept
-{
-	stackinfo();
-	lock_display_list();
-	_move(new_x, new_y);
-}
-
-void Sprite::move(const Point& p) noexcept
-{
-	stackinfo();
-	lock_display_list();
-	_move(p.x, p.y);
-}
-
-void Sprite::modify(const Shape& s, coord new_x, coord new_y, bool wait) noexcept
-{
-	stackinfo();
-	if (wait) wait_while_hot(); // => caller can delete old shape safely
-	lock_display_list();
-	shape = s;
-	_move(new_x, new_y);
-}
-
-void Sprite::modify(const Shape& s, const Point& p, bool wait) noexcept
-{
-	stackinfo();
-	if (wait) wait_while_hot(); // => caller can delete old shape safely
-	lock_display_list();
-	shape = s;
-	_move(p.x, p.y);
-}
-
-void Sprite::replace(const Shape& s, bool wait) noexcept
-{
-	stackinfo();
-	if (wait) wait_while_hot(); // => caller can delete old shape safely
-	lock_display_list();
-	shape = s;
-	_move(xpos(), ypos());
-}
-
-
-// =============================================================
-//		class Sprites
-// =============================================================
-
-void Sprites::clear_displaylist() noexcept // static
-{
-	stackinfo();
-
-	{
-		lock_display_list();
-		Sprite* s2	= displaylist;
-		displaylist = nullptr;
-
-		while (Sprite* s = s2)
-		{
-			s2		= s->next;
-			s->next = nullptr;
-			s->prev = nullptr;
-		}
-	}
-
-	for (uint i = 0; i < 1000000 / 60; i++)
-	{
-		next_sprite = nullptr;
-		if (num_hot_shapes == 0) break;
-
-		sleep_us(1);
-	}
-}
-
-void Sprites::setup(coord width)
-{
-	// called by VideoController before first vblank()
-	//
-	// note: we don't clear the displaylist.
-	// this is not required because the displaylist is initially empty.
-	// This way, after a video mode change, all the previous sprites, e.g. the mouse pointer,
-	// which were not actively hidden by the program, will immediately show up again.
-
-	stackinfo();
-	assert(get_core_num() == 1);
-
-	if (!displaylist_spinlock) displaylist_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
-}
-
-void Sprites::teardown() noexcept
-{
-	// called by VideoController
-
-	stackinfo();
-	assert(get_core_num() == 1);
-	clear_displaylist();
-}
-
-void RAM Sprites::vblank() noexcept
-{
-	// called by VideoController at start of each frame.
-	// calls sprite.vblank() for all sprites in the displaylist.
-	//
-	// basically all sprite.vblank() are guaranteed to be called
-	// except if a sprite is moved from below the current sprite to above the current sprite
-	// either by the vblank() of the current sprite itself or concurrently by the other core.
-	// then that sprite's vblank() will be missed for this frame.
-	//
-	// sprite.vblank() and concurrently other core may:
-	//  - modify itself (shape, position)
-	//  - remove itself from displaylist
-	//  - add new sprites to display list
-	//  - remove others from displaylist
-	//  - modify (shape, position) other sprites with the caveat mentioned above!
-	//
-	// TODO: lockout when flash not accessible
-	//		 by putting this into flash and testing in Scanvideo for vblank in flash?
-
-	stackinfo();
-	assert(get_core_num() == 1);
-
-	// clear list early because sprite.hide(true) may wait for a sprite extending below screen
-	num_hot_shapes = 0;
-
-	// use hotlist.next_sprite because this is taken care for in sprite.unlink().
-	// we can use it because while we are in vblank() on core1 no scanlines can be generated.
-
-	Sprite* volatile& nextsprite = next_sprite;
-
-	hot_row	   = 9999;
-	nextsprite = displaylist;
-	while (Sprite* sprite = nextsprite)
-	{
-		// if sprite was not yet called:
-		// may happen if a sprite reordered itself or was reordered from core0
-		if (sprite->last_frame != current_frame)
-		{
-			sprite->last_frame = current_frame;
-			sprite->vblank();
-		}
-
-		nextsprite = sprite->next;
-	}
-
-	// reset hotlist.next_sprite for next frame:
-	hot_row	   = -9999;
-	nextsprite = displaylist;
-}
-
+template class Sprites<NoZ, NotAnimated, NotSoftened>;
+template class Sprites<NoZ, NotAnimated, Softened>;
+template class Sprites<NoZ, Animated, NotSoftened>;
+template class Sprites<NoZ, Animated, Softened>;
+template class Sprites<HasZ, NotAnimated, NotSoftened>;
+template class Sprites<HasZ, NotAnimated, Softened>;
+template class Sprites<HasZ, Animated, NotSoftened>;
+template class Sprites<HasZ, Animated, Softened>;
 
 } // namespace kio::Video
 
