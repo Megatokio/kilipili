@@ -44,6 +44,12 @@ struct Color
 
 	static constexpr Color fromRGB8(uint rgb) { return fromRGB8((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff); }
 	static constexpr Color fromRGB4(uint rgb) { return fromRGB4((rgb >> 8) & 0xf, (rgb >> 4) & 0xf, rgb & 0xf); }
+
+	void blend_with(Color b) noexcept
+	{
+		uint16 roundup = (rgb | b.rgb) & 0b0000100001000001;
+		rgb			   = ((rgb >> 1) & 0b0111101111001111) + ((b.rgb >> 1) & 0b0111101111001111) + roundup;
+	}
 };
 
 static_assert(sizeof(Color) == sizeof(uint16));
@@ -166,6 +172,12 @@ struct Color
 
 	static constexpr Color fromRGB8(uint rgb) { return fromRGB8((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff); }
 	static constexpr Color fromRGB4(uint rgb) { return fromRGB4((rgb >> 8) & 0xf, (rgb >> 4) & 0xf, rgb & 0xf); }
+
+	void blend_with(Color b) noexcept
+	{
+		uint16 roundup = (rgb | b.rgb) & 0x0111;
+		rgb			   = ((rgb >> 1) & 0x0777) + ((b.rgb >> 1) & 0x0777) + roundup;
+	}
 };
 
 static_assert(sizeof(Color) == sizeof(uint16));
