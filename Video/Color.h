@@ -34,7 +34,7 @@ struct Color
 	static constexpr uint cmax	= 0xff >> css; // color components max value
 
 	Color() noexcept = default;
-	constexpr Color(uint16 rgb) noexcept : rgb(rgb) {}
+	constexpr Color(uint rgb) noexcept : rgb(uint16(rgb)) {}
 	constexpr Color(uint8 r, uint8 g, uint8 b, uint8 a = 1) noexcept : red(r), alpha(a), green(g), blue(b) {}
 	constexpr	   operator uint16() const { return rgb; }
 	constexpr bool is_transparent() const noexcept { return alpha == 0; }
@@ -57,6 +57,51 @@ static_assert(Color::fromRGB5(0x22, 0x33, 0x44, 5).red == 2);
 static_assert(Color::fromRGB5(0x22, 0x33, 0x44, 5).green == 0x13);
 static_assert(Color::fromRGB5(0x22, 0x33, 0x44, 5).blue == 4);
 static_assert(Color::fromRGB5(0x22, 0x33, 0x44, 5).alpha == 1);
+#endif
+
+#if VIDEO_PIXEL_RCOUNT == 3 && VIDEO_PIXEL_GCOUNT == 3 && VIDEO_PIXEL_BCOUNT == 2 && VIDEO_PIXEL_RSHIFT == 0 && \
+	VIDEO_PIXEL_GSHIFT == 3 && VIDEO_PIXEL_BSHIFT == 6
+
+struct Color
+{
+	union
+	{
+		uint8 rgb;
+		struct
+		{
+			uint8 red	: 3;
+			uint8 green : 3;
+			uint8 blue	: 2;
+		};
+	};
+
+	static constexpr uint cbits = 3;		   // color components bits
+	static constexpr uint css	= 8 - cbits;   // color components size shift from uint8
+	static constexpr uint cmask = 0xff >> css; // color components mask
+	static constexpr uint cmax	= 0xff >> css; // color components max value
+
+	Color() noexcept = default;
+	constexpr Color(uint rgb) noexcept : rgb(uint8(rgb)) {}
+	constexpr Color(uint8 r, uint8 g, uint8 b, uint8 = 1) noexcept : red(r), green(g), blue(b >> 1) {}
+	constexpr	   operator uint16() const { return rgb; }
+	constexpr bool is_transparent() const noexcept { return false; }
+	constexpr bool is_opaque() const noexcept { return true; }
+
+	static constexpr Color fromRGB8(uint8 r, uint8 g, uint8 b, uint8 = 1)
+	{
+		return Color(r >> css, g >> css, b >> css);
+	}
+	static constexpr Color fromRGB4(uint8 r, uint8 g, uint8 b, uint8 = 1) { return Color(r, g, b); }
+
+	static constexpr Color fromRGB8(uint rgb) { return fromRGB8((rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff); }
+	static constexpr Color fromRGB4(uint rgb) { return fromRGB4((rgb >> 8) & 0xf, (rgb >> 4) & 0xf, rgb & 0xf); }
+
+	void blend_with(Color b) noexcept
+	{
+		uint8 roundup = (rgb | b.rgb) & 0b01001001;
+		rgb			  = ((rgb >> 1) & 0b01011011) + ((b.rgb >> 1) & 0b01011011) + roundup;
+	}
+};
 #endif
 
 #if VIDEO_PIXEL_RCOUNT == 4 && VIDEO_PIXEL_GCOUNT == 4 && VIDEO_PIXEL_BCOUNT == 4 && VIDEO_PIXEL_RSHIFT == 0 && \
@@ -83,7 +128,7 @@ struct Color
 	static constexpr uint cmax	= 0xff >> css; // color components max value
 
 	Color() noexcept = default;
-	constexpr Color(uint16 rgb) noexcept : rgb(rgb) {}
+	constexpr Color(uint rgb) noexcept : rgb(uint16(rgb)) {}
 	constexpr Color(uint8 r, uint8 g, uint8 b, uint8 a = 1) noexcept : red(r), green(g), blue(b), alpha(a), _padding(0)
 	{}
 	constexpr	   operator uint16() const { return rgb; }
