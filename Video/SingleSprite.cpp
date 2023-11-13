@@ -23,10 +23,10 @@ spin_lock_t* singlesprite_spinlock = nullptr;
 
 
 template<Animation ANIM, Softening SOFT>
-SingleSprite<ANIM, SOFT>::SingleSprite(const Shape shape, coord x, coord y) :
+SingleSprite<ANIM, SOFT>::SingleSprite(Shape&& shape, coord x, coord y) :
 	xpos(x),
 	ypos(y),
-	shape(shape),
+	shape(std::move(shape)),
 	hot_shape(nullptr),
 	frame_countdown(),
 	ghostly(false)
@@ -36,7 +36,7 @@ SingleSprite<ANIM, SOFT>::SingleSprite(const Shape shape, coord x, coord y) :
 }
 
 template<Animation ANIM, Softening SOFT>
-SingleSprite<ANIM, SOFT>::SingleSprite(const Shape shape, const Point& p) : SingleSprite(shape, p.x, p.y)
+SingleSprite<ANIM, SOFT>::SingleSprite(Shape&& shape, const Point& p) : SingleSprite(std::move(shape), p.x, p.y)
 {}
 
 template<Animation ANIM, Softening SOFT>

@@ -32,8 +32,8 @@ class SingleSprite : public VideoPlane
 	using coord = Graphics::coord;
 	using Point = Graphics::Point;
 
-	SingleSprite(const Shape, const Point& position);
-	SingleSprite(const Shape, coord x, coord y);
+	SingleSprite(Shape&&, const Point& position);
+	SingleSprite(Shape&&, coord x, coord y);
 
 	virtual void setup(coord width) override;
 	virtual void teardown() noexcept override {}
@@ -55,13 +55,13 @@ class SingleSprite : public VideoPlane
 private:
 	Shape shape; // the compressed image of the sprite.
 
-	Shape hot_shape;	   // pointer into shape as rows are displayed
-	int	  hot_shape_x;	   // updated x pos for current row
-	int16 frame_countdown; // animation
-	bool  ghostly;		   // render sprite semi transparent
-	char  _padding = 0;
-
-	void wait_while_hot() const noexcept;
+	using HotShape = Video::Shape<NotAnimated, SOFT>;
+	HotShape hot_shape;		  // pointer into shape as rows are displayed
+	int		 hot_shape_x;	  // updated x pos for current row
+	int16	 frame_countdown; // animation
+	bool	 ghostly;		  // render sprite semi transparent
+	char	 _padding = 0;
+	void	 wait_while_hot() const noexcept;
 
 	struct lock
 	{
