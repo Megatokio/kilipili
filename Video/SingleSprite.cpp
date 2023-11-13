@@ -74,8 +74,7 @@ void RAM SingleSprite<ANIM, SOFT>::vblank() noexcept
 	for (; y < 0; y++) // if sprite starts above screen:
 	{
 		assert(hs.is_pfx());
-		hot_shape_x += hs.dx(); // TODO Softened
-		hs.next_row();
+		hs.skip_row(hot_shape_x);
 		if unlikely (hs.is_end()) return;
 	}
 	assert(hs.is_pfx());
@@ -95,7 +94,7 @@ void RAM SingleSprite<ANIM, SOFT>::renderScanline(int row, uint32* scanline) noe
 		hot_shape = s;
 	}
 
-	bool finished = hot_shape.render_one_row(hot_shape_x, reinterpret_cast<Color*>(scanline), ghostly);
+	bool finished = hot_shape.render_row(hot_shape_x, reinterpret_cast<Color*>(scanline), ghostly);
 	if (finished) hot_shape = nullptr;
 }
 

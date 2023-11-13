@@ -20,7 +20,7 @@ extern spin_lock_t* singlesprite_spinlock;
 	- Animation = NotAnimated
 	- Animation = Animated
 	- Softening = NotSoftened
-	- Softening = Softened: 	 sprites are scaled 2:1 horizontally, odd pixels l+r become half transparent  ***TODO***
+	- Softening = Softened: 	 sprites are scaled 2:1 horizontally, odd pixels l+r are set using blend  
 	
 	Other options:
 	- ghostly:	  Shape can be rendered 50% transparent		

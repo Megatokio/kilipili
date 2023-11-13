@@ -293,9 +293,7 @@ void Sprites<WZ, ANIM, SOFT>::add_to_hotlist(Shape shape, int x, int dy, uint8 z
 
 	for (; dy < 0; dy++) // skip over dy rows if dy < 0:
 	{
-		assert(shape.is_pfx());
-		x += shape.dx();
-		shape.next_row();
+		shape.skip_row(x);
 		if unlikely (shape.is_end()) return;
 	}
 
@@ -321,7 +319,7 @@ void Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) noex
 	// render all sprites into the scanline
 	// variants: with or without Z --> add_to_hotlist()
 	// variants: with or without animation --> add_to_hotlist()
-	// variants: normal or softened --> hot_shape.render_one_row()			TODO
+	// variants: normal or softened --> hot_shape.render_one_row()
 	// flag:     ghostly --> hot_shape.render_one_row()
 
 	stackinfo();
