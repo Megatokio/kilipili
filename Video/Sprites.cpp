@@ -53,6 +53,7 @@ template<ZPlane WZ, Animation ANIM, Softening SOFT>
 Sprites<WZ, ANIM, SOFT>::~Sprites() noexcept
 {
 	assert(displaylist == nullptr); // else teardown not called => plane still in planes[] ?
+	assert(hotlist == nullptr);
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
@@ -62,6 +63,10 @@ void Sprites<WZ, ANIM, SOFT>::Sprites::setup(coord __unused width)
 	// we don't clear the displaylist and keep all sprites if there are already any
 
 	if (!displaylist_spinlock) displaylist_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
+
+	const uint cnt = 20;
+	hotlist		   = new HotShape[cnt];
+	max_hot		   = cnt;
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
@@ -74,8 +79,11 @@ void Sprites<WZ, ANIM, SOFT>::Sprites::teardown() noexcept
 
 	clear_displaylist();
 	assert(displaylist == nullptr);
-}
 
+	max_hot = num_hot = 0;
+	delete[] hotlist;
+	hotlist = nullptr;
+}
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
 void Sprites<WZ, ANIM, SOFT>::Sprites::_unlink(Sprite* s) noexcept
@@ -335,7 +343,7 @@ void Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) noex
 	Sprite* s = next_sprite;
 	while (s && s->y <= hot_row)
 	{
-		if (s->x < screen_width() && s->x + s->width() > 0) { add_to_hotlist(s->shape, s->x, hot_row - s->y, s->z); }
+		if (s->x < screen_width() && s->x + s->width() > 0) { add_to_hotlist(s->shape, s->x, s->y - hot_row, s->z); }
 		next_sprite = s = s->next;
 	}
 
@@ -345,7 +353,7 @@ void Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) noex
 	for (uint i = num_hot; i;)
 	{
 		HotShape& hot_shape = hotlist[--i];
-		bool	  finished	= hot_shape.render_one_row(hot_shape.x, reinterpret_cast<Color*>(scanline), s->ghostly);
+		bool	  finished	= hot_shape.render_row(hot_shape.x, reinterpret_cast<Color*>(scanline), s->ghostly);
 		if unlikely (finished) hot_shape = hotlist[--num_hot];
 	}
 }
