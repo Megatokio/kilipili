@@ -43,6 +43,7 @@ add_library(kilipili_video STATIC
 	Shape.cpp
 	SingleSprite.h
 	SingleSprite.cpp
+	UniColorBackdrop.h
 )
 
 target_compile_definitions(kilipili_video PUBLIC
