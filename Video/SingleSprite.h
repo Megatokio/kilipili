@@ -26,14 +26,19 @@ extern spin_lock_t* singlesprite_spinlock;
 	- ghostly:	  Shape can be rendered 50% transparent		
 */
 template<Animation ANIM, Softening SOFT>
-class SingleSprite : public VideoPlane
+class SingleSprite;
+
+
+template<Softening SOFT>
+class SingleSprite<NotAnimated, SOFT> : public VideoPlane
 {
-	using Shape = Video::Shape<ANIM, SOFT>;
+public:
+	using Shape = Video::Shape<SOFT>;
 	using coord = Graphics::coord;
 	using Point = Graphics::Point;
 
-	SingleSprite(Shape&&, const Point& position);
-	SingleSprite(Shape&&, coord x, coord y);
+	SingleSprite(Shape, const Point& position);
+	SingleSprite(Shape, coord x, coord y);
 
 	virtual void setup(coord width) override;
 	virtual void teardown() noexcept override {}
@@ -52,16 +57,58 @@ class SingleSprite : public VideoPlane
 	void modify(Shape s, const Point& p, bool wait_while_hot = 0) noexcept;
 	void replace(Shape s, bool wait_while_hot = 0) noexcept;
 
-private:
-	Shape shape; // the compressed image of the sprite.
+	void wait_while_hot() const noexcept;
 
-	using HotShape = Video::Shape<NotAnimated, SOFT>;
-	HotShape hot_shape;		  // pointer into shape as rows are displayed
-	int		 hot_shape_x;	  // updated x pos for current row
-	int16	 frame_countdown; // animation
-	bool	 ghostly;		  // render sprite semi transparent
-	char	 _padding = 0;
-	void	 wait_while_hot() const noexcept;
+protected:
+	using HotShape = Video::Shape<SOFT>;
+
+	Shape	 shape;		  // the compressed image of the sprite.
+	HotShape hot_shape;	  // pointer into shape as rows are displayed
+	int		 hot_shape_x; // updated x pos for current row
+	bool	 ghostly;	  // render sprite semi transparent
+	uint8	 frame_idx;	  // if animated
+	int16	 countdown;	  // if animated
+};
+
+
+template<Softening SOFT>
+class SingleSprite<Animated, SOFT> : public SingleSprite<NotAnimated, SOFT>
+{
+public:
+	using Shape			= Video::Shape<SOFT>;
+	using AnimatedShape = Video::AnimatedShape<SOFT>;
+	using coord			= Graphics::coord;
+	using Point			= Graphics::Point;
+	using super			= SingleSprite<NotAnimated, SOFT>;
+
+	SingleSprite(const AnimatedShape&, const Point& position);
+	SingleSprite(const AnimatedShape&, coord x, coord y);
+
+	virtual void setup(coord width) override;
+	//virtual void teardown() noexcept override;
+	virtual void vblank() noexcept override;
+	//virtual void renderScanline(int row, uint32* scanline) noexcept override;
+
+	using super::countdown;
+	using super::frame_idx;
+	using super::is_hot;
+	using super::move;
+	using super::wait_while_hot;
+
+	void modify(const AnimatedShape&, coord x, coord y, bool wait_while_hot = 0) noexcept;
+	void modify(const AnimatedShape&, const Point& p, bool wait_while_hot = 0) noexcept;
+	void replace(const AnimatedShape&, bool wait_while_hot = 0) noexcept;
+
+private:
+	AnimatedShape animated_shape;
+
+	void next_frame() noexcept
+	{
+		lock _;
+		if (++frame_idx >= animated_shape.num_frames) frame_idx = 0;
+		countdown	 = animated_shape.durations[frame_idx];
+		super::shape = animated_shape.frames[frame_idx];
+	}
 
 	struct lock
 	{
@@ -75,28 +122,51 @@ private:
 // ============================================================================
 
 
-template<Animation ANIM, Softening SOFT>
-void SingleSprite<ANIM, SOFT>::replace(Shape s, bool wait) noexcept
+template<Softening SOFT>
+void SingleSprite<NotAnimated, SOFT>::replace(Shape s, bool wait) noexcept
 {
-	if constexpr (ANIM == NotAnimated) { shape = s; }
-	else
-	{
-		lock _;
-		shape			= s;
-		frame_countdown = s.duration();
-	}
+	shape = s;
 	if (wait) wait_while_hot(); // => caller can delete old shape safely
 }
 
-template<Animation ANIM, Softening SOFT>
-void SingleSprite<ANIM, SOFT>::modify(Shape s, const Point& new_p, bool wait) noexcept
+template<Softening SOFT>
+void SingleSprite<NotAnimated, SOFT>::modify(Shape s, const Point& new_p, bool wait) noexcept
 {
 	move(new_p);
 	replace(s, wait);
 }
 
-template<Animation ANIM, Softening SOFT>
-void SingleSprite<ANIM, SOFT>::modify(Shape s, coord new_x, coord new_y, bool wait) noexcept
+template<Softening SOFT>
+void SingleSprite<NotAnimated, SOFT>::modify(Shape s, coord new_x, coord new_y, bool wait) noexcept
+{
+	move(new_x, new_y);
+	replace(s, wait);
+}
+
+// ============================================================================
+
+template<Softening SOFT>
+void SingleSprite<Animated, SOFT>::replace(const AnimatedShape& s, bool wait) noexcept
+{
+	{
+		lock _;
+		animated_shape = s;
+		frame_idx	   = 0;
+		countdown	   = s.durations[0];
+		super::shape   = s.frames[0];
+	}
+	if (wait) wait_while_hot(); // => caller can delete old shape safely
+}
+
+template<Softening SOFT>
+void SingleSprite<Animated, SOFT>::modify(const AnimatedShape& s, const Point& new_p, bool wait) noexcept
+{
+	move(new_p);
+	replace(s, wait);
+}
+
+template<Softening SOFT>
+void SingleSprite<Animated, SOFT>::modify(const AnimatedShape& s, coord new_x, coord new_y, bool wait) noexcept
 {
 	move(new_x, new_y);
 	replace(s, wait);
