@@ -50,12 +50,12 @@ enum Animation : bool { NotAnimated = 0, Animated = 1 };
 enum Softening : bool { NotSoftened = 0, Softened = 1 };
 
 
-template<Animation ANIM, Softening SOFT>
+template<Softening SOFT>
 struct Shape;
 
 
 template<Softening SOFT>
-struct Shape<NotAnimated, SOFT>
+struct Shape
 {
 	// ***** types *****
 
@@ -91,51 +91,32 @@ struct Shape<NotAnimated, SOFT>
 	Shape(const Color* c = nullptr) noexcept : pixels(c) {}
 
 	template<ColorMode CM>
-	Shape(Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x = 0, int8 hot_y = 0) throws :
-		pixels(new_frame(pm, transparent_pixel, clut, hot_x, hot_y))
-	{}
+	Shape(Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x = 0, int8 hot_y = 0) throws;
 
-	template<ColorMode CM, typename = std::enable_if_t<Graphics::is_true_color(CM)>>
-	Shape(Pixmap<CM>& pm, uint transparent_pixel, int8 hot_x = 0, int8 hot_y = 0) throws :
-		pixels(new_frame(pm, transparent_pixel, nullptr, hot_x, hot_y))
-	{}
-
-	Shape(const Shape& q) : pixels(q.pixels) {}
-	Shape(Shape&& q) noexcept : pixels(q.pixels) {}
-	Shape& operator=(const Shape& q)
-	{
-		pixels = q.pixels;
-		return *this;
-	}
-	Shape& operator=(Shape&& q)
-	{
-		pixels = q.pixels;
-		return *this;
-	}
+	template<ColorMode CM, typename std::enable_if_t<Graphics::is_true_color(CM), int> = 0>
+	Shape(Pixmap<CM>& pm, uint transparent_pixel, int8 hot_x = 0, int8 hot_y = 0) throws;
 
 	// ***** utility functions *****
 
-	const Preamble& preamble() const noexcept
-	{
-		assert(reinterpret_cast<const Preamble*>(pixels)->magic == 0x7e); // 90% if animated, 0% if not
-		return *reinterpret_cast<const Preamble*>(pixels);
-	}
+	const Preamble& preamble() const noexcept { return *reinterpret_cast<const Preamble*>(pixels); }
 
 	int8 hot_x() const noexcept { return preamble().hot_x; }
 	int8 hot_y() const noexcept { return preamble().hot_y; }
 	void skip_preamble() noexcept { pixels += sizeof(Preamble) / sizeof(*pixels); }
 
+	const PFX& pfx() const noexcept { return *reinterpret_cast<const PFX*>(pixels); }
+	CMD		   cmd() const noexcept
+	{
+		if constexpr (sizeof(Color) > 1) return *reinterpret_cast<const CMD*>(pixels);
+		else return CMD(reinterpret_cast<const uchar*>(pixels)[0] + (reinterpret_cast<const uchar*>(pixels)[1] << 8));
+	}
+
 	bool is_cmd() const noexcept { return reinterpret_cast<const PFX*>(pixels)->dx == -128; }
 	bool is_pfx() const noexcept { return reinterpret_cast<const PFX*>(pixels)->dx != -128; }
-	bool is_end() const noexcept
-	{
-		if constexpr (sizeof(Color) == 1) return pixels[0] == uint8(END) && pixels[1] == uint8(END >> 8);
-		else return *reinterpret_cast<const CMD*>(pixels) == END;
-	}
+
+	bool is_end() const noexcept { return cmd() == END; }
 	bool is_skip() const noexcept { return *reinterpret_cast<const CMD*>(pixels) == GAP; }
 
-	const CMD& cmd() const noexcept { return *reinterpret_cast<const CMD*>(pixels); }
-	const PFX& pfx() const noexcept { return *reinterpret_cast<const PFX*>(pixels); }
 
 	int8  dx() const noexcept { return pfx().dx; }
 	uint8 width() const noexcept { return pfx().width; }
@@ -145,8 +126,6 @@ struct Shape<NotAnimated, SOFT>
 	void skip_row(int& x) noexcept;
 	bool render_row(int& x, Color* scanline, bool blend) noexcept;
 
-	void next_frame() noexcept {}
-
 private:
 	template<ColorMode CM>
 	static Color*
@@ -155,65 +134,21 @@ private:
 
 
 template<Softening SOFT>
-struct Shape<Animated, SOFT> : public Shape<NotAnimated, SOFT>
+struct AnimatedShape
 {
-	// ***** types *****
+	using Shape = Video::Shape<SOFT>;
+	Shape* frames;
+	int16* durations;
+	uint16 num_frames;
 
-	using super		= Shape<NotAnimated, SOFT>;
-	using ColorMode = Graphics::ColorMode;
-	template<ColorMode CM>
-	using Pixmap   = Graphics::Pixmap<CM>;
-	using Rect	   = Graphics::Rect;
-	using Preamble = typename super::Preamble;
-	using CMD	   = typename super::CMD;
-	using PFX	   = typename super::PFX;
-
-	// ***** data members *****
-
-	super*	frames;
-	uint16* durations;
-	uint	num_frames;
-
-	// *****constructor *****
-
-	Shape(super* frames, uint16* durations, uint num_frames);
-	~Shape() noexcept;
-
-	Shape(const Shape& q);
-	Shape(Shape&& q) noexcept;
-	Shape& operator=(const Shape& q);
-	Shape& operator=(Shape&& q);
-
-	// ***** utility functions *****
-
-	void   set_frame(uint i) noexcept { super::pixels = frames[i].pixels; }
-	uint16 get_duration(uint i) const noexcept { return durations[i]; }
-
-	// preamble:
-	using super::hot_x;
-	using super::hot_y;
-	using super::preamble;
-	using super::skip_preamble;
-
-	// test row cmd/pfx:
-	using super::is_cmd;
-	using super::is_end;
-	using super::is_pfx;
-	using super::is_skip;
-
-	// row pfx:
-	using super::dx;
-	using super::pfx;
-	using super::skip_pfx;
-	using super::width;
-
-	// row cmd:
-	using super::cmd;
-	using super::skip_cmd;
-
-	// render/skip row:
-	using super::render_row;
-	using super::skip_row;
+	void teardown() noexcept
+	{
+		delete[] frames;
+		delete[] durations;
+		frames	   = nullptr;
+		durations  = nullptr;
+		num_frames = 0;
+	}
 };
 
 
@@ -221,149 +156,148 @@ struct Shape<Animated, SOFT> : public Shape<NotAnimated, SOFT>
 // ****************************** Implementations ************************************
 //
 
-template<Softening SOFT>
-inline void __attribute__((section(".scratch_x.next_row"))) Shape<NotAnimated, SOFT>::skip_row(int& x) noexcept
+template<>
+inline void __attribute__((section(".scratch_x.next_row"))) Shape<NotSoftened>::skip_row(int& x) noexcept
 {
-	if constexpr (SOFT == NotSoftened)
+	while (1)
 	{
-		while (1)
-		{
-			assert(is_pfx());
-			x += dx();
-			uint w = width();
-			pixels += sizeof(PFX) / sizeof(*pixels) + width();
-			if (!is_skip()) break;
-			x += w;
-			skip_cmd();
-		}
-	}
-	else
-	{
-		int hx = x << 1;
-		while (1)
-		{
-			assert(is_pfx());
-			hx += dx();
-			uint w = width();
-			pixels += sizeof(PFX) / sizeof(*pixels) + width();
-			if (!is_skip()) break;
-			hx += w;
-			skip_cmd();
-		}
-		x = hx >> 1; // same as in render_one_row()
+		assert(is_pfx());
+		x += dx();
+		uint w = width();
+		pixels += sizeof(PFX) / sizeof(*pixels) + width();
+		if (!is_skip()) break;
+		x += w;
+		skip_cmd();
 	}
 }
 
-template<Softening SOFT>
+template<>
+inline void __attribute__((section(".scratch_x.next_row"))) Shape<Softened>::skip_row(int& x) noexcept
+{
+	int hx = x << 1;
+	while (1)
+	{
+		assert(is_pfx());
+		hx += dx();
+		uint w = width();
+		pixels += sizeof(PFX) / sizeof(*pixels) + width();
+		if (!is_skip()) break;
+		hx += w;
+		skip_cmd();
+	}
+	x = hx >> 1; // same as in render_one_row()
+}
+
+template<>
 inline bool __attribute__((section(".scratch_x.render_one_row")))
-Shape<NotAnimated, SOFT>::render_row(int& x, Color* scanline, bool blend) noexcept
+Shape<NotSoftened>::render_row(int& x, Color* scanline, bool blend) noexcept
 {
-	if constexpr (SOFT == NotSoftened)
+	for (;;)
 	{
-		for (;;)
+		assert(is_pfx());
+
+		x += pfx().dx;
+		int count = pfx().width;
+		skip_pfx();
+		const Color* q = pixels;
+		pixels		   = q + count;
+
+		int a = x;
+		int e = a + count;
+		if (a < 0)
 		{
-			assert(is_pfx());
-
-			x += pfx().dx;
-			int count = pfx().width;
-			skip_pfx();
-			const Color* q = pixels;
-			pixels		   = q + count;
-
-			int a = x;
-			int e = a + count;
-			if (a < 0)
-			{
-				q -= a;
-				a = 0;
-			}
-			if (e > screen_width()) e = screen_width();
-
-			if (!blend)
-				while (a < e) scanline[a++] = *q++;
-			else
-				while (a < e) scanline[a++].blend_with(*q++);
-
-			if (is_pfx()) return false;	 // this is the next line
-			if (!is_skip()) return true; // end of shape
-
-			// skip gap and draw more pixels
-			skip_cmd();
-			x += count;
+			q -= a;
+			a = 0;
 		}
-	}
-	else // Softened
-	{
-		// "softening" is done by scaling down the image 2:1 horizontally.
-		// => half-set pixels l+r of a stripe are blended with the underlying one.
-		// => pfx.dx and pfx.width are measuered in 1/2 pixels.
+		if (e > screen_width()) e = screen_width();
 
-		int hx = x << 1; // we work in "double width space"
+		if (!blend)
+			while (a < e) scanline[a++] = *q++;
+		else
+			while (a < e) scanline[a++].blend_with(*q++);
 
-		for (;;)
-		{
-			assert(is_pfx());
+		if (is_pfx()) return false;	 // this is the next line
+		if (!is_skip()) return true; // end of shape
 
-			int ha = hx += pfx().dx;
-			int he = ha + pfx().width;
-			skip_pfx();
-
-			bool af = ha & 1; // 1: blend 1st pixel
-			bool ef = he & 1; // 1: blend last pixel
-
-			int a = ha >> 1;	   // incl. left blended pixel, if any
-			int e = (he + 1) >> 1; // incl. right blended pixel, if any
-
-			const Color* q = pixels;
-			pixels		   = q + e - a; // skip over left-blended + center-full + right-blended pixels
-
-			if (a < 0)
-			{
-				q -= a;
-				a  = 0;
-				af = 0;
-			}
-			if (e > screen_width())
-			{
-				e  = screen_width();
-				ef = 0;
-			}
-
-			if (blend) // ghostly image requested => all pixels are blended
-			{
-				while (a < e) scanline[a++].blend_with(*q++);
-			}
-			else
-			{
-				if (af && a < e) { scanline[a++].blend_with(*q++); }
-				while (a < e - ef) scanline[a++] = *q++;
-				if (ef && a < e) { scanline[a].blend_with(*q); }
-			}
-
-			if (is_pfx()) return false;	 // this is the next line
-			if (!is_skip()) return true; // end of shape
-
-			// skip gap and draw more pixels
-			skip_cmd();
-			hx = he;
-		}
-
-		x = hx >> 1; // round down: same as in skip_row()
+		// skip gap and draw more pixels
+		skip_cmd();
+		x += count;
 	}
 }
 
-
-// ****************************** Constructor helpers ************************************
-
-template<Graphics::ColorMode CM>
-Color* create_frame(Graphics::Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x, int8 hot_y) throws
+template<>
+inline bool __attribute__((section(".scratch_x.render_one_row")))
+Shape<Softened>::render_row(int& x, Color* scanline, bool blend) noexcept
 {
-	// create a NotAnimated shape in the supplied pixels[] buffer
-	// return pointer behind the created data.
-	// used in the constructor
+	// "softening" is done by scaling down the image 2:1 horizontally.
+	// => half-set pixels l+r of a stripe are blended with the underlying one.
+	// => pfx.dx and pfx.width are measuered in 1/2 pixels.
+
+	int hx = x << 1; // we work in "double width space"
+
+	for (;;)
+	{
+		assert(is_pfx());
+
+		int ha = hx += pfx().dx;
+		int he = ha + pfx().width;
+		skip_pfx();
+
+		bool af = ha & 1; // 1: blend 1st pixel
+		bool ef = he & 1; // 1: blend last pixel
+
+		int a = ha >> 1;	   // incl. left blended pixel, if any
+		int e = (he + 1) >> 1; // incl. right blended pixel, if any
+
+		const Color* q = pixels;
+		pixels		   = q + e - a; // skip over left-blended + center-full + right-blended pixels
+
+		if (a < 0)
+		{
+			q -= a;
+			a  = 0;
+			af = 0;
+		}
+		if (e > screen_width())
+		{
+			e  = screen_width();
+			ef = 0;
+		}
+
+		if (blend) // ghostly image requested => all pixels are blended
+		{
+			while (a < e) scanline[a++].blend_with(*q++);
+		}
+		else
+		{
+			if (af && a < e) { scanline[a++].blend_with(*q++); }
+			while (a < e - ef) scanline[a++] = *q++;
+			if (ef && a < e) { scanline[a].blend_with(*q); }
+		}
+
+		if (!is_skip()) break; // next line / end of shape
+
+		// skip gap and draw more pixels
+		skip_cmd();
+		hx = he;
+	}
+
+	x = hx >> 1; // round down: same as in skip_row()
+	return is_end();
+}
+
+
+// ****************************** Constructor & helpers ************************************
+
+template<Softening SOFT>
+template<Graphics::ColorMode CM>
+Color* Shape<SOFT>::new_frame(
+	Graphics::Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x, int8 hot_y) throws
+{
+	// TODO SOFT
 
 	using namespace Graphics;
-	using Shape = Video::Shape<NotAnimated, NotSoftened>;
+	using Shape = Video::Shape<NotSoftened>;
 
 	Shape::PFX a_pfx;
 	Color*	   pixels0 = nullptr;
@@ -483,70 +417,18 @@ Color* create_frame(Graphics::Pixmap<CM>& pm, uint transparent_pixel, const Colo
 	}
 }
 
+
 template<Softening SOFT>
 template<Graphics::ColorMode CM>
-Color* Shape<NotAnimated, SOFT>::new_frame(Pixmap<CM>& pm, uint transp_pixel, const Color* clut, int8 hot_x, int8 hot_y)
-{
-	return create_frame(pm, transp_pixel, clut, hot_x, hot_y);
-}
-
-
-// **************************** AnimatedShape constructor **************************************
-
-template<Softening SOFT>
-Shape<Animated, SOFT>::Shape(super* frames, uint16* durations, uint num_frames) :
-	frames(new super[num_frames]),
-	durations(new uint16[num_frames]),
-	num_frames(num_frames)
-{
-	memcpy(this->frames, frames, num_frames * sizeof(super));
-	memcpy(this->durations, durations, num_frames * sizeof(uint16));
-}
-
-template<Softening SOFT>
-Shape<Animated, SOFT>::~Shape() noexcept
-{
-	delete[] frames;
-	delete[] durations;
-}
-
-template<Softening SOFT>
-Shape<Animated, SOFT>::Shape(const Shape& q) : Shape(q.frames, q.durations, q.num_frames)
+Shape<SOFT>::Shape(Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x, int8 hot_y) throws :
+	pixels(new_frame(pm, transparent_pixel, clut, hot_x, hot_y))
 {}
 
 template<Softening SOFT>
-Shape<Animated, SOFT>::Shape(Shape&& q) noexcept :
-	super(q),
-	frames(q.frames),
-	durations(q.durations),
-	num_frames(q.num_frames)
-{
-	q.frames	 = nullptr;
-	q.durations	 = nullptr;
-	q.num_frames = 0;
-}
-
-template<Softening SOFT>
-Shape<Animated, SOFT>& Shape<Animated, SOFT>::operator=(const Shape<Animated, SOFT>& q)
-{
-	if (this != &q)
-	{
-		~Shape();
-		new (this) Shape(q);
-	}
-	return *this;
-}
-
-template<Softening SOFT>
-Shape<Animated, SOFT>& Shape<Animated, SOFT>::operator=(Shape<Animated, SOFT>&& q)
-{
-	if (this != &q)
-	{
-		~Shape();
-		new (this) Shape(std::move(q));
-	}
-	return *this;
-}
+template<Graphics::ColorMode CM, typename std::enable_if_t<Graphics::is_true_color(CM), int>>
+Shape<SOFT>::Shape(Pixmap<CM>& pm, uint transparent_pixel, int8 hot_x, int8 hot_y) throws :
+	pixels(new_frame(pm, transparent_pixel, nullptr, hot_x, hot_y))
+{}
 
 } // namespace kio::Video
 
