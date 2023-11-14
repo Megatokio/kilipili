@@ -26,21 +26,21 @@ using namespace Graphics;
 
 
 spin_lock_t*		displaylist_spinlock = nullptr;
-static volatile int hot_row				 = 0; // set by renderScanline(): the currently displayed screen row
-bool				hotlist_overflow	 = false;
+static volatile int hot_row				 = 0;	  // the currently displayed screen row
+bool				hotlist_overflow	 = false; // set by add_to_hotlist()
 
 
 // =======================================================================
 // Sprite:
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-bool Sprite<WZ, ANIM, SOFT>::is_hot() const noexcept
+template<ZPlane WZ, Softening SOFT>
+bool Sprite<WZ, NotAnimated, SOFT>::is_hot() const noexcept
 {
 	return hot_row >= y && hot_row < y + height();
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprite<WZ, ANIM, SOFT>::wait_while_hot() const noexcept
+template<ZPlane WZ, Softening SOFT>
+void Sprite<WZ, NotAnimated, SOFT>::wait_while_hot() const noexcept
 {
 	while (is_hot()) sleep_us(500);
 }
@@ -57,7 +57,7 @@ Sprites<WZ, ANIM, SOFT>::~Sprites() noexcept
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::Sprites::setup(coord __unused width)
+void Sprites<WZ, ANIM, SOFT>::setup(coord __unused width)
 {
 	// called by VideoController before first vblank()
 	// we don't clear the displaylist and keep all sprites if there are already any
@@ -70,7 +70,28 @@ void Sprites<WZ, ANIM, SOFT>::Sprites::setup(coord __unused width)
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::Sprites::teardown() noexcept
+void Sprites<WZ, ANIM, SOFT>::clear_displaylist(bool delete_sprites) noexcept
+{
+	stackinfo();
+
+	while (displaylist)
+	{
+		Sprite* s;
+		{
+			Lock _;
+			s = displaylist;
+			if (s) _unlink(s);
+		}
+		if (delete_sprites) delete s;
+	}
+
+	Lock _;
+	next_sprite = nullptr;
+	num_hot		= 0;
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::teardown() noexcept
 {
 	// called by VideoController
 
@@ -78,7 +99,6 @@ void Sprites<WZ, ANIM, SOFT>::Sprites::teardown() noexcept
 	assert(get_core_num() == 1);
 
 	clear_displaylist();
-	assert(displaylist == nullptr);
 
 	max_hot = num_hot = 0;
 	delete[] hotlist;
@@ -86,15 +106,74 @@ void Sprites<WZ, ANIM, SOFT>::Sprites::teardown() noexcept
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::Sprites::_unlink(Sprite* s) noexcept
+Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::add(Sprite* sprite) throws
 {
+	stackinfo();
+
+	Lock _;
+	_link(sprite);
+	return sprite;
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::add(Sprite* sprite, int x, int y, uint8 z) throws
+{
+	stackinfo();
+
+	sprite->x = x - sprite->hot_x();
+	sprite->y = y - sprite->hot_y();
+	sprite->z = z;
+
+	return add(sprite);
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::remove(Sprite* sprite) noexcept
+{
+	stackinfo();
+	assert(is_in_displaylist(sprite));
+
+	Lock _;
+	_unlink(sprite);
+	return sprite;
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::move(Sprite* s, coord x, coord y) noexcept
+{
+	stackinfo();
+	assert(is_in_displaylist(s));
+
+	Lock _;
+	_move(s, x - s->hot_x(), y - s->hot_y());
+}
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void Sprites<WZ, ANIM, SOFT>::move(Sprite* s, const Point& p) noexcept
+{
+	stackinfo();
+	assert(is_in_displaylist(s));
+
+	Lock _;
+	_move(s, p.x - s->hot_x(), p.y - s->hot_y());
+}
+
+
+// -------------------------------
+// in RAM:
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void RAM Sprites<WZ, ANIM, SOFT>::_unlink(Sprite* s) noexcept
+{
+	// used in renderScanline()
+
 	assert(is_in_displaylist(s));
 	assert(is_spin_locked(displaylist_spinlock));
 
-	if unlikely (next_sprite == s) next_sprite = s->next;
+	if unlikely (next_sprite == s) next_sprite = static_cast<Sprite*>(s->next);
 
 	if (s->prev) s->prev->next = s->next;
-	else displaylist = s->next;
+	else displaylist = static_cast<Sprite*>(s->next);
 	s->prev = nullptr;
 
 	if (s->next) s->next->prev = s->prev;
@@ -102,8 +181,10 @@ void Sprites<WZ, ANIM, SOFT>::Sprites::_unlink(Sprite* s) noexcept
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::Sprites::_link_after(Sprite* s, Sprite* other) noexcept
+void __always_inline Sprites<WZ, ANIM, SOFT>::_link_after(Sprite* s, Sprite* other) noexcept
 {
+	// used in renderScanline()
+
 	assert(!is_in_displaylist(s));
 	assert(other && is_in_displaylist(other));
 	assert(is_spin_locked(displaylist_spinlock));
@@ -116,8 +197,10 @@ void Sprites<WZ, ANIM, SOFT>::Sprites::_link_after(Sprite* s, Sprite* other) noe
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::Sprites::_link_before(Sprite* s, Sprite* other) noexcept
+void __always_inline Sprites<WZ, ANIM, SOFT>::_link_before(Sprite* s, Sprite* other) noexcept
 {
+	// used in renderScanline()
+
 	assert(!is_in_displaylist(s));
 	assert(other && is_in_displaylist(other));
 	assert(is_spin_locked(displaylist_spinlock));
@@ -131,7 +214,7 @@ void Sprites<WZ, ANIM, SOFT>::Sprites::_link_before(Sprite* s, Sprite* other) no
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::Sprites::_link(Sprite* s) noexcept
+void Sprites<WZ, ANIM, SOFT>::_link(Sprite* s) noexcept
 {
 	stackinfo();
 	assert(!is_in_displaylist(s));
@@ -143,7 +226,7 @@ void Sprites<WZ, ANIM, SOFT>::Sprites::_link(Sprite* s) noexcept
 	if (other && y > other->y)
 	{
 		Sprite* next;
-		while ((next = other->next) && y > next->y) { other = next; }
+		while ((next = static_cast<Sprite*>(other->next)) && y > next->y) { other = next; }
 		_link_after(s, other);
 	}
 	else
@@ -155,141 +238,40 @@ void Sprites<WZ, ANIM, SOFT>::Sprites::_link(Sprite* s) noexcept
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::Sprites::_move(Sprite* s, coord x, coord y) noexcept
+void RAM Sprites<WZ, ANIM, SOFT>::_move(Sprite* s, coord x, coord y) noexcept
 {
+	// used in renderScanline()
+
 	stackinfo();
 	assert(is_spin_locked(displaylist_spinlock));
 
 	s->x = x;
 	s->y = y;
 
-	Sprite* other;
+	Video::Sprite<WZ, NotAnimated, SOFT>* other;
+
 	if ((other = s->prev) && y < other->y)
 	{
 		_unlink(s);
-		Sprite* prev = other->prev;
+		auto* prev = other->prev;
 		do other = prev;
 		while ((prev = other->prev) && y < prev->y);
-		_link_before(s, other);
+		_link_before(s, static_cast<Sprite*>(other));
 	}
 	else if ((other = s->next) && y > other->y)
 	{
 		_unlink(s);
-		Sprite* next = other->next;
+		auto* next = other->next;
 		do other = next;
 		while ((next = other->next) && y > next->y);
-		_link_after(s, other);
+		_link_after(s, static_cast<Sprite*>(other));
 	}
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::Sprites::add(Shape shape, int x, int y, uint8 z) throws
+void RAM Sprites<WZ, ANIM, SOFT>::add_to_hotlist(Shape shape, int x, int dy, uint z) noexcept
 {
-	stackinfo();
-
-	Sprite* s = new Sprite(shape, x, y, z);
-	Lock	_;
-	_link(s);
-	return s;
-}
-
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::Sprites::remove(Sprite* s) noexcept
-{
-	stackinfo();
-	assert(is_in_displaylist(s));
-
-	{
-		Lock _;
-		_unlink(s);
-	}
-	delete s;
-}
-
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::move(Sprite* s, coord x, coord y) noexcept
-{
-	stackinfo();
-	assert(is_in_displaylist(s));
-
-	Lock _;
-	_move(s, x, y);
-}
-
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::move(Sprite* s, const Point& p) noexcept
-{
-	stackinfo();
-	assert(is_in_displaylist(s));
-
-	Lock _;
-	_move(s, p.x, p.y);
-}
-
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::Sprites::clear_displaylist() noexcept
-{
-	stackinfo();
-
-	while (displaylist)
-	{
-		Sprite* s;
-		{
-			Lock _;
-			s = displaylist;
-			if (s) _unlink(s);
-		}
-		delete s;
-	}
-}
-
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::vblank() noexcept
-{
-	// called by VideoController before first renderScanline().
-	// called by VideoController at start of each frame.
-	// variants: with and without animation.
-
-	stackinfo();
-	assert(get_core_num() == 1);
-
-	num_hot		= 0;
-	hot_row		= -9999;
-	next_sprite = displaylist;
-
-	if constexpr (ANIM == Animated)
-	{
-		// in a RC the other thread may have just unlinked the sprite.
-		// remove(): the sprite will be deleted and subsequently overwritten.
-		//			 but sprite.next was not nulled and can be used if we act fast!
-		// move():   we will miss this animation. depending on whether the sprite is moved up or down
-		//			 animations for other sprites will be done twice or missed as well.
-
-		for (Sprite* sprite = displaylist; sprite; sprite = sprite->next)
-		{
-			if (--sprite->countdown > 0) continue;
-
-			Lock _;
-
-			if (is_in_displaylist(sprite))
-			{
-				Shape& s		  = sprite->shape;
-				int	   x		  = sprite->x + s.hot_x();
-				int	   y		  = sprite->y + s.hot_y();
-				s				  = s.next_frame();
-				sprite->countdown = s.duration() - 1;
-				_move(sprite, x - s.hot_x(), y - s.hot_y());
-			}
-		}
-	}
-}
-
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::add_to_hotlist(Shape shape, int x, int dy, uint8 z) noexcept
-{
-	// add shape to the hotlist.
-	// variants: with or without Z
-	//			 with or without animation
+	// used in renderScanline()
 
 	if unlikely (num_hot == max_hot)
 	{
@@ -299,7 +281,7 @@ void Sprites<WZ, ANIM, SOFT>::add_to_hotlist(Shape shape, int x, int dy, uint8 z
 
 	shape.skip_preamble();
 
-	for (; dy < 0; dy++) // skip over dy rows if dy < 0:
+	for (; dy < 0; dy++) // skip over dy rows if dy < 0
 	{
 		shape.skip_row(x);
 		if unlikely (shape.is_end()) return;
@@ -322,18 +304,12 @@ void Sprites<WZ, ANIM, SOFT>::add_to_hotlist(Shape shape, int x, int dy, uint8 z
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) noexcept
+void RAM Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) noexcept
 {
-	// render all sprites into the scanline
-	// variants: with or without Z --> add_to_hotlist()
-	// variants: with or without animation --> add_to_hotlist()
-	// variants: normal or softened --> hot_shape.render_one_row()
-	// flag:     ghostly --> hot_shape.render_one_row()
-
 	stackinfo();
 	assert(get_core_num() == 1);
 
-	kio::Video::hot_row = hot_row;
+	Video::hot_row = hot_row;
 
 	// add sprites coming into range of scanline:
 	// adds sprites which start in the current row
@@ -344,7 +320,7 @@ void Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) noex
 	while (s && s->y <= hot_row)
 	{
 		if (s->x < screen_width() && s->x + s->width() > 0) { add_to_hotlist(s->shape, s->x, s->y - hot_row, s->z); }
-		next_sprite = s = s->next;
+		next_sprite = s = static_cast<Sprite*>(s->next);
 	}
 
 	// render shapes into framebuffer and
@@ -358,6 +334,55 @@ void Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) noex
 	}
 }
 
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
+void RAM Sprites<WZ, ANIM, SOFT>::vblank() noexcept
+{
+	// called by VideoController before first renderScanline().
+	// called by VideoController at start of each frame.
+	// variants: with and without animation.
+
+	stackinfo();
+	assert(get_core_num() == 1);
+
+	num_hot		= 0;
+	hot_row		= -9999;
+	next_sprite = displaylist;
+
+	if constexpr (ANIM == Animated)
+	{
+		// in a RC the other thread may have just unlinked the sprite.
+		// remove(): the sprite will be deleted and subsequently overwritten.
+		//			 but sprite.next was not nulled and can be used if we act fast!
+		// move():   we will miss this animation. depending on whether the sprite is moved up or down
+		//			 animations for other sprites will be done twice or missed as well.
+
+		for (Sprite* s = displaylist; s; s = static_cast<Sprite*>(s->next))
+		{
+			if (--s->countdown > 0) continue;
+
+			Lock _;
+
+			if (is_in_displaylist(s))
+			{
+				int dx = s->hot_x();
+				int dy = s->hot_y();
+
+				if (++s->frame_idx >= s->animated_shape.num_frames) s->frame_idx = 0;
+				s->countdown = s->animated_shape.durations[s->frame_idx];
+				s->shape	 = s->animated_shape.frames[s->frame_idx];
+
+				dx -= s->hot_x();
+				dy -= s->hot_y();
+
+				s->x += dx;
+				if (dy) _move(s, s->x, s->y + dy);
+			}
+		}
+	}
+}
+
+
+// the linker will know what we need:
 template class Sprites<NoZ, NotAnimated, NotSoftened>;
 template class Sprites<NoZ, NotAnimated, Softened>;
 template class Sprites<NoZ, Animated, NotSoftened>;

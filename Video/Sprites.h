@@ -30,20 +30,28 @@ class Sprites;
 	Sprites don't manage the lifetime of the shape => they don't delete it in ~Sprite().  
 */
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-class Sprite
+class Sprite;
+
+
+template<ZPlane WZ, Softening SOFT>
+class Sprite<WZ, NotAnimated, SOFT>
 {
+protected:
 	Sprite* next = nullptr; // linking in the internal displaylist
 	Sprite* prev = nullptr;
 
 public:
 	NO_COPY_MOVE(Sprite);
-	friend Sprites<WZ, ANIM, SOFT>;
-	using Shape = Video::Shape<ANIM, SOFT>;
+	friend Sprites<WZ, NotAnimated, SOFT>;
+	friend Sprites<WZ, Animated, SOFT>;
+	using Shape = Video::Shape<SOFT>;
 
 	uint8 width() const noexcept { return shape.preamble().width; }
 	uint8 height() const noexcept { return shape.preamble().height; }
-	coord xpos() const noexcept { return x + shape.hot_x(); }
-	coord ypos() const noexcept { return y + shape.hot_y(); }
+	int8  hot_x() const noexcept { return shape.hot_x(); }
+	int8  hot_y() const noexcept { return shape.hot_y(); }
+	coord xpos() const noexcept { return x + hot_x(); }
+	coord ypos() const noexcept { return y + hot_y(); }
 
 	bool is_hot() const noexcept;
 	void wait_while_hot() const noexcept;
@@ -52,25 +60,44 @@ public:
 	coord x = 0; // position of top left corner, already adjusted by hot_x.
 	coord y = 0; // position of top left corner, already adjusted by hot_y.
 
-	uint8 z;			   // if HasZ
-	uint8 countdown;	   // if Animated
-	bool  ghostly = false; // blend with 50& opacity
-	char  _padding;
+	uint16 z;				// if HasZ
+	bool   ghostly = false; // translucent
+	char   _padding;
 
-private:
-	Sprite(Shape s, int x, int y, uint8 z) noexcept : shape(s), x(x), y(y), z(z) {}
+	Sprite(Shape s, coord x = 0, coord y = 0, uint16 z = 0) noexcept : shape(s), x(x), y(y), z(z) {}
 	~Sprite() noexcept = default;
 };
 
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-struct HotShape : public Shape<ANIM, SOFT>
+// ==============================================================================
+
+
+template<ZPlane WZ, Softening SOFT>
+class Sprite<WZ, Animated, SOFT> : public Sprite<WZ, NotAnimated, SOFT>
 {
-	int x; // accumulated x position of current row
+public:
+	using AnimatedShape = Video::AnimatedShape<SOFT>;
+	using super			= Sprite<WZ, NotAnimated, SOFT>;
+
+	AnimatedShape animated_shape; // collection of frames of this sprite.
+	int16		  countdown;
+	uint16		  frame_idx;
 };
-template<Animation ANIM, Softening SOFT>
-struct HotShape<HasZ, ANIM, SOFT> : public HotShape<NoZ, ANIM, SOFT>
+
+
+// ==============================================================================
+
+
+template<ZPlane WZ, Softening SOFT>
+struct HotShape : public Shape<SOFT>
 {
+	int x; // accumulated x position for current row
+};
+
+template<Softening SOFT>
+struct HotShape<HasZ, SOFT> : public Shape<SOFT>
+{
+	int	 x;
 	uint z;
 };
 
@@ -80,12 +107,16 @@ struct HotShape<HasZ, ANIM, SOFT> : public HotShape<NoZ, ANIM, SOFT>
 	to display sprites.
 */
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
+class Sprites;
+
+
+template<ZPlane WZ, Animation ANIM, Softening SOFT>
 class Sprites : public VideoPlane
 {
 public:
 	using Sprite   = Video::Sprite<WZ, ANIM, SOFT>;
-	using Shape	   = Video::Shape<ANIM, SOFT>;
-	using HotShape = Video::HotShape<WZ, ANIM, SOFT>;
+	using Shape	   = Video::Shape<SOFT>;
+	using HotShape = Video::HotShape<WZ, SOFT>;
 
 	Sprites() noexcept = default;
 	virtual ~Sprites() noexcept override;
@@ -95,13 +126,14 @@ public:
 	virtual void vblank() noexcept override;
 	virtual void renderScanline(int row, uint32* scanline) noexcept override;
 
-	Sprite* add(Shape s, int x, int y, uint8 z = 0) throws;
-	void	remove(Sprite* sprite) noexcept;
+	Sprite* add(Sprite* s) throws;
+	Sprite* add(Sprite* s, int x, int y, uint8 z = 0) throws;
+	Sprite* remove(Sprite* sprite) noexcept;
 	void	move(Sprite*, coord x, coord y) noexcept;
 	void	move(Sprite*, const Point& p) noexcept;
 
-	bool is_in_displaylist(Sprite* s) const noexcept { return s->prev || displaylist == s; }
-	void clear_displaylist() noexcept;
+	bool __always_inline is_in_displaylist(Sprite* s) const noexcept { return s->prev || displaylist == s; }
+	void				 clear_displaylist(bool delete_sprites = false) noexcept;
 
 private:
 	void _unlink(Sprite*) noexcept;
@@ -123,7 +155,7 @@ private:
 	uint	  max_hot			 = 0;
 	uint	  num_hot			 = 0;
 
-	void add_to_hotlist(Shape, int x, int dy, uint8 z) noexcept;
+	void add_to_hotlist(Shape, int x, int dy, uint z) noexcept;
 };
 
 
@@ -131,10 +163,10 @@ private:
 
 extern template class Sprites<NoZ, NotAnimated, NotSoftened>;
 extern template class Sprites<NoZ, NotAnimated, Softened>;
-extern template class Sprites<NoZ, Animated, NotSoftened>;
-extern template class Sprites<NoZ, Animated, Softened>;
 extern template class Sprites<HasZ, NotAnimated, NotSoftened>;
 extern template class Sprites<HasZ, NotAnimated, Softened>;
+extern template class Sprites<NoZ, Animated, NotSoftened>;
+extern template class Sprites<NoZ, Animated, Softened>;
 extern template class Sprites<HasZ, Animated, NotSoftened>;
 extern template class Sprites<HasZ, Animated, Softened>;
 
