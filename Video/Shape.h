@@ -3,11 +3,11 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Color.h"
 #include "Graphics/Pixmap_wAttr.h"
 #include "Graphics/geometry.h"
 #include "VideoBackend.h"
 #include "kilipili_cdefs.h"
+#include "video_types.h"
 
 namespace kio::Video
 {

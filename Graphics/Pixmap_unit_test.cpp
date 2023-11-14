@@ -12,33 +12,33 @@ using namespace kio::Graphics;
 using namespace kio;
 
 // clang-format off
-#define ALL_PIXMAPS Bitmap, Pixmap_i2, Pixmap_i4, Pixmap_i8, Pixmap_rgb
+#define ALL_PIXMAPS Bitmap, Pixmap_i2, Pixmap_i4, Pixmap_i8, Pixmap_i16
 #define ALL_PIXMAPa1\
 	Pixmap<colormode_a1w1_i4>, \
 	Pixmap<colormode_a1w1_i8>, \
-	Pixmap<colormode_a1w1_rgb>, \
+	Pixmap<colormode_a1w1_i16>, \
 	Pixmap<colormode_a1w2_i4>, \
 	Pixmap<colormode_a1w2_i8>, \
-	Pixmap<colormode_a1w2_rgb>, \
+	Pixmap<colormode_a1w2_i16>, \
 	Pixmap<colormode_a1w4_i4>, \
 	Pixmap<colormode_a1w4_i8>, \
-	Pixmap<colormode_a1w4_rgb>, \
+	Pixmap<colormode_a1w4_i16>, \
 	Pixmap<colormode_a1w8_i4>, \
 	Pixmap<colormode_a1w8_i8>, \
-	Pixmap<colormode_a1w8_rgb> 
+	Pixmap<colormode_a1w8_i16> 
 #define ALL_PIXMAPa2\
 	Pixmap<colormode_a2w1_i4>, \
 	Pixmap<colormode_a2w1_i8>, \
-	Pixmap<colormode_a2w1_rgb>, \
+	Pixmap<colormode_a2w1_i16>, \
 	Pixmap<colormode_a2w2_i4>, \
 	Pixmap<colormode_a2w2_i8>, \
-	Pixmap<colormode_a2w2_rgb>, \
+	Pixmap<colormode_a2w2_i16>, \
 	Pixmap<colormode_a2w4_i4>, \
 	Pixmap<colormode_a2w4_i8>, \
-	Pixmap<colormode_a2w4_rgb>, \
+	Pixmap<colormode_a2w4_i16>, \
 	Pixmap<colormode_a2w8_i4>, \
 	Pixmap<colormode_a2w8_i8>, \
-	Pixmap<colormode_a2w8_rgb>
+	Pixmap<colormode_a2w8_i16>
 // clang-format on
 
 

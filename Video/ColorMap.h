@@ -4,8 +4,8 @@
 
 #pragma once
 #include "Color.h"
-#include "graphics_types.h"
 #include "kilipili_common.h"
+#include "video_types.h"
 
 namespace kio::Video
 {

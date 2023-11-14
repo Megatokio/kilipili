@@ -37,7 +37,7 @@ using Pixmap_i1	 = Pixmap<colormode_i1>;
 using Pixmap_i2	 = Pixmap<colormode_i2>;
 using Pixmap_i4	 = Pixmap<colormode_i4>;
 using Pixmap_i8	 = Pixmap<colormode_i8>;
-using Pixmap_rgb = Pixmap<colormode_rgb>;
+using Pixmap_i16 = Pixmap<colormode_i16>;
 
 
 // how ugly can it be?
@@ -394,7 +394,7 @@ extern template class Pixmap<colormode_i1>;
 extern template class Pixmap<colormode_i2>;
 extern template class Pixmap<colormode_i4>;
 extern template class Pixmap<colormode_i8>;
-extern template class Pixmap<colormode_rgb>;
+extern template class Pixmap<colormode_i16>;
 
 } // namespace kio::Graphics
 

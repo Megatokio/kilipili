@@ -197,7 +197,7 @@ template class Pixmap<colormode_i1>;
 template class Pixmap<colormode_i2>;
 template class Pixmap<colormode_i4>;
 template class Pixmap<colormode_i8>;
-template class Pixmap<colormode_rgb>;
+template class Pixmap<colormode_i16>;
 
 
 } // namespace kio::Graphics

@@ -103,7 +103,7 @@ enum ColorMode : uint8 {
 	colormode_i2,
 	colormode_i4,
 	colormode_i8,
-	colormode_rgb,
+	colormode_i16,
 
 	// color attributes assign colors to a rectangular cell of pixels.
 	// color attributes are used to disguise the fact that we don't have enough memory
@@ -116,48 +116,48 @@ enum ColorMode : uint8 {
 	// very cpu intensive! not recommended!
 	colormode_a1w1_i4,	// 1 bit/pixel, 1 pixel/attr, 4 bit indexed colors
 	colormode_a1w1_i8,	// 1 bit/pixel, 1 pixel/attr, 8 bit indexed colors
-	colormode_a1w1_rgb, // 1 bit/pixel, 1 pixel/attr, 16 bit true color
+	colormode_a1w1_i16, // 1 bit/pixel, 1 pixel/attr, 16 bit true color
 
 	// attribute width 2 pixel to support proportional text and horizontal scrollers:
 	// very cpu intensive!
 	colormode_a1w2_i4,	// 1 bit/pixel, 2 pixel/attr, 4 bit indexed colors
 	colormode_a1w2_i8,	// 1 bit/pixel, 2 pixel/attr, 8 bit indexed colors
-	colormode_a1w2_rgb, // 1 bit/pixel, 2 pixel/attr, 16 bit true color
+	colormode_a1w2_i16, // 1 bit/pixel, 2 pixel/attr, 16 bit true color
 
 	// attribute width 4 pixel still allows good horizontal scrolling at 4 pixel/frame:
 	// very cpu intensive!
 	colormode_a1w4_i4,	// 1 bit/pixel, 4 pixel/attr, 4 bit indexed colors
 	colormode_a1w4_i8,	// 1 bit/pixel, 4 pixel/attr, 8 bit indexed colors
-	colormode_a1w4_rgb, // 1 bit/pixel, 4 pixel/attr, 16 bit true color
+	colormode_a1w4_i16, // 1 bit/pixel, 4 pixel/attr, 16 bit true color
 
 	// attribute width 8 pixel matches character cell width of 8x12 pixel terminal font:
 	// the ZX Spectrum used 8x8 pixel attribute cells.
 	// THESE ARE THE RECOMMENDED ATTRIBUTE MODES!
 	colormode_a1w8_i4,	// 1 bit/pixel, 8 pixel/attr, 4 bit indexed colors
 	colormode_a1w8_i8,	// 1 bit/pixel, 8 pixel/attr, 8 bit indexed colors
-	colormode_a1w8_rgb, // 1 bit/pixel, 8 pixel/attr, 16 bit true color
+	colormode_a1w8_i16, // 1 bit/pixel, 8 pixel/attr, 16 bit true color
 
 	// attributes width 2 bit per pixel to provide attribute cells with a total of 4 different colors:
 	// very cpu intensive!
 
 	colormode_a2w1_i4,	// 2 bit/pixel, 1 pixel/attr, 4 bit indexed colors
 	colormode_a2w1_i8,	// 2 bit/pixel, 1 pixel/attr, 8 bit indexed colors
-	colormode_a2w1_rgb, // 2 bit/pixel, 1 pixel/attr, 16 bit true color
+	colormode_a2w1_i16, // 2 bit/pixel, 1 pixel/attr, 16 bit true color
 
 	colormode_a2w2_i4,	// 2 bit/pixel, 2 pixel/attr, 4 bit indexed colors
 	colormode_a2w2_i8,	// 2 bit/pixel, 2 pixel/attr, 8 bit indexed colors
-	colormode_a2w2_rgb, // 2 bit/pixel, 2 pixel/attr, 16 bit true color
+	colormode_a2w2_i16, // 2 bit/pixel, 2 pixel/attr, 16 bit true color
 
 	colormode_a2w4_i4,	// 2 bit/pixel, 4 pixel/attr, 4 bit indexed colors
 	colormode_a2w4_i8,	// 2 bit/pixel, 4 pixel/attr, 8 bit indexed colors
-	colormode_a2w4_rgb, // 2 bit/pixel, 4 pixel/attr, 16 bit true color
+	colormode_a2w4_i16, // 2 bit/pixel, 4 pixel/attr, 16 bit true color
 
 	colormode_a2w8_i4,	// 2 bit/pixel, 8 pixel/attr, 4 bit indexed colors
 	colormode_a2w8_i8,	// 2 bit/pixel, 8 pixel/attr, 8 bit indexed colors
-	colormode_a2w8_rgb, // 2 bit/pixel, 8 pixel/attr, 16 bit true color
+	colormode_a2w8_i16, // 2 bit/pixel, 8 pixel/attr, 16 bit true color
 };
 
-constexpr uint num_colormodes = colormode_a2w8_rgb + 1;
+constexpr uint num_colormodes = colormode_a2w8_i16 + 1;
 
 
 constexpr ColorMode calc_colormode(AttrMode am, AttrWidth aw, ColorDepth cd) noexcept
@@ -168,24 +168,20 @@ constexpr ColorMode calc_colormode(AttrMode am, AttrWidth aw, ColorDepth cd) noe
 
 constexpr AttrMode get_attrmode(ColorMode cm) noexcept
 {
-	return cm <= colormode_rgb ? attrmode_none : cm <= colormode_a1w8_rgb ? attrmode_1bpp : attrmode_2bpp;
+	return cm <= colormode_i16 ? attrmode_none : cm <= colormode_a1w8_i16 ? attrmode_1bpp : attrmode_2bpp;
 }
 
 constexpr AttrWidth get_attrwidth(ColorMode cm) noexcept
 {
-	return cm <= colormode_rgb ? attrwidth_none : AttrWidth(((cm - colormode_a1w1_i4) / 3) & 3);
+	return cm <= colormode_i16 ? attrwidth_none : AttrWidth(((cm - colormode_a1w1_i4) / 3) & 3);
 }
 
 constexpr ColorDepth get_colordepth(ColorMode cm) noexcept
 {
-	return cm <= colormode_rgb ? ColorDepth(cm) : ColorDepth(colordepth_4bpp + (cm - colormode_i4) % 3);
+	return cm <= colormode_i16 ? ColorDepth(cm) : ColorDepth(colordepth_4bpp + (cm - colormode_i4) % 3);
 }
 
-constexpr bool is_direct_color(ColorMode cm) noexcept { return cm <= colormode_rgb; }
-constexpr bool is_indexed_color(ColorDepth cd) noexcept { return cd != colordepth_16bpp; }
-constexpr bool is_indexed_color(ColorMode cm) noexcept { return is_indexed_color(get_colordepth(cm)); }
-constexpr bool is_true_color(ColorDepth cd) noexcept { return cd == colordepth_16bpp; }
-constexpr bool is_true_color(ColorMode cm) noexcept { return !is_indexed_color(cm); }
+constexpr bool is_direct_color(ColorMode cm) noexcept { return cm <= colormode_i16; }
 constexpr bool is_attribute_mode(ColorMode cm) noexcept { return !is_direct_color(cm); }
 
 inline void split_colormode(ColorMode cm, AttrMode* am, AttrWidth* aw, ColorDepth* cd) noexcept
@@ -205,15 +201,15 @@ static_assert(calc_colormode(attrmode_2bpp, attrwidth_2px, colordepth_8bpp) == c
 static_assert(get_attrmode(colormode_i4) == attrmode_none);
 static_assert(get_attrmode(colormode_a1w1_i4) == attrmode_1bpp);
 static_assert(get_attrmode(colormode_a2w4_i4) == attrmode_2bpp);
-static_assert(get_attrmode(colormode_a1w1_rgb) == attrmode_1bpp);
+static_assert(get_attrmode(colormode_a1w1_i16) == attrmode_1bpp);
 
 static_assert(get_attrwidth(colormode_i4) == attrwidth_none);
 static_assert(get_attrwidth(colormode_a1w1_i4) == attrwidth_1px);
 static_assert(get_attrwidth(colormode_a1w4_i4) == attrwidth_4px);
 static_assert(get_attrwidth(colormode_a1w4_i8) == attrwidth_4px);
-static_assert(get_attrwidth(colormode_a2w4_rgb) == attrwidth_4px);
+static_assert(get_attrwidth(colormode_a2w4_i16) == attrwidth_4px);
 
-static_assert(get_colordepth(colormode_rgb) == colordepth_16bpp);
+static_assert(get_colordepth(colormode_i16) == colordepth_16bpp);
 static_assert(get_colordepth(colormode_a1w1_i4) == colordepth_4bpp);
 static_assert(get_colordepth(colormode_a1w4_i4) == colordepth_4bpp);
 static_assert(get_colordepth(colormode_a1w4_i8) == colordepth_8bpp);
