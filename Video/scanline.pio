@@ -3,7 +3,7 @@
 ; https://opensource.org/licenses/BSD-2-Clause
 
 
-.program scanline		; version without clocks (what you normally need)
+.program scanline_vga	; version without clocks (what you normally need)
  
 .side_set 0				; no signals
 .define CLK 0			; no pixel clock
@@ -48,6 +48,63 @@ loop:
 .define DEN 0			; no data enable 
 
 .define BPP 16			; BPP must be 2^N and num_pixels*BPP % 32 must be 0
+
+		out y, 32		side 0			; read num_pixels-1    note could use EXEC_CMD
+.wrap_target 
+		wait irq, 4		side 0			; wait for trigger by timing_sm
+		mov x, y		side DEN		; reload count. also delays 1cc after wait as in original scanvideo code
+loop:
+		out  pins, BPP	side DEN		; output pixel
+		jmp  x-- loop	side (DEN+CLK)	; loop. also delays 1cc.
+		mov pins, null	side DEN		; black
+.wrap 
+
+
+.program scanline_vga_8bpp	; version without clocks (what you normally need)
+ 
+.side_set 0				; no signals
+.define CLK 0			; no pixel clock
+.define DEN 0			; no data enable 
+
+.define BPP 8			; BPP must be 2^N and num_pixels*BPP % 32 must be 0
+
+		out y, 32		side 0			; read num_pixels-1    note could use EXEC_CMD
+.wrap_target 
+		wait irq, 4		side 0			; wait for trigger by timing_sm
+		mov x, y		side DEN		; reload count. also delays 1cc after wait as in original scanvideo code
+loop:
+		out  pins, BPP	side DEN		; output pixel
+		jmp  x-- loop	side (DEN+CLK)	; loop. also delays 1cc.
+		mov pins, null	side DEN		; black
+.wrap 
+
+
+.program scanline_den_8bpp	; version with clock & den (for parallel LCD)
+ 
+.side_set 2				; 2 signals
+.define CLK 1			; pixel clock
+.define DEN 2			; data enable 
+
+.define BPP 8			; BPP must be 2^N and num_pixels*BPP % 32 must be 0
+
+		out y, 32		side 0			; read num_pixels-1    note could use EXEC_CMD
+.wrap_target 
+		wait irq, 4		side 0			; wait for trigger by timing_sm
+		mov x, y		side DEN		; reload count. also delays 1cc after wait as in original scanvideo code
+loop:
+		out  pins, BPP	side DEN		; output pixel
+		jmp  x-- loop	side (DEN+CLK)	; loop. also delays 1cc.
+		mov pins, null	side DEN		; black
+.wrap 
+
+
+.program scanline_clk_8bpp	; version with clock but no den
+ 
+.side_set 1				; 1 signal
+.define CLK 1			; pixel clock
+.define DEN 0			; no data enable 
+
+.define BPP 8			; BPP must be 2^N and num_pixels*BPP % 32 must be 0
 
 		out y, 32		side 0			; read num_pixels-1    note could use EXEC_CMD
 .wrap_target 

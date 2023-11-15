@@ -38,6 +38,7 @@ namespace kio ::Video
 
 #define video_pio pio0
 
+constexpr uint SIZEOF_COLOR	  = VIDEO_COLOR_PIN_COUNT <= 8 ? 1 : 2;
 constexpr uint SYNC_PIN_BASE  = VIDEO_SYNC_PIN_BASE;
 constexpr uint HSYNC_PIN	  = VIDEO_SYNC_PIN_BASE;
 constexpr uint VSYNC_PIN	  = VIDEO_SYNC_PIN_BASE + 1;
@@ -173,12 +174,16 @@ static void initialize_state_machines() noexcept
 	// load state machine programs:
 	timing_program_load_offset	 = uint8(pio_add_program(video_pio, &timing_program));
 	scanline_program_load_offset = uint8(pio_add_program(
-		video_pio, ENABLE_DEN	? &scanline_den_program :
-				   ENABLE_CLOCK ? &scanline_clk_program :
-								  &scanline_program));
+		video_pio, VIDEO_COLOR_PIN_COUNT <= 8 ? //
+					   ENABLE_DEN	? &scanline_den_8bpp_program :
+					   ENABLE_CLOCK ? &scanline_clk_8bpp_program :
+									  &scanline_vga_8bpp_program :
+					   ENABLE_DEN	? &scanline_den_program :
+					   ENABLE_CLOCK ? &scanline_clk_program :
+									  &scanline_vga_program));
 
 	// setup scanline state machine:
-	pio_sm_config config = scanline_program_get_default_config(scanline_program_load_offset);
+	pio_sm_config config = scanline_vga_program_get_default_config(scanline_program_load_offset);
 	sm_config_set_out_pins(&config, VIDEO_COLOR_PIN_BASE, VIDEO_COLOR_PIN_COUNT);
 	sm_config_set_out_shift(&config, true, true, 32); // autopull
 	sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
@@ -319,10 +324,10 @@ static void setup_dma(const VgaMode& vga_mode)
 
 	dma_channel_configure(
 		SCANLINE_DMA_DATA_CHANNEL, &config,
-		&video_pio->txf[SCANLINE_SM], // write address
-		nullptr,					  // read address: set by control channel
-		vga_mode.h_active() / 2,	  // count
-		false);						  // don't start now
+		&video_pio->txf[SCANLINE_SM],			  // write address
+		nullptr,								  // read address: set by control channel
+		vga_mode.h_active() / (4 / SIZEOF_COLOR), // count
+		false);									  // don't start now
 
 	// configure timing dma interrupt:
 
