@@ -109,7 +109,10 @@ void VideoController::core1_runner() noexcept
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
 	stackinfo();
-	exception_set_exclusive_handler(HARDFAULT_EXCEPTION, [] { panic("CORE1: HARD FAULT\n"); });
+	exception_set_exclusive_handler(HARDFAULT_EXCEPTION, [] {
+		// contraire to documentation, this sets the handler for both cores:
+		panic("CORE%i: HARD FAULT\n", get_core_num());
+	});
 
 	try
 	{
