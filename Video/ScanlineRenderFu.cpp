@@ -11,6 +11,8 @@
 */
 
 #include "ScanlineRenderFu.h"
+#include "basic_math.h"
+#include "video_types.h"
 #include <hardware/interp.h>
 #include <string.h>
 
@@ -42,6 +44,16 @@ using namespace Graphics;
 constexpr uint lane0 = 0;
 constexpr uint lane1 = 1;
 
+// clang-format off
+template<uint sz> struct uint_with_size{using type=uint8;};
+template<> struct uint_with_size<2>{using type=uint16;};
+template<> struct uint_with_size<4>{using type=uint32;};
+// clang-format on
+
+using onecolor	= uint_with_size<sizeof(Color)>::type;
+using twocolors = uint_with_size<sizeof(Color) * 2>::type;
+
+
 static XRAM Color* video_colormap; // for old (non-interp) scanline renderers
 static XRAM Color  temp_colors[4]; // for scanline renderers with attribute modes
 
@@ -59,8 +71,7 @@ static XRAM Color  temp_colors[4]; // for scanline renderers with attribute mode
 
 	direct indexed color:
 
-		idxcolor = screenbyte & colormask; screenbyte >> colorbits;	// interp0
-		vgacolor = video_colormap[idxcolor]; 	 					// interp0
+		vgacolor = colormap[screenbyte & colormask]; screenbyte >> colorbits;	// interp0
 
 
 	true color attribute:
@@ -72,70 +83,53 @@ static XRAM Color  temp_colors[4]; // for scanline renderers with attribute mode
 
 	indexed color attributes:
 
-		temp_colors[0] = video_colormap[attrbyte & colormask]; attrbyte >> colorbits;	// interp0
-		temp_colors[1] = video_colormap[attrbyte & colormask]; attrbyte >> colorbits;	// interp0
+		temp_colors[0] = colormap[attrbyte & colormask]; attrbyte >> colorbits;	// interp0
+		temp_colors[1] = colormap[attrbyte & colormask]; attrbyte >> colorbits;	// interp0
 
 		vgacolor = temp_colors[screenbyte & 1]; screenbyte >> 1;	// interp1
 */
+static void setup_interp(interp_hw_t* interp, const Color* colormap, uint bits) noexcept
+{
+	// function:  address_out = &colormap[pixels_in & mask];
+	//			  pixels_in >> bits;
+
+	constexpr uint ss = msbit(sizeof(onecolor));
+	static_assert(msbit(sizeof(uint8)) == 0);
+	static_assert(msbit(sizeof(uint16)) == 1);
+
+	interp_config cfg = interp_default_config(); // configure lane0
+	interp_config_set_shift(&cfg, bits);		 // shift right by 1 .. 8 bit
+	interp_set_config(interp, lane0, &cfg);
+
+	cfg = interp_default_config();					 // configure lane1
+	interp_config_set_cross_input(&cfg, true);		 // read from accu lane0
+	interp_config_set_mask(&cfg, ss, ss + bits - 1); // mask to select index bits
+	interp_set_config(interp, lane1, &cfg);
+
+	interp_set_base(interp, lane0, 0);				  // lane0: add nothing
+	interp_set_base(interp, lane1, uint32(colormap)); // lane1: add color table base
+}
 
 template<ColorMode CM>
 void setupScanlineRenderer(const Color* colormap)
 {
-	constexpr ColorDepth cd = get_colordepth(CM);
-	constexpr AttrMode	 am = get_attrmode(CM);
-
 	assert(get_core_num() == 1);
 
-	// setup interp0:
-	if (cd != colordepth_16bpp)
-	{
-		interp_config cfg = interp_default_config(); // configure lane0
-		interp_config_set_shift(&cfg, 1 << cd);		 // shift right by 1 .. 8 bit
-		interp_set_config(interp0, lane0, &cfg);
+	// setup interp0 if indexed color:
+	if (is_indexed_color(CM)) { setup_interp(interp0, colormap, 1 << get_colordepth(CM)); }
 
-		cfg = interp_default_config();			   // configure lane1
-		interp_config_set_cross_input(&cfg, true); // read from accu lane0
-		interp_config_set_mask(&cfg, 1, 1 << cd);  // mask lowest bits (shifted by 1 bit for sizeof(VgaColor))
-		interp_set_config(interp0, lane1, &cfg);
-
-		interp_set_base(interp0, lane0, 0);				   // lane0: add nothing
-		interp_set_base(interp0, lane1, uint32(colormap)); // lane1: add color table base
-	}
-
-	// setup interp1:
-	if (am != attrmode_none)
-	{
-		interp_config cfg = interp_default_config(); // configure lane0
-		interp_config_set_shift(&cfg, 1 << am);		 // shift right by 1 or 2 bit
-		interp_set_config(interp1, lane0, &cfg);
-
-		cfg = interp_default_config();			   // configure lane1
-		interp_config_set_cross_input(&cfg, true); // read from accu lane0
-		interp_config_set_mask(&cfg, 1, 1 << am);  // mask lowest 1 or 2 bit (shifted by 1 bit for sizeof(VgaColor))
-		interp_set_config(interp1, lane1, &cfg);
-
-		interp_set_base(interp1, lane0, 0);					  // lane0: add nothing
-		interp_set_base(interp1, lane1, uint32(temp_colors)); // lane1: add base of temp_colors[]
-	}
+	// setup interp1 if attribute mode:
+	if (is_attribute_mode(CM)) { setup_interp(interp1, temp_colors, 1 << get_attrmode(CM)); }
 }
 
 template<ColorMode CM>
 void teardownScanlineRenderer() noexcept
 {
-	constexpr ColorDepth cd = get_colordepth(CM);
-	constexpr AttrMode	 am = get_attrmode(CM);
-
 	// teardown interp0:
-	if (cd != colordepth_16bpp)
-	{
-		//TODO
-	}
+	if (is_indexed_color(CM)) {}
 
 	// teardown interp1:
-	if (am != attrmode_none)
-	{
-		//TODO
-	}
+	if (is_attribute_mode(CM)) {}
 }
 
 static inline const Color* next_color(interp_hw_t* interp)
@@ -151,7 +145,7 @@ static inline const Color* next_color(interp_hw_t* interp)
 template<>
 void XRAM scanlineRenderFunction<colormode_i1>(uint32* dest, uint width, const uint8* pixels)
 {
-	const uint32* colors = reinterpret_cast<const uint32*>(video_colormap);
+	const twocolors* colors = reinterpret_cast<const twocolors*>(video_colormap);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -194,7 +188,7 @@ void teardownScanlineRenderer<colormode_i1>() noexcept
 template<>
 void XRAM scanlineRenderFunction<colormode_i2>(uint32* dest, uint width, const uint8* pixels)
 {
-	const uint32* colors = reinterpret_cast<const uint32*>(video_colormap);
+	const twocolors* colors = reinterpret_cast<const twocolors*>(video_colormap);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -238,7 +232,7 @@ void teardownScanlineRenderer<colormode_i2>() noexcept
 template<>
 void XRAM scanlineRenderFunction<colormode_i4>(uint32* _dest, uint width, const uint8* _pixels)
 {
-	uint16*		  dest	 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest	 = reinterpret_cast<onecolor*>(_dest);
 	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);
 
 	for (uint i = 0; i < width / 4; i++)
@@ -261,18 +255,25 @@ template void teardownScanlineRenderer<colormode_i4>() noexcept;
 template<>
 void XRAM scanlineRenderFunction<colormode_i8>(uint32* _dest, uint width, const uint8* _pixels)
 {
-	uint16*		  dest	 = reinterpret_cast<uint16*>(_dest);
-	const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);
-
-	for (uint i = 0; i < width / 4; i++)
+	if constexpr (sizeof(Color) == 1)
 	{
-		interp_set_accumulator(interp0, lane0, uint(*pixels++) << 1);
-		*dest++ = *next_color(interp0);
-		*dest++ = *next_color(interp0);
+		memcpy(_dest, _pixels, width * sizeof(Color)); //
+	}
+	else
+	{
+		uint16*		  dest	 = reinterpret_cast<uint16*>(_dest);
+		const uint16* pixels = reinterpret_cast<const uint16*>(_pixels);
 
-		interp_set_accumulator(interp0, lane0, uint(*pixels++) << 1);
-		*dest++ = *next_color(interp0);
-		*dest++ = *next_color(interp0);
+		for (uint i = 0; i < width / 4; i++)
+		{
+			interp_set_accumulator(interp0, lane0, uint(*pixels++) << 1);
+			*dest++ = *next_color(interp0);
+			*dest++ = *next_color(interp0);
+
+			interp_set_accumulator(interp0, lane0, uint(*pixels++) << 1);
+			*dest++ = *next_color(interp0);
+			*dest++ = *next_color(interp0);
+		}
 	}
 }
 
@@ -306,7 +307,7 @@ template<>
 void RAM
 scanlineRenderFunction<colormode_a1w1_i4>(uint32* _dest, uint width, const uint8* pixels, const uint8* attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	onecolor* dest = reinterpret_cast<onecolor*>(_dest);
 
 	constexpr uint bits_per_color = 4;
 	constexpr uint colormask	  = (1 << bits_per_color) - 1;
@@ -349,11 +350,17 @@ template void teardownScanlineRenderer<colormode_a1w1_i4>() noexcept;
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 1 pixel wide attributes and 8-bit indexed colors:
 
+static constexpr ColorMode colormode_a1w1_ic8 = sizeof(Color) == 1 ? ColorMode(98) : colormode_a1w1_i8;
+
 template<>
 void RAM
-scanlineRenderFunction<colormode_a1w1_i8>(uint32* _dest, uint width, const uint8* pixels, const uint8* attributes)
+scanlineRenderFunction<colormode_a1w1_ic8>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	onecolor* dest = reinterpret_cast<onecolor*>(_dest);
+
+	assert(sizeof(Color) == 2);
+
+	const uint8* attributes = _attributes;
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -384,19 +391,19 @@ scanlineRenderFunction<colormode_a1w1_i8>(uint32* _dest, uint width, const uint8
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w1_i8>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w1_ic8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w1_i8>() noexcept;
+template void teardownScanlineRenderer<colormode_a1w1_ic8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 1 pixel wide attributes and true colors:
 
 template<>
 void XRAM
-scanlineRenderFunction<colormode_a1w1_i16>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a1w1_rgb>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
-	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
+	onecolor*		 dest		= reinterpret_cast<onecolor*>(_dest);
+	const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -428,9 +435,9 @@ scanlineRenderFunction<colormode_a1w1_i16>(uint32* _dest, uint width, const uint
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w1_i16>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w1_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w1_i16>() noexcept;
+template void teardownScanlineRenderer<colormode_a1w1_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 2 pixel wide attributes and 4-bit indexed colors:
@@ -439,7 +446,7 @@ template<>
 void XRAM
 scanlineRenderFunction<colormode_a1w2_i4>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -481,10 +488,14 @@ template void teardownScanlineRenderer<colormode_a1w2_i4>() noexcept;
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 2 pixel wide attributes and 8-bit indexed colors:
 
+static constexpr ColorMode colormode_a1w2_ic8 = sizeof(Color) == 1 ? ColorMode(97) : colormode_a1w2_i8;
+
 template<>
 void XRAM
-scanlineRenderFunction<colormode_a1w2_i8>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a1w2_ic8>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
+	assert(sizeof(Color) == 2);
+
 	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 
@@ -522,19 +533,19 @@ scanlineRenderFunction<colormode_a1w2_i8>(uint32* _dest, uint width, const uint8
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w2_i8>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w2_ic8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w2_i8>() noexcept;
+template void teardownScanlineRenderer<colormode_a1w2_ic8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 2 pixel wide attributes and true colors:
 
 template<>
 void XRAM
-scanlineRenderFunction<colormode_a1w2_i16>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a1w2_rgb>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
-	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
+	onecolor*		 dest		= reinterpret_cast<onecolor*>(_dest);
+	const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -562,9 +573,9 @@ scanlineRenderFunction<colormode_a1w2_i16>(uint32* _dest, uint width, const uint
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w2_i16>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w2_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w2_i16>() noexcept;
+template void teardownScanlineRenderer<colormode_a1w2_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 4 pixel wide attributes and 4-bit indexed colors:
@@ -573,7 +584,7 @@ template<>
 void XRAM
 scanlineRenderFunction<colormode_a1w4_i4>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -606,10 +617,14 @@ template void teardownScanlineRenderer<colormode_a1w4_i4>() noexcept;
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 4 pixel wide attributes and 8-bit indexed colors:
 
+static constexpr ColorMode colormode_a1w4_ic8 = sizeof(Color) == 1 ? ColorMode(96) : colormode_a1w4_i8;
+
 template<>
 void XRAM
-scanlineRenderFunction<colormode_a1w4_i8>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a1w4_ic8>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
+	assert(sizeof(Color) == 2);
+
 	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 
@@ -637,19 +652,19 @@ scanlineRenderFunction<colormode_a1w4_i8>(uint32* _dest, uint width, const uint8
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w4_i8>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w4_ic8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w4_i8>() noexcept;
+template void teardownScanlineRenderer<colormode_a1w4_ic8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 4 pixel wide attributes and true colors:
 
 template<>
 void XRAM
-scanlineRenderFunction<colormode_a1w4_i16>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a1w4_rgb>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
-	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
+	onecolor*		 dest		= reinterpret_cast<onecolor*>(_dest);
+	const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -671,9 +686,9 @@ scanlineRenderFunction<colormode_a1w4_i16>(uint32* _dest, uint width, const uint
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w4_i16>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w4_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w4_i16>() noexcept;
+template void teardownScanlineRenderer<colormode_a1w4_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 8 pixel wide attributes and 4-bit indexed colors:
@@ -682,7 +697,7 @@ template<>
 void XRAM
 scanlineRenderFunction<colormode_a1w8_i4>(uint32* _dest, uint width, const uint8* pixels, const uint8* attributes)
 {
-	uint16* dest = reinterpret_cast<uint16*>(_dest);
+	onecolor* dest = reinterpret_cast<onecolor*>(_dest);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -710,11 +725,15 @@ template void teardownScanlineRenderer<colormode_a1w8_i4>() noexcept;
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 8 pixel wide attributes and 8-bit indexed colors:
 
+static constexpr ColorMode colormode_a1w8_ic8 = sizeof(Color) == 1 ? ColorMode(99) : colormode_a1w8_i8;
+
 template<>
 void XRAM
-scanlineRenderFunction<colormode_a1w8_i8>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a1w8_ic8>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	assert(sizeof(Color) == 2);
+
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 
 	for (uint i = 0; i < width / 8; i++)
@@ -744,16 +763,16 @@ scanlineRenderFunction<colormode_a1w8_i8>(uint32* _dest, uint width, const uint8
 	}
 }
 
-template void setupScanlineRenderer<colormode_a1w8_i8>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a1w8_ic8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a1w8_i8>() noexcept;
+template void teardownScanlineRenderer<colormode_a1w8_ic8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 8 pixel wide attributes and true colors:
 
 template<>
 XRAM void
-scanlineRenderFunction<colormode_a1w8_i16>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
 	// 2023-10-27
 	// this version displays 1024x768 with avg/max load = 247.1/259.3MHz
@@ -770,169 +789,178 @@ scanlineRenderFunction<colormode_a1w8_i16>(uint32* _dest, uint width, const uint
   #define VIDEO_SUPPORT_400x300_A1W8_RGB true
 #endif
 
-	uint32 ctable[4];
+	constexpr int ssx = sizeof(Color) * 8;		  // shift distance for swapping colors
+	constexpr int ss  = msbit(sizeof(twocolors)); // address shift for index in `ctable[]`
+
+	twocolors ctable[4];
 	interp_set_base(interp1, lane1, uint32(ctable));
 
 	if (!(VIDEO_SUPPORT_200x150_A1W8_RGB || VIDEO_SUPPORT_400x300_A1W8_RGB) || (width & 31) == 0)
 	{
-		uint32*		  dest		 = reinterpret_cast<uint32*>(_dest);
-		const uint32* pixels	 = reinterpret_cast<const uint32*>(_pixels);
-		const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
+		twocolors*		 dest		= reinterpret_cast<twocolors*>(_dest);
+		const uint32*	 pixels		= reinterpret_cast<const uint32*>(_pixels);
+		const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
 
-		uint32 color10a;
-		uint32 color10b = 0;
+		twocolors color10a;
+		twocolors color10b = 0;
 
 		for (uint i = 0; i < width / 32; i++)
 		{
 			color10a = *attributes++;
 			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
 			{
-				uint32 color01 = (color10a >> 16) | (color10a << 16);
-				uint32 xxx	   = uint16(color01 ^ color10a);
-				ctable[1]	   = color01;
-				ctable[2]	   = color10a;
-				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10a ^ xxx;
+				twocolors color01 = (color10a >> ssx) | twocolors(color10a << ssx);
+				twocolors xxx	  = onecolor(color01 ^ color10a);
+				ctable[1]		  = color01;
+				ctable[2]		  = color10a;
+				ctable[0]		  = color01 ^ xxx;
+				ctable[3]		  = color10a ^ xxx;
 			}
 
 			uint32 bits = *pixels++;
-			interp_set_accumulator(interp1, lane0, bits);
+			interp_set_accumulator(interp1, lane0, bits >> (2 - ss));
 
 			*dest++ = ctable[bits & 3];
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
 
 			color10b = *attributes++;
 			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
 			{
-				uint32 color01 = (color10b >> 16) | (color10b << 16);
-				uint32 xxx	   = uint16(color01 ^ color10b);
-				ctable[1]	   = color01;
-				ctable[2]	   = color10b;
-				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10b ^ xxx;
+				twocolors color01 = (color10b >> ssx) | twocolors(color10b << ssx);
+				twocolors xxx	  = onecolor(color01 ^ color10b);
+				ctable[1]		  = color01;
+				ctable[2]		  = color10b;
+				ctable[0]		  = color01 ^ xxx;
+				ctable[3]		  = color10b ^ xxx;
 			}
 
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
 
 			color10a = *attributes++;
 			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
 			{
-				uint32 color01 = (color10a >> 16) | (color10a << 16);
-				uint32 xxx	   = uint16(color01 ^ color10a);
-				ctable[1]	   = color01;
-				ctable[2]	   = color10a;
-				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10a ^ xxx;
+				twocolors color01 = (color10a >> ssx) | twocolors(color10a << ssx);
+				twocolors xxx	  = onecolor(color01 ^ color10a);
+				ctable[1]		  = color01;
+				ctable[2]		  = color10a;
+				ctable[0]		  = color01 ^ xxx;
+				ctable[3]		  = color10a ^ xxx;
 			}
 
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
 
 			color10b = *attributes++;
 			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
 			{
-				uint32 color01 = (color10b >> 16) | (color10b << 16);
-				uint32 xxx	   = uint16(color01 ^ color10b);
-				ctable[1]	   = color01;
-				ctable[2]	   = color10b;
-				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10b ^ xxx;
+				twocolors color01 = (color10b >> ssx) | twocolors(color10b << ssx);
+				twocolors xxx	  = onecolor(color01 ^ color10b);
+				ctable[1]		  = color01;
+				ctable[2]		  = color10b;
+				ctable[0]		  = color01 ^ xxx;
+				ctable[3]		  = color10b ^ xxx;
 			}
 
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
 		}
 	}
 	else if constexpr (VIDEO_SUPPORT_200x150_A1W8_RGB)
 	{
 		// 200*150: 200 = 8 * 25 => odd!
 		// 0x154 bytes in scratch_x
-		// avg/max load = 48.8/51.4MHz
+		// avg/max load = 248.8/251.4MHz
 
-		uint32*		  dest		 = reinterpret_cast<uint32*>(_dest);
-		const uint8*  pixels	 = reinterpret_cast<const uint8*>(_pixels);
-		const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
+		twocolors*		 dest		= reinterpret_cast<twocolors*>(_dest);
+		const uint8*	 pixels		= reinterpret_cast<const uint8*>(_pixels);
+		const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
 
 		for (uint i = 0; i < width / 8; i++)
 		{
-			interp_set_accumulator(interp1, lane0, uint(*pixels++) << 2);
+			interp_set_accumulator(interp1, lane0, uint(*pixels++) << ss);
 
 			{
-				uint32 color10 = *attributes++;
-				uint32 color01 = (color10 >> 16) | (color10 << 16);
-				uint32 xxx	   = uint16(color01 ^ color10);
-				ctable[1]	   = color01;
-				ctable[2]	   = color10;
-				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10 ^ xxx;
+				twocolors color10 = *attributes++;
+				twocolors color01 = (color10 >> ssx) | twocolors(color10 << ssx);
+				twocolors xxx	  = onecolor(color01 ^ color10);
+				ctable[1]		  = color01;
+				ctable[2]		  = color10;
+				ctable[0]		  = color01 ^ xxx;
+				ctable[3]		  = color10 ^ xxx;
 			}
 
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
 		}
 	}
 	else if constexpr (VIDEO_SUPPORT_400x300_A1W8_RGB)
 	{
 		// 400*300: 400 = 32 * 12.5 => not a multiple of 32!
 		// 0x184 bytes in scratch_x
-		// avg/max load = 44.1/46.4MHz
+		// avg/max load = 244.1/246.4MHz
 
-		uint32*		  dest		 = reinterpret_cast<uint32*>(_dest);
-		const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels);
-		const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
+		twocolors*		 dest		= reinterpret_cast<twocolors*>(_dest);
+		const uint16*	 pixels		= reinterpret_cast<const uint16*>(_pixels);
+		const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
 
 		for (uint i = 0; i < width / 16; i++)
 		{
-			interp_set_accumulator(interp1, lane0, uint(*pixels++) << 2);
+			interp_set_accumulator(interp1, lane0, uint(*pixels++) << ss);
 
 			{
-				uint32 color10 = *attributes++;
-				uint32 color01 = (color10 >> 16) | (color10 << 16);
-				uint32 xxx	   = uint16(color01 ^ color10);
-				ctable[1]	   = color01;
-				ctable[2]	   = color10;
-				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10 ^ xxx;
+				twocolors color10 = *attributes++;
+				twocolors color01 = (color10 >> ssx) | twocolors(color10 << ssx);
+				twocolors xxx	  = onecolor(color01 ^ color10);
+				ctable[1]		  = color01;
+				ctable[2]		  = color10;
+				ctable[0]		  = color01 ^ xxx;
+				ctable[3]		  = color10 ^ xxx;
 			}
 
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
 
 			{
-				uint32 color10 = *attributes++;
-				uint32 color01 = (color10 >> 16) | (color10 << 16);
-				uint32 xxx	   = uint16(color01 ^ color10);
-				ctable[1]	   = color01;
-				ctable[2]	   = color10;
-				ctable[0]	   = color01 ^ xxx;
-				ctable[3]	   = color10 ^ xxx;
+				twocolors color10 = *attributes++;
+				twocolors color01 = (color10 >> ssx) | twocolors(color10 << ssx);
+				twocolors xxx	  = onecolor(color01 ^ color10);
+				ctable[1]		  = color01;
+				ctable[2]		  = color10;
+				ctable[0]		  = color01 ^ xxx;
+				ctable[3]		  = color10 ^ xxx;
 			}
 
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
-			*dest++ = *reinterpret_cast<const uint32*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
+			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
 		}
 	}
 }
 
 template<>
-void setupScanlineRenderer<colormode_a1w8_i16>(const Color* /*colormap*/)
+void setupScanlineRenderer<colormode_a1w8_rgb>(const Color* /*colormap*/)
 {
 	assert(get_core_num() == 1);
+
+	// function:  address_out = &colormap[pixels_in & 3];
+	//			  pixels_in >> 2;
+
+	// address shift for index in `twocolors ctable[]`
+	constexpr int ss = msbit(sizeof(twocolors));
 
 	// setup interp1:
 	interp_config cfg = interp_default_config(); // configure lane0
@@ -941,29 +969,40 @@ void setupScanlineRenderer<colormode_a1w8_i16>(const Color* /*colormap*/)
 
 	cfg = interp_default_config();			   // configure lane1
 	interp_config_set_cross_input(&cfg, true); // read from accu lane0
-	interp_config_set_mask(&cfg, 2, 3);		   // mask lowest 2 bits (shifted by 1 bit for sizeof(VgaColor))
+	interp_config_set_mask(&cfg, ss, ss + 1);  // mask bits used for index into ctable[]
 	interp_set_config(interp1, lane1, &cfg);
 
 	interp_set_base(interp1, lane0, 0); // lane0: add nothing
 	//interp_set_base(interp1, lane1, uint32(temp_colors)); // lane1: add base of temp_colors[]
 }
 
-template void teardownScanlineRenderer<colormode_a1w8_i16>() noexcept;
+template void teardownScanlineRenderer<colormode_a1w8_rgb>() noexcept;
+
+// ============================================================================================
+// attribute mode with 2 bit/pixel with 1 pixel wide attributes and 4-bit indexed color:
+
+// NOT SUPPORTED
+
+// ============================================================================================
+// attribute mode with 2 bit/pixel with 1 pixel wide attributes and 8-bit indexed color:
+
+// NOT SUPPORTED
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 1 pixel wide attributes and true colors:
 
 template<>
 void RAM
-scanlineRenderFunction<colormode_a2w1_i16>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a2w1_rgb>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint64* attributes = reinterpret_cast<const uint64*>(_attributes);
 	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
+	constexpr int ss		 = msbit(sizeof(onecolor));
 
 	for (uint i = 0; i < width / 8; i++)
 	{
-		interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
+		interp_set_accumulator(interp1, lane0, uint(*pixels++) << ss);
 
 		interp_set_base(interp1, lane1, uint32(attributes++));
 		*dest++ = *next_color(interp1);
@@ -991,24 +1030,35 @@ scanlineRenderFunction<colormode_a2w1_i16>(uint32* _dest, uint width, const uint
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w1_i16>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w1_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w1_i16>() noexcept;
+template void teardownScanlineRenderer<colormode_a2w1_rgb>() noexcept;
+
+// ============================================================================================
+// attribute mode with 2 bit/pixel with 2 pixel wide attributes and 4-bit indexed color:
+
+// NOT SUPPORTED
+
+// ============================================================================================
+// attribute mode with 2 bit/pixel with 2 pixel wide attributes and 8-bit indexed color:
+
+// NOT SUPPORTED
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 2 pixel wide attributes and true colors:
 
 template<>
 void XRAM
-scanlineRenderFunction<colormode_a2w2_i16>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a2w2_rgb>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint64* attributes = reinterpret_cast<const uint64*>(_attributes);
 	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
+	constexpr int ss		 = msbit(sizeof(onecolor));
 
 	for (uint i = 0; i < width / 8; i++)
 	{
-		interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
+		interp_set_accumulator(interp1, lane0, uint(*pixels++) << ss);
 
 		interp_set_base(interp1, lane1, uint32(attributes++));
 
@@ -1032,9 +1082,9 @@ scanlineRenderFunction<colormode_a2w2_i16>(uint32* _dest, uint width, const uint
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w2_i16>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w2_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w2_i16>() noexcept;
+template void teardownScanlineRenderer<colormode_a2w2_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 4 pixel wide attributes and 4-bit indexed colors:
@@ -1043,14 +1093,15 @@ template<>
 void RAM
 scanlineRenderFunction<colormode_a2w4_i4>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes);
 	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
+	constexpr int ss		 = msbit(sizeof(onecolor));
 
 	for (uint i = 0; i < width / 8; i++)
 	{
-		interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
-		interp_set_accumulator(interp0, lane0, uint(*attributes++) << 1);
+		interp_set_accumulator(interp1, lane0, uint(*pixels++) << ss);
+		interp_set_accumulator(interp0, lane0, uint(*attributes++) << ss);
 
 		temp_colors[0] = *next_color(interp0);
 		temp_colors[1] = *next_color(interp0);
@@ -1062,7 +1113,7 @@ scanlineRenderFunction<colormode_a2w4_i4>(uint32* _dest, uint width, const uint8
 		*dest++ = *next_color(interp1);
 		*dest++ = *next_color(interp1);
 
-		interp_set_accumulator(interp0, lane0, uint(*attributes++) << 1);
+		interp_set_accumulator(interp0, lane0, uint(*attributes++) << ss);
 
 		temp_colors[0] = *next_color(interp0);
 		temp_colors[1] = *next_color(interp0);
@@ -1083,19 +1134,22 @@ template void teardownScanlineRenderer<colormode_a2w4_i4>() noexcept;
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 4 pixel wide attributes and 8-bit indexed colors:
 
+static constexpr ColorMode colormode_a2w4_ic8 = sizeof(Color) == 1 ? ColorMode(95) : colormode_a2w4_i8;
+
 template<>
 void RAM
-scanlineRenderFunction<colormode_a2w4_i8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a2w4_ic8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes);
 	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
+	constexpr int ss		 = msbit(sizeof(onecolor));
 
 	for (uint i = 0; i < width / 8; i++)
 	{
-		interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
+		interp_set_accumulator(interp1, lane0, uint(*pixels++) << ss);
 
-		interp_set_accumulator(interp0, lane0, uint(*attributes++) << 1);
+		interp_set_accumulator(interp0, lane0, uint(*attributes++) << ss);
 		temp_colors[0] = *next_color(interp0);
 		temp_colors[1] = *next_color(interp0);
 		temp_colors[2] = *next_color(interp0);
@@ -1106,7 +1160,7 @@ scanlineRenderFunction<colormode_a2w4_i8>(uint32* _dest, uint width, const uint8
 		*dest++ = *next_color(interp1);
 		*dest++ = *next_color(interp1);
 
-		interp_set_accumulator(interp0, lane0, uint(*attributes++) << 1);
+		interp_set_accumulator(interp0, lane0, uint(*attributes++) << ss);
 		temp_colors[0] = *next_color(interp0);
 		temp_colors[1] = *next_color(interp0);
 		temp_colors[2] = *next_color(interp0);
@@ -1119,24 +1173,24 @@ scanlineRenderFunction<colormode_a2w4_i8>(uint32* _dest, uint width, const uint8
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w4_i8>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w4_ic8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w4_i8>() noexcept;
+template void teardownScanlineRenderer<colormode_a2w4_ic8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 4 pixel wide attributes and true colors:
 
 template<>
 void XRAM
-scanlineRenderFunction<colormode_a2w4_i16>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a2w4_rgb>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint64* attributes = reinterpret_cast<const uint64*>(_attributes);
 	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
-		interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
+		interp_set_accumulator(interp1, lane0, uint(*pixels++) * sizeof(onecolor));
 
 		interp_set_base(interp1, lane1, uint32(attributes++));
 
@@ -1154,9 +1208,9 @@ scanlineRenderFunction<colormode_a2w4_i16>(uint32* _dest, uint width, const uint
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w4_i16>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w4_rgb>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w4_i16>() noexcept;
+template void teardownScanlineRenderer<colormode_a2w4_rgb>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 8 pixel wide attributes and 4-bit indexed colors:
@@ -1165,19 +1219,19 @@ template<>
 void XRAM
 scanlineRenderFunction<colormode_a2w8_i4>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint16* attributes = reinterpret_cast<const uint16*>(_attributes); // 2 bytes for 4 colors
 	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels);	 // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
-		interp_set_accumulator(interp0, lane0, uint(*attributes++) << 1);
+		interp_set_accumulator(interp0, lane0, uint(*attributes++) * sizeof(onecolor));
 		temp_colors[0] = *next_color(interp0);
 		temp_colors[1] = *next_color(interp0);
 		temp_colors[2] = *next_color(interp0);
 		temp_colors[3] = *next_color(interp0);
 
-		interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
+		interp_set_accumulator(interp1, lane0, uint(*pixels++) * sizeof(onecolor));
 
 		*dest++ = *next_color(interp1);
 		*dest++ = *next_color(interp1);
@@ -1197,23 +1251,25 @@ template void teardownScanlineRenderer<colormode_a2w8_i4>() noexcept;
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 8 pixel wide attributes and 8-bit indexed colors:
 
+static constexpr ColorMode colormode_a2w8_ic8 = sizeof(Color) == 1 ? ColorMode(94) : colormode_a2w8_i8;
+
 template<>
 void XRAM
-scanlineRenderFunction<colormode_a2w8_i8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a2w8_ic8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint32* attributes = reinterpret_cast<const uint32*>(_attributes); // 4 bytes for 4 colors
 	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels);	 // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
-		interp_set_accumulator(interp0, lane0, uint(*attributes++) << 1);
+		interp_set_accumulator(interp0, lane0, uint(*attributes++) * sizeof(onecolor));
 		temp_colors[0] = *next_color(interp0);
 		temp_colors[1] = *next_color(interp0);
 		temp_colors[2] = *next_color(interp0);
 		temp_colors[3] = *next_color(interp0);
 
-		interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
+		interp_set_accumulator(interp1, lane0, uint(*pixels++) * sizeof(onecolor));
 
 		*dest++ = *next_color(interp1);
 		*dest++ = *next_color(interp1);
@@ -1226,27 +1282,25 @@ scanlineRenderFunction<colormode_a2w8_i8>(uint32* _dest, uint width, const uint8
 	}
 }
 
-template void setupScanlineRenderer<colormode_a2w8_i8>(const Color* colormap);
+template void setupScanlineRenderer<colormode_a2w8_ic8>(const Color* colormap);
 
-template void teardownScanlineRenderer<colormode_a2w8_i8>() noexcept;
+template void teardownScanlineRenderer<colormode_a2w8_ic8>() noexcept;
 
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 8 pixel wide attributes and true colors:
 
 template<>
 void XRAM
-scanlineRenderFunction<colormode_a2w8_i16>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
+scanlineRenderFunction<colormode_a2w8_rgb>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes)
 {
-	uint16*		  dest		 = reinterpret_cast<uint16*>(_dest);
+	onecolor*	  dest		 = reinterpret_cast<onecolor*>(_dest);
 	const uint64* attributes = reinterpret_cast<const uint64*>(_attributes); // 8 bytes for 4 colors
 	const uint16* pixels	 = reinterpret_cast<const uint16*>(_pixels);	 // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
 	{
 		interp_set_base(interp1, lane1, uint32(attributes++));
-		interp_set_accumulator(interp1, lane0, uint(*pixels++) << 1);
-
-		// next_color(interp) -> reinterpret_cast<const VgaColor*>(interp_pop_lane_result(interp,lane1));
+		interp_set_accumulator(interp1, lane0, uint(*pixels++) * sizeof(onecolor));
 
 		*dest++ = *next_color(interp1);
 		*dest++ = *next_color(interp1);
@@ -1260,3 +1314,40 @@ scanlineRenderFunction<colormode_a2w8_i16>(uint32* _dest, uint width, const uint
 }
 
 } // namespace kio::Video
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
