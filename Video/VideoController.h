@@ -61,22 +61,60 @@ public:
 
 	/* 
 		setup internal state, buffers and hardware for the requested VideoMode.
-		If blocking = false then caller must later test `getState()` and `core1_error`.
+		blocks until backend has started.
 	*/
-	void startVideo(const VgaMode& mode, uint32 system_clock = 0, uint scanline_buffer_size = 2, bool blocking = true);
-	void stopVideo(bool blocking = true);
+	void startVideo(const VgaMode& mode, uint32 system_clock = 0, uint scanline_buffer_count = 2);
+
+	/*
+		stop video. 
+		note: video resumes with black screen.
+		disposes off all planes and registered actions.
+		deallocates buffers.
+		blocks until backend has stopped.
+	*/
+	void stopVideo();
+
+	/*
+		add a plane to the video output.
+		the plane will be added by core1 on the next vblank.
+		can be called before startVideo() and any time afterwards.
+	*/
 	void addPlane(VideoPlane*);
+
+	/*
+		remove a plane from the video output.
+		the plane will be removed by core1 on the next vblank.
+		note: stopVideo() also disposes off all planes.
+	*/
 	void removePlane(VideoPlane*);
+
+	/*
+		register a funcion to be called during every vblank.
+		the video controller calls onetime actions, the vblank action and 
+		plane.vblank of all planes during vblank in this order.		
+	*/
 	void setVBlankAction(const VBlankAction& fu) noexcept;
+
+	/*
+		register a function to be called whenever core1 has some spare time.
+		this function must be a short runner!
+	*/
 	void setIdleAction(const IdleAction& fu) noexcept;
+
+	/*
+		register a function to be called during next vblank.
+		multiple onetime actions can be registered in the same frame. 
+	*/
 	void addOneTimeAction(const OneTimeAction& fu) noexcept;
 
+	/*
+		get state, which is either RUNNING or STOPPED.
+	*/
 	State getState() const noexcept { return state; }
 
-	static Error core1_error;
-
 private:
-	static constexpr uint max_planes = 4;
+	static Error		  core1_error;
+	static constexpr uint max_planes = 6;
 
 	uint		  num_planes;
 	VideoPlane*	  planes[max_planes] = {nullptr};
