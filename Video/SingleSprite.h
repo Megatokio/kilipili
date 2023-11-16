@@ -75,11 +75,12 @@ template<Softening SOFT>
 class SingleSprite<Animated, SOFT> : public SingleSprite<NotAnimated, SOFT>
 {
 public:
-	using Shape			= Video::Shape<SOFT>;
-	using AnimatedShape = Video::AnimatedShape<SOFT>;
-	using coord			= Graphics::coord;
-	using Point			= Graphics::Point;
-	using super			= SingleSprite<NotAnimated, SOFT>;
+	using NotAnimatedShape = Video::Shape<SOFT>;
+	using AnimatedShape	   = Video::AnimatedShape<SOFT>;
+	using Shape			   = AnimatedShape;
+	using coord			   = Graphics::coord;
+	using Point			   = Graphics::Point;
+	using super			   = SingleSprite<NotAnimated, SOFT>;
 
 	SingleSprite(const AnimatedShape&, const Point& position);
 	SingleSprite(const AnimatedShape&, coord x, coord y);
