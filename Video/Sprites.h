@@ -45,26 +45,29 @@ public:
 	friend Sprites<WZ, NotAnimated, SOFT>;
 	friend Sprites<WZ, Animated, SOFT>;
 	using Shape = Video::Shape<SOFT>;
+	using Point = Graphics::Point;
+	using Dist	= Graphics::Dist;
 
 	uint8 width() const noexcept { return shape.preamble().width; }
 	uint8 height() const noexcept { return shape.preamble().height; }
 	int8  hot_x() const noexcept { return shape.hot_x(); }
 	int8  hot_y() const noexcept { return shape.hot_y(); }
-	coord xpos() const noexcept { return x + hot_x(); }
-	coord ypos() const noexcept { return y + hot_y(); }
+	Dist  hotspot() const noexcept { return shape.hotspot(); }
+	coord xpos() const noexcept { return pos.x + hot_x(); }
+	coord ypos() const noexcept { return pos.y + hot_y(); }
+	Point position() const noexcept { return pos + shape.hotspot(); }
 
 	bool is_hot() const noexcept;
 	void wait_while_hot() const noexcept;
 
 	Shape shape; // the compressed image of the sprite.
-	coord x = 0; // position of top left corner, already adjusted by hot_x.
-	coord y = 0; // position of top left corner, already adjusted by hot_y.
+	Point pos;	 // position of top left corner, already adjusted by hot_x.
 
 	uint16 z;				// if HasZ
 	bool   ghostly = false; // translucent
 	char   _padding;
 
-	Sprite(Shape s, coord x = 0, coord y = 0, uint16 z = 0) noexcept : shape(s), x(x), y(y), z(z) {}
+	Sprite(Shape s, const Point& p, uint16 z = 0) noexcept : shape(s), pos(p - s.hotspot()), z(z) {}
 	~Sprite() noexcept = default;
 };
 
@@ -127,9 +130,8 @@ public:
 	virtual void renderScanline(int row, uint32* scanline) noexcept override;
 
 	Sprite* add(Sprite* s) throws;
-	Sprite* add(Sprite* s, int x, int y, uint8 z = 0) throws;
+	Sprite* add(Sprite* s, const Point& p, uint8 z = 0) throws;
 	Sprite* remove(Sprite* sprite) noexcept;
-	void	moveTo(Sprite*, coord x, coord y) noexcept;
 	void	moveTo(Sprite*, const Point& p) noexcept;
 
 	bool __always_inline is_in_displaylist(Sprite* s) const noexcept { return s->prev || displaylist == s; }

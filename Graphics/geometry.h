@@ -42,6 +42,7 @@ struct Dist
 };
 
 inline Point operator+(const Point& p, const Dist& d) noexcept { return Point(p.x + d.dx, p.y + d.dy); }
+inline Point operator-(const Point& p, const Dist& d) noexcept { return Point(p.x - d.dx, p.y - d.dy); }
 inline Dist	 operator-(const Point& a, const Point& b) noexcept { return Dist(a.x - b.x, a.y - b.y); }
 
 struct Size

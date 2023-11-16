@@ -63,6 +63,9 @@ struct Shape
 	template<ColorMode CM>
 	using Pixmap = Graphics::Pixmap<CM>;
 	using Rect	 = Graphics::Rect;
+	using Point	 = Graphics::Point;
+	using Size	 = Graphics::Size;
+	using Dist	 = Graphics::Dist;
 
 	struct Preamble
 	{
@@ -91,15 +94,17 @@ struct Shape
 	explicit Shape(const Color* c = nullptr) noexcept : pixels(c) {}
 
 	template<ColorMode CM>
-	Shape(Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x = 0, int8 hot_y = 0) throws;
+	Shape(Pixmap<CM>& pm, uint transparent_pixel, const Color clut[], const Point& hotspot = {0, 0}) throws;
 
 	template<ColorMode CM, typename std::enable_if_t<Graphics::is_true_color(CM), int> = 0>
-	Shape(Pixmap<CM>& pm, uint transparent_pixel, int8 hot_x = 0, int8 hot_y = 0) throws;
+	Shape(Pixmap<CM>& pm, uint transparent_pixel, const Point& hotspot = {0, 0}) throws;
 
 	// ***** utility functions *****
 
 	const Preamble& preamble() const noexcept { return *reinterpret_cast<const Preamble*>(pixels); }
 
+	Size size() const noexcept { return Size(preamble().width, preamble().height); }
+	Dist hotspot() const noexcept { return Dist(preamble().hot_x, preamble().hot_y); }
 	int8 hot_x() const noexcept { return preamble().hot_x; }
 	int8 hot_y() const noexcept { return preamble().hot_y; }
 	void skip_preamble() noexcept { pixels += sizeof(Preamble) / sizeof(*pixels); }
@@ -420,14 +425,14 @@ Color* Shape<SOFT>::new_frame(
 
 template<Softening SOFT>
 template<Graphics::ColorMode CM>
-Shape<SOFT>::Shape(Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x, int8 hot_y) throws :
-	pixels(new_frame(pm, transparent_pixel, clut, hot_x, hot_y))
+Shape<SOFT>::Shape(Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, const Point& hot) throws :
+	pixels(new_frame(pm, transparent_pixel, clut, hot.x, hot.y))
 {}
 
 template<Softening SOFT>
 template<Graphics::ColorMode CM, typename std::enable_if_t<Graphics::is_true_color(CM), int>>
-Shape<SOFT>::Shape(Pixmap<CM>& pm, uint transparent_pixel, int8 hot_x, int8 hot_y) throws :
-	pixels(new_frame(pm, transparent_pixel, nullptr, hot_x, hot_y))
+Shape<SOFT>::Shape(Pixmap<CM>& pm, uint transparent_pixel, const Point& hot) throws :
+	pixels(new_frame(pm, transparent_pixel, nullptr, hot.x, hot.y))
 {}
 
 } // namespace kio::Video

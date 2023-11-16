@@ -36,7 +36,7 @@ bool				hotlist_overflow	 = false; // set by add_to_hotlist()
 template<ZPlane WZ, Softening SOFT>
 bool Sprite<WZ, NotAnimated, SOFT>::is_hot() const noexcept
 {
-	return hot_row >= y && hot_row < y + height();
+	return hot_row >= pos.y && hot_row < pos.y + height();
 }
 
 template<ZPlane WZ, Softening SOFT>
@@ -116,13 +116,12 @@ Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::add(Sprite* sprite) throws
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::add(Sprite* sprite, int x, int y, uint8 z) throws
+Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::add(Sprite* sprite, const Point& p, uint8 z) throws
 {
 	stackinfo();
 
-	sprite->x = x - sprite->hot_x();
-	sprite->y = y - sprite->hot_y();
-	sprite->z = z;
+	sprite->pos = p - sprite->hotspot();
+	sprite->z	= z;
 
 	return add(sprite);
 }
@@ -136,16 +135,6 @@ Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::remove(Sprite* sprite) noexcept
 	Lock _;
 	_unlink(sprite);
 	return sprite;
-}
-
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::moveTo(Sprite* s, coord x, coord y) noexcept
-{
-	stackinfo();
-	assert(is_in_displaylist(s));
-
-	Lock _;
-	_move(s, x - s->hot_x(), y - s->hot_y());
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
@@ -221,12 +210,12 @@ void Sprites<WZ, ANIM, SOFT>::_link(Sprite* s) noexcept
 	assert(is_spin_locked(displaylist_spinlock));
 
 	Sprite* other = displaylist;
-	int		y	  = s->y;
+	int		y	  = s->pos.y;
 
-	if (other && y > other->y)
+	if (other && y > other->pos.y)
 	{
 		Sprite* next;
-		while ((next = static_cast<Sprite*>(other->next)) && y > next->y) { other = next; }
+		while ((next = static_cast<Sprite*>(other->next)) && y > next->pos.y) { other = next; }
 		_link_after(s, other);
 	}
 	else
@@ -245,25 +234,25 @@ void RAM Sprites<WZ, ANIM, SOFT>::_move(Sprite* s, coord x, coord y) noexcept
 	stackinfo();
 	assert(is_spin_locked(displaylist_spinlock));
 
-	s->x = x;
-	s->y = y;
+	s->pos.x = x;
+	s->pos.y = y;
 
 	Video::Sprite<WZ, NotAnimated, SOFT>* other;
 
-	if ((other = s->prev) && y < other->y)
+	if ((other = s->prev) && y < other->pos.y)
 	{
 		_unlink(s);
 		auto* prev = other->prev;
 		do other = prev;
-		while ((prev = other->prev) && y < prev->y);
+		while ((prev = other->prev) && y < prev->pos.y);
 		_link_before(s, static_cast<Sprite*>(other));
 	}
-	else if ((other = s->next) && y > other->y)
+	else if ((other = s->next) && y > other->pos.y)
 	{
 		_unlink(s);
 		auto* next = other->next;
 		do other = next;
-		while ((next = other->next) && y > next->y);
+		while ((next = other->next) && y > next->pos.y);
 		_link_after(s, static_cast<Sprite*>(other));
 	}
 }
@@ -317,9 +306,12 @@ void RAM Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) 
 	//   e.g. after a missed scanline or for sprites starting above screen
 
 	Sprite* s = next_sprite;
-	while (s && s->y <= hot_row)
+	while (s && s->pos.y <= hot_row)
 	{
-		if (s->x < screen_width() && s->x + s->width() > 0) { add_to_hotlist(s->shape, s->x, s->y - hot_row, s->z); }
+		if (s->pos.x < screen_width() && s->pos.x + s->width() > 0)
+		{
+			add_to_hotlist(s->shape, s->pos.x, s->pos.y - hot_row, s->z);
+		}
 		next_sprite = s = static_cast<Sprite*>(s->next);
 	}
 
@@ -374,8 +366,8 @@ void RAM Sprites<WZ, ANIM, SOFT>::vblank() noexcept
 				dx -= s->hot_x();
 				dy -= s->hot_y();
 
-				s->x += dx;
-				if (dy) _move(s, s->x, s->y + dy);
+				s->pos.x += dx;
+				if (dy) _move(s, s->pos.x, s->pos.y + dy);
 			}
 		}
 	}

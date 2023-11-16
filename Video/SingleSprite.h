@@ -38,22 +38,17 @@ public:
 	using Point = Graphics::Point;
 
 	SingleSprite(Shape, const Point& position);
-	SingleSprite(Shape, coord x, coord y);
 
 	virtual void setup(coord width) override;
 	virtual void teardown() noexcept override {}
 	virtual void vblank() noexcept override;
 	virtual void renderScanline(int row, uint32* scanline) noexcept override;
 
-	coord xpos;
-	coord ypos;
+	Point position; // position of the hot spot
 
 	bool is_hot() const noexcept { return hot_shape.pixels != nullptr; }
 
-	void moveTo(coord x, coord y) noexcept { void(xpos = x), ypos = y; }
-	void moveTo(const Point& p) noexcept { moveTo(p.x, p.y); }
-
-	void modify(Shape s, coord x, coord y, bool wait_while_hot = 0) noexcept;
+	void moveTo(const Point& p) noexcept { position = p; }
 	void modify(Shape s, const Point& p, bool wait_while_hot = 0) noexcept;
 	void replace(Shape s, bool wait_while_hot = 0) noexcept;
 
@@ -83,7 +78,6 @@ public:
 	using super			   = SingleSprite<NotAnimated, SOFT>;
 
 	SingleSprite(const AnimatedShape&, const Point& position);
-	SingleSprite(const AnimatedShape&, coord x, coord y);
 
 	virtual void setup(coord width) override;
 	//virtual void teardown() noexcept override;
@@ -96,7 +90,6 @@ public:
 	using super::moveTo;
 	using super::wait_while_hot;
 
-	void modify(const AnimatedShape&, coord x, coord y, bool wait_while_hot = 0) noexcept;
 	void modify(const AnimatedShape&, const Point& p, bool wait_while_hot = 0) noexcept;
 	void replace(const AnimatedShape&, bool wait_while_hot = 0) noexcept;
 
@@ -137,13 +130,6 @@ void SingleSprite<NotAnimated, SOFT>::modify(Shape s, const Point& new_p, bool w
 	replace(s, wait);
 }
 
-template<Softening SOFT>
-void SingleSprite<NotAnimated, SOFT>::modify(Shape s, coord new_x, coord new_y, bool wait) noexcept
-{
-	moveTo(new_x, new_y);
-	replace(s, wait);
-}
-
 // ============================================================================
 
 template<Softening SOFT>
@@ -163,13 +149,6 @@ template<Softening SOFT>
 void SingleSprite<Animated, SOFT>::modify(const AnimatedShape& s, const Point& new_p, bool wait) noexcept
 {
 	moveTo(new_p);
-	replace(s, wait);
-}
-
-template<Softening SOFT>
-void SingleSprite<Animated, SOFT>::modify(const AnimatedShape& s, coord new_x, coord new_y, bool wait) noexcept
-{
-	moveTo(new_x, new_y);
 	replace(s, wait);
 }
 

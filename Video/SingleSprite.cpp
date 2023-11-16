@@ -26,19 +26,13 @@ spin_lock_t* singlesprite_spinlock = nullptr;
 // NotAnimated:
 
 template<Softening SOFT>
-SingleSprite<NotAnimated, SOFT>::SingleSprite(Shape shape, coord x, coord y) : // ctor
-	xpos(x),
-	ypos(y),
+SingleSprite<NotAnimated, SOFT>::SingleSprite(Shape shape, const Point& p) : // ctor
+	position(p),
 	shape(shape),
 	hot_shape(nullptr),
 	ghostly(false),
 	frame_idx(0),
 	countdown(0)
-{}
-
-template<Softening SOFT>
-SingleSprite<NotAnimated, SOFT>::SingleSprite(Shape shape, const Point& p) : // ctor
-	SingleSprite(shape, p.x, p.y)
 {}
 
 template<Softening SOFT>
@@ -54,12 +48,12 @@ void RAM SingleSprite<NotAnimated, SOFT>::vblank() noexcept
 	hot_shape.pixels = nullptr;
 
 	Shape s = shape;
-	int	  y = ypos - s.preamble().hot_y;
+	int	  y = position.y - s.preamble().hot_y;
 	if (y >= 0) return;
 
 	// sprite starts above screen:
 
-	hot_shape_x = xpos - s.preamble().hot_x;
+	hot_shape_x = position.x - s.preamble().hot_x;
 	s.skip_preamble();
 	for (; y < 0; y++)
 	{
@@ -78,8 +72,8 @@ void RAM SingleSprite<NotAnimated, SOFT>::renderScanline(int row, uint32* scanli
 	if (hot_shape.pixels == nullptr)
 	{
 		Shape s = shape;
-		if (row != ypos - s.preamble().hot_y) return;
-		hot_shape_x = xpos - s.preamble().hot_x;
+		if (row != position.y - s.preamble().hot_y) return;
+		hot_shape_x = position.x - s.preamble().hot_x;
 		s.skip_preamble();
 		assert(s.is_pfx());
 		hot_shape = s;
@@ -100,17 +94,12 @@ void SingleSprite<NotAnimated, SOFT>::wait_while_hot() const noexcept
 // Animated:
 
 template<Softening SOFT>
-SingleSprite<Animated, SOFT>::SingleSprite(const AnimatedShape& shape, coord x, coord y) : // ctor
-	super(shape.frames[0], x, y),
+SingleSprite<Animated, SOFT>::SingleSprite(const AnimatedShape& shape, const Point& p) : // ctor
+	super(shape.frames[0], p),
 	animated_shape(shape)
 {
 	if (!singlesprite_spinlock) singlesprite_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
 }
-
-template<Softening SOFT>
-SingleSprite<Animated, SOFT>::SingleSprite(const AnimatedShape& shape, const Point& p) : // ctor
-	SingleSprite(shape, p.x, p.y)
-{}
 
 template<Softening SOFT>
 void SingleSprite<Animated, SOFT>::setup(coord width)
