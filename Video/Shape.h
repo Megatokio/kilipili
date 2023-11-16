@@ -88,7 +88,7 @@ struct Shape
 
 	// ***** constructors *****
 
-	Shape(const Color* c = nullptr) noexcept : pixels(c) {}
+	explicit Shape(const Color* c = nullptr) noexcept : pixels(c) {}
 
 	template<ColorMode CM>
 	Shape(Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x = 0, int8 hot_y = 0) throws;

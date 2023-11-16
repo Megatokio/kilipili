@@ -44,14 +44,14 @@ SingleSprite<NotAnimated, SOFT>::SingleSprite(Shape shape, const Point& p) : // 
 template<Softening SOFT>
 void SingleSprite<NotAnimated, SOFT>::setup(coord __unused width)
 {
-	hot_shape = nullptr;
-	ghostly	  = false;
+	hot_shape.pixels = nullptr;
+	ghostly			 = false;
 }
 
 template<Softening SOFT>
 void RAM SingleSprite<NotAnimated, SOFT>::vblank() noexcept
 {
-	hot_shape = nullptr;
+	hot_shape.pixels = nullptr;
 
 	Shape s = shape;
 	int	  y = ypos - s.preamble().hot_y;
@@ -86,7 +86,7 @@ void RAM SingleSprite<NotAnimated, SOFT>::renderScanline(int row, uint32* scanli
 	}
 
 	bool finished = hot_shape.render_row(hot_shape_x, reinterpret_cast<Color*>(scanline), ghostly);
-	if (finished) hot_shape = nullptr;
+	if (finished) hot_shape.pixels = nullptr;
 }
 
 template<Softening SOFT>
