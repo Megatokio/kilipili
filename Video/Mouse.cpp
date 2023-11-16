@@ -7,7 +7,6 @@
 
 
   #include "Mouse.h"
-  #include "BucketList.h"
   #include "Sprites.h"
   #include "USBHost/hid_handler.h"
   #include "VideoController.h"
@@ -33,6 +32,8 @@ using namespace Graphics;
 // =============================================================
 //		MousePointer
 // =============================================================
+
+static constexpr Color transparent=Color(0xffff);
 
   #define _ transparent,
   #define b Color(0, 0, 0),

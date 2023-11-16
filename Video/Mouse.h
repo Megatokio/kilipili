@@ -3,8 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Sprites.h"
-
+#include "Pixmap_wAttr.h"
+#include "SingleSprite.h"
+#include "USBMouse.h"
 
 namespace kio::Video
 {
@@ -43,9 +44,9 @@ struct MouseEvent
 {
 	MouseButtons buttons = NO_BUTTON; // currently pressed buttons
 	MouseButtons toggled = NO_BUTTON; // buttons which toggled
-	int8		 wheel	 = 0;		  // accumulated wheel position
-	int8		 pan	 = 0;		  // accumulated pan position
-	Point		 pos {160, 120};	  // accumulated position
+	int8		 wheel	 = 0;		  // accumulated wheel position (up/down)
+	int8		 pan	 = 0;		  // accumulated pan position (left/right)
+	Point		 position {160, 120}; // accumulated position
 
 	MouseEvent& operator+=(const MouseReport&) noexcept;
 };
@@ -66,49 +67,94 @@ enum MouseShapeID {
 	MOUSE_MAGNIFY,
 };
 
-#if 0 
+#if 1
 
-class Mouse : public Sprite
+template<Animation ANIM, Softening SOFT>
+class MousePointer : public SingleSprite<ANIM, SOFT>
 {
-	NO_COPY_MOVE(Mouse);
-
-	Mouse(const Shape& s, coord x, coord y) noexcept : Sprite(s, x, y, zMouse) {}
+	NO_COPY_MOVE(MousePointer);
 
 public:
-	virtual ~Mouse() override = default;
-	static Mouse& getRef() noexcept;
+	using super		= SingleSprite<ANIM, SOFT>;
+	using ColorMode = Graphics::ColorMode;
+	template<ColorMode CM>
+	using Pixmap			= Graphics::Pixmap<CM>;
+	using Shape				= typename super::Shape;
+	using MouseEventHandler = USB::MouseEventHandler;
 
-	//void show() noexcept;
-	//void hide(bool wait) noexcept;
-	//bool is_visible() noexcept;
-	static void			setPosition(coord x, coord y) noexcept;
-	static void			setPosition(const Point&) noexcept;
-	static void			getPosition(coord& x, coord& y) noexcept;
-	static Point		getPosition() noexcept;
-	static int8			getWheelCount() noexcept;
-	static int8			getPanCount() noexcept;
-	static MouseButtons getButtons() noexcept;
+	Shape* sprite;
 
-	void setShape(const Shape& s, bool wait = 0) noexcept { Sprite::replace(s, wait); }
-	void setShape(MouseShapeID = MOUSE_POINTER, bool wait = 0);
+	MousePointer(MouseShapeID, coord x, coord y) noexcept;
+	~MousePointer() noexcept;
 
-	virtual void vblank() noexcept override;
+	void moveTo(coord x, coord y) noexcept;
+	void moveTo(const Point&) noexcept;
+
+	template<typename Sprite>
+	void setSprite(Sprite*);
+
+	template<ColorMode CM>
+	void setSprite(const Pixmap<CM>&, uint transparent_color, const Point& hotspot);
+
+	bool		 isVisible() noexcept;
+	void		 getPosition(coord& x, coord& y) noexcept;
+	Point		 getPosition() noexcept;
+	int8		 getWheelCount() noexcept;
+	int8		 getPanCount() noexcept;
+	MouseButtons getButtons() noexcept;
+
+	bool			  mouseEventAvailable() noexcept;
+	const MouseEvent& getMouseEvent() noexcept;
+
+	void setMouseEventHandler(MouseEventHandler&) noexcept;
+	void enableMouseMoveEvents(bool = true) noexcept;
+	void setMouseEventHandler(MouseEventHandler&, bool enable_mouse_move_events) noexcept;
+
+	static MouseEvent		  mouse_event;
+	static bool				  mouse_event_available;
+	static MouseEventHandler* mouse_event_cb;
+	static bool				  mouse_move_events_enabled;
 };
-
-
-extern bool				 mouseEventAvailable() noexcept;
-extern const MouseEvent& getMouseEvent() noexcept;
-
-using MouseReportHandler = void(const MouseReport&) noexcept;
-using MouseEventHandler	 = void(const MouseEvent&) noexcept;
-
-extern void setMouseReportHandler(MouseReportHandler&) noexcept;
-extern void setMouseEventHandler(MouseEventHandler&) noexcept;
-extern void enableMouseMoveEvents(bool = true) noexcept;
-extern void setMouseEventHandler(MouseEventHandler&, bool enable_mouse_move_events) noexcept;
 
 
 #endif
 
 
 } // namespace kio::Video
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
