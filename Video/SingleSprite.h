@@ -50,8 +50,8 @@ public:
 
 	bool is_hot() const noexcept { return hot_shape.pixels != nullptr; }
 
-	void move(coord x, coord y) noexcept { void(xpos = x), ypos = y; }
-	void move(const Point& p) noexcept { move(p.x, p.y); }
+	void moveTo(coord x, coord y) noexcept { void(xpos = x), ypos = y; }
+	void moveTo(const Point& p) noexcept { moveTo(p.x, p.y); }
 
 	void modify(Shape s, coord x, coord y, bool wait_while_hot = 0) noexcept;
 	void modify(Shape s, const Point& p, bool wait_while_hot = 0) noexcept;
@@ -92,7 +92,7 @@ public:
 	using super::countdown;
 	using super::frame_idx;
 	using super::is_hot;
-	using super::move;
+	using super::moveTo;
 	using super::wait_while_hot;
 
 	void modify(const AnimatedShape&, coord x, coord y, bool wait_while_hot = 0) noexcept;
@@ -132,14 +132,14 @@ void SingleSprite<NotAnimated, SOFT>::replace(Shape s, bool wait) noexcept
 template<Softening SOFT>
 void SingleSprite<NotAnimated, SOFT>::modify(Shape s, const Point& new_p, bool wait) noexcept
 {
-	move(new_p);
+	moveTo(new_p);
 	replace(s, wait);
 }
 
 template<Softening SOFT>
 void SingleSprite<NotAnimated, SOFT>::modify(Shape s, coord new_x, coord new_y, bool wait) noexcept
 {
-	move(new_x, new_y);
+	moveTo(new_x, new_y);
 	replace(s, wait);
 }
 
@@ -161,14 +161,14 @@ void SingleSprite<Animated, SOFT>::replace(const AnimatedShape& s, bool wait) no
 template<Softening SOFT>
 void SingleSprite<Animated, SOFT>::modify(const AnimatedShape& s, const Point& new_p, bool wait) noexcept
 {
-	move(new_p);
+	moveTo(new_p);
 	replace(s, wait);
 }
 
 template<Softening SOFT>
 void SingleSprite<Animated, SOFT>::modify(const AnimatedShape& s, coord new_x, coord new_y, bool wait) noexcept
 {
-	move(new_x, new_y);
+	moveTo(new_x, new_y);
 	replace(s, wait);
 }
 

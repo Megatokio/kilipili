@@ -139,7 +139,7 @@ Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::remove(Sprite* sprite) noexcept
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::move(Sprite* s, coord x, coord y) noexcept
+void Sprites<WZ, ANIM, SOFT>::moveTo(Sprite* s, coord x, coord y) noexcept
 {
 	stackinfo();
 	assert(is_in_displaylist(s));
@@ -149,7 +149,7 @@ void Sprites<WZ, ANIM, SOFT>::move(Sprite* s, coord x, coord y) noexcept
 }
 
 template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::move(Sprite* s, const Point& p) noexcept
+void Sprites<WZ, ANIM, SOFT>::moveTo(Sprite* s, const Point& p) noexcept
 {
 	stackinfo();
 	assert(is_in_displaylist(s));

@@ -129,8 +129,8 @@ public:
 	Sprite* add(Sprite* s) throws;
 	Sprite* add(Sprite* s, int x, int y, uint8 z = 0) throws;
 	Sprite* remove(Sprite* sprite) noexcept;
-	void	move(Sprite*, coord x, coord y) noexcept;
-	void	move(Sprite*, const Point& p) noexcept;
+	void	moveTo(Sprite*, coord x, coord y) noexcept;
+	void	moveTo(Sprite*, const Point& p) noexcept;
 
 	bool __always_inline is_in_displaylist(Sprite* s) const noexcept { return s->prev || displaylist == s; }
 	void				 clear_displaylist(bool delete_sprites = false) noexcept;
