@@ -3,12 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "USBHost/hid_handler.h"
 #include "standard_types.h"
-#include <class/hid/hid_host.h>
-#include <functional>
 
-
-namespace kio::USB
+namespace kio::Video
 {
 
 enum MouseButtons : uint8 {
@@ -20,48 +18,99 @@ enum MouseButtons : uint8 {
 	FORWARD_BUTTON	= 1 << 4,
 };
 
-inline MouseButtons operator^(MouseButtons a, uint8 b) { return MouseButtons(uint8(a) ^ b); }
-inline MouseButtons operator&(MouseButtons a, uint8 b) { return MouseButtons(uint8(a) & b); }
-inline MouseButtons operator|(MouseButtons a, MouseButtons b) { return MouseButtons(uint8(a) | b); }
 
-
-// USB mouse report in "boot" mode
-// matches TinyUSB::hid_mouse_report_t
-struct MouseReport
-{
-	MouseButtons buttons; // mask with currently pressed buttons
-	int8		 dx;	  // x movement
-	int8		 dy;	  // y movement
-	int8		 wheel;	  // wheel movement
-	int8		 pan;	  // using AC Pan
-};
-
-
-// serialized, filtered mouse event
-struct MouseEvent
+struct __aligned(4) MouseEvent
 {
 	MouseButtons buttons = NO_BUTTON; // currently pressed buttons
 	MouseButtons toggled = NO_BUTTON; // buttons which toggled
-	int8		 dx		 = 0;		  // x movement
-	int8		 dy		 = 0;		  // y movement
 	int8		 wheel	 = 0;		  // wheel movement
 	int8		 pan	 = 0;		  // using AC Pan
+	int16		 x, y;				  // position on screen
 
-	MouseEvent(const MouseReport&, MouseButtons oldbuttons) noexcept;
+	explicit MouseEvent(const struct USB::HidMouseReport&) noexcept;
+	MouseEvent() noexcept;
 };
 
 
-extern const MouseReport& getMouseReport() noexcept;
-extern MouseEvent		  getMouseEvent() noexcept;
-extern bool				  mouseReportAvailable() noexcept;
-extern bool				  mouseEventAvailable() noexcept;
+/*
+	set an event handler to be called for all mouse events.
+	getMouseEvent() and mouseEventAvailable() become dead.
+	the events are filtered as set with enableMouseEvents().
+	pass a nullptr to switch back to polling mode. (default)
+*/
+using MouseEventHandler = void(const MouseEvent&);
+extern void setMouseEventHandler(MouseEventHandler*) noexcept;
 
-using MouseReportHandler = void(const MouseReport&);
-using MouseEventHandler	 = void(const MouseEvent&);
+/*
+	set the limit for mouse x and y position.
+	must be called after setting VGA screen size.
+	note: is called by class MousePointer.
+*/
+extern void setScreenSize(int width, int height) noexcept;
 
-extern void setMouseReportHandler(MouseReportHandler&) noexcept;
-extern void setMouseEventHandler(MouseEventHandler&) noexcept;
+/*
+	query the current absolute position of the mouse.
+*/
+extern void getMousePosition(int& x, int& y) noexcept;
+
+/*
+	set filter for mouse events:
+	- btn_up: report button up events. (default=true)
+	- move_w_btn_dn: report move events while any button is down. (default=true)
+	- move: report all move events. (default=false)
+*/
 extern void enableMouseEvents(bool btn_up, bool move_w_btn_dn, bool move) noexcept;
-extern void setMouseEventHandler(MouseEventHandler&, bool btn_up, bool move_w_btn_dn, bool move) noexcept;
 
-} // namespace kio::USB
+/*
+	test whether a new mouse event is available.
+	always false if you have set a MouseEventHandler.
+*/
+extern bool mouseEventAvailable() noexcept;
+
+/*
+	get next mouse event.
+	returns an event with the current mouse buttons and position if no event available
+	or if you have set a MouseEventHandler.
+	the events are filtered as set with enableMouseEvents().
+*/
+extern MouseEvent getMouseEvent() noexcept;
+
+
+} // namespace kio::Video
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

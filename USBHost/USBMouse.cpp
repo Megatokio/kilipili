@@ -1,87 +1,108 @@
-// Copyright (c) 2022 - 2022 kio@little-bat.de
+// Copyright (c) 2022 - 2023 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "USBMouse.h"
-#include "hid_handler.h"
-#include "utilities/BucketList.h"
 
-namespace kio::USB
+#include "USBMouse.h"
+#include "USBHost/hid_handler.h"
+#include "basic_math.h"
+#include "common/Queue.h"
+#include <memory>
+
+// all hot video code should go into ram to allow video while flashing.
+// also, there should be no const data accessed in hot video code for the same reason.
+// the most timecritical things should go into core1 stack page because it is not contended.
+
+#define WRAP(X)	 #X
+#define XWRAP(X) WRAP(X)
+#define XRAM	 __attribute__((section(".scratch_x.mouse" XWRAP(__LINE__))))	  // the 4k page with the core1 stack
+#define RAM		 __attribute__((section(".time_critical.mouse" XWRAP(__LINE__)))) // general ram
+
+
+// ====================================================================
+
+namespace kio::Video
 {
+using namespace USB;
+
+static Queue<MouseEvent, 4, uint16> mouse_event_queue;
+static_assert(sizeof(mouse_event_queue) == 4 + 8 * 4);
 
 static bool enable_button_up_events				= true;
 static bool enable_move_with_button_down_events = true;
 static bool enable_move_events					= false;
 
-static BucketList<MouseReport, 8, uint8> mouse_event_queue;
-//ON_INIT([](){mouse_event_queue.hs_push();}); // push empty bucket: always one 'current' bucket in the list
-static MouseReport no_report; // old buttons and dx,dy,wheel,pan all zero
-
-static void				   queueMouseReport(const MouseReport& e) noexcept;
-static MouseReportHandler* mouse_report_cb = &queueMouseReport;
-static MouseEventHandler*  mouse_event_cb  = nullptr;
+static MouseButtons old_buttons = NO_BUTTON;
+static int16		old_x = 0, old_y = 0;
+static int16		screen_width  = 320;
+static int16		screen_height = 240;
 
 
-// ====================================================================
+// =============================================================
 
-MouseEvent::MouseEvent(const MouseReport& r, MouseButtons oldbuttons) noexcept :
-	buttons(r.buttons),
-	toggled(r.buttons ^ oldbuttons),
-	dx(r.dx),
-	dy(r.dy),
-	wheel(r.wheel),
-	pan(r.pan)
+void setScreenSize(int width, int height) noexcept
+{
+	screen_width  = int16(width);
+	screen_height = int16(height);
+}
+
+void getMousePosition(int& x, int& y) noexcept
+{
+	x = old_x;
+	y = old_y;
+}
+
+MouseEvent::MouseEvent() noexcept : // MouseEvent with no changes to the current state
+	buttons(old_buttons),
+	toggled(NO_BUTTON),
+	wheel(0),
+	pan(0),
+	x(old_x),
+	y(old_y)
 {}
 
-bool mouseReportAvailable() noexcept { return mouse_event_queue.ls_avail() > 1; }
-bool mouseEventAvailable() noexcept { return mouse_event_queue.ls_avail() > 1; }
-
-const MouseReport& getMouseReport() noexcept
+MouseEvent::MouseEvent(const HidMouseReport& report) noexcept :
+	buttons(MouseButtons(report.buttons)),
+	toggled(MouseButtons(report.buttons ^ old_buttons)),
+	wheel(report.wheel),
+	pan(report.pan),
+	x(int16(minmax(0, old_x + report.dx, screen_width - 1))),
+	y(int16(minmax(0, old_y + report.dy, screen_height - 1)))
 {
-	// return next MouseReport if available
-	// else return no_report with old buttons and dx,dy,wheel,pan all zero
-	// note: there is always the last report in the list!
+	old_buttons = buttons;
+	old_x		= x;
+	old_y		= y;
+}
 
-	// return next report if available:
-	if (mouse_event_queue.ls_avail() > 1)
-	{
-		// push the last report back into queue:
-		mouse_event_queue.ls_push();
+// =============================================================
 
-		// get next report:
-		const MouseReport& r = mouse_event_queue.ls_get();
-		no_report.buttons	 = r.buttons;
-		return r;
-	}
-	else { return no_report; }
+bool mouseEventAvailable() noexcept
+{
+	return mouse_event_queue.avail(); //
 }
 
 MouseEvent getMouseEvent() noexcept
 {
-	MouseButtons old_buttons = no_report.buttons;
-	return MouseEvent(getMouseReport(), old_buttons);
+	if (mouse_event_queue.avail()) return mouse_event_queue.get();
+	else return MouseEvent(); // event with the current state
 }
 
-static void queueMouseReport(const MouseReport& e) noexcept
+static void pushMouseEvent(const MouseEvent& event) noexcept
 {
-	if (mouse_event_queue.hs_avail())
-	{
-		mouse_event_queue.hs_get() = e;
-		mouse_event_queue.hs_push();
-	}
+	if unlikely (mouse_event_queue.free() == 0) mouse_event_queue.get(); // discard oldest
+	mouse_event_queue.put(event);
 }
 
+static MouseEventHandler* mouse_event_handler = &pushMouseEvent;
 
-void setMouseReportHandler(MouseReportHandler& handler) noexcept
+void setMouseEventHandler(MouseEventHandler* handler) noexcept
 {
-	mouse_report_cb = handler ? handler : queueMouseReport;
-	mouse_event_cb	= nullptr;
-}
-
-void setMouseEventHandler(MouseEventHandler& handler) noexcept
-{
-	mouse_event_cb	= handler;
-	mouse_report_cb = handler ? nullptr : queueMouseReport;
+	mouse_event_handler					= handler ? handler : &pushMouseEvent;
+	enable_button_up_events				= true;
+	enable_move_with_button_down_events = true;
+	enable_move_events					= false;
+	old_buttons							= NO_BUTTON;
+	setHidMouseEventHandler(&defaultHidMouseEventHandler);
 }
 
 void enableMouseEvents(bool btn_up, bool move_w_btn_dn, bool move) noexcept
@@ -91,81 +112,24 @@ void enableMouseEvents(bool btn_up, bool move_w_btn_dn, bool move) noexcept
 	enable_move_events					= move;
 }
 
-void setMouseEventHandler(MouseEventHandler& handler, bool up, bool move_w_btn_dn, bool move) noexcept
+} // namespace kio::Video
+
+namespace kio::USB
 {
-	setMouseEventHandler(handler);
-	enableMouseEvents(up, move_w_btn_dn, move);
-}
-
-
-void handle_hid_mouse_event(const hid_mouse_report_t* report) noexcept
+void __weak_symbol defaultHidMouseEventHandler(const HidMouseReport& report) noexcept
 {
-	// callback for USB Host events from `tuh_hid_report_received_cb()`:
+	// this handler is called by `tuh_hid_report_received_cb()`
+	// which receives the USB Host events
 
-	static_assert(sizeof(hid_mouse_report_t) == sizeof(MouseReport)); // minimal checking
-	const MouseReport& new_report = *reinterpret_cast<const MouseReport*>(report);
+	using namespace Video;
 
-	if (mouse_report_cb) { mouse_report_cb(new_report); }
-	else { mouse_event_cb(MouseEvent(new_report, NO_BUTTON)); }
+	auto event = MouseEvent(report); // always calculate the event wg. side effects in ctor!
+
+	bool f = enable_move_events || (report.buttons & uint8(~old_buttons)) ||
+			 (enable_move_with_button_down_events && report.buttons != NO_BUTTON && (report.dx || report.dy)) ||
+			 (enable_button_up_events && (report.buttons != old_buttons)) || report.pan || report.wheel;
+
+	if (f) mouse_event_handler(event);
 }
 
 } // namespace kio::USB
-
-
-#if 0
-
-  #include <bsp/ansi_escape.h>
-
-// If your host terminal support ansi escape code such as TeraTerm
-// it can be use to simulate mouse cursor movement within terminal
-  #define USE_ANSI_ESCAPE 1
-
-void cursor_movement(int8 x, int8 y, int8 wheel)
-{
-	if (USE_ANSI_ESCAPE)
-	{
-		if (x)	// Move X using ansi escape
-		{
-			if (x < 0) printf(ANSI_CURSOR_BACKWARD(%i), -x); // move left
-			else	   printf(ANSI_CURSOR_FORWARD(%i),  +x); // move right
-		}
-
-		if (y)	// Move Y using ansi escape
-		{
-			if (y < 0) printf(ANSI_CURSOR_UP(%i),   -y); // move up
-			else	   printf(ANSI_CURSOR_DOWN(%i), +y); // move down
-		}
-
-		if (wheel)	// Scroll using ansi escape
-		{
-			if (wheel < 0) printf(ANSI_SCROLL_UP(%i),   -wheel); // scroll up
-			else		   printf(ANSI_SCROLL_DOWN(%i), +wheel); // scroll down
-		}
-
-		printf("\r\n");
-	}
-	else
-	{
-		printf("(x:%d y:%d w:%d)\r\n", x, y, wheel);
-	}
-}
-
-void handle_hid_mouse_event(const hid_mouse_report_t* report)
-{
-	// callback for USB Host events from `tuh_hid_report_received_cb()`:
-
-	static hid_mouse_report_t prev_report;
-
-	uint8 button_changed_mask = report->buttons ^ prev_report.buttons;
-	if (button_changed_mask & report->buttons)
-	{
-		printf(" %c%c%c ",
-		report->buttons & MOUSE_BUTTON_LEFT   ? 'L' : '-',
-		report->buttons & MOUSE_BUTTON_MIDDLE ? 'M' : '-',
-		report->buttons & MOUSE_BUTTON_RIGHT  ? 'R' : '-');
-	}
-
-	cursor_movement(report->x, report->y, report->wheel);
-}
-
-#endif
