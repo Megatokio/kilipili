@@ -10,8 +10,6 @@
 
 namespace kio::Video
 {
-using coord = Graphics::coord;
-using Point = Graphics::Point;
 
 extern spin_lock_t* displaylist_spinlock;
 extern bool			hotlist_overflow; // for test by the application
@@ -45,8 +43,6 @@ public:
 	friend Sprites<WZ, NotAnimated, SOFT>;
 	friend Sprites<WZ, Animated, SOFT>;
 	using Shape = Video::Shape<SOFT>;
-	using Point = Graphics::Point;
-	using Dist	= Graphics::Dist;
 
 	uint8 width() const noexcept { return shape.preamble().width; }
 	uint8 height() const noexcept { return shape.preamble().height; }

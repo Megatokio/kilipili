@@ -8,7 +8,7 @@
 #include <utility>
 
 
-namespace kio::Graphics
+namespace kio
 {
 
 using coord = int;
@@ -131,4 +131,4 @@ struct Rect
 };
 
 
-} // namespace kio::Graphics
+} // namespace kio

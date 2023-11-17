@@ -17,6 +17,8 @@ add_library(kilipili_common STATIC
 	cstrings.h
 	cstrings.cpp
 	Queue.h
+	geometry.h
+	geometry.cpp
 	)
  
 target_compile_definitions(kilipili_common PUBLIC

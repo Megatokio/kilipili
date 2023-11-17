@@ -3,12 +3,11 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Graphics/geometry.h"
+#include "geometry.h"
 
 
 namespace kio::Video
 {
-using coord = Graphics::coord;
 
 /*
 	Class VideoPlane is the base class for all VideoPlanes which can be added to the Scanvideo engine.

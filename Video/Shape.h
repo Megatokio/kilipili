@@ -4,8 +4,8 @@
 
 #pragma once
 #include "Graphics/Pixmap_wAttr.h"
-#include "Graphics/geometry.h"
 #include "VideoBackend.h"
+#include "geometry.h"
 #include "kilipili_cdefs.h"
 #include "video_types.h"
 
@@ -62,10 +62,6 @@ struct Shape
 	using ColorMode = Graphics::ColorMode;
 	template<ColorMode CM>
 	using Pixmap = Graphics::Pixmap<CM>;
-	using Rect	 = Graphics::Rect;
-	using Point	 = Graphics::Point;
-	using Size	 = Graphics::Size;
-	using Dist	 = Graphics::Dist;
 
 	struct Preamble
 	{
@@ -360,7 +356,7 @@ Color* Shape<SOFT>::new_frame(
 	{
 		if (hot) pixels0 = new Color[size_t(pixels - pixels0)];
 
-		Graphics::Rect bbox = calc_bounding_rect();
+		Rect bbox = calc_bounding_rect();
 
 		assert(bbox.height() <= 255);
 		assert(bbox.width() <= 255);

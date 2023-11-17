@@ -34,8 +34,6 @@ class SingleSprite<NotAnimated, SOFT> : public VideoPlane
 {
 public:
 	using Shape = Video::Shape<SOFT>;
-	using coord = Graphics::coord;
-	using Point = Graphics::Point;
 
 	SingleSprite(Shape, const Point& position);
 
@@ -73,8 +71,6 @@ public:
 	using NotAnimatedShape = Video::Shape<SOFT>;
 	using AnimatedShape	   = Video::AnimatedShape<SOFT>;
 	using Shape			   = AnimatedShape;
-	using coord			   = Graphics::coord;
-	using Point			   = Graphics::Point;
 	using super			   = SingleSprite<NotAnimated, SOFT>;
 
 	SingleSprite(const AnimatedShape&, const Point& position);

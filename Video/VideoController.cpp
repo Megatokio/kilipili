@@ -37,8 +37,6 @@ namespace kio::Video
 
 #define RAM __attribute__((section(".time_critical.VideoController")))
 
-using namespace kio::Graphics;
-
 uint  scanlines_missed			   = 0;
 Error VideoController::core1_error = NO_ERROR;
 
@@ -55,8 +53,6 @@ struct Locker
 
 
 // =========================================================
-
-using namespace Graphics;
 
 VideoController::VideoController() noexcept
 {

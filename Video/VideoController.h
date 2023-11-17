@@ -45,8 +45,6 @@ public:
 	using IdleAction	= std::function<void()>;
 	using VBlankAction	= std::function<void()>;
 	using OneTimeAction = std::function<void()>;
-	using coord			= Graphics::coord;
-	using Size			= Graphics::Size;
 
 	enum State : uint8 {
 		STOPPED,
