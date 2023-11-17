@@ -90,10 +90,10 @@ struct Shape
 	explicit Shape(const Color* c = nullptr) noexcept : pixels(c) {}
 
 	template<ColorMode CM>
-	Shape(Pixmap<CM>& pm, uint transparent_pixel, const Color clut[], const Point& hotspot = {0, 0}) throws;
+	Shape(const Pixmap<CM>& pm, uint transparent_pixel, const Color clut[], const Point& hotspot = {0, 0}) throws;
 
 	template<ColorMode CM, typename std::enable_if_t<Graphics::is_true_color(CM), int> = 0>
-	Shape(Pixmap<CM>& pm, uint transparent_pixel, const Point& hotspot = {0, 0}) throws;
+	Shape(const Pixmap<CM>& pm, uint transparent_pixel, const Point& hotspot = {0, 0}) throws;
 
 	// ***** utility functions *****
 
@@ -130,7 +130,7 @@ struct Shape
 private:
 	template<ColorMode CM>
 	static Color*
-	new_frame(Graphics::Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x, int8 hot_y) throws;
+	new_frame(const Graphics::Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x, int8 hot_y) throws;
 };
 
 
@@ -293,7 +293,7 @@ Shape<Softened>::render_row(int& x, Color* scanline, bool blend) noexcept
 template<Softening SOFT>
 template<Graphics::ColorMode CM>
 Color* Shape<SOFT>::new_frame(
-	Graphics::Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x, int8 hot_y) throws
+	const Graphics::Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x, int8 hot_y) throws
 {
 	// TODO SOFT
 
@@ -421,13 +421,13 @@ Color* Shape<SOFT>::new_frame(
 
 template<Softening SOFT>
 template<Graphics::ColorMode CM>
-Shape<SOFT>::Shape(Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, const Point& hot) throws :
+Shape<SOFT>::Shape(const Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, const Point& hot) throws :
 	pixels(new_frame(pm, transparent_pixel, clut, hot.x, hot.y))
 {}
 
 template<Softening SOFT>
 template<Graphics::ColorMode CM, typename std::enable_if_t<Graphics::is_true_color(CM), int>>
-Shape<SOFT>::Shape(Pixmap<CM>& pm, uint transparent_pixel, const Point& hot) throws :
+Shape<SOFT>::Shape(const Pixmap<CM>& pm, uint transparent_pixel, const Point& hot) throws :
 	pixels(new_frame(pm, transparent_pixel, nullptr, hot.x, hot.y))
 {}
 
