@@ -46,10 +46,9 @@ void setScreenSize(int width, int height) noexcept
 	screen_height = int16(height);
 }
 
-void getMousePosition(int& x, int& y) noexcept
+Point getMousePosition() noexcept //
 {
-	x = old_x;
-	y = old_y;
+	return Point(old_x, old_y);
 }
 
 MouseEvent::MouseEvent() noexcept : // MouseEvent with no changes to the current state

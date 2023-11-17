@@ -4,7 +4,7 @@
 
 #pragma once
 #include "USBHost/hid_handler.h"
-#include "standard_types.h"
+#include "geometry.h"
 
 namespace kio::Video
 {
@@ -26,6 +26,8 @@ struct __aligned(4) MouseEvent
 	int8		 wheel	 = 0;		  // wheel movement
 	int8		 pan	 = 0;		  // using AC Pan
 	int16		 x, y;				  // position on screen
+
+	Point position() const noexcept { return Point(x, y); }
 
 	explicit MouseEvent(const struct USB::HidMouseReport&) noexcept;
 	MouseEvent() noexcept;
@@ -51,7 +53,7 @@ extern void setScreenSize(int width, int height) noexcept;
 /*
 	query the current absolute position of the mouse.
 */
-extern void getMousePosition(int& x, int& y) noexcept;
+extern Point getMousePosition() noexcept;
 
 /*
 	set filter for mouse events:
