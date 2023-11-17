@@ -144,6 +144,7 @@ struct AnimatedShape
 
 	void teardown() noexcept
 	{
+		for (uint i = 0; i < num_frames; i++) delete[] frames[i].pixels;
 		delete[] frames;
 		delete[] durations;
 		frames	   = nullptr;
