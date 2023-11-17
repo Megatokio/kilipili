@@ -9,14 +9,6 @@
 namespace kio::Graphics
 {
 
-Canvas::Canvas(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept :
-	width(w),
-	height(h),
-	colormode(CM),
-	attrheight(AH),
-	allocated(allocated)
-{}
-
 void Canvas::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
 {
 	// draw horizontal line

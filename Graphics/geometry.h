@@ -30,7 +30,7 @@ struct Point
 	coord x, y;
 
 	Point() noexcept = default;
-	Point(coord x, coord y) noexcept : x(x), y(y) {}
+	constexpr Point(coord x, coord y) noexcept : x(x), y(y) {}
 };
 
 struct Dist
