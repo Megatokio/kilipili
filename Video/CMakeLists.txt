@@ -18,8 +18,8 @@ set(VIDEO_MAX_SYSCLOCK_MHz "290" CACHE STRING "maximum system clock set by Video
 
 add_library(kilipili_video STATIC
 	FrameBuffer.h
-	Mouse.cpp
-	Mouse.h
+	MousePointer.cpp
+	MousePointer.h
 	ScanlineRenderFu.cpp
 	ScanlineRenderFu.h
 	VideoPlane.h

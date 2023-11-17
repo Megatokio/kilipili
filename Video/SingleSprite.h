@@ -89,7 +89,7 @@ public:
 	void modify(const AnimatedShape&, const Point& p, bool wait_while_hot = 0) noexcept;
 	void replace(const AnimatedShape&, bool wait_while_hot = 0) noexcept;
 
-private:
+protected:
 	AnimatedShape animated_shape;
 
 	void next_frame() noexcept
