@@ -14,17 +14,13 @@ Anybody who runs into a bug is welcome to file a bug report or a merge request.
   e.g. **1024 x 768** with 8 x 12 pixel **true color** attributes uses **only 132 kB of Ram**, leaving over 100 kB to the application.
 - runs entirely in RAM: stable video while writing to the internal flash possible.
 - can be restarted in different video mode.
-- automatically sets the required system clock  
+- automatically sets the required system clock.  
 - Sprites **WIP**
 - Tiled background mode **TODO**
 
 ## USB Host
-- USB keyboard supported. 
-- USB mouse usable but **WIP**. Mouse pointer waits for sprite support.
-
-## SDCard support
-- Access SC card in SPI mode
-- FAT file system support by using FatFS **WIP**
+- USB keyboard support. 
+- USB mouse support. 
 
 ## Graphics
 - **Direct pixel color modes**: 1, 2, 4, 8 and 16 bpp.  
@@ -40,6 +36,10 @@ Anybody who runs into a bug is welcome to file a bug report or a merge request.
 - Graphics primitives
 - Text output
 - Graphics still lack some functionality.
+
+## SDCard support
+- Access SC card in SPI mode
+- FAT file system support **WIP**
 
 ## Other
 - cpu load sensor
