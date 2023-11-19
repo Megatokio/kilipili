@@ -16,113 +16,71 @@ using namespace Graphics;
 #define RAM		 __attribute__((section(".time_critical.spr" XWRAP(__LINE__)))) // general ram
 
 
-spin_lock_t* singlesprite_spinlock = nullptr;
-
-
 #define lock_display_list() SingleSpriteLocker _locklist
 
 
 // ============================================================================
-// NotAnimated:
 
-template<Softening SOFT>
-SingleSprite<NotAnimated, SOFT>::SingleSprite(Shape shape, const Point& p) : // ctor
-	position(p),
-	shape(shape),
-	hot_shape(nullptr),
-	ghostly(false),
-	frame_idx(0),
-	countdown(0)
-{}
-
-template<Softening SOFT>
-void SingleSprite<NotAnimated, SOFT>::setup(coord __unused width)
+template<typename Sprite>
+void SingleSprite<Sprite>::SingleSprite::setup(coord __unused width)
 {
 	hot_shape.pixels = nullptr;
-	ghostly			 = false;
+
+	if constexpr (animated)
+	{
+		sprite.frame_idx = 0xff;
+		sprite.next_frame();
+	}
 }
 
-template<Softening SOFT>
-void RAM SingleSprite<NotAnimated, SOFT>::vblank() noexcept
+template<typename Sprite>
+void RAM SingleSprite<Sprite>::SingleSprite::vblank() noexcept
 {
+	if constexpr (animated) //
+	{
+		if (--sprite.countdown <= 0) next_frame();
+	}
+
 	hot_shape.pixels = nullptr;
 
-	Shape s = shape;
-	int	  y = position.y - s.preamble().hot_y;
+	int y = sprite.pos.y;
 	if (y >= 0) return;
 
 	// sprite starts above screen:
 
-	hot_shape_x = position.x - s.preamble().hot_x;
-	s.skip_preamble();
+	hot_shape.x		 = sprite.pos.x;
+	hot_shape.pixels = sprite.shape.pixels;
+
 	for (; y < 0; y++)
 	{
-		assert(s.is_pfx());
-		s.skip_row(hot_shape_x);
-		if unlikely (s.is_end()) return;
+		hot_shape.skip_row();
+		if unlikely (hot_shape.is_end()) return;
 	}
 
-	assert(s.is_pfx());
-	hot_shape = s;
+	assert(hot_shape.is_pfx());
 }
 
-template<Softening SOFT>
-void RAM SingleSprite<NotAnimated, SOFT>::renderScanline(int row, uint32* scanline) noexcept
+template<typename Sprite>
+void RAM SingleSprite<Sprite>::renderScanline(int row, uint32* scanline) noexcept
 {
 	if (hot_shape.pixels == nullptr)
 	{
-		Shape s = shape;
-		if (row != position.y - s.preamble().hot_y) return;
-		hot_shape_x = position.x - s.preamble().hot_x;
-		s.skip_preamble();
-		assert(s.is_pfx());
-		hot_shape = s;
+		if (row != sprite.pos.y) return;
+		hot_shape.x = sprite.pos.x;
+		assert(hot_shape.is_pfx());
+		hot_shape.pixels = sprite.shape.pixels;
 	}
 
-	bool finished = hot_shape.render_row(hot_shape_x, reinterpret_cast<Color*>(scanline), ghostly);
+	bool finished = hot_shape.render_row(reinterpret_cast<Color*>(scanline));
 	if (finished) hot_shape.pixels = nullptr;
-}
-
-template<Softening SOFT>
-void SingleSprite<NotAnimated, SOFT>::wait_while_hot() const noexcept
-{
-	for (uint i = 0; i < 100000 / 60 && is_hot(); i++) { sleep_us(10); }
-}
-
-
-// ============================================================================
-// Animated:
-
-template<Softening SOFT>
-SingleSprite<Animated, SOFT>::SingleSprite(const AnimatedShape& shape, const Point& p) : // ctor
-	super(shape.frames[0], p),
-	animated_shape(shape)
-{
-	if (!singlesprite_spinlock) singlesprite_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
-}
-
-template<Softening SOFT>
-void SingleSprite<Animated, SOFT>::setup(coord width)
-{
-	super::setup(width);
-	frame_idx	 = 0;
-	countdown	 = animated_shape.durations[0];
-	super::shape = animated_shape.frames[0];
-}
-
-template<Softening SOFT>
-void RAM SingleSprite<Animated, SOFT>::vblank() noexcept
-{
-	if (--countdown <= 0) next_frame();
-	super::vblank();
 }
 
 
 // the linker will know what we need:
-template class SingleSprite<NotAnimated, NotSoftened>;
-template class SingleSprite<NotAnimated, Softened>;
-template class SingleSprite<Animated, NotSoftened>;
-template class SingleSprite<Animated, Softened>;
+template class SingleSprite<Sprite<Shape<NotSoftened>>>;
+template class SingleSprite<Sprite<Shape<Softened>>>;
+template class SingleSprite<Sprite<AnimatedShape<NotSoftened>>>;
+template class SingleSprite<Sprite<AnimatedShape<Softened>>>;
 
 
 } // namespace kio::Video

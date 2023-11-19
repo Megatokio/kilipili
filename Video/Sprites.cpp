@@ -10,6 +10,7 @@
 #include <pico/stdlib.h>
 #include <pico/sync.h>
 
+
 namespace kio::Video
 {
 
@@ -25,52 +26,24 @@ using namespace Graphics;
 #define RAM		 __attribute__((section(".time_critical.spr" XWRAP(__LINE__)))) // general ram
 
 
-spin_lock_t*		displaylist_spinlock = nullptr;
-static volatile int hot_row				 = 0;	  // the currently displayed screen row
-bool				hotlist_overflow	 = false; // set by add_to_hotlist()
+bool hotlist_overflow = false; // set by add_to_hotlist()
 
 
-// =======================================================================
-// Sprite:
-
-template<ZPlane WZ, Softening SOFT>
-bool Sprite<WZ, NotAnimated, SOFT>::is_hot() const noexcept
-{
-	return hot_row >= pos.y && hot_row < pos.y + height();
-}
-
-template<ZPlane WZ, Softening SOFT>
-void Sprite<WZ, NotAnimated, SOFT>::wait_while_hot() const noexcept
-{
-	while (is_hot()) sleep_us(500);
-}
-
-
-// =======================================================================
-// Sprites:
-
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-Sprites<WZ, ANIM, SOFT>::~Sprites() noexcept
-{
-	assert(displaylist == nullptr); // else teardown not called => plane still in planes[] ?
-	assert(hotlist == nullptr);
-}
-
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::setup(coord __unused width)
+template<typename Sprite, ZPlane WZ>
+void Sprites<Sprite, WZ>::setup(coord __unused width)
 {
 	// called by VideoController before first vblank()
 	// we don't clear the displaylist and keep all sprites if there are already any
 
-	if (!displaylist_spinlock) displaylist_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
+	if (!sprites_spinlock) sprites_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
 
 	const uint cnt = 20;
 	hotlist		   = new HotShape[cnt];
 	max_hot		   = cnt;
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::clear_displaylist(bool delete_sprites) noexcept
+template<typename Sprite, ZPlane WZ>
+void Sprites<Sprite, WZ>::clear_displaylist(bool delete_sprites) noexcept
 {
 	stackinfo();
 
@@ -90,8 +63,8 @@ void Sprites<WZ, ANIM, SOFT>::clear_displaylist(bool delete_sprites) noexcept
 	num_hot		= 0;
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::teardown() noexcept
+template<typename Sprite, ZPlane WZ>
+void Sprites<Sprite, WZ>::teardown() noexcept
 {
 	// called by VideoController
 
@@ -105,8 +78,8 @@ void Sprites<WZ, ANIM, SOFT>::teardown() noexcept
 	hotlist = nullptr;
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::add(Sprite* sprite) throws
+template<typename Sprite, ZPlane WZ>
+Sprite* Sprites<Sprite, WZ>::add(Sprite* sprite) throws
 {
 	stackinfo();
 
@@ -115,19 +88,8 @@ Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::add(Sprite* sprite) throws
 	return sprite;
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::add(Sprite* sprite, const Point& p, uint8 z) throws
-{
-	stackinfo();
-
-	sprite->pos = p - sprite->hotspot();
-	sprite->z	= z;
-
-	return add(sprite);
-}
-
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::remove(Sprite* sprite) noexcept
+template<typename Sprite, ZPlane WZ>
+Sprite* Sprites<Sprite, WZ>::remove(Sprite* sprite) noexcept
 {
 	stackinfo();
 	assert(is_in_displaylist(sprite));
@@ -137,27 +99,35 @@ Sprite<WZ, ANIM, SOFT>* Sprites<WZ, ANIM, SOFT>::remove(Sprite* sprite) noexcept
 	return sprite;
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::moveTo(Sprite* s, const Point& p) noexcept
+template<typename Sprite, ZPlane WZ>
+void Sprites<Sprite, WZ>::moveTo(Sprite* s, const Point& p) noexcept
 {
 	stackinfo();
 	assert(is_in_displaylist(s));
 
 	Lock _;
-	_move(s, p.x - s->hot_x(), p.y - s->hot_y());
+	bool f = p.y != s->get_ypos();
+	s->set_position(p);
+	if (f) _move(s);
+}
+
+template<typename Sprite, ZPlane WZ>
+void Sprites<Sprite, WZ>::replace(Sprite* s, const Shape& new_shape) noexcept
+{
+	if (s->replace(new_shape)) _move(s);
 }
 
 
 // -------------------------------
 // in RAM:
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void RAM Sprites<WZ, ANIM, SOFT>::_unlink(Sprite* s) noexcept
+template<typename Sprite, ZPlane WZ>
+void RAM Sprites<Sprite, WZ>::_unlink(Sprite* s) noexcept
 {
 	// used in renderScanline()
 
 	assert(is_in_displaylist(s));
-	assert(is_spin_locked(displaylist_spinlock));
+	assert(is_spin_locked(sprites_spinlock));
 
 	if unlikely (next_sprite == s) next_sprite = static_cast<Sprite*>(s->next);
 
@@ -169,14 +139,14 @@ void RAM Sprites<WZ, ANIM, SOFT>::_unlink(Sprite* s) noexcept
 	// s->next = nullptr;	  don't clear s->next: vblank() may need it!
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void __always_inline Sprites<WZ, ANIM, SOFT>::_link_after(Sprite* s, Sprite* other) noexcept
+template<typename Sprite, ZPlane WZ>
+void __always_inline Sprites<Sprite, WZ>::_link_after(Sprite* s, Sprite* other) noexcept
 {
 	// used in renderScanline()
 
 	assert(!is_in_displaylist(s));
 	assert(other && is_in_displaylist(other));
-	assert(is_spin_locked(displaylist_spinlock));
+	assert(is_spin_locked(sprites_spinlock));
 
 	s->prev = other;
 	s->next = other->next;
@@ -185,14 +155,14 @@ void __always_inline Sprites<WZ, ANIM, SOFT>::_link_after(Sprite* s, Sprite* oth
 	other->next = s;
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void __always_inline Sprites<WZ, ANIM, SOFT>::_link_before(Sprite* s, Sprite* other) noexcept
+template<typename Sprite, ZPlane WZ>
+void __always_inline Sprites<Sprite, WZ>::_link_before(Sprite* s, Sprite* other) noexcept
 {
 	// used in renderScanline()
 
 	assert(!is_in_displaylist(s));
 	assert(other && is_in_displaylist(other));
-	assert(is_spin_locked(displaylist_spinlock));
+	assert(is_spin_locked(sprites_spinlock));
 
 	s->next = other;
 	s->prev = other->prev;
@@ -202,12 +172,12 @@ void __always_inline Sprites<WZ, ANIM, SOFT>::_link_before(Sprite* s, Sprite* ot
 	else displaylist = s;
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void Sprites<WZ, ANIM, SOFT>::_link(Sprite* s) noexcept
+template<typename Sprite, ZPlane WZ>
+void Sprites<Sprite, WZ>::_link(Sprite* s) noexcept
 {
 	stackinfo();
 	assert(!is_in_displaylist(s));
-	assert(is_spin_locked(displaylist_spinlock));
+	assert(is_spin_locked(sprites_spinlock));
 
 	Sprite* other = displaylist;
 	int		y	  = s->pos.y;
@@ -226,60 +196,47 @@ void Sprites<WZ, ANIM, SOFT>::_link(Sprite* s) noexcept
 	}
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void RAM Sprites<WZ, ANIM, SOFT>::_move(Sprite* s, coord x, coord y) noexcept
+template<typename Sprite, ZPlane WZ>
+void RAM Sprites<Sprite, WZ>::_move(Sprite* s) noexcept
 {
-	// used in renderScanline()
-
 	stackinfo();
-	assert(is_spin_locked(displaylist_spinlock));
+	assert(is_spin_locked(sprites_spinlock));
 
-	s->pos.x = x;
-	s->pos.y = y;
+	int		y = s->pos.y;
+	Sprite* other;
 
-	Video::Sprite<WZ, NotAnimated, SOFT>* other;
-
-	if ((other = s->prev) && y < other->pos.y)
+	if ((other = static_cast<Sprite*>(s->prev)) && y < other->pos.y)
 	{
 		_unlink(s);
-		auto* prev = other->prev;
+		Sprite* prev = static_cast<Sprite*>(other->prev);
 		do other = prev;
-		while ((prev = other->prev) && y < prev->pos.y);
-		_link_before(s, static_cast<Sprite*>(other));
+		while ((prev = static_cast<Sprite*>(other->prev)) && y < prev->pos.y);
+		_link_before(s, other);
 	}
-	else if ((other = s->next) && y > other->pos.y)
+	else if ((other = static_cast<Sprite*>(s->next)) && y > other->pos.y)
 	{
 		_unlink(s);
-		auto* next = other->next;
+		Sprite* next = static_cast<Sprite*>(other->next);
 		do other = next;
-		while ((next = other->next) && y > next->pos.y);
-		_link_after(s, static_cast<Sprite*>(other));
+		while ((next = static_cast<Sprite*>(other->next)) && y > next->pos.y);
+		_link_after(s, other);
 	}
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void RAM Sprites<WZ, ANIM, SOFT>::add_to_hotlist(Shape shape, int x, int dy, uint z) noexcept
+template<typename Sprite, ZPlane WZ>
+void RAM Sprites<Sprite, WZ>::add_to_hotlist(const Sprite* sprite) noexcept
 {
-	// used in renderScanline()
-
 	if unlikely (num_hot == max_hot)
 	{
 		hotlist_overflow = true;
 		return;
 	}
 
-	shape.skip_preamble();
-
-	for (; dy < 0; dy++) // skip over dy rows if dy < 0
-	{
-		shape.skip_row(x);
-		if unlikely (shape.is_end()) return;
-	}
-
 	uint idx = num_hot++;
 
 	if constexpr (WZ == HasZ)
 	{
+		uint z = sprite->z;
 		while (idx && z < hotlist[idx - 1].z)
 		{
 			hotlist[idx] = hotlist[idx - 1];
@@ -287,13 +244,26 @@ void RAM Sprites<WZ, ANIM, SOFT>::add_to_hotlist(Shape shape, int x, int dy, uin
 		}
 	}
 
-	assert(shape.is_pfx());
-	hotlist[idx].x		= x;
-	hotlist[idx].pixels = shape.pixels;
+	auto& hot_shape	 = hotlist[idx];
+	hot_shape.pixels = sprite->shape.pixels;
+	hot_shape.x		 = sprite->pos.x;
+	if constexpr (WZ == HasZ) hot_shape.z = sprite->z;
+	hot_shape.ghostly = sprite->ghostly;
+
+	if unlikely (sprite->pos.y < hot_row)
+	{
+		for (int dy = sprite->pos.y - hot_row; dy < 0; dy++)
+		{
+			hot_shape.skip_row();
+			if unlikely (hot_shape.is_end()) return;
+		}
+	}
+
+	assert(hot_shape.is_pfx());
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void RAM Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) noexcept
+template<typename Sprite, ZPlane WZ>
+void RAM Sprites<Sprite, WZ>::renderScanline(int hot_row, uint32* scanline) noexcept
 {
 	stackinfo();
 	assert(get_core_num() == 1);
@@ -308,26 +278,22 @@ void RAM Sprites<WZ, ANIM, SOFT>::renderScanline(int hot_row, uint32* scanline) 
 	Sprite* s = next_sprite;
 	while (s && s->pos.y <= hot_row)
 	{
-		if (s->pos.x < screen_width() && s->pos.x + s->width() > 0)
-		{
-			add_to_hotlist(s->shape, s->pos.x, s->pos.y - hot_row, s->z);
-		}
+		if (s->pos.x < screen_width() && s->pos.x + s->width() > 0) { add_to_hotlist(s); }
 		next_sprite = s = static_cast<Sprite*>(s->next);
 	}
 
 	// render shapes into framebuffer and
 	// advance shapes to next row and remove finished shapes
-
 	for (uint i = num_hot; i;)
 	{
 		HotShape& hot_shape = hotlist[--i];
-		bool	  finished	= hot_shape.render_row(hot_shape.x, reinterpret_cast<Color*>(scanline), s->ghostly);
+		bool	  finished	= hot_shape.render_row(reinterpret_cast<Color*>(scanline));
 		if unlikely (finished) hot_shape = hotlist[--num_hot];
 	}
 }
 
-template<ZPlane WZ, Animation ANIM, Softening SOFT>
-void RAM Sprites<WZ, ANIM, SOFT>::vblank() noexcept
+template<typename Sprite, ZPlane WZ>
+void RAM Sprites<Sprite, WZ>::vblank() noexcept
 {
 	// called by VideoController before first renderScanline().
 	// called by VideoController at start of each frame.
@@ -340,7 +306,7 @@ void RAM Sprites<WZ, ANIM, SOFT>::vblank() noexcept
 	hot_row		= -9999;
 	next_sprite = displaylist;
 
-	if constexpr (ANIM == Animated)
+	if constexpr (Sprite::animated)
 	{
 		// in a RC the other thread may have just unlinked the sprite.
 		// remove(): the sprite will be deleted and subsequently overwritten.
@@ -356,18 +322,7 @@ void RAM Sprites<WZ, ANIM, SOFT>::vblank() noexcept
 
 			if (is_in_displaylist(s))
 			{
-				int dx = s->hot_x();
-				int dy = s->hot_y();
-
-				if (++s->frame_idx >= s->animated_shape.num_frames) s->frame_idx = 0;
-				s->countdown = s->animated_shape.durations[s->frame_idx];
-				s->shape	 = s->animated_shape.frames[s->frame_idx];
-
-				dx -= s->hot_x();
-				dy -= s->hot_y();
-
-				s->pos.x += dx;
-				if (dy) _move(s, s->pos.x, s->pos.y + dy);
+				if (s->next_frame()) _move(s);
 			}
 		}
 	}
@@ -375,14 +330,14 @@ void RAM Sprites<WZ, ANIM, SOFT>::vblank() noexcept
 
 
 // the linker will know what we need:
-template class Sprites<NoZ, NotAnimated, NotSoftened>;
-template class Sprites<NoZ, NotAnimated, Softened>;
-template class Sprites<NoZ, Animated, NotSoftened>;
-template class Sprites<NoZ, Animated, Softened>;
-template class Sprites<HasZ, NotAnimated, NotSoftened>;
-template class Sprites<HasZ, NotAnimated, Softened>;
-template class Sprites<HasZ, Animated, NotSoftened>;
-template class Sprites<HasZ, Animated, Softened>;
+template class Sprites<Sprite<Shape<NotSoftened>>, NoZ>;
+template class Sprites<Sprite<Shape<NotSoftened>>, HasZ>;
+template class Sprites<Sprite<Shape<Softened>>, NoZ>;
+template class Sprites<Sprite<Shape<Softened>>, HasZ>;
+template class Sprites<Sprite<AnimatedShape<NotSoftened>>, NoZ>;
+template class Sprites<Sprite<AnimatedShape<NotSoftened>>, HasZ>;
+template class Sprites<Sprite<AnimatedShape<Softened>>, NoZ>;
+template class Sprites<Sprite<AnimatedShape<Softened>>, HasZ>;
 
 } // namespace kio::Video
 

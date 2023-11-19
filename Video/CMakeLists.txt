@@ -25,8 +25,6 @@ add_library(kilipili_video STATIC
 	VideoPlane.h
 	VideoController.cpp
 	VideoController.h
-	Sprites.cpp
-	Sprites.h
 	VgaMode.h
 	scanline.pio
 	video_options.h
@@ -40,9 +38,12 @@ add_library(kilipili_video STATIC
 	ColorMap.h
 	Color.h
 	Shape.h
-	Shape.cpp
+	Sprite.h
+	Sprite.cpp
 	SingleSprite.h
 	SingleSprite.cpp
+	Sprites.cpp
+	Sprites.h
 	UniColorBackdrop.h
 	video_types.h
 )

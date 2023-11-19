@@ -4,13 +4,12 @@
 
 #pragma once
 #include "Shape.h"
+#include "Sprite.h"
 #include "VideoPlane.h"
-#include <pico/sync.h>
+
 
 namespace kio::Video
 {
-
-extern spin_lock_t* singlesprite_spinlock;
 
 /*
 	A VideoPlane for one single Sprite.
@@ -25,86 +24,48 @@ extern spin_lock_t* singlesprite_spinlock;
 	Other options:
 	- ghostly:	  Shape can be rendered 50% transparent		
 */
-template<Animation ANIM, Softening SOFT>
-class SingleSprite;
-
-
-template<Softening SOFT>
-class SingleSprite<NotAnimated, SOFT> : public VideoPlane
+template<typename Sprite>
+class SingleSprite : public VideoPlane
 {
 public:
-	using Shape = Video::Shape<SOFT>;
+	using Shape	   = typename Sprite::Shape;
+	using HotShape = typename Sprite::Shape::template HotShape<NoZ>;
 
-	SingleSprite(Shape, const Point& position);
+	static constexpr bool animated = Sprite::animated;
+
+	SingleSprite(Shape s, const Point& position);
 
 	virtual void setup(coord width) override;
 	virtual void teardown() noexcept override {}
 	virtual void vblank() noexcept override;
 	virtual void renderScanline(int row, uint32* scanline) noexcept override;
 
-	Point position; // position of the hot spot
+	Sprite	 sprite;
+	HotShape hot_shape {nullptr, 0};
 
 	bool is_hot() const noexcept { return hot_shape.pixels != nullptr; }
+	void wait_while_hot() const noexcept;
 
-	void moveTo(const Point& p) noexcept { position = p; }
+	void moveTo(const Point& p) noexcept;
 	void modify(Shape s, const Point& p, bool wait_while_hot = 0) noexcept;
 	void replace(Shape s, bool wait_while_hot = 0) noexcept;
 
-	void wait_while_hot() const noexcept;
 
 protected:
-	using HotShape = Video::Shape<SOFT>;
-
-	Shape	 shape;		  // the compressed image of the sprite.
-	HotShape hot_shape;	  // pointer into shape as rows are displayed
-	int		 hot_shape_x; // updated x pos for current row
-	bool	 ghostly;	  // render sprite semi transparent
-	uint8	 frame_idx;	  // if animated
-	int16	 countdown;	  // if animated
-};
-
-
-template<Softening SOFT>
-class SingleSprite<Animated, SOFT> : public SingleSprite<NotAnimated, SOFT>
-{
-public:
-	using NotAnimatedShape = Video::Shape<SOFT>;
-	using AnimatedShape	   = Video::AnimatedShape<SOFT>;
-	using Shape			   = AnimatedShape;
-	using super			   = SingleSprite<NotAnimated, SOFT>;
-
-	SingleSprite(const AnimatedShape&, const Point& position);
-
-	virtual void setup(coord width) override;
-	//virtual void teardown() noexcept override;
-	virtual void vblank() noexcept override;
-	//virtual void renderScanline(int row, uint32* scanline) noexcept override;
-
-	using super::countdown;
-	using super::frame_idx;
-	using super::is_hot;
-	using super::moveTo;
-	using super::wait_while_hot;
-
-	void modify(const AnimatedShape&, const Point& p, bool wait_while_hot = 0) noexcept;
-	void replace(const AnimatedShape&, bool wait_while_hot = 0) noexcept;
-
-protected:
-	AnimatedShape animated_shape;
-
 	void next_frame() noexcept
 	{
-		lock _;
-		if (++frame_idx >= animated_shape.num_frames) frame_idx = 0;
-		countdown	 = animated_shape.durations[frame_idx];
-		super::shape = animated_shape.frames[frame_idx];
+		if constexpr (animated)
+		{
+			Lock _;
+			sprite.next_frame();
+		}
 	}
 
-	struct lock
+	struct Lock
 	{
 		uint32 status_register;
-		lock() noexcept { status_register = spin_lock_blocking(singlesprite_spinlock); }
-		~lock() noexcept { spin_unlock(singlesprite_spinlock, status_register); }
+		Lock() noexcept { status_register = spin_lock_blocking(sprites_spinlock); }
+		~Lock() noexcept { spin_unlock(sprites_spinlock, status_register); }
 	};
 };
 
@@ -112,48 +73,97 @@ protected:
 // ============================================================================
 
 
-template<Softening SOFT>
-void SingleSprite<NotAnimated, SOFT>::replace(Shape s, bool wait) noexcept
+template<typename Sprite>
+SingleSprite<Sprite>::SingleSprite(Shape s, const Point& position) : // ctor
+	sprite(std::move(s), position)
 {
-	shape = s;
+	if constexpr (animated)
+		if (!sprites_spinlock) sprites_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
+}
+
+
+template<typename Sprite>
+void SingleSprite<Sprite>::moveTo(const Point& p) noexcept
+{
+	// no re-linking needed as there is only one sprite:
+	sprite.set_position(p);
+}
+
+template<typename Sprite>
+void SingleSprite<Sprite>::replace(Shape s, bool wait) noexcept
+{
+	if constexpr (Sprite::animated) //
+	{
+		Lock _;
+		sprite.replace(std::move(s));
+	}
+	else { sprite.replace(std::move(s)); }
+
 	if (wait) wait_while_hot(); // => caller can delete old shape safely
 }
 
-template<Softening SOFT>
-void SingleSprite<NotAnimated, SOFT>::modify(Shape s, const Point& new_p, bool wait) noexcept
+template<typename Sprite>
+void SingleSprite<Sprite>::SingleSprite::modify(Shape s, const Point& new_p, bool wait) noexcept
 {
 	moveTo(new_p);
-	replace(s, wait);
+	replace(std::move(s), wait);
+}
+
+template<typename Sprite>
+void SingleSprite<Sprite>::SingleSprite::wait_while_hot() const noexcept
+{
+	for (uint i = 0; i < 100000 / 60 && is_hot(); i++) { sleep_us(10); }
 }
 
 // ============================================================================
 
-template<Softening SOFT>
-void SingleSprite<Animated, SOFT>::replace(const AnimatedShape& s, bool wait) noexcept
-{
-	{
-		lock _;
-		animated_shape = s;
-		frame_idx	   = 0;
-		countdown	   = s.durations[0];
-		super::shape   = s.frames[0];
-	}
-	if (wait) wait_while_hot(); // => caller can delete old shape safely
-}
-
-template<Softening SOFT>
-void SingleSprite<Animated, SOFT>::modify(const AnimatedShape& s, const Point& new_p, bool wait) noexcept
-{
-	moveTo(new_p);
-	replace(s, wait);
-}
-
-
 // yes, we have them all:
-extern template class SingleSprite<NotAnimated, NotSoftened>;
-extern template class SingleSprite<NotAnimated, Softened>;
-extern template class SingleSprite<Animated, NotSoftened>;
-extern template class SingleSprite<Animated, Softened>;
+extern template class SingleSprite<Sprite<Shape<NotSoftened>>>;
+extern template class SingleSprite<Sprite<Shape<Softened>>>;
+extern template class SingleSprite<Sprite<AnimatedShape<NotSoftened>>>;
+extern template class SingleSprite<Sprite<AnimatedShape<Softened>>>;
 
 
 } // namespace kio::Video
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
