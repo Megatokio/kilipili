@@ -39,6 +39,9 @@ struct LinkedListElement
 };
 
 
+/* ————————————————————————————————————————————————————————————
+	Not animated Sprite
+*/
 template<typename SHAPE, typename = void>
 class Sprite : protected LinkedListElement
 {
@@ -48,7 +51,9 @@ class Sprite : protected LinkedListElement
 public:
 	NO_COPY_MOVE(Sprite);
 
-	using Shape					   = SHAPE;
+	using Shape = SHAPE;
+	template<ZPlane WZ>
+	using HotShape				   = typename Shape::template HotShape<WZ>;
 	static constexpr bool animated = Shape::animated;
 	static_assert(!animated);
 
@@ -101,6 +106,14 @@ public:
 		while (is_hot()) sleep_us(500);
 	}
 
+	template<ZPlane WZ>
+	void setup(HotShape<WZ>& hs) const noexcept
+	{
+		hs.pixels  = &shape.pixels[0];
+		hs.x	   = pos_x;
+		hs.ghostly = ghostly;
+		if constexpr (WZ == HasZ) hs.z = z;
+	}
 
 	Shape shape; // the compressed image of the sprite
 	coord pos_x;
@@ -112,6 +125,10 @@ public:
 };
 
 
+/* ————————————————————————————————————————————————————————————
+	Animated Sprite
+	the animated Sprite is based on the not-animated Sprite.
+*/
 template<typename SHAPE>
 class Sprite<SHAPE, typename std::enable_if_t<SHAPE::animated>> : public Sprite<typename SHAPE::Shape>
 {

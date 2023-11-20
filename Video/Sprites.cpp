@@ -244,11 +244,8 @@ void RAM Sprites<Sprite, WZ>::add_to_hotlist(const Sprite* sprite) noexcept
 		}
 	}
 
-	auto& hot_shape	 = hotlist[idx];
-	hot_shape.pixels = &sprite->shape.pixels[0u];
-	hot_shape.x		 = sprite->pos_x;
-	if constexpr (WZ == HasZ) hot_shape.z = sprite->z;
-	hot_shape.ghostly = sprite->ghostly;
+	HotShape& hot_shape = hotlist[idx];
+	sprite->template setup<WZ>(hot_shape);
 
 	if unlikely (sprite->pos_y < hot_row)
 	{

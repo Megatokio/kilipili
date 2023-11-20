@@ -92,40 +92,14 @@ private:
 
 
 /*	——————————————————————————————————————————————————————————————————————————
-	A Shape defines the shape of a sprite.
-	It provides functions to render the shape.
+	A HotShape is a wrapper around the pixels[] of a sprite.
+	It provides the function to render the shape.
 */
-template<Softening SOFT>
-struct Shape
-{
-	using ColorMode = Graphics::ColorMode;
-	template<ColorMode CM>
-	using Pixmap = Graphics::Pixmap<CM>;
-
-	static constexpr bool animated	= false;
-	static constexpr bool softened	= SOFT == Softened;
-	static constexpr bool isa_shape = true;
-
-	RCPtr<const Colors> pixels;
-	uint8				_width	= 0;
-	uint8				_height = 0;
-	int8				_hot_x	= 0;
-	int8				_hot_y	= 0;
-
-	uint8 width() const noexcept { return _width; }
-	uint8 height() const noexcept { return _height; }
-	int8  hot_x() const noexcept { return _hot_x; }
-	int8  hot_y() const noexcept { return _hot_y; }
-
-	template<Graphics::ColorMode CM>
-	Shape(const Graphics::Pixmap<CM>& pm, uint transp, const Color* clut, int8 hot_x, int8 hot_y) throws;
-	Shape() noexcept {}
-};
-
-
 template<typename Shape, ZPlane WZ>
 struct HotShape
 {
+	static_assert(Shape::isa_shape);
+
 	const Color* pixels;
 	int			 x;
 	bool		 ghostly;
@@ -168,6 +142,44 @@ struct HotShape<Shape, HasZ> : public HotShape<Shape, NoZ>
 };
 
 
+/*	——————————————————————————————————————————————————————————————————————————
+	A Shape defines the shape of a sprite.
+*/
+template<Softening SOFT>
+struct Shape
+{
+	using ColorMode = Graphics::ColorMode;
+	template<ColorMode CM>
+	using Pixmap = Graphics::Pixmap<CM>;
+	template<ZPlane WZ>
+	using HotShape = Video::HotShape<Shape, WZ>;
+
+	static constexpr bool animated	= false;
+	static constexpr bool softened	= SOFT == Softened;
+	static constexpr bool isa_shape = true;
+
+	RCPtr<const Colors> pixels;
+	uint8				_width	= 0;
+	uint8				_height = 0;
+	int8				_hot_x	= 0;
+	int8				_hot_y	= 0;
+
+	uint8 width() const noexcept { return _width; }
+	uint8 height() const noexcept { return _height; }
+	int8  hot_x() const noexcept { return _hot_x; }
+	int8  hot_y() const noexcept { return _hot_y; }
+
+	template<Graphics::ColorMode CM>
+	Shape(const Graphics::Pixmap<CM>& pm, uint transp, const Color* clut, int8 hot_x, int8 hot_y) throws;
+	Shape() noexcept {}
+};
+
+
+/*	——————————————————————————————————————————————————————————————————————————
+	An animated Shape is a list of frames which are not-animated Shapes.
+	It provides functions to render the shape.
+*/
+
 template<typename Shape>
 struct ShapeWithDuration
 {
@@ -179,6 +191,8 @@ template<typename SHAPE>
 struct AnimatedShape
 {
 	using Shape = SHAPE;
+	template<ZPlane WZ>
+	using HotShape = typename Shape::template HotShape<WZ>;
 
 	static constexpr bool animated	= true;
 	static constexpr bool isa_shape = true;

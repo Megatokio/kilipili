@@ -68,7 +68,8 @@ void RAM SingleSprite<Sprite>::renderScanline(int row, uint32* scanline) noexcep
 		if (row != sprite.pos_y) return;
 		hot_shape.x = sprite.pos_x;
 		assert(hot_shape.is_pfx());
-		hot_shape.pixels = &sprite.shape.pixels[0u];
+		hot_shape.pixels  = &sprite.shape.pixels[0u];
+		hot_shape.ghostly = sprite.ghostly;
 	}
 
 	bool finished = hot_shape.render_row(reinterpret_cast<Color*>(scanline));
@@ -85,7 +86,8 @@ template class SingleSprite<Sprite<AnimatedShape<Shape<Softened>>>>;
 
 struct ShapeFoo
 {
-	Color* pixels;
+	Color*				  pixels;
+	static constexpr bool isa_shape = true;
 };
 
 struct SpriteFoo
@@ -94,6 +96,7 @@ struct SpriteFoo
 	static constexpr bool animated = false;
 	coord				  pos_x, pos_y;
 	ShapeFoo			  shape;
+	bool				  ghostly;
 
 	SpriteFoo(ShapeFoo, Point);
 };

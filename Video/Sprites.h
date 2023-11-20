@@ -24,7 +24,7 @@ class Sprites : public VideoPlane
 {
 public:
 	using Shape	   = typename Sprite::Shape;
-	using HotShape = typename Video::HotShape<Shape, WZ>;
+	using HotShape = typename Shape::template HotShape<WZ>;
 
 	Sprites() noexcept = default;
 	virtual ~Sprites() noexcept override;
