@@ -19,6 +19,7 @@ add_library(kilipili_common STATIC
 	Queue.h
 	geometry.h
 	geometry.cpp
+	RCPtr.h
 	)
  
 target_compile_definitions(kilipili_common PUBLIC
