@@ -25,6 +25,7 @@ add_library(kilipili_utilities STATIC
 	sm_utilities.cpp
 	StackInfo.cpp
 	StackInfo.h
+	atomic.h
 	)
 
 target_compile_definitions(kilipili_utilities PUBLIC 
