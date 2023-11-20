@@ -101,8 +101,9 @@ struct Shape
 	template<ColorMode CM>
 	using Pixmap = Graphics::Pixmap<CM>;
 
-	static constexpr bool animated = false;
-	static constexpr bool softened = SOFT == Softened;
+	static constexpr bool animated	= false;
+	static constexpr bool softened	= SOFT == Softened;
+	static constexpr bool isa_shape = true;
 
 	RCPtr<Colors> pixels;
 	uint8		  _width  = 0;
@@ -181,7 +182,8 @@ struct AnimatedShape
 {
 	using Shape = SHAPE;
 
-	static constexpr bool animated = true;
+	static constexpr bool animated	= true;
+	static constexpr bool isa_shape = true;
 
 	ShapeWithDuration<Shape>* frames	 = nullptr;
 	uint					  num_frames = 0;

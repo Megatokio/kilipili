@@ -20,12 +20,15 @@ enum MouseShapeID {
 };
 
 
-template<typename Sprite>
-class MousePointer : public SingleSprite<Sprite>
+template<typename SHAPE>
+class MousePointer : public SingleSprite<Sprite<SHAPE>>
 {
 public:
-	using super = SingleSprite<Sprite>;
-	using Shape = typename super::Shape;
+	static_assert(SHAPE::isa_shape);
+
+	using super = SingleSprite<Sprite<SHAPE>>;
+	using Shape = SHAPE;
+	//using Sprite = typename Video::Sprite<SHAPE>;
 
 	MousePointer(MouseShapeID, const Point&);
 	MousePointer(const Shape& s, const Point& p) : super(s, p) {}
@@ -46,10 +49,10 @@ public:
 // =========================================================================
 
 // yes, we have them all!
-extern template class MousePointer<Sprite<Shape<NotSoftened>>>;
-extern template class MousePointer<Sprite<Shape<Softened>>>;
-extern template class MousePointer<Sprite<AnimatedShape<Shape<NotSoftened>>>>;
-extern template class MousePointer<Sprite<AnimatedShape<Shape<Softened>>>>;
+extern template class MousePointer<Shape<NotSoftened>>;
+extern template class MousePointer<Shape<Softened>>;
+extern template class MousePointer<AnimatedShape<Shape<NotSoftened>>>;
+extern template class MousePointer<AnimatedShape<Shape<Softened>>>;
 
 } // namespace kio::Video
 

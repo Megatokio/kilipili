@@ -5,10 +5,6 @@
 
 #include "MousePointer.h"
 #include "USBMouse.h"
-#include "VideoBackend.h"
-#include "VideoController.h"
-#include "vga_types.h"
-#include <memory>
 
 // all hot video code should go into ram to allow video while flashing.
 // also, there should be no const data accessed in hot video code for the same reason.
@@ -48,23 +44,23 @@ constexpr uint8 transparent = 2;
 
 constexpr uint8 bitmap_pointerM[] =
 {
-	W( b _ _ _ _ _ _ _ _ _ _ _ 0 ),
-	W( b b _ _ _ _ _ _ _ _ _ _ 0 ),
-	W( b F b _ _ _ _ _ _ _ _ _ 0 ),
-	W( b F F b _ _ _ _ _ _ _ _ 0 ),
-	W( b F F F b _ _ _ _ _ _ _ 0 ),
-	W( b F F F F b _ _ _ _ _ _ 0 ),
-	W( b F F F F F b _ _ _ _ _ 0 ),
-	W( b F F F F F F b _ _ _ _ 0 ),
-	W( b F F F F F F F b _ _ _ 0 ),
-	W( b F F F F F F F F b _ _ 0 ),
-	W( b F F F F F b b b b b _ 0 ),
-	W( b F F b F F b _ _ _ _ _ 0 ),
-	W( b F b _ b F F b _ _ _ _ 0 ),
-	W( b b _ _ b F F b _ _ _ _ 0 ),
-	W( b _ _ _ _ b F F b _ _ _ 0 ),
-	W( _ _ _ _ _ b F F b _ _ _ 0 ),
-	W( _ _ _ _ _ _ b b _ _ _ _ 0 ),
+	W(b _ _ _ _ _ _ _ _ _ _ _ 0),
+	W(b b _ _ _ _ _ _ _ _ _ _ 0),
+	W(b F b _ _ _ _ _ _ _ _ _ 0),
+	W(b F F b _ _ _ _ _ _ _ _ 0),
+	W(b F F F b _ _ _ _ _ _ _ 0),
+	W(b F F F F b _ _ _ _ _ _ 0),
+	W(b F F F F F b _ _ _ _ _ 0),
+	W(b F F F F F F b _ _ _ _ 0),
+	W(b F F F F F F F b _ _ _ 0),
+	W(b F F F F F F F F b _ _ 0),
+	W(b F F F F F b b b b b _ 0),
+	W(b F F b F F b _ _ _ _ _ 0),
+	W(b F b _ b F F b _ _ _ _ 0),
+	W(b b _ _ b F F b _ _ _ _ 0),
+	W(b _ _ _ _ b F F b _ _ _ 0),
+	W(_ _ _ _ _ b F F b _ _ _ 0),
+	W(_ _ _ _ _ _ b b _ _ _ _ 0),
 };
 __unused constexpr Pixmap<colormode_i2> pointer_m {11, 17, const_cast<uint8*>(bitmap_pointerM), 3};
 __unused constexpr Dist pointer_m_hot{1,2};
@@ -218,14 +214,13 @@ template<>
 Shape<NotSoftened> shapeForID<Shape<NotSoftened>>(MouseShapeID id)
 {
 	assert(uint(id) <= count_of(pixmaps));
-	static_assert(!Shape<NotSoftened>::animated);
 
 	return Shape<NotSoftened>(*(pixmaps[id]), transparent, clut, int8(hotspots[id].dx), int8(hotspots[id].dy));
 }
 
 // create an animated Shape for a MouseShapeID:
 template<>
-AnimatedShape<Video::Shape<NotSoftened>> shapeForID<AnimatedShape<Video::Shape<NotSoftened>>>(MouseShapeID id)
+AnimatedShape<Shape<NotSoftened>> shapeForID<AnimatedShape<Shape<NotSoftened>>>(MouseShapeID id)
 {
 	using Shape				= Video::Shape<NotSoftened>;
 	using ShapeWithDuration = ShapeWithDuration<Shape>;
@@ -256,14 +251,14 @@ AnimatedShape<Video::Shape<NotSoftened>> shapeForID<AnimatedShape<Video::Shape<N
 	}
 }
 
-template<typename Sprite>
-MousePointer<Sprite>::MousePointer(MouseShapeID id, const Point& position) : // ctor
-	super(std::move(shapeForID<Shape>(id)), position)
+template<typename Shape>
+MousePointer<Shape>::MousePointer(MouseShapeID id, const Point& position) : // ctor
+	super(shapeForID<Shape>(id), position)
 {}
 
 
-template<typename Sprite>
-void MousePointer<Sprite>::vblank() noexcept
+template<typename Shape>
+void MousePointer<Shape>::vblank() noexcept
 {
 	setPosition(getMousePosition());
 }
@@ -273,10 +268,10 @@ void MousePointer<Sprite>::vblank() noexcept
 
 
 // the linker will know what we need:
-template class MousePointer<Sprite<Shape<NotSoftened>>>;
-template class MousePointer<Sprite<Shape<Softened>>>;
-template class MousePointer<Sprite<AnimatedShape<Shape<NotSoftened>>>>;
-template class MousePointer<Sprite<AnimatedShape<Shape<Softened>>>>;
+template class MousePointer<Shape<NotSoftened>>;
+template class MousePointer<Shape<Softened>>;
+template class MousePointer<AnimatedShape<Shape<NotSoftened>>>;
+template class MousePointer<AnimatedShape<Shape<Softened>>>;
 
 
 } // namespace kio::Video
