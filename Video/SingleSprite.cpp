@@ -43,12 +43,12 @@ void RAM SingleSprite<Sprite>::SingleSprite::vblank() noexcept
 
 	hot_shape.pixels = nullptr;
 
-	int y = sprite.pos.y;
+	int y = sprite.pos_y;
 	if (y >= 0) return;
 
 	// sprite starts above screen:
 
-	hot_shape.x		 = sprite.pos.x;
+	hot_shape.x		 = sprite.pos_x;
 	hot_shape.pixels = &sprite.shape.pixels[0u];
 
 	for (; y < 0; y++)
@@ -65,8 +65,8 @@ void RAM SingleSprite<Sprite>::renderScanline(int row, uint32* scanline) noexcep
 {
 	if (hot_shape.pixels == nullptr)
 	{
-		if (row != sprite.pos.y) return;
-		hot_shape.x = sprite.pos.x;
+		if (row != sprite.pos_y) return;
+		hot_shape.x = sprite.pos_x;
 		assert(hot_shape.is_pfx());
 		hot_shape.pixels = &sprite.shape.pixels[0u];
 	}
@@ -81,6 +81,24 @@ template class SingleSprite<Sprite<Shape<NotSoftened>>>;
 template class SingleSprite<Sprite<Shape<Softened>>>;
 template class SingleSprite<Sprite<AnimatedShape<Shape<NotSoftened>>>>;
 template class SingleSprite<Sprite<AnimatedShape<Shape<Softened>>>>;
+
+
+struct ShapeFoo
+{
+	Color* pixels;
+};
+
+struct SpriteFoo
+{
+	using Shape					   = ShapeFoo;
+	static constexpr bool animated = false;
+	coord				  pos_x, pos_y;
+	ShapeFoo			  shape;
+
+	SpriteFoo(ShapeFoo, Point);
+};
+
+void testFoo() { SingleSprite<SpriteFoo> foo {ShapeFoo(), Point()}; }
 
 
 } // namespace kio::Video

@@ -180,12 +180,12 @@ void Sprites<Sprite, WZ>::_link(Sprite* s) noexcept
 	assert(is_spin_locked(sprites_spinlock));
 
 	Sprite* other = displaylist;
-	int		y	  = s->pos.y;
+	int		y	  = s->pos_y;
 
-	if (other && y > other->pos.y)
+	if (other && y > other->pos_y)
 	{
 		Sprite* next;
-		while ((next = static_cast<Sprite*>(other->next)) && y > next->pos.y) { other = next; }
+		while ((next = static_cast<Sprite*>(other->next)) && y > next->pos_y) { other = next; }
 		_link_after(s, other);
 	}
 	else
@@ -202,23 +202,23 @@ void RAM Sprites<Sprite, WZ>::_move(Sprite* s) noexcept
 	stackinfo();
 	assert(is_spin_locked(sprites_spinlock));
 
-	int		y = s->pos.y;
+	int		y = s->pos_y;
 	Sprite* other;
 
-	if ((other = static_cast<Sprite*>(s->prev)) && y < other->pos.y)
+	if ((other = static_cast<Sprite*>(s->prev)) && y < other->pos_y)
 	{
 		_unlink(s);
 		Sprite* prev = static_cast<Sprite*>(other->prev);
 		do other = prev;
-		while ((prev = static_cast<Sprite*>(other->prev)) && y < prev->pos.y);
+		while ((prev = static_cast<Sprite*>(other->prev)) && y < prev->pos_y);
 		_link_before(s, other);
 	}
-	else if ((other = static_cast<Sprite*>(s->next)) && y > other->pos.y)
+	else if ((other = static_cast<Sprite*>(s->next)) && y > other->pos_y)
 	{
 		_unlink(s);
 		Sprite* next = static_cast<Sprite*>(other->next);
 		do other = next;
-		while ((next = static_cast<Sprite*>(other->next)) && y > next->pos.y);
+		while ((next = static_cast<Sprite*>(other->next)) && y > next->pos_y);
 		_link_after(s, other);
 	}
 }
@@ -246,13 +246,13 @@ void RAM Sprites<Sprite, WZ>::add_to_hotlist(const Sprite* sprite) noexcept
 
 	auto& hot_shape	 = hotlist[idx];
 	hot_shape.pixels = &sprite->shape.pixels[0u];
-	hot_shape.x		 = sprite->pos.x;
+	hot_shape.x		 = sprite->pos_x;
 	if constexpr (WZ == HasZ) hot_shape.z = sprite->z;
 	hot_shape.ghostly = sprite->ghostly;
 
-	if unlikely (sprite->pos.y < hot_row)
+	if unlikely (sprite->pos_y < hot_row)
 	{
-		for (int dy = sprite->pos.y - hot_row; dy < 0; dy++)
+		for (int dy = sprite->pos_y - hot_row; dy < 0; dy++)
 		{
 			hot_shape.skip_row();
 			if unlikely (hot_shape.is_end()) return;
@@ -276,9 +276,9 @@ void RAM Sprites<Sprite, WZ>::renderScanline(int hot_row, uint32* scanline) noex
 	//   e.g. after a missed scanline or for sprites starting above screen
 
 	Sprite* s = next_sprite;
-	while (s && s->pos.y <= hot_row)
+	while (s && s->pos_y <= hot_row)
 	{
-		if (s->pos.x < screen_width() && s->pos.x + s->width() > 0) { add_to_hotlist(s); }
+		if (s->pos_x < screen_width() && s->pos_x + s->width() > 0) { add_to_hotlist(s); }
 		next_sprite = s = static_cast<Sprite*>(s->next);
 	}
 

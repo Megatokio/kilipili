@@ -52,7 +52,15 @@ public:
 	static constexpr bool animated = Shape::animated;
 	static_assert(!animated);
 
-	Sprite(Shape s, const Point& p, uint16 z = 0) noexcept : shape(s), pos(p - s.hotspot()), z(z) {}
+	Sprite(Shape s, coord x, coord y, uint16 z = 0) noexcept : // ctor
+		shape(s),
+		pos_x(x - s.hot_x()),
+		pos_y(y - s.hot_y()),
+		z(z)
+	{}
+	Sprite(Shape s, const Point& p, uint16 z = 0) noexcept : // ctor
+		Sprite(s, p.x, p.y, z)
+	{}
 	~Sprite() noexcept = default;
 
 	int width() const noexcept { return shape.width(); }
@@ -60,29 +68,34 @@ public:
 	int hot_x() const noexcept { return shape.hot_x(); }
 	int hot_y() const noexcept { return shape.hot_y(); }
 
-	coord get_xpos() const noexcept { return pos.x + hot_x(); }
-	coord get_ypos() const noexcept { return pos.y + hot_y(); }
-	void  set_xpos(int x) noexcept { pos.x = x - hot_x(); }
-	void  set_ypos(int y) noexcept { pos.y = y - hot_y(); }
+	coord get_xpos() const noexcept { return pos_x + hot_x(); }
+	coord get_ypos() const noexcept { return pos_y + hot_y(); }
+	void  set_xpos(int x) noexcept { pos_x = x - hot_x(); }
+	void  set_ypos(int y) noexcept { pos_y = y - hot_y(); }
 
 	Size  size() const noexcept { return Size(width(), height()); }
 	Dist  hotspot() const noexcept { return Dist(hot_x(), hot_y()); }
-	Point get_position() const noexcept { return pos + hotspot(); }
-	void  set_position(const Point& p) noexcept { pos = p - hotspot(); }
+	Point get_position() const noexcept { return Point(pos_x + hot_x(), pos_y + hot_y()); }
+	void  set_position(coord x, coord y) noexcept
+	{
+		pos_x = x - hot_x();
+		pos_y = y - hot_y();
+	}
+	void set_position(const Point& p) noexcept { set_position(p.x, p.y); }
 
 	bool replace(const Shape& new_shape) noexcept // may also need re-linking
 	{
 		int dx = shape.hot_x() - new_shape.hot_x();
 		int dy = shape.hot_y() - new_shape.hot_y();
 		shape  = new_shape;
-		pos.x += dx;
-		pos.y += dy;
+		pos_x += dx;
+		pos_y += dy;
 		return dy != 0;
 	}
 	void		  next_frame() noexcept {}
 	constexpr int num_frames() const noexcept { return 1; }
 
-	bool is_hot() const noexcept { return hot_row >= pos.y && hot_row < pos.y + height(); }
+	bool is_hot() const noexcept { return hot_row >= pos_y && hot_row < pos_y + height(); }
 	void wait_while_hot() const noexcept
 	{
 		while (is_hot()) sleep_us(500);
@@ -90,7 +103,8 @@ public:
 
 
 	Shape shape; // the compressed image of the sprite
-	Point pos;	 // position of top left corner, adjusted by hotspot
+	coord pos_x;
+	coord pos_y;
 
 	uint16 z;				  // if HasZ
 	bool   ghostly	 = false; // translucent
