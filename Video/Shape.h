@@ -81,6 +81,7 @@ private:
 	~Colors() noexcept = default;
 
 	friend class kio::RCPtr<Colors>;
+	friend class kio::RCPtr<const Colors>;
 
 	void retain() const noexcept { pp_atomic(rc); }
 	void release() const noexcept
@@ -105,19 +106,16 @@ struct Shape
 	static constexpr bool softened	= SOFT == Softened;
 	static constexpr bool isa_shape = true;
 
-	RCPtr<Colors> pixels;
-	uint8		  _width  = 0;
-	uint8		  _height = 0;
-	int8		  _hot_x  = 0;
-	int8		  _hot_y  = 0;
+	RCPtr<const Colors> pixels;
+	uint8				_width	= 0;
+	uint8				_height = 0;
+	int8				_hot_x	= 0;
+	int8				_hot_y	= 0;
 
 	uint8 width() const noexcept { return _width; }
 	uint8 height() const noexcept { return _height; }
 	int8  hot_x() const noexcept { return _hot_x; }
 	int8  hot_y() const noexcept { return _hot_y; }
-
-	//Size size() const noexcept { return Size(width(), height()); }
-	Dist hotspot() const noexcept { return Dist(hot_x(), hot_y()); }
 
 	template<Graphics::ColorMode CM>
 	Shape(const Graphics::Pixmap<CM>& pm, uint transp, const Color* clut, int8 hot_x, int8 hot_y) throws;
@@ -195,63 +193,69 @@ struct AnimatedShape
 	int8  hot_x(uint i = 0) const noexcept { return frames[i].hot_x(); }
 	int8  hot_y(uint i = 0) const noexcept { return frames[i].hot_y(); }
 
-	//Size size() const noexcept { return Size(width(), height()); }
-	//Dist hotspot() const noexcept { return Dist(hot_x(), hot_y()); }
-
 	AnimatedShape() noexcept = default;
-
-	AnimatedShape(ShapeWithDuration<Shape>* frames, uint8 num_frames) noexcept : frames(frames), num_frames(num_frames)
-	{}
-
-	AnimatedShape(AnimatedShape&& q) noexcept : //
-		AnimatedShape(q.frames, num_frames)
-	{
-		q.frames	 = nullptr;
-		q.num_frames = 0;
-	}
-
-	AnimatedShape(const AnimatedShape& q) throws :
-		AnimatedShape(new ShapeWithDuration<Shape>[ q.num_frames ], q.num_frames)
-	{
-		for (uint i = 0; i < num_frames; i++) frames[i] = q.frames[i];
-	}
-
-	AnimatedShape& operator=(AnimatedShape&& q) noexcept
-	{
-		assert(this != &q);
-		delete[] frames;
-		std::swap(num_frames, q.num_frames);
-		std::swap(frames, q.frames);
-		return *this;
-	}
-
-	AnimatedShape& operator=(const AnimatedShape& q) throws
-	{
-		if (num_frames != q.num_frames)
-		{
-			num_frames = 0;
-			frames	   = nullptr;
-			delete[] frames;
-			frames	   = new ShapeWithDuration<Shape>[q.num_frames];
-			num_frames = q.num_frames;
-		}
-		for (uint i = 0; i < num_frames; i++) frames[i] = q.frames[i];
-		return *this;
-	}
-
-	~AnimatedShape() noexcept { delete[] frames; }
-
-	void teardown() noexcept
-	{
-		while (num_frames) frames[--num_frames].teardown();
-		delete[] frames;
-		frames = nullptr;
-	}
+	AnimatedShape(ShapeWithDuration<Shape>* frames, uint8 num_frames) noexcept; // ctor
+	AnimatedShape(AnimatedShape&& q) noexcept;									// move
+	AnimatedShape(const AnimatedShape& q) throws;								// copy
+	AnimatedShape& operator=(AnimatedShape&& q) noexcept;
+	AnimatedShape& operator=(const AnimatedShape& q) throws;
+	~AnimatedShape() noexcept;
 };
 
 
 //
 // ****************************** Implementations ************************************
+//
+
+template<typename SHAPE>
+AnimatedShape<SHAPE>::AnimatedShape(ShapeWithDuration<SHAPE>* frames, uint8 num_frames) noexcept : // ctor
+	frames(frames),
+	num_frames(num_frames)
+{}
+
+template<typename SHAPE>
+AnimatedShape<SHAPE>::AnimatedShape(AnimatedShape&& q) noexcept : // move
+	AnimatedShape(q.frames, num_frames)
+{
+	q.frames	 = nullptr;
+	q.num_frames = 0;
+}
+
+template<typename SHAPE>
+AnimatedShape<SHAPE>::AnimatedShape(const AnimatedShape& q) throws : // copy
+	AnimatedShape(new ShapeWithDuration<Shape>[ q.num_frames ], q.num_frames)
+{
+	for (uint i = 0; i < num_frames; i++) frames[i] = q.frames[i];
+}
+
+template<typename SHAPE>
+AnimatedShape<SHAPE>& AnimatedShape<SHAPE>::operator=(AnimatedShape&& q) noexcept
+{
+	std::swap(num_frames, q.num_frames);
+	std::swap(frames, q.frames);
+	return *this;
+}
+
+template<typename SHAPE>
+AnimatedShape<SHAPE>& AnimatedShape<SHAPE>::operator=(const AnimatedShape& q) throws
+{
+	if (this != &q)
+	{
+		this->~AnimatedShape<Shape>();
+		new (this) AnimatedShape<Shape>(q);
+	}
+	return *this;
+}
+
+template<typename SHAPE>
+AnimatedShape<SHAPE>::~AnimatedShape() noexcept
+{
+	while (--num_frames >= 0) { frames[num_frames].~ShapeWithDuration<Shape>(); }
+	delete[] frames;
+}
+
+//
+// ************************************************************************
 //
 
 template<>
@@ -463,7 +467,7 @@ Shape<SOFT>::Shape(
 		if (hot)
 		{
 			this->pixels = Colors::newColors(size_t(pixels));
-			pixels		 = &this->pixels[0u];
+			pixels		 = const_cast<Color*>(&this->pixels[0u]);
 
 			_width	= uint8(bbox.width());
 			_height = uint8(bbox.height());
