@@ -3,11 +3,11 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Graphics/Pixmap_wAttr.h"
+#include "Color.h"
+#include "Pixmap_wAttr.h"
 #include "VideoBackend.h"
 #include "geometry.h"
 #include "kilipili_cdefs.h"
-#include "video_types.h"
 
 namespace kio::Video
 {
@@ -51,7 +51,39 @@ enum Animation : bool { NotAnimated = 0, Animated = 1 };
 enum ZPlane : bool { NoZ = 0, HasZ = 1 };
 
 
-template<Softening SOFT, ZPlane WZ>
+template<Softening SOFT>
+struct Shape
+{
+	using ColorMode = Graphics::ColorMode;
+	template<ColorMode CM>
+	using Pixmap = Graphics::Pixmap<CM>;
+
+	static constexpr bool animated = false;
+	static constexpr bool softened = SOFT == Softened;
+
+	const Color* pixels	 = nullptr;
+	uint8		 _width	 = 0;
+	uint8		 _height = 0;
+	int8		 _hot_x	 = 0;
+	int8		 _hot_y	 = 0;
+
+	uint8 width() const noexcept { return _width; }
+	uint8 height() const noexcept { return _height; }
+	int8  hot_x() const noexcept { return _hot_x; }
+	int8  hot_y() const noexcept { return _hot_y; }
+
+	//Size size() const noexcept { return Size(width(), height()); }
+	Dist hotspot() const noexcept { return Dist(hot_x(), hot_y()); }
+
+	template<Graphics::ColorMode CM>
+	Shape(const Graphics::Pixmap<CM>& pm, uint transp, const Color* clut, int8 hot_x, int8 hot_y) throws;
+	Shape() noexcept { delete[] pixels; }
+
+	void teardown() noexcept {}
+};
+
+
+template<typename Shape, ZPlane WZ>
 struct HotShape
 {
 	const Color* pixels;
@@ -89,62 +121,29 @@ struct HotShape
 	}
 };
 
-template<Softening SOFT>
-struct HotShape<SOFT, HasZ> : public HotShape<SOFT, NoZ>
+template<typename Shape>
+struct HotShape<Shape, HasZ> : public HotShape<Shape, NoZ>
 {
 	uint z;
 };
 
 
-template<Softening SOFT>
-struct Shape
-{
-	using ColorMode = Graphics::ColorMode;
-	template<ColorMode CM>
-	using Pixmap = Graphics::Pixmap<CM>;
-
-	static constexpr bool animated = false;
-
-	template<ZPlane WZ>
-	using HotShape = Video::HotShape<SOFT, WZ>;
-
-	const Color* pixels	 = nullptr;
-	uint8		 _width	 = 0;
-	uint8		 _height = 0;
-	int8		 _hot_x	 = 0;
-	int8		 _hot_y	 = 0;
-
-	uint8 width() const noexcept { return _width; }
-	uint8 height() const noexcept { return _height; }
-	int8  hot_x() const noexcept { return _hot_x; }
-	int8  hot_y() const noexcept { return _hot_y; }
-
-	//Size size() const noexcept { return Size(width(), height()); }
-	Dist hotspot() const noexcept { return Dist(hot_x(), hot_y()); }
-
-	template<Graphics::ColorMode CM>
-	Shape(const Graphics::Pixmap<CM>& pm, uint transp, const Color* clut, int8 hot_x, int8 hot_y) throws;
-	Shape() noexcept {}
-};
-
-
 template<typename Shape>
-struct ShapeWithDuration : public Shape
+struct ShapeWithDuration
 {
+	Shape shape;
 	int16 duration = 0;
 };
 
-template<Softening SOFT>
+template<typename SHAPE>
 struct AnimatedShape
 {
-	using Shape = Video::Shape<SOFT>;
-	template<ZPlane WZ>
-	using HotShape = Video::HotShape<SOFT, WZ>;
+	using Shape = SHAPE;
 
 	static constexpr bool animated = true;
 
-	ShapeWithDuration<Shape>* frames;
-	uint					  num_frames;
+	ShapeWithDuration<Shape>* frames	 = nullptr;
+	uint					  num_frames = 0;
 
 	const ShapeWithDuration<Shape>& operator[](uint i) const noexcept { return frames[i]; }
 
@@ -155,6 +154,8 @@ struct AnimatedShape
 
 	//Size size() const noexcept { return Size(width(), height()); }
 	//Dist hotspot() const noexcept { return Dist(hot_x(), hot_y()); }
+
+	AnimatedShape() noexcept = default;
 
 	AnimatedShape(ShapeWithDuration<Shape>* frames, uint8 num_frames) noexcept : frames(frames), num_frames(num_frames)
 	{}
@@ -196,6 +197,13 @@ struct AnimatedShape
 	}
 
 	~AnimatedShape() noexcept { delete[] frames; }
+
+	void teardown() noexcept
+	{
+		while (num_frames) frames[--num_frames].teardown();
+		delete[] frames;
+		frames = nullptr;
+	}
 };
 
 
@@ -204,7 +212,7 @@ struct AnimatedShape
 //
 
 template<>
-inline void __attribute__((section(".scratch_x.next_row"))) HotShape<NotSoftened, NoZ>::skip_row() noexcept
+inline void __attribute__((section(".scratch_x.next_row"))) HotShape<Shape<NotSoftened>, NoZ>::skip_row() noexcept
 {
 	while (1)
 	{
@@ -219,7 +227,7 @@ inline void __attribute__((section(".scratch_x.next_row"))) HotShape<NotSoftened
 }
 
 template<>
-inline void __attribute__((section(".scratch_x.next_row"))) HotShape<Softened, NoZ>::skip_row() noexcept
+inline void __attribute__((section(".scratch_x.next_row"))) HotShape<Shape<Softened>, NoZ>::skip_row() noexcept
 {
 	int hx = x << 1;
 	while (1)
@@ -237,7 +245,7 @@ inline void __attribute__((section(".scratch_x.next_row"))) HotShape<Softened, N
 
 template<>
 inline bool __attribute__((section(".scratch_x.render_one_row")))
-HotShape<NotSoftened, NoZ>::render_row(Color* scanline) noexcept
+HotShape<Shape<NotSoftened>, NoZ>::render_row(Color* scanline) noexcept
 {
 	for (;;)
 	{
@@ -274,7 +282,7 @@ HotShape<NotSoftened, NoZ>::render_row(Color* scanline) noexcept
 
 template<>
 inline bool __attribute__((section(".scratch_x.render_one_row")))
-HotShape<Softened, NoZ>::render_row(Color* scanline) noexcept
+HotShape<Shape<Softened>, NoZ>::render_row(Color* scanline) noexcept
 {
 	// "softening" is done by scaling down the image 2:1 horizontally.
 	// => half-set pixels l+r of a stripe are blended with the underlying one.
@@ -345,7 +353,7 @@ Shape<SOFT>::Shape(
 
 	using namespace Graphics;
 	using Shape				 = Video::Shape<NotSoftened>;
-	using HotShape			 = Video::HotShape<NotSoftened, NoZ>;
+	using HotShape			 = Video::HotShape<Shape, NoZ>;
 	using PFX				 = HotShape::PFX;
 	using CMD				 = HotShape::CMD;
 	static constexpr CMD GAP = HotShape::GAP;

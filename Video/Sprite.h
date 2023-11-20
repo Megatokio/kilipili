@@ -116,7 +116,7 @@ public:
 	int	  countdown;
 
 	Sprite(Shape shape, const Point& p, uint16 z = 0) noexcept : // ctor
-		super(shape[0], p, z),
+		super(shape[0].shape, p, z),
 		animated_shape(std::move(shape)),
 		countdown(shape[0].duration)
 	{}
@@ -127,7 +127,7 @@ public:
 	bool replace(Shape q) noexcept // may also need re-linking
 	{
 		animated_shape = std::move(q);
-		return super::replace(q[0]);
+		return super::replace(q[0].shape);
 	}
 
 	bool next_frame() noexcept // may also need re-linking
@@ -136,7 +136,7 @@ public:
 		{
 			if (++frame_idx >= num_frames()) frame_idx = 0;
 			countdown = animated_shape[frame_idx].duration;
-			return super::replace(animated_shape[frame_idx]);
+			return super::replace(animated_shape[frame_idx].shape);
 		}
 	}
 };

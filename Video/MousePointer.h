@@ -20,11 +20,11 @@ enum MouseShapeID {
 };
 
 
-template<Animation ANIM, Softening SOFT>
-class MousePointer : public SingleSprite<ANIM, SOFT>
+template<typename Sprite>
+class MousePointer : public SingleSprite<Sprite>
 {
 public:
-	using super = SingleSprite<ANIM, SOFT>;
+	using super = SingleSprite<Sprite>;
 	using Shape = typename super::Shape;
 	//using MouseEventHandler = USB::MouseEventHandler;
 
@@ -37,50 +37,32 @@ public:
 	virtual void vblank() noexcept override;
 	//virtual void renderScanline(int row, uint32* scanline) noexcept override;
 
+	using super::getPosition;
 	using super::modify;
-	using super::moveTo;
-	using super::position;
 	using super::replace;
+	using super::setPosition;
 };
 
 
 // ========================== Implementations ===============================
 
-template<Animation ANIM, Softening SOFT>
-MousePointer<ANIM, SOFT>::MousePointer(const Shape& shape, const Point& position) : // ctor
-	SingleSprite<ANIM, SOFT>(shape, position)
+template<typename Sprite>
+MousePointer<Sprite>::MousePointer(const Shape& shape, const Point& position) : // ctor
+	super(shape, position)
 {}
 
-template<>
-MousePointer<NotAnimated, NotSoftened>::~MousePointer() noexcept // dtor
+template<typename Sprite>
+MousePointer<Sprite>::~MousePointer() noexcept // dtor
 {
-	delete[] shape.pixels;
-}
-
-template<>
-MousePointer<NotAnimated, Softened>::~MousePointer() noexcept // dtor
-{
-	delete[] shape.pixels;
-}
-
-template<>
-MousePointer<Animated, NotSoftened>::~MousePointer() noexcept // dtor
-{
-	animated_shape.teardown();
-}
-
-template<>
-MousePointer<Animated, Softened>::~MousePointer() noexcept // dtor
-{
-	animated_shape.teardown();
+	super::sprite.shape.teardown();
 }
 
 
 // yes, we have them all!
-extern template class MousePointer<NotAnimated, NotSoftened>;
-extern template class MousePointer<NotAnimated, Softened>;
-extern template class MousePointer<Animated, NotSoftened>;
-extern template class MousePointer<Animated, Softened>;
+extern template class MousePointer<Sprite<Shape<NotSoftened>>>;
+extern template class MousePointer<Sprite<Shape<Softened>>>;
+extern template class MousePointer<Sprite<AnimatedShape<Shape<NotSoftened>>>>;
+extern template class MousePointer<Sprite<AnimatedShape<Shape<Softened>>>>;
 
 } // namespace kio::Video
 

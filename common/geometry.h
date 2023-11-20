@@ -38,7 +38,7 @@ struct Dist
 	coord dx, dy;
 
 	Dist() noexcept = default;
-	Dist(coord w, coord h) noexcept : dx(w), dy(h) {}
+	constexpr Dist(coord w, coord h) noexcept : dx(w), dy(h) {}
 };
 
 inline Point operator+(const Point& p, const Dist& d) noexcept { return Point(p.x + d.dx, p.y + d.dy); }

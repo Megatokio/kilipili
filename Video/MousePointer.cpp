@@ -67,7 +67,7 @@ constexpr uint8 bitmap_pointerM[] =
 	W( _ _ _ _ _ _ b b _ _ _ _ 0 ),
 };
 __unused constexpr Pixmap<colormode_i2> pointer_m {11, 17, const_cast<uint8*>(bitmap_pointerM), 3};
-__unused constexpr Point pointer_m_hot{1,2};
+__unused constexpr Dist pointer_m_hot{1,2};
 
 constexpr uint8 bitmap_pointerL[] =
 {
@@ -91,7 +91,7 @@ constexpr uint8 bitmap_pointerL[] =
 	W(_ _ _ _ _ _ _ b b _ _ _ 0),
 };
 __unused constexpr Pixmap<colormode_i2> pointer_l {12, 18, const_cast<uint8*>(bitmap_pointerL), 3};
-__unused constexpr Point pointer_l_hot{1,1};
+__unused constexpr Dist pointer_l_hot{1,1};
 
 constexpr uint8 bitmap_crosshair[] =
 {
@@ -108,7 +108,7 @@ constexpr uint8 bitmap_crosshair[] =
 	W(_ _ _ _ b F b _ _ _ _ _ 0),
 };
 __unused constexpr Pixmap<colormode_i2> crosshair {11, 11, const_cast<uint8*>(bitmap_crosshair), 3};
-__unused constexpr Point crosshair_hot{5,5};
+__unused constexpr Dist crosshair_hot{5,5};
 
 constexpr uint8 bitmap_ibeam[] =
 {
@@ -126,7 +126,7 @@ constexpr uint8 bitmap_ibeam[] =
 	V(b b b _ b b b _ 0),
 };
 __unused constexpr Pixmap<colormode_i2> ibeam {7, 12, const_cast<uint8*>(bitmap_ibeam), 2};
-__unused constexpr Point ibeam_hot{3,9};
+__unused constexpr Dist ibeam_hot{3,9};
 
 constexpr uint8 bitmap_busy1[] =
 {
@@ -188,7 +188,7 @@ __unused constexpr Pixmap<colormode_i2> busy1{11, 11, const_cast<uint8*>(bitmap_
 __unused constexpr Pixmap<colormode_i2> busy2{11, 11, const_cast<uint8*>(bitmap_busy2), 3};
 __unused constexpr Pixmap<colormode_i2> busy3{11, 11, const_cast<uint8*>(bitmap_busy3), 3};
 __unused constexpr Pixmap<colormode_i2> busy4{11, 11, const_cast<uint8*>(bitmap_busy4), 3};
-__unused constexpr Point busy_hot{5,5};
+__unused constexpr Dist busy_hot{5,5};
 
 // clang-format on
 
@@ -202,78 +202,69 @@ __unused constexpr Point busy_hot{5,5};
 
 constexpr const Pixmap<colormode_i2>* busys[4]	  = {&busy1, &busy2, &busy3, &busy4};
 constexpr const Pixmap<colormode_i2>* pixmaps[4]  = {&pointer_l, &busy1, &crosshair, &ibeam};
-constexpr Point						  hotspots[4] = {pointer_l_hot, busy_hot, crosshair_hot, ibeam_hot};
+constexpr Dist						  hotspots[4] = {pointer_l_hot, busy_hot, crosshair_hot, ibeam_hot};
 constexpr Color						  clut[4]	  = {white, black, 0, 0};
 
 
 // ################################################################
 
-template<Animation ANIM, Softening SOFT>
-static typename MousePointer<ANIM, SOFT>::Shape shapeForID(MouseShapeID id);
+template<typename Shape>
+Shape shapeForID(MouseShapeID id);
 
 template<>
-Shape<NotSoftened> shapeForID<NotAnimated, NotSoftened>(MouseShapeID id)
+Shape<NotSoftened> shapeForID<Shape<NotSoftened>>(MouseShapeID id)
 {
 	assert(uint(id) <= count_of(pixmaps));
+	static_assert(!Shape<NotSoftened>::animated);
 
-	return Shape<NotSoftened>(*(pixmaps[id]), transparent, clut, hotspots[id]);
+	return Shape<NotSoftened>(*(pixmaps[id]), transparent, clut, int8(hotspots[id].dx), int8(hotspots[id].dy));
 }
 
 template<>
-AnimatedShape<NotSoftened> shapeForID<Animated, NotSoftened>(MouseShapeID id)
+AnimatedShape<Video::Shape<NotSoftened>> shapeForID<AnimatedShape<Video::Shape<NotSoftened>>>(MouseShapeID id)
 {
+	using Shape				= Video::Shape<NotSoftened>;
+	using ShapeWithDuration = ShapeWithDuration<Shape>;
+
 	assert(uint(id) <= count_of(pixmaps));
 
-	AnimatedShape<NotSoftened> shape;
 	switch (id)
 	{
 	default:
-		shape.num_frames   = 1;
-		shape.frames	   = new Shape<NotSoftened>[1];
-		shape.durations	   = new int16[1];
-		shape.frames[0]	   = shapeForID<NotAnimated, NotSoftened>(id);
-		shape.durations[0] = 0x7fff;
-		break;
+	{
+		AnimatedShape<Shape> shape;
+		shape.frames	 = new ShapeWithDuration[1];
+		shape.frames[0]	 = ShapeWithDuration {shapeForID<Shape>(id), 0x7fff};
+		shape.num_frames = 1;
+		return shape;
+	}
 	case MOUSE_BUSY:
-		shape.num_frames = 4;
-		shape.frames	 = new Shape<NotSoftened>[4];
-		shape.durations	 = new int16[4];
+	{
+		AnimatedShape<Shape> shape;
+		shape.frames = new ShapeWithDuration[4];
 		for (uint i = 0; i < 4; i++)
 		{
-			shape.frames[i]	   = Shape<NotSoftened>(*(busys[i]), transparent, clut, busy_hot);
-			shape.durations[i] = 15;
+			shape.frames[i] = ShapeWithDuration {Shape(*(busys[i]), transparent, clut, busy_hot.dx, busy_hot.dy), 15};
 		}
-		break;
+		shape.num_frames = 4;
+		return shape;
 	}
-	return shape;
+	}
 }
 
-template<>
-Shape<Softened> shapeForID<NotAnimated, Softened>(MouseShapeID)
-{
-	TODO(); //
-}
-
-template<>
-AnimatedShape<Softened> shapeForID<Animated, Softened>(MouseShapeID)
-{
-	TODO(); //
-}
-
-
-template<Animation ANIM, Softening SOFT>
-MousePointer<ANIM, SOFT>::MousePointer(MouseShapeID id, const Point& position) : // ctor
-	SingleSprite<ANIM, SOFT>(shapeForID<ANIM, SOFT>(id), position)
+template<typename Sprite>
+MousePointer<Sprite>::MousePointer(MouseShapeID id, const Point& position) : // ctor
+	super(std::move(shapeForID<Shape>(id)), position)
 {}
 
-template<Animation ANIM, Softening SOFT>
-void MousePointer<ANIM, SOFT>::teardown() noexcept
+template<typename Sprite>
+void MousePointer<Sprite>::teardown() noexcept
 {}
 
-template<Animation ANIM, Softening SOFT>
-void MousePointer<ANIM, SOFT>::vblank() noexcept
+template<typename Sprite>
+void MousePointer<Sprite>::vblank() noexcept
 {
-	moveTo(getMousePosition());
+	setPosition(getMousePosition());
 }
 
 
@@ -281,10 +272,10 @@ void MousePointer<ANIM, SOFT>::vblank() noexcept
 
 
 // the linker will know what we need:
-template class MousePointer<NotAnimated, NotSoftened>;
-template class MousePointer<NotAnimated, Softened>;
-template class MousePointer<Animated, NotSoftened>;
-template class MousePointer<Animated, Softened>;
+template class MousePointer<Sprite<Shape<NotSoftened>>>;
+template class MousePointer<Sprite<Shape<Softened>>>;
+template class MousePointer<Sprite<AnimatedShape<Shape<NotSoftened>>>>;
+template class MousePointer<Sprite<AnimatedShape<Shape<Softened>>>>;
 
 
 } // namespace kio::Video

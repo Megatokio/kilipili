@@ -79,8 +79,8 @@ void RAM SingleSprite<Sprite>::renderScanline(int row, uint32* scanline) noexcep
 // the linker will know what we need:
 template class SingleSprite<Sprite<Shape<NotSoftened>>>;
 template class SingleSprite<Sprite<Shape<Softened>>>;
-template class SingleSprite<Sprite<AnimatedShape<NotSoftened>>>;
-template class SingleSprite<Sprite<AnimatedShape<Softened>>>;
+template class SingleSprite<Sprite<AnimatedShape<Shape<NotSoftened>>>>;
+template class SingleSprite<Sprite<AnimatedShape<Shape<Softened>>>>;
 
 
 } // namespace kio::Video

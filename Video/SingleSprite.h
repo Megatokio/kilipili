@@ -29,7 +29,7 @@ class SingleSprite : public VideoPlane
 {
 public:
 	using Shape	   = typename Sprite::Shape;
-	using HotShape = typename Sprite::Shape::template HotShape<NoZ>;
+	using HotShape = typename Video::HotShape<typename Sprite::Shape, NoZ>;
 
 	static constexpr bool animated = Sprite::animated;
 
@@ -46,9 +46,11 @@ public:
 	bool is_hot() const noexcept { return hot_shape.pixels != nullptr; }
 	void wait_while_hot() const noexcept;
 
-	void moveTo(const Point& p) noexcept;
-	void modify(Shape s, const Point& p, bool wait_while_hot = 0) noexcept;
-	void replace(Shape s, bool wait_while_hot = 0) noexcept;
+	void  moveTo(const Point& p) noexcept;
+	void  modify(Shape s, const Point& p, bool wait_while_hot = 0) noexcept;
+	void  replace(Shape s, bool wait_while_hot = 0) noexcept;
+	Point getPosition() const noexcept { return sprite.get_position(); }
+	void  setPosition(const Point& p) noexcept { moveTo(p); }
 
 
 protected:
@@ -120,8 +122,8 @@ void SingleSprite<Sprite>::SingleSprite::wait_while_hot() const noexcept
 // yes, we have them all:
 extern template class SingleSprite<Sprite<Shape<NotSoftened>>>;
 extern template class SingleSprite<Sprite<Shape<Softened>>>;
-extern template class SingleSprite<Sprite<AnimatedShape<NotSoftened>>>;
-extern template class SingleSprite<Sprite<AnimatedShape<Softened>>>;
+extern template class SingleSprite<Sprite<AnimatedShape<Shape<NotSoftened>>>>;
+extern template class SingleSprite<Sprite<AnimatedShape<Shape<Softened>>>>;
 
 
 } // namespace kio::Video

@@ -24,7 +24,7 @@ class Sprites : public VideoPlane
 {
 public:
 	using Shape	   = typename Sprite::Shape;
-	using HotShape = typename Shape::template HotShape<WZ>;
+	using HotShape = typename Video::HotShape<Shape, WZ>;
 
 	Sprites() noexcept = default;
 	virtual ~Sprites() noexcept override;
@@ -85,10 +85,10 @@ extern template class Sprites<Sprite<Shape<NotSoftened>>, NoZ>;
 extern template class Sprites<Sprite<Shape<NotSoftened>>, HasZ>;
 extern template class Sprites<Sprite<Shape<Softened>>, NoZ>;
 extern template class Sprites<Sprite<Shape<Softened>>, HasZ>;
-extern template class Sprites<Sprite<AnimatedShape<NotSoftened>>, NoZ>;
-extern template class Sprites<Sprite<AnimatedShape<NotSoftened>>, HasZ>;
-extern template class Sprites<Sprite<AnimatedShape<Softened>>, NoZ>;
-extern template class Sprites<Sprite<AnimatedShape<Softened>>, HasZ>;
+extern template class Sprites<Sprite<AnimatedShape<Shape<NotSoftened>>>, NoZ>;
+extern template class Sprites<Sprite<AnimatedShape<Shape<NotSoftened>>>, HasZ>;
+extern template class Sprites<Sprite<AnimatedShape<Shape<Softened>>>, NoZ>;
+extern template class Sprites<Sprite<AnimatedShape<Shape<Softened>>>, HasZ>;
 
 
 } // namespace kio::Video

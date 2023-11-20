@@ -334,10 +334,10 @@ template class Sprites<Sprite<Shape<NotSoftened>>, NoZ>;
 template class Sprites<Sprite<Shape<NotSoftened>>, HasZ>;
 template class Sprites<Sprite<Shape<Softened>>, NoZ>;
 template class Sprites<Sprite<Shape<Softened>>, HasZ>;
-template class Sprites<Sprite<AnimatedShape<NotSoftened>>, NoZ>;
-template class Sprites<Sprite<AnimatedShape<NotSoftened>>, HasZ>;
-template class Sprites<Sprite<AnimatedShape<Softened>>, NoZ>;
-template class Sprites<Sprite<AnimatedShape<Softened>>, HasZ>;
+template class Sprites<Sprite<AnimatedShape<Shape<NotSoftened>>>, NoZ>;
+template class Sprites<Sprite<AnimatedShape<Shape<NotSoftened>>>, HasZ>;
+template class Sprites<Sprite<AnimatedShape<Shape<Softened>>>, NoZ>;
+template class Sprites<Sprite<AnimatedShape<Shape<Softened>>>, HasZ>;
 
 } // namespace kio::Video
 
