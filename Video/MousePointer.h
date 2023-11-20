@@ -26,14 +26,13 @@ class MousePointer : public SingleSprite<Sprite>
 public:
 	using super = SingleSprite<Sprite>;
 	using Shape = typename super::Shape;
-	//using MouseEventHandler = USB::MouseEventHandler;
 
 	MousePointer(MouseShapeID, const Point&);
-	MousePointer(const Shape&, const Point&);
-	~MousePointer() noexcept override;
+	MousePointer(const Shape& s, const Point& p) : super(s, p) {}
+	~MousePointer() noexcept override = default;
 
 	//virtual void setup(coord width) override;
-	virtual void teardown() noexcept override;
+	//virtual void teardown() noexcept override;
 	virtual void vblank() noexcept override;
 	//virtual void renderScanline(int row, uint32* scanline) noexcept override;
 
@@ -44,19 +43,7 @@ public:
 };
 
 
-// ========================== Implementations ===============================
-
-template<typename Sprite>
-MousePointer<Sprite>::MousePointer(const Shape& shape, const Point& position) : // ctor
-	super(shape, position)
-{}
-
-template<typename Sprite>
-MousePointer<Sprite>::~MousePointer() noexcept // dtor
-{
-	super::sprite.shape.teardown();
-}
-
+// =========================================================================
 
 // yes, we have them all!
 extern template class MousePointer<Sprite<Shape<NotSoftened>>>;

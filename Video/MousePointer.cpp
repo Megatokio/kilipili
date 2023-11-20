@@ -208,9 +208,12 @@ constexpr Color						  clut[4]	  = {white, black, 0, 0};
 
 // ################################################################
 
+
+// helper to create a Shape for a MouseShapeID:
 template<typename Shape>
 Shape shapeForID(MouseShapeID id);
 
+// create a not-animated Shape for a MouseShapeID:
 template<>
 Shape<NotSoftened> shapeForID<Shape<NotSoftened>>(MouseShapeID id)
 {
@@ -220,6 +223,7 @@ Shape<NotSoftened> shapeForID<Shape<NotSoftened>>(MouseShapeID id)
 	return Shape<NotSoftened>(*(pixmaps[id]), transparent, clut, int8(hotspots[id].dx), int8(hotspots[id].dy));
 }
 
+// create an animated Shape for a MouseShapeID:
 template<>
 AnimatedShape<Video::Shape<NotSoftened>> shapeForID<AnimatedShape<Video::Shape<NotSoftened>>>(MouseShapeID id)
 {
@@ -257,9 +261,6 @@ MousePointer<Sprite>::MousePointer(MouseShapeID id, const Point& position) : // 
 	super(std::move(shapeForID<Shape>(id)), position)
 {}
 
-template<typename Sprite>
-void MousePointer<Sprite>::teardown() noexcept
-{}
 
 template<typename Sprite>
 void MousePointer<Sprite>::vblank() noexcept

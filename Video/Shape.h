@@ -5,7 +5,9 @@
 #pragma once
 #include "Color.h"
 #include "Pixmap_wAttr.h"
+#include "RCPtr.h"
 #include "VideoBackend.h"
+#include "atomic.h"
 #include "geometry.h"
 #include "kilipili_cdefs.h"
 
@@ -51,6 +53,47 @@ enum Animation : bool { NotAnimated = 0, Animated = 1 };
 enum ZPlane : bool { NoZ = 0, HasZ = 1 };
 
 
+/*	——————————————————————————————————————————————————————————————————————————
+	reference-counted array of Colors
+*/
+class Colors
+{
+private:
+public:
+	mutable uint16 rc;
+	Color		   colors[8888];
+
+	static Colors* newColors(uint cnt) throws
+	{
+		Colors* z = reinterpret_cast<Colors*>(new char[sizeof(rc) + cnt * sizeof(Color)]);
+		z->rc	  = 0;
+		return z;
+	}
+
+	uint16 refcnt() const noexcept { return rc; }
+
+	Color&		 operator[](uint i) noexcept { return colors[i]; }
+	const Color& operator[](uint i) const noexcept { return colors[i]; }
+
+private:
+	NO_COPY_MOVE(Colors);
+	Colors() noexcept  = delete;
+	~Colors() noexcept = default;
+
+	friend class kio::RCPtr<Colors>;
+
+	void retain() const noexcept { pp_atomic(rc); }
+	void release() const noexcept
+	{
+		if (mm_atomic(rc) == 0) delete[] ptr(this);
+	}
+};
+
+
+/*	——————————————————————————————————————————————————————————————————————————
+	A Shape defines the shape of a sprite.
+	It provides functions to render the shape.
+*/
 template<Softening SOFT>
 struct Shape
 {
@@ -61,11 +104,11 @@ struct Shape
 	static constexpr bool animated = false;
 	static constexpr bool softened = SOFT == Softened;
 
-	const Color* pixels	 = nullptr;
-	uint8		 _width	 = 0;
-	uint8		 _height = 0;
-	int8		 _hot_x	 = 0;
-	int8		 _hot_y	 = 0;
+	RCPtr<Colors> pixels;
+	uint8		  _width  = 0;
+	uint8		  _height = 0;
+	int8		  _hot_x  = 0;
+	int8		  _hot_y  = 0;
 
 	uint8 width() const noexcept { return _width; }
 	uint8 height() const noexcept { return _height; }
@@ -77,9 +120,7 @@ struct Shape
 
 	template<Graphics::ColorMode CM>
 	Shape(const Graphics::Pixmap<CM>& pm, uint transp, const Color* clut, int8 hot_x, int8 hot_y) throws;
-	Shape() noexcept { delete[] pixels; }
-
-	void teardown() noexcept {}
+	Shape() noexcept {}
 };
 
 
@@ -419,13 +460,13 @@ Shape<SOFT>::Shape(
 
 		if (hot)
 		{
-			pixels = reinterpret_cast<Color*>(new char[4 + size_t(pixels)]);
+			this->pixels = Colors::newColors(size_t(pixels));
+			pixels		 = &this->pixels[0u];
 
-			const_cast<Color*&>(this->pixels) = pixels;
-			_width							  = uint8(bbox.width());
-			_height							  = uint8(bbox.height());
-			_hot_x							  = hot_x - int8(bbox.left());
-			_hot_y							  = hot_y - int8(bbox.top());
+			_width	= uint8(bbox.width());
+			_height = uint8(bbox.height());
+			_hot_x	= hot_x - int8(bbox.left());
+			_hot_y	= hot_y - int8(bbox.top());
 		}
 
 

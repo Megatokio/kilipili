@@ -49,7 +49,7 @@ void RAM SingleSprite<Sprite>::SingleSprite::vblank() noexcept
 	// sprite starts above screen:
 
 	hot_shape.x		 = sprite.pos.x;
-	hot_shape.pixels = sprite.shape.pixels;
+	hot_shape.pixels = &sprite.shape.pixels[0u];
 
 	for (; y < 0; y++)
 	{
@@ -68,7 +68,7 @@ void RAM SingleSprite<Sprite>::renderScanline(int row, uint32* scanline) noexcep
 		if (row != sprite.pos.y) return;
 		hot_shape.x = sprite.pos.x;
 		assert(hot_shape.is_pfx());
-		hot_shape.pixels = sprite.shape.pixels;
+		hot_shape.pixels = &sprite.shape.pixels[0u];
 	}
 
 	bool finished = hot_shape.render_row(reinterpret_cast<Color*>(scanline));
