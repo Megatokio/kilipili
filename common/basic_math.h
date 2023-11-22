@@ -38,7 +38,7 @@ inline constexpr T max(T a, T2 b, T3 c) noexcept
 template<class T>
 inline constexpr int sign(T a) noexcept
 {
-	return int(a > 0) - int(a < 0);
+	return a < 0 ? -1 : a > 0;
 }
 
 template<class T>

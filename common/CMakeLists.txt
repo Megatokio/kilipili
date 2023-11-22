@@ -20,6 +20,11 @@ add_library(kilipili_common STATIC
 	geometry.h
 	geometry.cpp
 	RCPtr.h
+	algorithms.h
+	Xoshiro256.cpp
+	Xoshiro256.h	
+	Xoshiro128.cpp
+	Xoshiro128.h	
 	)
  
 target_compile_definitions(kilipili_common PUBLIC
