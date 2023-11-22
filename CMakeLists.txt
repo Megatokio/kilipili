@@ -50,6 +50,7 @@ else()
 	add_subdirectory(Video)
 	add_subdirectory(Devices)
 	add_subdirectory(USBHost)
+	add_subdirectory(Vcc)
 	
 	# add current dir to 'include search path':
 	target_include_directories(kilipili PUBLIC
