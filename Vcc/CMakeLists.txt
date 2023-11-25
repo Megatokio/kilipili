@@ -15,6 +15,7 @@ add_library(kilipili_vcc STATIC
 	opcodes.h
 	DReg.h
 	Var.h
+	VccRunner.cpp	
 	)
 
 target_compile_definitions(kilipili_vcc PUBLIC 

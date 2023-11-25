@@ -58,11 +58,11 @@ union DReg
 	operator Var() { return Var(u32); }
 
 	DReg operator~() { return ~u32; }
-	void cpl() { u32 = ~u32; }
-	void sign() { i32 = kio::sign(i32); }
+	//void cpl() { u32 = ~u32; }
+	//void sign() { i32 = kio::sign(i32); }
 	DReg operator-() { return -i32; }
-	void neg() { i32 = -i32; }
-	void abs() { u32 = kio::abs(i32); }
+	//void neg() { i32 = -i32; }
+	//void abs() { u32 = kio::abs(i32); }
 
 	DReg& operator+=(int16 n)
 	{
