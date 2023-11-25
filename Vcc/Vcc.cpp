@@ -396,27 +396,69 @@ a:
 		break;
 
 	case tNOT:
+	{
 		z = value(source, pUna);
-		z.append_opcode(z.rtype == INT ? NOT : z.rtype == FLOAT ? NOTf : z.rtype == LONG ? 666 : NOT, INT);
+		deref(z);
+		if (z.rtype == VOID) throw "not numeric";
+		else if (z.rtype <= VARIADIC)
+		{
+			constexpr Opcode o[] = {NOT, NOT, NOT, NOT, NOT, NOTl, NOT, NOT, NOT, NOTl, NOTf, NOTd, NOTv};
+			z.append_opcode(o[z.rtype - BOOL], BOOL);
+		}
+		else
+		{
+			assert(size_of(z.rtype) == sizeof(int));
+			z.append_opcode(NOT, BOOL);
+		}
 		break;
-
+	}
 	case tCPL:
+	{
 		z = value(source, pUna);
-		if (!is_numeric(z)) throw "not numeric";
-		z.append_opcode(z.rtype == INT ? CPL : 666, z.rtype);
+		deref(z);
+		Type ztype = z.rtype;
+		if (ztype >= BOOL && ztype <= VARIADIC)
+		{
+			constexpr Opcode x	 = Opcode(0);
+			constexpr Opcode o[] = {SUB1, CPL, CPL, CPL, CPL, CPLl, CPL, CPL, CPL, CPLl, x, x, CPLv};
+			constexpr Type	 t[] = {UINT, UINT, UINT, UINT, UINT, ULONG, UINT, UINT, UINT, ULONG, VOID, VOID, VARIADIC};
+			if (o[ztype - BOOL] == x) throw "not implemented";
+			z.append_opcode(o[ztype - BOOL], t[ztype - BOOL]);
+		}
+		else throw "not numeric";
+		{
+			assert(size_of(z.rtype) == sizeof(int));
+			z.append_opcode(NOT, BOOL);
+		}
 		break;
-
+	}
 	case tSUB:
+	{
 		z = value(source, pUna);
-		if (!is_numeric(z)) throw "not numeric";
-		z.append_opcode(z.rtype == INT ? NEG : z.rtype == FLOAT ? NEGf : 666, z.rtype);
+		deref(z);
+		Type ztype = z.rtype;
+		if (ztype >= BOOL && ztype <= VARIADIC)
+		{
+			constexpr Opcode x	 = Opcode(0);
+			constexpr Opcode o[] = {SUB1, NEG, NEG, NEG, NEG, NEGl, NEG, NEG, NEG, NEGl, NEGf, NEGd, NEGv};
+			constexpr Type	 t[] = {INT, INT, INT, INT, INT, LONG, INT, INT, INT, LONG, FLOAT, DOUBLE, VARIADIC};
+			if (o[ztype - BOOL] == x) throw "not implemented";
+			z.append_opcode(o[ztype - BOOL], t[ztype - BOOL]);
+		}
+		else throw "not numeric";
+		{
+			assert(size_of(z.rtype) == sizeof(int));
+			z.append_opcode(NOT, BOOL);
+		}
 		break;
-
+	}
 	case tADD:
+	{
 		z = value(source, pUna);
-		if (!is_numeric(z)) throw "not numeric";
+		deref(z);
+		if (z.rtype < BOOL || z.rtype > VARIADIC) throw "not numeric";
 		break;
-
+	}
 	default:
 	{
 		Symbol* w = dict[idf];
@@ -582,7 +624,7 @@ a:
 			cast_to_bool(z);
 			ObjCode z2 = value(source, pBoolean);
 			cast_to_bool(z2);
-			z.append_opcode(JR_AND, BOOL);
+			z.append_opcode(JZ, VOID);
 			z.append_label_ref(label);
 			z.append(z2);
 			z.append_label_def(label++);
@@ -594,7 +636,7 @@ a:
 			cast_to_bool(z);
 			ObjCode z2 = value(source, pBoolean);
 			cast_to_bool(z2);
-			z.append_opcode(JR_OR, BOOL);
+			z.append_opcode(JNZ, VOID);
 			z.append_label_ref(label);
 			z.append(z2);
 			z.append_label_def(label++);
