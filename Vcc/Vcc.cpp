@@ -3,13 +3,17 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Vcc.h"
+#include "Array.h"
+#include "Names.h"
+#include "ObjCode.h"
+#include "Opcode.h"
+#include "Signature.h"
+#include "Symbol.h"
+#include "Type.h"
 #include "Var.h"
 #include "algorithms.h"
 #include "cstrings.h"
 #include "idf_ids.h"
-#include "no_copy_move.h"
-#include "opcodes.h"
-#include <atomic>
 #include <math.h>
 #include <pico/stdlib.h>
 
@@ -17,153 +21,66 @@ namespace kio::Vcc
 {
 
 
-// ############################## NAMES ###################################
+// ################################# MEMORY MAP ########################################
 
-static constexpr cstr idfs[] = {
-#define M(ID, STR) STR
-#include "idf_id.h"
-};
+/*
+		ram:
+			vstack[]	grows down
+			<-->
+			rstack[]	grows up
+			<-->
+			gvars[]		grow up
+		
+		rom:
+			<-->
+			new_code[]	grows up
+			code[]		grows up
+		
+		heap:
+			arrays 
+			strings
+*/
 
-struct Names : public HashMap<cstr, IdfID>
+
+// ################################# DATA TYPE ########################################
+
+enum EnumID : uint16 { EnumNotFound = 0xffffu };
+enum StructID : uint16 { StructNotFound = 0xffffu };
+
+static constexpr Type tVoid {};
+static constexpr Type tUint8 {UINT8};
+static constexpr Type tUint16 {UINT16};
+static constexpr Type tUint {UINT};
+static constexpr Type tUlong {ULONG};
+static constexpr Type tInt8 {INT8};
+static constexpr Type tInt16 {INT16};
+static constexpr Type tInt {INT};
+static constexpr Type tLong {LONG};
+static constexpr Type tFloat {FLOAT};
+static constexpr Type tDouble {DOUBLE};
+static constexpr Type tString {STRING};
+static constexpr Type tChar {UINT8, 1, 0, 0, tCHAR};
+static constexpr Type tBool {UINT8, 1, 0, 0, tBOOL};
+
+
+// struct info:
+
+struct Class
 {
-	using super = HashMap<cstr, IdfID>;
-	static void init_names();
-
-	Names() { init_names(); }
-	uint16 add(cstr s)
+	struct DataMember
 	{
-		IdfID n = IdfID(count());
-		if (super::get(s, n) == n) super::add(s, n);
-		return uint16(n);
-	}
-	using super::operator[];
-	cstr		 operator[](uint id) { return idfs[id]; }
-};
-
-static Names names;
-
-void Names::init_names()
-{
-	names.purge();
-	names.grow(512);
-
-	for (uint i = 0; i < NELEM(idfs); i++) { names.add(idfs[i]); }
-	assert(names.count() == NELEM(idfs)); // no doublettes!
-	assert(names["dup"] == tDUP);
-}
-
-
-// ################################# data TYPE ########################################
-
-enum Type : uint8 {
-	VOID,	  // no value
-	BOOL,	  //
-	CHAR,	  // character, unsigned
-	INT8,	  //
-	INT16,	  //
-	INT,	  // integer number
-	LONG,	  // long integer number
-	UINT8,	  //
-	UINT16,	  //
-	UINT,	  // integer number
-	ULONG,	  // long integer number
-	FLOAT,	  // floating point number
-	DOUBLE,	  // floating point number
-	VARIADIC, // container for variable types
-	STRING,	  // text string
-	STRUCT,	  // structured variable
-	PROC,	  // procedure, presumable with VREF
-	VREF   = 0x20,
-	ARRAY1 = 0x40, // 1-dim array
-	ARRAY2 = 0x80, // 2-dim array
-	ARRAY3 = 0xC0, // 3-dim array
-};
-inline constexpr Type operator|(Type a, int b) { return Type(b | a); }
-inline constexpr Type operator&(Type a, int b) { return Type(b & a); }
-inline constexpr Type operator+(Type a, int b) { return Type(b + a); }
-inline constexpr Type operator-(Type a, int b) { return Type(uint8(a) - b); }
-
-constexpr bool is_numeric(Type t) noexcept { return t >= INT && t <= VARIADIC; }
-constexpr uint size_of(Type t)
-{
-	constexpr uint8 sz[] = {0, 1, 1, 1, 2, 4, 8, 1, 2, 4, 8, 4, 8, 12};
-	return t < STRING ? sz[t] : sizeof(ptr);
-}
-constexpr uint sizeshift_of(Type t)
-{
-	// not for VOID and VARIADIC
-	constexpr uint8 sz[] = {0, 0, 0, 0, 1, 2, 3, 0, 1, 2, 3, 2, 3, 4 /*16*/};
-	return t < STRING ? sz[t] : msbit(sizeof(ptr));
-}
-
-constexpr bool is_unsigned(Type t) { return t >= UINT8 && t <= ULONG; }
-
-constexpr uint num_dimensions(Type t) { return (t >> 6) & 3; }
-
-
-// ################################# WORD in dict ########################################
-
-struct Symbol
-{
-	enum Flags : uint8 {
-		PROC   = 0,
-		INLINE = 1,
-		OPCODE = 2,
-		GVAR   = 3,
-		LVAR   = 4,
-		CONST  = 5,
+		Type  type;
+		IdfID name;
+		uint  offset;
+	};
+	struct MemberFunction
+	{
+		Type  type;
+		IdfID name;
 	};
 
-	IdfID name;
-	Flags wtype;
-	Type  rtype;
-
-	bool is_callable() const noexcept { return wtype <= OPCODE; }
-	bool isa_proc() const noexcept { return wtype == PROC; }
-	bool isa_inline() const noexcept { return wtype == INLINE; }
-	bool isa_opcode() const noexcept { return wtype == OPCODE; }
-	bool isa_gvar() const noexcept { return wtype == GVAR; }
-	bool isa_lvar() const noexcept { return wtype == LVAR; }
-	bool isa_const() const noexcept { return wtype == CONST; }
-
-	struct Callable*  as_callable() { return is_callable() ? reinterpret_cast<Callable*>(this) : nullptr; }
-	struct ProcDef*	  as_proc_def() { return isa_proc() ? reinterpret_cast<ProcDef*>(this) : nullptr; }
-	struct OpcodeDef* as_opcode_def() { return isa_opcode() ? reinterpret_cast<OpcodeDef*>(this) : nullptr; }
-	struct InlineDef* as_inline_def() { return isa_inline() ? reinterpret_cast<InlineDef*>(this) : nullptr; }
-	struct ConstDef*  as_const_def() { return isa_const() ? reinterpret_cast<ConstDef*>(this) : nullptr; }
-	struct GVarDef*	  as_gvar_def() { return isa_gvar() ? reinterpret_cast<GVarDef*>(this) : nullptr; }
-	struct LVarDef*	  as_lvar_def() { return isa_lvar() ? reinterpret_cast<LVarDef*>(this) : nullptr; }
-};
-struct Callable : public Symbol
-{
-	uint8 argc;
-	Type  argv[7];
-};
-
-struct OpcodeDef : public Callable
-{
-	uint16 opcode;
-};
-struct ProcDef : public Callable
-{
-	uint16 offset; // in rom[]
-};
-struct InlineDef : public Callable
-{
-	uint16	count;
-	uint16* code; // allocated
-};
-struct ConstDef : public Symbol
-{
-	Var value;
-};
-struct GVarDef : public Symbol
-{
-	uint16 offset; // in ram[]
-};
-struct LVarDef : public Symbol
-{
-	uint16 offset; // to lp ?
+	Array<DataMember>	  data_members;
+	Array<MemberFunction> member_functions;
 };
 
 
@@ -185,327 +102,165 @@ enum // Operator Priorities
 };
 
 
-// ####################### NUMERIC OPERATOR INFORMATION ########################################
+// ################################# INITIALIZE ########################################
 
-struct NumericOperatorInfo
+void Vcc::setup(uint romsize, uint ramsize)
 {
-	IdfID  idf;
-	uint16 opcode[7]; // INT,UINT,LONG,ULONG,FLOAT,DOUBLE,VARIADIC
-	Type   args[7];
-	Type   rtype[7];
-	uint8  prio;
-};
+	names.init();
 
-constexpr Type I = INT, U = UINT, L = LONG, UL = ULONG, F = FLOAT, D = DOUBLE, V = VARIADIC;
-
-// clang-format off
-static NumericOperatorInfo oper_info[]=
-{
-	{tEQ,{EQ,EQ,EQl,EQl,EQf,EQd,EQv},{},{},pCmp},			//		TODO
-};
-// clang-format on
-
-// ################################# CODE with RTYPE ########################################
-
-struct ObjCode
-{
-	Type	rtype = VOID;
-	char	_padding[3];
-	uint	cnt	 = 0;
-	uint	max	 = 0;
-	uint16* code = nullptr;
-
-	~ObjCode() { free(code); }
-	ObjCode() = default;
-	ObjCode(ObjCode&& q) : rtype(q.rtype), cnt(q.cnt), code(q.code) { q.code = nullptr; }
-	ObjCode& operator=(ObjCode&& q)
-	{
-		rtype = q.rtype;
-		cnt	  = q.cnt;
-		std::swap(code, q.code);
-		return *this;
-	}
-	NO_COPY(ObjCode);
-
-	void grow(uint d)
-	{
-		if (cnt + d <= max) return;
-		uint  newmax;
-		void* p = realloc(code, (newmax = cnt + d + 512) * sizeof(uint16));
-		if (!p) p = realloc(code, (newmax = cnt + d) * sizeof(uint16));
-		if (!p) panic(OUT_OF_MEMORY);
-		code = uint16ptr(p);
-		max	 = newmax;
-	}
-	void append(const uint16* q, uint sz)
-	{
-		grow(sz);
-		memcpy(code + cnt, q, sz * sizeof(uint16));
-		cnt += sz;
-	}
-	template<typename T>
-	void append(T v)
-	{
-		constexpr uint sz = sizeof(T) / sizeof(uint16);
-		static_assert(sz);
-		append(&v, sz);
-	}
-	void append(uint16 v)
-	{
-		grow(1);
-		code[cnt++] = v;
-	}
-	void append(int16 v)
-	{
-		append(int16(v)); //
-	}
-	void append(Opcode v)
-	{
-		append(int16(v)); //
-	}
-	void append_opcode(uint16 opcode, Type t)
-	{
-		if (opcode == 666) throw "TODO";
-		append(opcode);
-		rtype = t;
-	}
-	void append_ival(int value, Type t = INT)
-	{
-		if (int16(value) == value)
-		{
-			grow(2);
-			code[cnt++] = IVALi16;
-			code[cnt++] = uint16(value);
-		}
-		else
-		{
-			grow(3);
-			code[cnt++] = IVAL;
-			code[cnt++] = uint16(value);
-			code[cnt++] = uint16(value >> 16);
-		}
-		rtype = t;
-	}
-	void append_ival(Var value, Type t) { append_ival(value.i32, t); }
-	void append_ival(float value) { append_ival(Var(value), FLOAT); }
-	void append_ival(cstr string) { append_ival(Var(string), STRING); }
-	void append_ival(int64) { TODO(); }
-
-	void append(const uint16* q, uint cnt, Type t)
-	{
-		append(q, cnt);
-		rtype = t;
-	}
-	void append(const ObjCode& q) { append(q.code, q.cnt); }
-	void append_label_def(uint16 label) { append(uint16(label | 0x8000u)); }
-	void append_label_ref(uint16 label) { append(uint16(label)); }
-
-	void prepend(const ObjCode& q)
-	{
-		grow(q.cnt);
-		memmove(code + q.cnt, code, cnt * sizeof(*code));
-		memcpy(code, q.code, q.cnt * sizeof(*code));
-		cnt += q.cnt;
-	}
-};
-
-bool is_numeric(const ObjCode& v) { return is_numeric(v.rtype); }
-
-
-// ################################# SYS VARS ########################################
-
-/*
-	memory map:
-		ram:
-			vstack[]	grows down
-			<-->
-			rstack[]	grows up
-			<-->
-			gvars[]		grow up
-		
-		rom:
-			<-->
-			new_code[]	grows up
-			code[]		grows up
-		
-		heap:
-			arrays 
-			strings
-*/
-
-
-// ################################# COMPILER STATE ########################################
-
-static uint16*				  rom;
-static Var*					  ram;
-static uint					  ram_size;	  // allocated size (in int32)
-static uint					  rom_size;	  // allocated size (in uint16)
-static uint					  gvars_size; // end of used gvars, start of gap
-static uint					  code_size;  // end of used code, where to store new code
-static HashMap<uint, Symbol*> dict;		  // note: uint = idf_id
-
-void setup(uint romsize, uint ramsize)
-{
 	ram		   = new Var[ramsize];
 	rom		   = new uint16[romsize];
 	ram_size   = ramsize;
 	rom_size   = romsize;
 	gvars_size = 0;
 	code_size  = 0;
-}
 
-static uint	  num_nested_loops	  = 0;
-static uint	  num_nested_switches = 0;
-static bool	  in_proc_def		  = false;
-static uint16 label				  = 0;
+	symbols.add(tBOOL, new EnumDef(tBOOL, UINT8));
+	symbols.add(tCHAR, new EnumDef(tCHAR, UINT8));
+	symbols.add(tTRUE, new ConstDef(tBool, true));
+	symbols.add(tFALSE, new ConstDef(tBool, false));
+}
 
 
 // ################################# COMPILE ########################################
 
-void expect(cstr& source, cstr s)
+bool Vcc::test_word(IdfID idf)
 {
-	if (test_word(source, s)) return;
-	else throw usingstr("expected '%s'", s);
+	if (next_word() == idf) return true;
+	putback_word();
+	return false;
 }
 
-void deref(ObjCode& z) { TODO(); }
-void cast_to(ObjCode& z, Type type) { TODO(); }
-void cast_to_same(ObjCode& z, ObjCode& z2) { TODO(); }
-void cast_to_bool(ObjCode& z) { TODO(); }
+void Vcc::expect(IdfID idf)
+{
+	if (test_word(idf)) return;
+	else throw usingstr("expected '%s'", names[idf]);
+}
 
-ObjCode value(cstr& source, uint prio)
+
+ObjCode Vcc::value(uint prio)
 {
 	Var		var;
 	ObjCode z;
-a:
-	IdfID idf = next_word(source, &var, false);
+	IdfID	idf = next_word(&var);
 
 	switch (idf)
 	{
-		//case tNL: goto a;
-
+	case tNL: throw "value expected";
 	case t_LONG: TODO();
-	case t_INT: z.append_ival(var.i32, INT); break;
-	case t_CHAR: z.append_ival(var.i32, CHAR); break;
+	case t_INT: z.append_ival(var.i32, tInt); break;
+	case t_CHAR: z.append_ival(var.i32, tChar); break;
 	case t_FLOAT: z.append_ival(var.f32); break;
 	case t_STRING: z.append_ival(cstr(var.cptr)); break;
 
 	case tRKauf:
-		z = value(source, pAny);
-		expect(source, ")");
+		z = value(pAny);
+		expect(tRKzu);
 		break;
 
 	case tNOT:
 	{
-		z = value(source, pUna);
-		deref(z);
-		if (z.rtype == VOID) throw "not numeric";
-		else if (z.rtype <= VARIADIC)
+		z = value(pUna);
+		z.deref();
+		Type ztype = z.rtype.strip_enum();
+		if (ztype == tVoid) throw "not numeric";
+		else if (ztype.is_numeric())
 		{
-			constexpr Opcode o[] = {NOT, NOT, NOT, NOT, NOT, NOTl, NOT, NOT, NOT, NOTl, NOTf, NOTd, NOTv};
-			z.append_opcode(o[z.rtype - BOOL], BOOL);
+			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
+
+			constexpr Opcode o[] = {NOP, NOT, NOT, NOT, NOTl, NOT, NOT, NOT, NOTl, NOTf, NOTd, NOTv};
+			z.append_opcode(o[ztype], tBool);
 		}
-		else
+		else // ptr == nullptr ?
 		{
-			assert(size_of(z.rtype) == sizeof(int));
-			z.append_opcode(NOT, BOOL);
+			assert(ztype.size_of() == sizeof(int));
+			z.append_opcode(NOT, tBool);
 		}
 		break;
 	}
 	case tCPL:
 	{
-		z = value(source, pUna);
-		deref(z);
-		Type ztype = z.rtype;
-		if (ztype >= BOOL && ztype <= VARIADIC)
+		z = value(pUna);
+		z.deref();
+		Type ztype = z.rtype.strip_enum();
+		if (ztype.is_numeric())
 		{
-			constexpr Opcode x	 = Opcode(0);
-			constexpr Opcode o[] = {SUB1, CPL, CPL, CPL, CPL, CPLl, CPL, CPL, CPL, CPLl, x, x, CPLv};
-			constexpr Type	 t[] = {UINT, UINT, UINT, UINT, UINT, ULONG, UINT, UINT, UINT, ULONG, VOID, VOID, VARIADIC};
-			if (o[ztype - BOOL] == x) throw "not implemented";
-			z.append_opcode(o[ztype - BOOL], t[ztype - BOOL]);
+			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
+
+			constexpr Opcode o[] = {NOP, CPL, CPL, CPL, CPLl, CPL, CPL, CPL, CPLl, NOP, NOP, CPLv};
+			constexpr Type	 t[] = {VOID, UINT, UINT, UINT, ULONG, UINT, UINT, UINT, ULONG, VOID, VOID, VARIADIC};
+			if (o[ztype] == NOP) throw "not supported";
+			z.append_opcode(o[ztype], t[ztype]);
+			break;
 		}
 		else throw "not numeric";
-		{
-			assert(size_of(z.rtype) == sizeof(int));
-			z.append_opcode(NOT, BOOL);
-		}
-		break;
 	}
 	case tSUB:
 	{
-		z = value(source, pUna);
-		deref(z);
-		Type ztype = z.rtype;
-		if (ztype >= BOOL && ztype <= VARIADIC)
+		z = value(pUna);
+		z.deref();
+		Type ztype = z.rtype.strip_enum();
+		if (ztype.is_numeric())
 		{
-			constexpr Opcode x	 = Opcode(0);
-			constexpr Opcode o[] = {SUB1, NEG, NEG, NEG, NEG, NEGl, NEG, NEG, NEG, NEGl, NEGf, NEGd, NEGv};
-			constexpr Type	 t[] = {INT, INT, INT, INT, INT, LONG, INT, INT, INT, LONG, FLOAT, DOUBLE, VARIADIC};
-			if (o[ztype - BOOL] == x) throw "not implemented";
-			z.append_opcode(o[ztype - BOOL], t[ztype - BOOL]);
+			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
+
+			constexpr Opcode o[] = {NOP, NEG, NEG, NEG, NEGl, NEG, NEG, NEG, NEGl, NEGf, NEGd, NEGv};
+			constexpr Type	 t[] = {VOID, INT, INT, INT, LONG, INT, INT, INT, LONG, FLOAT, DOUBLE, VARIADIC};
+			if (o[ztype] == NOP) throw "not supported";
+			z.append_opcode(o[ztype], t[ztype]);
+			break;
 		}
 		else throw "not numeric";
-		{
-			assert(size_of(z.rtype) == sizeof(int));
-			z.append_opcode(NOT, BOOL);
-		}
-		break;
 	}
 	case tADD:
 	{
-		z = value(source, pUna);
-		deref(z);
-		if (z.rtype < BOOL || z.rtype > VARIADIC) throw "not numeric";
+		z = value(pUna);
+		z.deref();
+		if (!z.rtype.is_numeric()) throw "not numeric";
 		break;
 	}
 	default:
 	{
-		Symbol* w = dict[idf];
-		if (!w) throw usingstr("%s not found", names[idf]);
+		Symbol* symbol = symbols[idf];
+		if (!symbol) throw usingstr("'%s' not found", names[idf]);
 
-		if (ConstDef* c = w->as_const_def())
+		if (GVarDef* gvar = symbol->as_gvar_def())
 		{
-			if (!is_numeric(w->rtype)) throw "TODO const is not numeric";
-			if (w->rtype == FLOAT) z.append_ival(c->value.f32);
-			else if (w->rtype == INT) z.append_ival(c->value.i32, INT);
-			else if (w->rtype == CHAR) z.append_ival(c->value.i32, CHAR);
-			else TODO();
-			break;
-		}
-		if (GVarDef* gvar = w->as_gvar_def())
-		{
-			z.append_opcode(GVAR, gvar->rtype | VREF);
+			z.append_opcode(PUSH_GVAR, gvar->rtype.add_vref());
 			z.append(gvar->offset);
 			break;
 		}
-		if (Callable* fu = w->as_callable())
+		if (ConstDef* constdef = symbol->as_const_def())
 		{
-			uint  argc = fu->argc;
-			Type* argv = fu->argv;
-			for (uint i = 0; i < argc; i++)
+			if (constdef->rtype.size_on_top() > 4) throw "TODO symbol size > 4";
+			z.append_ival(constdef->value.i32, constdef->rtype);
+			break;
+		}
+		if (Callable* fu = symbol->as_callable())
+		{
+			assert(fu->rtype.basetype == PROC);
+			assert(fu->rtype.info < signatures.count());
+			Signature& signature = signatures[fu->rtype.info];
+
+			if (InlineDef* id = symbol->as_inline_def()) { z.append(id->code, id->count, signature.rtype); }
+			else if (OpcodeDef* pd = symbol->as_opcode_def()) { z.append_opcode(pd->opcode, signature.rtype); }
+			else if (ProcDef* pd = symbol->as_proc_def())
 			{
-				if (i) expect(source, ",");
-				z = value(source, pAny);
-				cast_to(z, argv[i]);
-			}
-			if (OpcodeDef* pd = w->as_opcode_def())
-			{
-				z.append_opcode(pd->opcode, pd->rtype);
-				break;
-			}
-			if (InlineDef* id = w->as_inline_def())
-			{
-				z.append(id->code, id->count, id->rtype);
-				break;
-			}
-			if (ProcDef* pd = w->as_proc_def())
-			{
-				// TODO: CALL opcode?
+				// TODO: use a CALL opcode?
 				// TODO: else need minimum address to distinguish from opcodes!
-				z.append_opcode(pd->offset, pd->rtype);
-				break;
+				z.append_opcode(Opcode(pd->offset), signature.rtype);
 			}
+
+			for (uint i = 0; i < signature.argc; i++)
+			{
+				ObjCode arg;
+				if (i) expect(tCOMMA);
+				arg = value(pAny);
+				arg.cast_to(signature.args[i]);
+				z.prepend(arg);
+			}
+			expect(tRKzu);
+			break;
 		}
 		IERR();
 		break;
@@ -514,41 +269,49 @@ a:
 		// expect operator
 
 	o:
-		IdfID oper = next_word(source, var, true);
+		IdfID oper = next_word_as_operator();
 
 		switch (oper)
 		{
 		case tNL: return z;
-		case tINCR:
-		case tDECR:
+		case tINCR: // ++
+		case tDECR: // --
 		{
+			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
+
 			constexpr Opcode oo[2][12] = {
-				{INCRb, INCRb, INCRs, INCR, INCRl, INCRb, INCRs, INCR, INCRl, INCRf, INCRd, INCRv},
-				{DECRb, DECRb, DECRs, DECR, DECRl, DECRb, DECRs, DECR, DECRl, DECRf, DECRd, DECRv}};
+				{NOP, INCRb, INCRs, INCR, INCRl, INCRb, INCRs, INCR, INCRl, INCRf, INCRd, INCRv},
+				{NOP, DECRb, DECRs, DECR, DECRl, DECRb, DECRs, DECR, DECRl, DECRf, DECRd, DECRv}};
 
-			if ((z.rtype & VREF) == 0) throw "vref required";
-			Type ztype = z.rtype & ~VREF;
-			if (ztype < CHAR || ztype > VARIADIC) throw "numeric type required";
+			if (!(z.rtype.is_vref)) throw "vref required";
+			Type ztype = z.rtype.strip_enum().strip_vref();
+			if (!ztype.is_numeric()) throw "numeric type required";
 
-			Opcode o = oo[oper - tINCR][ztype - CHAR];
+			Opcode o = oo[oper - tINCR][ztype];
+			if (o == NOP) throw "not supported";
 			z.append_opcode(o, VOID);
 			return z;
 		}
 		case tSL:
 		case tSR:
 		{
+			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
+
 			constexpr Opcode oo[2][12] = {
-				{SL, SL, SL, SL, SLl, SL, SL, SL, SLl, SLf, SLd, SLv},
-				{SRu, SR, SR, SR, SRl, SRu, SRu, SRu, SRul, SRf, SRd, SRv}};
+				{NOP, SL, SL, SL, SLl, SL, SL, SL, SLl, SLf, SLd, SLv},
+				{NOP, SR, SR, SR, SRl, SRu, SRu, SRu, SRul, SRf, SRd, SRv}};
 
 			if (prio >= pShift) return z;
-			deref(z);
-			if (z.rtype < CHAR || z.rtype > VARIADIC) throw "numeric type required";
-			ObjCode z2 = value(source, pShift);
-			cast_to(z2, INT);
-			z.append(z2);
+			z.deref();
+			Type ztype = z.rtype.strip_enum();
+			if (!ztype.is_numeric()) throw "numeric type required";
+			Opcode o = oo[oper - tSL][z.rtype];
+			if (o == NOP) throw "not supported";
 
-			Opcode o = oo[oper - tSL][z.rtype - CHAR];
+			ObjCode z2 = value(pShift);
+			z2.cast_to(INT);
+			z.prepend(z2);
+
 			z.append_opcode(o, z.rtype);
 			goto o;
 		}
@@ -563,121 +326,130 @@ a:
 		{
 			uint8 opri[] = {pAdd, pAdd, pMul, pMul, pMul, pAnd, pAnd, pAnd};
 
-			// note: CHAR INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
+			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
 
-			constexpr Opcode x		   = Opcode(0);
+			constexpr Opcode x		   = NOP;
 			constexpr Opcode oo[8][12] = {
-				{ADD, ADD, ADD, ADD, ADDl, ADD, ADD, ADD, ADDl, ADDf, ADDd, ADDv},
-				{SUB, SUB, SUB, SUB, SUBl, SUB, SUB, SUB, SUBl, SUBf, SUBd, SUBv},
-				{MUL, MUL, MUL, MUL, MULl, MUL, MUL, MUL, MULl, MULf, MULd, MULv},
-				{DIVu, DIV, DIV, DIV, DIVl, DIVu, DIVu, DIVu, DIVl, DIVf, DIVd, DIVv},
-				{MODu, MOD, MOD, MOD, MODl, MODu, MODu, MODu, MODul, x, x, MODv},
-				{AND, AND, AND, AND, ANDl, AND, AND, AND, ANDl, x, x, ANDv},
-				{OR, OR, OR, OR, ORl, OR, OR, OR, ORl, x, x, ORv},
-				{XOR, XOR, XOR, XOR, XORl, XOR, XOR, XOR, XORl, x, x, XORv},
+				{x, ADD, ADD, ADD, ADDl, ADD, ADD, ADD, ADDl, ADDf, ADDd, ADDv},
+				{x, SUB, SUB, SUB, SUBl, SUB, SUB, SUB, SUBl, SUBf, SUBd, SUBv},
+				{x, MUL, MUL, MUL, MULl, MUL, MUL, MUL, MULl, MULf, MULd, MULv},
+				{x, DIV, DIV, DIV, DIVl, DIVu, DIVu, DIVu, DIVl, DIVf, DIVd, DIVv},
+				{x, MOD, MOD, MOD, MODl, MODu, MODu, MODu, MODul, x, x, MODv},
+				{x, AND, AND, AND, ANDl, AND, AND, AND, ANDl, x, x, ANDv},
+				{x, OR, OR, OR, ORl, OR, OR, OR, ORl, x, x, ORv},
+				{x, XOR, XOR, XOR, XORl, XOR, XOR, XOR, XORl, x, x, XORv},
 			};
 
 			if (prio >= opri[oper - tADD]) return z;
-			deref(z);
-			Type rtype = z.rtype;
-			if (rtype < CHAR || rtype > VARIADIC) throw "numeric type required";
-			Opcode o = oo[oper - tADD][z.rtype - CHAR];
-			if (o == x) throw "unsupport data type for operation";
+			z.deref();
+			Type rtype = z.rtype.strip_enum(); // TODO: preserve enum for +-&|^
+			if (!rtype.is_numeric()) throw "numeric type required";
 
-			ObjCode z2 = value(source, pShift);
-			cast_to_same(z, z2);
-			assert(z.rtype == rtype);
-			z.append(z2);
+			ObjCode z2 = value(opri[oper - tADD]);
+			z.cast_to_same(z2);
+			rtype = z.rtype.strip_enum();
+			z.prepend(z2);
+
+			Opcode o = oo[oper - tADD][z.rtype];
+			if (o == NOP) throw "not supported";
 			z.append_opcode(o, rtype);
 			goto o;
 		}
 		case tEQ:
-		case tNE:
+		case tNE: // TODO == != für strings
 		case tLT:
 		case tGT:
 		case tLE:
 		case tGE:
 		{
+			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
+
 			constexpr Opcode oo[6][12] = {
-				{EQ, EQ, EQ, EQ, EQl, EQ, EQ, EQ, EQl, EQf, EQd, EQv},
-				{NE, NE, NE, NE, NEl, NE, NE, NE, NEl, NEf, NEd, NEv},
-				{GE, GE, GE, GE, GEl, GE, GE, GE, GEl, GEf, GEd, GEv},
-				{LE, LE, LE, LE, LEl, LE, LE, LE, LEl, LEf, LEd, LEv},
-				{GT, GT, GT, GT, GTl, GT, GT, GT, GTl, GTf, GTd, GTv},
-				{LT, LT, LT, LT, LTl, LT, LT, LT, LTl, LTf, LTd, LTv},
+				{NOP, EQ, EQ, EQ, EQl, EQ, EQ, EQ, EQl, EQf, EQd, EQv},
+				{NOP, NE, NE, NE, NEl, NE, NE, NE, NEl, NEf, NEd, NEv},
+				{NOP, GE, GE, GE, GEl, GEu, GEu, GEu, GEul, GEf, GEd, GEv},
+				{NOP, LE, LE, LE, LEl, LEu, LEu, LEu, LEul, LEf, LEd, LEv},
+				{NOP, GT, GT, GT, GTl, GTu, GTu, GTu, GTul, GTf, GTd, GTv},
+				{NOP, LT, LT, LT, LTl, LTu, LTu, LTu, LTul, LTf, LTd, LTv},
 			};
 
 			if (prio >= pCmp) return z;
-			deref(z);
-			ObjCode z2 = value(source, pCmp);
-			cast_to_same(z, z2);
-			z.append(z2);
+			z.deref();
+			if (!z.rtype.is_numeric()) throw "numeric type required";
 
-			if (z.rtype < CHAR || z.rtype > VARIADIC) throw "numeric type required";
-			Opcode o = oo[oper - tEQ][z.rtype - CHAR];
-			z.append_opcode(o, BOOL);
+			ObjCode z2 = value(pCmp);
+			z.cast_to_same(z2);
+			z.prepend(z2);
+
+			Type ztype = z.rtype.strip_enum();
+			assert(ztype >= 0 && ztype < 12);
+			Opcode o = oo[oper - tEQ][ztype];
+			if (o == NOP) throw "not supported";
+			z.append_opcode(o, tBool);
 			goto o;
 		}
 		case tANDAND:
 		{
 			if (prio >= pBoolean) return z;
-			cast_to_bool(z);
-			ObjCode z2 = value(source, pBoolean);
-			cast_to_bool(z2);
+			z.cast_to_bool();
+			ObjCode z2 = value(pBoolean);
+			z2.cast_to_bool();
 			z.append_opcode(JZ, VOID);
-			z.append_label_ref(label);
+			z.append_label_ref(num_labels);
 			z.append(z2);
-			z.append_label_def(label++);
+			z.append_label_def(num_labels++);
 			goto o;
 		}
 		case tOROR:
 		{
 			if (prio >= pBoolean) return z;
-			cast_to_bool(z);
-			ObjCode z2 = value(source, pBoolean);
-			cast_to_bool(z2);
+			z.cast_to_bool();
+			ObjCode z2 = value(pBoolean);
+			z2.cast_to_bool();
 			z.append_opcode(JNZ, VOID);
-			z.append_label_ref(label);
+			z.append_label_ref(num_labels);
 			z.append(z2);
-			z.append_label_def(label++);
+			z.append_label_def(num_labels++);
 			goto o;
 		}
 		case tQMARK:
 		{
 			if (prio >= pTriadic + 1) return z;
-			cast_to_bool(z);
-			ObjCode z2 = value(source, pTriadic);
-			expect(source, ":");
-			ObjCode z3 = value(source, pTriadic);
-			cast_to_same(z2, z3);
+			z.cast_to_bool();
+			ObjCode z2 = value(pTriadic);
+			expect(tCOLON);
+			ObjCode z3 = value(pTriadic);
+			z2.cast_to_same(z3);
 			z.append(JZ);
-			z.append_label_ref(label);
+			z.append_label_ref(num_labels);
 			z.append(z2);
 			z.append(JR);
-			z.append_label_ref(label + 1);
-			z.append_label_def(label);
+			z.append_label_ref(num_labels + 1);
+			z.append_label_def(num_labels);
 			z.append(z3);
-			z.append_label_def(label + 1);
-			label += 2;
+			z.append_label_def(num_labels + 1);
+			num_labels += 2;
 			goto o;
 		}
 		case tGL:
 		{
-			//if (prio >= pAssign) return z;
-			if ((z.rtype & VREF) == 0) throw "vref required";
-			Type	ztype = z.rtype & ~VREF;
-			uint	sz	  = size_of(ztype);
-			ObjCode z2	  = value(source, pAssign);
-			cast_to(z2, ztype);
+			if (prio >= pAssign) return z;
+			if (!z.rtype.is_vref) throw "vref required";
+			Type	ztype = z.rtype.strip_enum().strip_vref();
+			uint	sz	  = ztype.size_of();
+			ObjCode z2	  = value(pAssign);
+			z2.cast_to(ztype);
 			z2.append(z);
 
-			switch (sz)
+			if (sz <= 8)
 			{
-			case 1: z2.append_opcode(POKE8, VOID); return z2;
-			case 2: z2.append_opcode(POKE16, VOID); return z2;
-			case 4: z2.append_opcode(POKE, VOID); return z2;
-			case 8: //z2.append_opcode(POKEl, VOID); return z2;
-			default: TODO();
+				Opcode o[] = {NOP, POKE8, POKE16, NOP, POKE, NOP, NOP, NOP, POKEl};
+				z2.append_opcode(o[sz], VOID);
+				return z2;
+			}
+			else
+			{
+				throw "assign sz>8 todo"; //
 			}
 		}
 		case tADDGL: // TODO: += für strings
@@ -690,98 +462,79 @@ a:
 		case tSLGL:
 		case tSRGL:
 		{
-			constexpr Opcode x		 = Opcode(0);
-			constexpr Opcode oo[][9] = {
-				{ADDGLb, SUBGLb, x, x, ANDGLb, ORGLb, XORGLb, x, x},					// CHAR
-				{ADDGLb, SUBGLb, x, x, ANDGLb, ORGLb, XORGLb, x, x},					// INT8
-				{ADDGLs, SUBGLs, x, x, ANDGLs, ORGLs, XORGLs, x, x},					// INT16
-				{ADDGL, SUBGL, MULGL, DIVGL, ANDGL, ORGL, XORGL, SLGL, SRGL},			// INT
-				{ADDGL, SUBGLl, MULGLl, DIVGLl, ANDGLl, ORGLl, XORGLl, SLGLl, SRGLl},	// LONG
-				{ADDGLb, SUBGLb, x, x, ANDGLb, ORGLb, XORGLb, x, x},					// UINT8
-				{ADDGLs, SUBGLs, x, x, ANDGLs, ORGLs, XORGLs, x, x},					// UINT16
-				{ADDGL, SUBGL, MULGL, DIVGLu, ANDGL, ORGL, XORGL, SLGL, SRGLu},			// UINT
-				{ADDGL, SUBGLl, MULGLl, DIVGLlu, ANDGLl, ORGLl, XORGLl, SLGLl, SRGLlu}, // ULONG
-				{ADDGLf, SUBGLf, MULGLf, DIVGLf, x, x, x, x, x},						// FLOAT
-				{ADDGLd, SUBGLd, MULGLd, DIVGLd, x, x, x, x, x},						// DOUBLE
-				{ADDGLv, SUBGLv, MULGLv, DIVGLv, x, x, x, x, x},						// VARIADIC
-			};
+			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
 
-			static_assert(oo[0][8] == x);
-			static_assert(oo[UINT - CHAR][tDIVGL - tADDGL] == DIVGLu);
-			static_assert(oo[VARIADIC - CHAR][tDIVGL - tADDGL] == DIVGLv);
+			// clang-format off
+			constexpr Opcode x		   = NOP;
+			constexpr Opcode oo[9][12] = {
+				{x,	ADDGLb, ADDGLs, ADDGL,	ADDGLl,	ADDGLb, ADDGLs, ADDGL,	ADDGLl,	 ADDGLf, ADDGLd, ADDGLv},
+				{x,	SUBGLb, SUBGLs, SUBGL,	SUBGLl, SUBGLb, SUBGLs, SUBGL,	SUBGLl,	 SUBGLf, SUBGLd, SUBGLv},
+				{x,	x,		x,		MULGL,	MULGLl, x,		x,		MULGL,	MULGLl,	 MULGLf, MULGLd, MULGLv},
+				{x,	x,		x,		DIVGL,	DIVGLl, x,		x,		DIVGLu, DIVGLlu, DIVGLf, DIVGLd, DIVGLv},
+				{x,	ANDGLb, ANDGLs, ANDGL,	ANDGLl, ANDGLb,	ANDGLs,	ANDGL,	ANDGLl,	 x, x, ANDGLv },
+				{x,	ORGLb,	ORGLs,	ORGL,	ORGLl,	ORGLb,  ORGLs,	ORGL,	ORGLl,	 x, x, ORGLv  },
+				{x,	XORGLb, XORGLs, XORGL,	XORGLl, XORGLb,	XORGLs, XORGL,	XORGLl,	 x, x, XORGLv },
+				{x,	x,		x,		SLGL,	SLGLl,	x,		x,		SLGL,	SLGLl,	 x, x, SLGLv  },
+				{x,	x,		x,		SRGL,	SRGLl,	x,		x,		SRGLu,	SRGLlu,	 x, x, SRGLv  } };
+			// clang-format on
 
-			//if (prio >= pAssign) return z;
-			if ((z.rtype & VREF) == 0) throw "vref required";
-			Type ztype = z.rtype & ~VREF;
-			if (ztype < CHAR || ztype > VARIADIC) throw "numeric type required";
-			Opcode o = oo[ztype - CHAR][oper - tADDGL];
-			if (o == x) throw "opcode not supported for data type";
+			if (prio >= pAssign) return z;
+			if (!z.rtype.is_vref) throw "vref required";
+			Type ztype = z.rtype.strip_enum().strip_vref();
+			if (!ztype.is_numeric()) throw "numeric type required";
+			Opcode o = oo[oper - tADDGL][ztype];
+			if (o == NOP) throw "opcode not supported for data type";
 
-			ObjCode z2 = value(source, pAssign);
-			cast_to(z2, ztype);
+			ObjCode z2 = value(pAssign);
+			z2.cast_to(ztype);
 			z2.append(z);
 			z2.append_opcode(o, VOID);
 			return z2;
 		}
 		case tEKauf:
 		{
-			if (num_dimensions(z.rtype) == 0) throw "array required";
+			if (!z.rtype.is_array()) throw "array required";
 
 			do {
-				if (num_dimensions(z.rtype) == 0) throw "too many subscripts";
-				ObjCode z2 = value(source, pAny);
-				cast_to(z, UINT);
+				if (z.rtype.dims == 0) throw "too many subscripts";
+				ObjCode z2 = value(pAny);
+				z2.cast_to(UINT);
 				z.prepend(z2);
-				deref(z);
-				Type   itype = z.rtype - ARRAY1;
-				uint   ss	 = sizeshift_of(itype);
-				Opcode ati[] = {ATI8, ATI16, ATI, ATI64};
-				z.append_opcode(ati[ss], itype + VREF);
+				z.deref();
+				Type   itype = z.rtype.strip_dim();
+				uint   sz	 = itype.size_of();
+				Opcode ati[] = {NOP, ATI8, ATI16, NOP, ATI, NOP, NOP, NOP, ATIl};
+				assert(sz > 8 || ati[sz] != NOP);
+				if (sz <= 8) z.append_opcode(ati[sz], itype.add_vref());
+				else throw "ati sz>8 todo";
 			}
-			while (test_word(source, ","));
+			while (test_word(tCOMMA));
 
-			expect(source, "]");
+			expect(tEKzu);
 			goto o;
 		}
 		case tRKauf: // proc ( arguments ... )
 		{
-			// TODO: we need a data type for callables with all argument types and rtype!
-			if ((0))
+			z.deref();
+			if (!z.rtype.is_callable()) throw "not callable";
+			assert(z.rtype.info < signatures.count());
+			Signature& signature = signatures[z.rtype.info];
+			z.append_opcode(CALL, signature.rtype);
+
+			for (uint i = 0; i < signature.argc; i++)
 			{
-				Symbol* w = dict[idf];
-				if (!w) throw usingstr("%s not found", names[idf]);
-
-				Callable* fu = w->as_callable();
-				if (!fu) throw usingstr("%s is not callable", names[idf]);
-
-				uint  argc = fu->argc;
-				Type* argv = fu->argv;
-				for (uint i = 0; i < argc; i++)
-				{
-					if (i) expect(source, ",");
-					z = value(source, pAny);
-					cast_to(z, argv[i]);
-				}
-				if (OpcodeDef* pd = w->as_opcode_def())
-				{
-					z.append_opcode(pd->opcode, pd->rtype);
-					goto o;
-				}
-				if (InlineDef* id = w->as_inline_def())
-				{
-					z.append(id->code, id->count, id->rtype);
-					goto o;
-				}
-				if (ProcDef* pd = w->as_proc_def())
-				{
-					// TODO: use a CALL opcode?
-					// TODO: else need minimum address to distinguish from opcodes!
-					z.append_opcode(pd->offset, pd->rtype);
-					goto o;
-				}
-				IERR();
+				ObjCode z2;
+				if (i) expect(tCOMMA);
+				z2 = value(pAny);
+				z2.cast_to(signature.args[i]);
+				z.prepend(z2);
 			}
-			TODO(); //
+			expect(tRKzu);
+			goto o;
+		}
+		case tDOT:
+		{
+			TODO();
 		}
 		default: break;
 		}
@@ -791,118 +544,344 @@ a:
 	}
 }
 
-void compile_value(Type expected_type, uint prio) { TODO(); }
 
-void compile_word(Word* word)
+void Vcc::compile_const()
 {
-	// proc name => call proc
-	// var name => assign var
-	// typename => define proc or var
+	// const name = value , ..
 
-	switch ((word->type() & 0xF8))
+	do {
+		IdfID name = next_word();
+		if (!isaName(name)) throw "name expected";
+		if (symbols[name] != nullptr) throw "name exists";
+		expect(tGL);
+		ObjCode v = value(pAny);
+		if (!v.is_ival()) throw "immediate expression expected";
+		symbols.add(name, new ConstDef(v.rtype, v.value()));
+	}
+	while (test_word(tCOMMA));
+	expect(tNL);
+}
+
+void Vcc::compile_enum()
+{
+	// enum name =
+	//		name [ = value ] , ..
+	//		..
+
+	// get enum id from enums++
+	// store IdfID name in Type.info
+
+	IdfID name = next_word();
+	if (!isaName(name)) throw "name expected";
+	if (symbols[name] != nullptr) throw "name exists";
+	symbols.add(name, new EnumDef(name, INT));
+	expect(tGL);
+
+	int	 value = 0;
+	Type type  = Type::make_enum(name, INT);
+
+	do {
+		name = next_word();
+		if (!isaName(name)) throw "name expected";
+		if (symbols[name] != nullptr) throw "name exists";
+		if (test_word(tGL))
+		{
+			ObjCode v = this->value(pAny);
+			if (!v.is_ival()) throw "immediate expression expected";
+			if (!v.rtype.is_integer()) throw "int value expected";
+			if (v.rtype.is_unsigned_int() && v.value() < 0) throw "value too large";
+			value = v.value();
+		}
+
+		symbols.add(name, new ConstDef(type, value++));
+	}
+	while (test_word(tCOMMA));
+	expect(tNL);
+}
+
+void Vcc::compile_struct()
+{
+	// type name =
+	//		type name , ..
+	//		name ( args -- rtype ) [ instructions ]
+	//		..
+
+	//TODO
+}
+
+ObjCode Vcc::compile_definition()
+{
+	// type name = value
+	// type name , ..
+	// type name ( args ) instructions
+
+	TODO(); //
+}
+
+ObjCode Vcc::compile_block(uint indent)
+{
+	// either s.th. follows on the same line
+	// or following lines are indented
+
+	if (peek_word() == tEOF) throw "unexpected eof";
+	if (test_word(tNL) && get_indent() <= indent) throw "indented block expected";
+	else return compile(indent);
+}
+
+ObjCode Vcc::compile(uint indent)
+{
+	// compile everything with the current indent into one block
+
+	indent += 1;
+
+	ObjCode	   objcode;
+	static Var var;
+
+	//if (test_word(source, ":")) objcode.append(compile_definition(source));
+
+	for (;;)
 	{
-	case Word::PROC: TODO();
-	case Word::GVAR: TODO();
-	case Word::CONST: TODO();
-	default: IERR();
+		IdfID id = peek_word();
+
+		switch (id)
+		{
+		case tEOF: return objcode;			// end of source
+		case tCOLON: next_word(); continue; // empty statement
+		case tNL:							// indented block may follow
+		{
+			uint new_indent = get_indent();
+			if (new_indent <= indent) return objcode;
+			if (test_word(tCOLON)) objcode.append(compile_definition());
+			continue;
+		}
+
+			//case tCONST: TODO(); // define const value
+			//case tENUM: TODO(); // define const values by enumeration
+			//case tTYPE: TODO();	 // define new type (struct)
+			//case tINT: TODO();	 // define int var or proc
+			//case tSTR: TODO();	 // define str var or proc
+			//case tFLOAT: TODO(); // define float var or proc
+			//case tCHAR: TODO();	 // define char var or proc
+
+		case tIF:
+		{
+			objcode.append(value(pAny));
+			objcode.cast_to(INT);
+			objcode.append_opcode(JZ, VOID);
+			objcode.append_label_ref(num_labels);
+			objcode.append(compile_block(indent));
+
+			while (test_word(tELIF)) { TODO(); }
+			if (test_word(tELSE)) TODO();
+			TODO(); //store code
+		}
+		case tSWITCH:
+		{
+			ObjCode z = value(pAny);
+			z.cast_to(INT);
+			expect(tCOLON);
+			while (test_word(tCASE)) TODO();
+			if (test_word(tDEFAULT)) TODO();
+			TODO(); //store code
+		}
+		case tBREAK:
+		{
+			if (num_nested_switches == 0) throw "not in switch";
+			TODO();
+		}
+		case tGKauf:
+		{
+			while (!test_word(tGKzu)) objcode.append(compile(indent));
+			continue;
+		}
+		case tFOR: TODO();
+		case tDO:
+		{
+			TODO();
+		}
+		case tWHILE:
+		{
+			if (num_nested_loops == 0) throw "not in loop";
+			ObjCode z = value(pAny);
+			z.cast_to(INT);
+			TODO();
+		}
+		case tUNTIL:
+		{
+			if (num_nested_loops == 0) throw "not in loop";
+			ObjCode z = value(pAny);
+			z.cast_to(INT);
+			TODO();
+		}
+		case tEXIT:
+		{
+			if (num_nested_loops == 0) throw "not in loop";
+			TODO();
+		}
+		case tNEXT:
+		{
+			if (num_nested_loops == 0) throw "not in loop";
+			TODO();
+		}
+		case tRETURN:
+		{
+			if (!in_proc_def) throw "not in proc def";
+			TODO(); //if (rtype != VOID) compile_value(rtype);
+					//return tCOLON;
+		}
+		case t_IDF:
+		{
+			// proc name => call proc
+			// var name => assign var
+			// typename => define proc or var
+			Symbol* word = symbols[id];
+			if (word) TODO(); //compile_word(word);
+			else throw "not found";
+		}
+		default: break;
+		}
+		throw "unexpected";
 	}
 }
 
-uint compile_instruction(cstr& source)
-{
-	// instruction:
-	// proc name
-	// var name
-	// type name
-	// flow_control
 
-	Token w	 = next_word(source, false);
-	uint  id = w.idf_id;
-	switch (id)
+constexpr char opcode_names[][14] = {
+#define M(MNEMONIC, NAME, ARGS) NAME
+#include "Opcode.h"
+};
+
+enum OpcodeArgument : uint8 {
+	NOARG,
+	ARGi16,
+	ARGu16,
+	ARGi16_DISTi16,
+	DESTu32,
+	DISTi16,
+};
+
+constexpr uint8 opcode_arguments[] = {
+#define M(MNEMONIC, NAME, ARGS) ARGS
+#include "Opcode.h"
+};
+
+void Vcc::disass(const ObjCode& objcode, void (*print)(cstr))
+{
+	for (uint i = 0; i < objcode.cnt; i++)
 	{
-	case tEOF: return id;
-	case t_LINE: return tCOLON;
-	case tCOLON: return tCOLON;
-	case tCONST: TODO(); // define const value
-	case tENUM: TODO();	 // define const values by enumeration
-	case tTYPE: TODO();	 // define new type (struct)
-	case tINT: TODO();	 // define int var or proc
-	case tSTR: TODO();	 // define str var or proc
-	case tFLOAT: TODO(); // define float var or proc
-	case tCHAR: TODO();	 // define char var or proc
-	case tIF:
-	{
-		compile_value(INT);
-		expect(":");
-		compile_instruction();
-		while (test_word("elif")) TODO();
-		if (test_word("else")) TODO();
-		TODO(); //store code
+		uint o = objcode[i];
+		if (o >= 0x8000)
+		{
+			print(usingstr("Label %u:", o - 0x8000));
+			continue;
+		}
+
+		assert(o < NELEM(opcode_names));
+		assert(o < NELEM(opcode_arguments));
+		cstr name = opcode_names[o];
+		uint args = opcode_arguments[o];
+
+		switch (args)
+		{
+		case NOARG: print(name); continue;
+		case DISTi16: print(usingstr("%s L%i", name, int16(objcode[++i]))); continue;
+		case ARGi16: print(usingstr("%s %i", name, int16(objcode[++i]))); continue;
+		case ARGu16: print(usingstr("%s %u", name, uint16(objcode[++i]))); continue;
+		case DESTu32:
+		{
+			uint lo = objcode[++i];
+			print(usingstr("%s %i", name, lo + 0x10000 * objcode[++i]));
+			continue;
+		}
+		case ARGi16_DISTi16:
+		{
+			int a1 = int16(objcode[++i]);
+			print(usingstr("%s %i,%i", name, a1, int16(objcode[++i])));
+			continue;
+		}
+		default: IERR();
+		}
 	}
-	case tSWITCH:
-	{
-		compile_value(INT);
-		expect(":");
-		while (test_word("case")) TODO();
-		if (test_word("default")) TODO();
-		TODO(); //store code
-	}
-	case tBREAK:
-	{
-		if (num_nested_switches == 0) throw "not in switch";
-		TODO();
-	}
-	case tGKauf:
-	{
-		while (!test_word("}")) compile_instruction();
-		return tCOLON;
-	}
-	case tFOR: TODO();
-	case tDO:
-	{
-		TODO();
-	}
-	case tWHILE:
-	{
-		if (num_nested_loops == 0) throw "not in loop";
-		compile_value(INT);
-		TODO();
-	}
-	case tUNTIL:
-	{
-		if (num_nested_loops == 0) throw "not in loop";
-		compile_value(INT);
-		TODO();
-	}
-	case tEXIT:
-	{
-		if (num_nested_loops == 0) throw "not in loop";
-		TODO();
-	}
-	case tNEXT:
-	{
-		if (num_nested_loops == 0) throw "not in loop";
-		TODO();
-	}
-	case tRETURN:
-	{
-		if (!in_proc_def) throw "not in proc def";
-		if (rtype != VOID) compile_value(rtype);
-		return tCOLON;
-	}
-	case t_IDF:
-	{
-		// proc name => call proc
-		// var name => assign var
-		// typename => define proc or var
-		Word* word = find_word(w.name);
-		if (word) compile_word(word);
-		else throw "not found";
-	}
-	}
-	throw "unexpected";
 }
 
+void Vcc::optimize(ObjCode&) { TODO(); }
+
+void Vcc::remove_labels(ObjCode& objcode)
+{
+	// for each position of a label def
+	// remember position and shift following source
+
+	Array<uint16*> label_positions;
+	constexpr uint sizeof_args[] = {0, 1, 1, 2, 2, 1};
+
+	uint16* q = objcode.code;
+	uint16* z = q;
+	uint16* e = q + objcode.cnt;
+	while (q < e)
+	{
+		uint16 o = *q++;
+		if (o < 0x8000)
+		{
+			assert(o < NELEM(opcode_arguments));
+			*z++ = o;
+			for (uint i = 0; i < sizeof_args[opcode_arguments[o]]; i++) *z++ = *q++;
+		}
+		else // label def:
+		{
+			uint label = o + 0x8000;
+			label_positions.grow(label + 1);
+			label_positions[label] = z;
+		}
+	}
+
+	objcode.cnt = uint(z - objcode.code);
+
+	// for each jump opcode
+	// replace label ref with jump distance
+
+	q = objcode.code;
+	e = q + objcode.cnt;
+	while (q < e)
+	{
+		uint16 o = *q++;
+		assert(o < NELEM(opcode_arguments));
+		uint arg_id = opcode_arguments[o];
+		if (arg_id == DISTi16)
+		{
+			uint label = *q;
+			assert(label < label_positions.count() && label_positions[label] != nullptr);
+			assert(label_positions[label] >= objcode.code && label_positions[label] < objcode.code + objcode.cnt);
+			int d = label_positions[label] - q;
+			assert(d == int16(d));
+			*q++ = uint16(d);
+		}
+		q += sizeof_args[arg_id];
+	}
+}
+
+ObjCode Vcc::compile(cstr& source)
+{
+	this->source = source;
+	ObjCode objcode;
+
+	try
+	{
+		objcode = compile(0 /*indent*/);
+		optimize(objcode);
+		remove_labels(objcode);
+	}
+	catch (cstr e)
+	{
+		printf("error: %s", e);
+	}
+	catch (std::exception& e)
+	{
+		printf("error: %s", e.what());
+	}
+	catch (...)
+	{
+		printf("unknown exception");
+	}
+}
 
 } // namespace kio::Vcc
 
