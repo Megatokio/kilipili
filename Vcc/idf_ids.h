@@ -13,7 +13,8 @@ inline bool isaOperatorName(IdfID t)
 {
 	return t >= tGL && t <= tCPL;
 } // idfs not conforming to general naming conventions
-inline bool isReservedName(IdfID t) { return t >= tIF && t <= tNEXT; }
+inline bool isaReservedName(IdfID t) { return t >= tIF && t <= tNEXT; }
+inline bool isaStarter(IdfID t) { return t >= tIF && t <= tENUM; }
 
 inline bool isaOperator(IdfID t) { return t >= tGL && t <= tDECR; } // operators with left-side argument
 inline bool isaBinaryOperator(IdfID t) { return t >= tGL && t <= tSL && t != tQMARK && t != tCOLON; }
