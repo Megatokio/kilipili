@@ -12,10 +12,15 @@ add_library(kilipili_vcc STATIC
 	idf_id.h
 	idf_ids.h
 	tokenize.cpp
-	opcodes.h
+	Opcode.h
 	DReg.h
 	Var.h
-	VccRunner.cpp	
+	VccRunner.cpp
+	Type.h
+	Signature.h
+	Symbol.h
+	ObjCode.h
+	Names.h	
 	)
 
 target_compile_definitions(kilipili_vcc PUBLIC 

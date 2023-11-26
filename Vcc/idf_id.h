@@ -10,7 +10,7 @@
 #ifndef M
 #define IDF_ID_H
 #define M_wasnt_defined
-enum IdfID 
+enum IdfID : unsigned short 
 {	
 #define M(ID,STR)	ID
 #endif
@@ -96,7 +96,7 @@ enum IdfID
 	M(tRKzu,	")" ),
 	M(tGKzu,	"}" ),
 	M(tEKzu,	"]" ),
-	M(tKOMMA,	"," ),
+	M(tCOMMA,	"," ),
 	M(tDOT,		"." ),
 	M(tSEMIK,	";" ),
 	M(tHASH,	"#" ),
@@ -107,29 +107,32 @@ enum IdfID
 // start of 'names':
 // reserved names:
 
+// block or definition starter:	
 	M(tIF,		"if" 	),
 	M(tELSE,	"else" 	),
 	M(tELIF,	"elif" 	),					// <-- also preprocessor
 	M(tFOR,		"for" 	),
 	M(tDO,		"do" 	),
+	M(tSWITCH,	"switch" ),
+	M(tCASE,	"case" 	),
+	M(tDEFAULT,	"default" ),
+//	M(tTYPE,	"type" 	),
+	M(tCONST,	"const" ),
+	M(tENUM,	"enum"	),
+
+// other reserved names:	
+//	M(tTO,		"to" 	),	
 	M(tWHILE,	"while" ),
 	M(tUNTIL,	"until" ),
 	M(tEXIT,	"exit" 	),
-	M(tSWITCH,	"switch" ),
-	M(tCASE,	"case" 	),
 	M(tBREAK,	"break" ),
-	M(tDEFAULT,	"default" ),
-	M(tTYPE,	"type" 	),
 //	M(tEXTERN,	"extern" ),
-	M(tCONST,	"const" ),
-	M(tENUM,	"enum"	),
 //	M(tSCOPE,	"scope" ),
-	M(tEND,		"end" 	),
+//	M(tEND,		"end" 	),
 	M(tASSERT,	"assert" ),
 //	M(tSIZEOF,	"sizeof" ),
 //	M(tSIZE,	"size" 	),
 //	M(tCOUNT,	"count" ),
-	M(tTO,		"to" 	),
 	M(tRETURN,	"return" ),
 	M(tNEXT,	"next" 	),
 
@@ -161,20 +164,22 @@ enum IdfID
 
 // types:
 
-//	M(tINT8,		"int8"		),		// int8 ... void:	same sequence as type_id´s!
-//	M(tUINT8,		"uint8"		),
-//	M(tINT16,		"int16"		),
-//	M(tUINT16,		"uint16"	),
-//	M(tINT32,		"int32"		),
-//	M(tUINT32,		"uint32"	),
-//	M(tINT64,		"int64"		),
-//	M(tUINT64,		"uint64"	),
-//	M(tFLOAT32,		"float32"	),
-//	M(tFLOAT128,	"float128"	),
-//	M(tFLOAT64,		"float64"	),
 	M(tVOID,		"void"		),
+	M(tINT8,		"int8"		),	// int8 ... void:	same sequence as type_id´s!
+	M(tINT16,		"int16"		),
+	M(tINT32,		"int32"		),
+	M(tINT64,		"int64"		),
+	M(tUINT8,		"uint8"		),
+	M(tUINT16,		"uint16"	),
+	M(tUINT32,		"uint32"	),
+	M(tUINT64,		"uint64"	),
 	M(tFLOAT,		"float"		),
+	M(tDOUBLE,		"double"	),
+	M(tVARIADIC,	"var"   	),
 	M(tSTR,			"str"		),
+//	M(tFLOAT32,		"float32"	),
+//	M(tFLOAT64,		"float64"	),
+//	M(tFLOAT128,	"float128"	),
 //	M(tBYTE,		"byte"		),
 //	M(tUBYTE,		"ubyte"		),
 	M(tCHAR,		"char"		),
@@ -188,12 +193,10 @@ enum IdfID
 //	M(tUCS4STR,		"ucs4str"	),
 //	M(tSHORT,		"short"		),
 //	M(tUSHORT,		"ushort"	),
-	M(tINT,			"int"		),
-//	M(tUINT,		"uint"		),
-	M(tLONG,		"long"		),
-//	M(tULONG,		"ulong"		),
-//	M(tINT_P,		"offs"		),
-//	M(tUINT_P,		"addr"		),
+	M(tINT,			"int"		), // >= sizeof register, >= sizeof pointer
+	M(tUINT,		"uint"		),
+	M(tLONG,		"long"		), // >= 32 bit, >= sizeof int
+	M(tULONG,		"ulong"		),
 //	M(tMP_INT,		"mp_int"	),
 //	M(tMP_FLOAT,	"mp_float"	),
 //	M(tPTR,			"ptr"		),
@@ -250,6 +253,8 @@ enum IdfID
 	M(tPUSHR,		"pushr"		),
 	M(tDROPR,		"dropr"		),
 	M(tBOOL,		"bool"		),
+	M(tTRUE,		"true"		),
+	M(tFALSE,		"false"		),
 	M(tJP,			"jp"		),
 	M(tJP_Z,		"jp_z"		),
 	M(tJP_NZ,		"jp_nz"		),
