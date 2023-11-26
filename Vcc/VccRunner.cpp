@@ -3,10 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "DReg.h"
+#include "Opcode.h"
 #include "Var.h"
 #include "Vcc.h"
 #include "Xoshiro128.h"
-#include "opcodes.h"
 #include <math.h>
 #include <pico/stdlib.h>
 
@@ -51,11 +51,11 @@ Var execute(Var* ram, const uint16* ip, const uint16** rp, Var* sp)
 #define loop goto _loop
 _loop:
 
-	switch (*ip++)
+	switch (uint8(*ip++))
 	{
 	case NOP: loop;
-	case PUSH_TOP: push(top); loop;		// technically this is DUP
-	case POP_TOP:  top = pop.u32; loop;	// technically this is DROP
+	case PUSH: push(top); loop;		// technically this is DUP
+	case POP:  top = pop.u32; loop;	// technically this is DROP
 		
 	// Numeric Literals:
 
@@ -68,41 +68,39 @@ _loop:
 
 	// immediate value: 
 	// note: larger constants are stored in globals[]
-	case IVAL:		  push(top);						//  ( -- i16 )
-	case IVAL_nopush: top = N; top += N << 16; loop;	//  ( void -- i16 )
-	case IVALi16:	  push(top);						//  ( -- i16 )
-	case IVALi16_nopush: top = N; loop;					//  ( void -- i16 )
+	case PUSH_IVALi16:	push(top);						//  ( -- i16 )
+	case IVALi16:		top = N; loop;					//  ( void -- i16 )
+	case PUSH_IVAL:		push(top);						//  ( -- i16 )
+	case IVAL:			top = N; top += N << 16; loop;	//  ( void -- i16 )
 
 	// Global Variables in gvar[]:
 
-	case GVAR:		  push(top);			//  ( -- addr )
-	case GVAR_nopush: top = &ram[U]; loop;
-	case GGET:		  push(top);			//  ( -- value )
-	case GGET_nopush: top = ram[U]; loop;	//  ( void -- value )
-	case GSET:		  ram[U] = top; loop;	//  ( value -- void )
+	case PUSH_GVAR:	push(top);			//  ( -- addr )
+	case GVAR:		top = &ram[U]; loop;//  ( void -- addr )
+	case PUSH_GGET:	push(top);			//  ( -- value )
+	case GGET:		top = ram[U]; loop;	//  ( void -- value )
+	case GSET:		ram[U] = top; loop;	//  ( value -- void )
 	
 	// Local Variables on Stack:
 
-	case LVAR:		  push(top);			//  ( -- addr )
-	case LVAR_nopush: top = &sp[U]; loop;	//  ( void -- addr )
-	case LGET:		  push(top);			//  ( -- value )
-	case LGET_nopush: top = sp[U]; loop;	//  ( void -- value )
-	case LSET:		  sp[U] = top; loop;	//  ( value -- void )
+	case PUSH_LVAR: push(top);			//  ( -- addr )
+	case LVAR:		top = &sp[U]; loop;	//  ( void -- addr )
+	case PUSH_LGET:	push(top);			//  ( -- value )
+	case LGET:	    top = sp[U]; loop;	//  ( void -- value )
+	case LSET:		sp[U] = top; loop;	//  ( value -- void )
 
 	// Items in Objects:
 	// offset and data alignment depend on data size!
 	// => also usable for ati[U] with fixed index U
 
-	case IVAR:	  top.i32ptr += U;	loop;	 //  ( addr -- addr )
-	case IVAR8:   top.i8ptr += U;	loop;
-	case IVAR16:  top.i16ptr += U;	loop;
-
+	case IVAR:	  top.i32ptr += U;	   loop; //  ( addr -- addr )
+	case IVAR8:   top.i8ptr  += U;	   loop;
+	case IVAR16:  top.i16ptr += U;	   loop;
 	case IGET:	  top = top.i32ptr[U]; loop; //  ( addr -- value )
 	case IGETi8:  top = top.i8ptr[U];  loop;
-	case IGETu8:  top = top.u8ptr[U];  loop;
 	case IGETi16: top = top.i16ptr[U]; loop;
+	case IGETu8:  top = top.u8ptr[U];  loop;
 	case IGETu16: top = top.u16ptr[U]; loop;
-
 	case ISET:    top.i32ptr[U] = pop; loop; //  ( value addr U -- void )
 	case ISET8:   top.i8ptr [U] = pop; loop;
 	case ISET16:  top.i16ptr[U] = pop; loop;
@@ -112,13 +110,11 @@ _loop:
 	case ATI:	    top.i32ptr += pop; loop;	 //  ( idx addr -- addr )
 	case ATI8:	    top.i8ptr  += pop; loop;
 	case ATI16:	    top.i16ptr += pop; loop;
-
 	case ATIGET:	top = top.i32ptr[pop]; loop; //  ( idx addr -- value )
 	case ATIGETi8:  top = top.i8ptr [pop]; loop;
 	case ATIGETi16: top = top.i16ptr[pop]; loop;
 	case ATIGETu8:  top = top.u8ptr [pop]; loop;
 	case ATIGETu16: top = top.u16ptr[pop]; loop;
-
 	case ATISET: 	{ uint idx = pop; top.i32ptr[idx] = pop; } loop;
 	case ATISET8:	{ uint idx = pop; top.i8ptr [idx] = pop; } loop; //  ( value idx addr -- )
 	case ATISET16:	{ uint idx = pop; top.i16ptr[idx] = pop; } loop;
@@ -130,11 +126,9 @@ _loop:
 	case PEEKu8:	top = *top.u8ptr;  loop;
 	case PEEKi16:	top = *top.i16ptr; loop;
 	case PEEKu16:	top = *top.u16ptr; loop;
-
 	case POKE:  	*top.i32ptr = pop; loop;	// poke ( value addr -- void )
 	case POKE8: 	*top.u8ptr  = pop; loop;
 	case POKE16:	*top.u16ptr = pop; loop;
-
 
 	// Integer Arithmetics:
 
@@ -165,25 +159,15 @@ _loop:
 
 	case ADD1:	top += 1; loop;			//  ( N -- N )
 	case ADD2:	top += 2; loop; 
-	case ADD4:	top += 4; loop; 
-	case ADD8:	top += 8; loop; 
 	case SUB1:	top -= 1; loop; 
 	case SUB2:	top -= 2; loop; 
-	case SUB4:	top -= 4; loop; 
-	case SUB8:	top -= 8; loop; 
 		
 	case SL1:	top.u32 <<= 1; loop;	//  ( N -- N )
 	case SL2:	top.u32 <<= 2; loop;
-	case SL3:	top.u32 <<= 3; loop;
-	case SL4:	top.u32 <<= 4; loop;
 	case SR1:	top.i32 >>= 1; loop;
 	case SR2:	top.i32 >>= 2; loop;
-	case SR3:	top.i32 >>= 3; loop;
-	case SR4:	top.i32 >>= 4; loop;		
 	case SR1u:	top.u32 >>= 1; loop;
 	case SR2u:	top.u32 >>= 2; loop;
-	case SR3u:	top.u32 >>= 3; loop;
-	case SR4u:	top.u32 >>= 4; loop;
 
 	case CPL:	top = ~top; loop;			//  ( N -- N )
 	case NEG:	top = -top; loop;			//  ( N -- N )
@@ -195,8 +179,8 @@ _loop:
 	case MINu:	top = min(top.u32,pop.u32); loop;
 	case MAX:	top = max(top.i32,pop.i32); loop;
 	case MAXu:	top = max(top.u32,pop.u32); loop;
-	case RANDOMu: push(top); top = rng.random(top.u32); loop;	//  ( void -- N )	[0 .. [max
-	//case NOW:	push(top); top = now<time_t>(); loop;			// seconds since 00:00 hours, Jan 1, 1970 UTC
+	case RANDOMu: top = rng.random(top.u32); loop;	//  ( void -- N )	[0 .. [max
+	//case NOW:	top = now<time_t>(); loop;			// seconds since 00:00 hours, Jan 1, 1970 UTC
 
 	case EQ:  	top = top.i32 == pop.i32; loop; //  ( A B -- B==A )
 	case NE:  	top = top.i32 != pop.i32; loop; //  ( A B -- B!=A )
@@ -209,21 +193,50 @@ _loop:
 	case GTu:  	top = top.u32 >  pop.u32; loop; //  ( A B -- B> A )
 	case GEu:  	top = top.u32 >= pop.u32; loop; //  ( A B -- B>=A )
 		
-
+	case ADDGL:	*top.i32ptr += pop.i32; loop;
+	case SUBGL: *top.i32ptr -= pop.i32; loop; 
+	case MULGL: *top.i32ptr *= pop.i32; loop; 
+	case DIVGL: *top.i32ptr /= pop.i32; loop; 
+	case DIVGLu:*top.u32ptr /= pop.u32; loop;
+	case ANDGL: *top.i32ptr &= pop.i32; loop; 
+	case ORGL:  *top.i32ptr |= pop.i32; loop; 
+	case XORGL: *top.i32ptr ^= pop.i32; loop;
+	case SLGL:  *top.i32ptr <<= pop.i32; loop;
+	case SRGL:  *top.i32ptr >>= pop.i32; loop;
+	case SRGLu: *top.u32ptr >>= pop.i32; loop;
+	case INCR:  (*top.i32ptr)++; loop;
+	case DECR:  (*top.i32ptr)--; loop;
+				
+	case ADDGLs: *top.i16ptr += pop.i32; loop;
+	case SUBGLs: *top.i16ptr -= pop.i32; loop;
+	case ANDGLs: *top.i16ptr &= pop.i32; loop;
+	case ORGLs:	 *top.i16ptr |= pop.i32; loop;
+	case XORGLs: *top.i16ptr ^= pop.i32; loop;
+	case INCRs:	 (*top.i16ptr)++; loop;
+	case DECRs:	 (*top.i16ptr)--; loop;
+		
+	case ADDGLb: *top.i8ptr += pop.i32; loop;
+	case SUBGLb: *top.i8ptr -= pop.i32; loop;
+	case ANDGLb: *top.i8ptr &= pop.i32; loop;
+	case ORGLb:	 *top.i8ptr |= pop.i32; loop;
+	case XORGLb: *top.i8ptr ^= pop.i32; loop;
+	case INCRb:	 (*top.i8ptr)++; loop;
+	case DECRb:	 (*top.i8ptr)--; loop;
+		
 	// Floating Point Arithmetics:
 
-	case ADDf:	top = top.f32 + pop.f32; loop;	 //  ( A B -- B+A )
-	case SUBf:	top = top.f32 - pop.f32; loop;	 //  ( A B -- B-A )
-	case MULf:	top = top.f32 * pop.f32; loop;	 //  ( A B -- B*A )
-	case DIVf:	top = top.f32 / pop.f32; loop;	 //  ( A B -- B/A )
-	case SLf:	top = ldexp(top.f32,+pop.i32); loop; //  ( A B -- B<<A )
-	case SRf:	top = ldexp(top.f32,-pop.i32); loop; //  ( A B -- B>>A )
-	case ADD1f:	top.f32++; loop;					 //  ( value -- value )
+	case ADDf:	top = top.f32 + pop.f32; loop;		//  ( A B -- B+A )
+	case SUBf:	top = top.f32 - pop.f32; loop;		//  ( A B -- B-A )
+	case MULf:	top = top.f32 * pop.f32; loop;		//  ( A B -- B*A )
+	case DIVf:	top = top.f32 / pop.f32; loop;		//  ( A B -- B/A )
+	case SLf:	top = ldexp(top.f32,+pop.i32); loop;//  ( A B -- B<<A )
+	case SRf:	top = ldexp(top.f32,-pop.i32); loop;//  ( A B -- B>>A )
+	case ADD1f:	top.f32++; loop;					//  ( value -- value )
 	case SUB1f:	top.f32--; loop;
-	case NOTf:	top = top.f32 == 0.0f; loop;		 //  ( f32 -- i32 )
+	case NOTf:	top = top.f32 == 0.0f; loop;		//  ( f32 -- i32 )
 	case NEGf:	top = -top.f32; loop;
 	case ABSf:	top = fabs(top.f32); loop;
-	case SIGNf:	top = sign(top.f32); loop;		 //  ( float -- int )
+	case SIGNf:	top = sign(top.f32); loop;			//  ( float -- int )
 
 	case SIN:	top = sin(top.f32); loop;
 	case COS:	top = cos(top.f32); loop;
@@ -262,9 +275,9 @@ _loop:
 
 	case MINf:		top = min(top.f32,pop.f32); loop;
 	case MAXf:		top = max(top.f32,pop.f32); loop;
-	case RANDOMf1:	push(top); top = rng.random(); loop;	//  ( void -- f32 )		[0 .. [1
-	case RANDOMf:	top = rng.random(top.f32); loop;		//  ( f32 -- f32 )		[0 .. [max
-	//case NOWf:  	push(top); top = now(); loop;			// seconds since 00:00 hours, Jan 1, 1970 UTC
+	case RANDOMf1:	top = rng.random(); loop;			//  ( void -- f32 )		[0 .. [1
+	case RANDOMf:	top = rng.random(top.f32); loop;	//  ( f32 -- f32 )		[0 .. [max
+	//case NOWf:  	top = now(); loop;					// seconds since 00:00 hours, Jan 1, 1970 UTC
 
 	case EQf:  	top = top.f32 == pop.f32; loop;		//  ( A B -- B==A )
 	case NEf:  	top = top.f32 != pop.f32; loop;		//  ( A B -- B!=A )
@@ -273,20 +286,13 @@ _loop:
 	case GTf:  	top = top.f32 >  pop.f32; loop;		//  ( A B -- B> A )
 	case GEf:  	top = top.f32 >= pop.f32; loop;		//  ( A B -- B>=A )
 
-	// Conversion:
-
-	case ITOi8:		top = int8(top); loop;			// int32 to smaller int
-	case ITOi16:	top = int16(top); loop;
-	case UTOu8:		top = uint8(top); loop;			// uint32 to smaller int
-	case UTOu16:	top = uint16(top); loop;
-	case ITOF:		top = float(top.i32); loop;		// float <-> int
-	case FTOI:		top = int32(top.f32); loop;
-	case UTOF:		top = float(top.u32); loop;
-	case FTOU:		top = uint32(top.f32); loop;
-	case ITOB:		top = top != 0; loop;			//  ( int -- bool )
-	case FTOB:		top = top != 0.f; loop;			//  ( float -- bool )
-	
-
+	case ADDGLf: *top.f32ptr += pop.f32; loop;
+	case SUBGLf: *top.f32ptr -= pop.f32; loop;
+	case MULGLf: *top.f32ptr *= pop.f32; loop;
+	case DIVGLf: *top.f32ptr /= pop.f32; loop;
+	case INCRf:  (*top.f32ptr)++; loop;
+	case DECRf:  (*top.f32ptr)--; loop;
+		
 	// Flow Control:
 
 	case JZ:	if (top.i32 == 0)	jr(); else ip++; loop;  // ( N -- void )
@@ -301,8 +307,6 @@ _loop:
 	case JGEu:	if (top >= pop.u32) jr(); else ip++; loop;  // ( A B -- void )
 	case JGT:	if (top >  pop.i32) jr(); else ip++; loop;  // ( A B -- void )
 	case JGTu:	if (top >  pop.u32) jr(); else ip++; loop;  // ( A B -- void )
-//	case JR_AND:if (top.i32 == 0)   jr(); else ip++; loop;  // jr and keep top if top==0
-//	case JR_OR:	if (top.i32 != 0)	jr(); else ip++; loop;  // jr and keep top if top!=0
 
 	case JEQI:	if (top == N) jr(); else ip++; loop; 		// ( N -- void )
 	case JNEI:	if (top != N) jr(); else ip++; loop; 		// ( N -- void )
@@ -335,6 +339,43 @@ _loop:
 		top.u32 = min(top.u32, U);
 		ip += top.u32; jr(); loop;
 
+	case TRY: TODO();
+	//	*--rp = uint16ptr(tp);
+	//	*--rp = uint16ptr(sp);
+	//	*--rp = ip + *int16ptr(ip); ip++;
+	//	tp = rp;
+	//	loop;
+
+	case THROW: TODO();
+	//	if (r.memptr->isa(ExceptionClassID))
+	//	{
+	//		reinterpret_cast<Exception*>(r.memptr)->ip = ip;
+	//	}
+
+	//	if (tp) // instead of _throw: this way we don't leave the c++ try-catch block
+	//	{
+	//		rp = tp;
+	//		ip = *rp++ +1;	// -> behind CATCH
+	//		sp = reinterpret_cast<Var*>(*rp++);
+	//		tp = reinterpret_cast<uint16**>(*rp++);
+	//		loop;
+	//	}
+	//	else goto _throw_unhandled;	// throw unhandled exception
+
+	case TRYEND: TODO();
+	//	rp += 1;
+	//	sp = reinterpret_cast<Var*>(*rp++);
+	//	tp = reinterpret_cast<uint16**>(*rp++);
+	//	loop;
+
+	case CATCH: TODO();
+	//	// executed if program executes RET inside a TRY-CATCH block:
+	//	// -> restore sp and tp and RET again
+	//	sp = reinterpret_cast<Var*>(*rp++);
+	//	tp = reinterpret_cast<uint16**>(*rp++);
+	//	ip = *rp++;
+	//	loop;
+		
 	// technically these are not DROP, because they ignore the TOP value
 	// used between instructions to destroy variables and before return.
 	case DROP_RET:	ip = popr;		//  ( X rval -- rval )		note: rval may be void
@@ -346,20 +387,45 @@ _loop:
 	case DROPN_RET: ip = popr;
 	case DROPN:		sp += N; loop;
 	
+	// Conversion:
+
+	case ITOi8:		top = int8(top); loop;			// int32 to smaller int
+	case ITOi16:	top = int16(top); loop;
+	case ITOu8:		top = uint8(top); loop;			// uint32 to smaller int
+	case ITOu16:	top = uint16(top); loop;
+	case ITOF:		top = float(top.i32); loop;		// float <-> int
+	case FTOI:		top = int32(top.f32); loop;
+	case UTOF:		top = float(top.u32); loop;
+	case FTOU:		top = uint32(top.f32); loop;
+	case ITObool:	top = top != 0; loop;			//  ( int -- bool )
+	case FTObool:	top = top != 0.f; loop;			//  ( float -- bool )
+	
+	case _filler1:
+	case _filler2:
+	case _filler3:
+	case _filler4:
+	case _filler5:
+	case _filler6:
+	case _filler7:
+	case _filler8:
+	case _filler9: IERR();
+		
 	case EXIT:
-		static_assert(EXIT < 256);
+		static_assert(EXIT == 255);
 		delete[] rp;
 		return top;
 
+
+#if VCC_LONG || VCC_VARIADIC
 		
 	// size = 8:	
 	// TODO:
-	case GGETl:		  push(top);			//  ( -- value )
-	case GGETl_nopush: top = ram[U]; loop;	//  ( void -- value )
-	case GSETl:		  ram[U] = top; loop;	//  ( value -- void )
-	case LGETl:		  push(top);			//  ( -- value )
-	case LGETl_nopush: top = sp[U]; loop;	//  ( void -- value )
-	case LSETl:		  sp[U] = top; loop;	//  ( value -- void )
+	case PUSH_GGETl:		  push(top);			//  ( -- value )
+	case GGETl: top = ram[U]; loop;	//  ( void -- value )
+	case PUSH_GSETl:		  ram[U] = top; loop;	//  ( value -- void )
+	case PUSH_LGETl:		  push(top);			//  ( -- value )
+	case LGETl: top = sp[U]; loop;	//  ( void -- value )
+	case PUSH_LSETl:		  sp[U] = top; loop;	//  ( value -- void )
 	case IGETl:	  top = top.i32ptr[U]; loop; //  ( addr -- value )
 	case ISETl:    top.i32ptr[U] = pop; loop; //  ( value addr U -- void )
 	case ATIl:	    top.i32ptr += pop; loop;	 //  ( idx addr -- addr )
@@ -368,6 +434,16 @@ _loop:
 	case PEEKl:		top = *top.i32ptr; loop; 	// peek ( addr -- value )
 	case POKEl:  	*top.i32ptr = pop; loop;	// poke ( value addr -- void )
 
+	default:
+//		r = new Exception(illegal_opcode,ip);
+//		if (tp) goto _throw;
+//		else 
+			break;
+
+#endif 		
+
+#if VCC_LONG 
+		
 	// INT64 and UINT64
 	// TODO
 	case ADDl:	top = pop.i32 + top.i32; loop;	//  ( A B -- A+B )
@@ -496,7 +572,7 @@ _loop:
 	//case MAXd:		top = max(top.f32,pop.f32); loop;
 	//case RANDOMd1:	push(top); top = rng.random(); loop;	//  ( void -- f32 )		[0 .. [1
 	//case RANDOMd:	top = rng.random(top.f32); loop;		//  ( f32 -- f32 )		[0 .. [max
-	//case NOWf:  	push(top); top = now(); loop;			// seconds since 00:00 hours, Jan 1, 1970 UTC
+	//case NOWd:  	push(top); top = now(); loop;			// seconds since 00:00 hours, Jan 1, 1970 UTC
 
 	case EQd:  	top = pop.f32 == top.f32; loop;		//  ( A B -- A==B )
 	case NEd:  	top = pop.f32 != top.f32; loop;		//  ( A B -- A!=B )
@@ -504,8 +580,11 @@ _loop:
 	case LEd:  	top = pop.f32 <= top.f32; loop;		//  ( A B -- A<=B )
 	case GTd:  	top = pop.f32 >  top.f32; loop;		//  ( A B -- A>B )
 	case GEd:  	top = pop.f32 >= top.f32; loop;		//  ( A B -- A>=B )
-		
 
+#endif 		
+
+#if VCC_VARIADIC 
+		
 	// VARIADIC
 	// TODO
 	//case ATIGETuxx:
@@ -534,7 +613,8 @@ _loop:
 	//	case 2: goto ATISET32;
 	//	default: IERR();
 	//	}
-	
+
+#endif 
 	
 	// Objects, Strings and Arrays:
 
@@ -563,48 +643,6 @@ _loop:
 
 	//case CALL_VFUNC:	TODO(); // call virtual member function
 
-	//case TRY:
-	//	*--rp = uint16ptr(tp);
-	//	*--rp = uint16ptr(sp);
-	//	*--rp = ip + *int16ptr(ip); ip++;
-	//	tp = rp;
-	//	loop;
-
-	//case THROW:
-	//	if (r.memptr->isa(ExceptionClassID))
-	//	{
-	//		reinterpret_cast<Exception*>(r.memptr)->ip = ip;
-	//	}
-
-	//	if (tp) // instead of _throw: this way we don't leave the c++ try-catch block
-	//	{
-	//		rp = tp;
-	//		ip = *rp++ +1;	// -> behind CATCH
-	//		sp = reinterpret_cast<Var*>(*rp++);
-	//		tp = reinterpret_cast<uint16**>(*rp++);
-	//		loop;
-	//	}
-	//	else goto _throw_unhandled;	// throw unhandled exception
-
-	//case TRYEND:
-	//	rp += 1;
-	//	sp = reinterpret_cast<Var*>(*rp++);
-	//	tp = reinterpret_cast<uint16**>(*rp++);
-	//	loop;
-
-	//case CATCH:
-	//	// executed if program executes RET inside a TRY-CATCH block:
-	//	// -> restore sp and tp and RET again
-	//	sp = reinterpret_cast<Var*>(*rp++);
-	//	tp = reinterpret_cast<uint16**>(*rp++);
-	//	ip = *rp++;
-	//	loop;
-
-	default:
-//		r = new Exception(illegal_opcode,ip);
-//		if (tp) goto _throw;
-//		else 
-			break;
 	}
 
 //	}
@@ -650,6 +688,8 @@ _loop:
 //	{
 //		throw AnyError("unhandled exception");
 //	}
+	
+	return 666;
 }
 
 #pragma GCC diagnostic pop

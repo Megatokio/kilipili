@@ -682,7 +682,7 @@ Array<uint16>&& tokenize(cstr source) throws
 					if (idf == tINCR || idf == tDECR) goto op; // must be postfixes: ++ival is not possible
 					if (idf <= tEKauf) goto num;			   // after operator and after ( { [
 					//if(idf==tRKauf || idf==tGKauf || idf==tEKauf) goto num;
-					if (idf == tKOMMA /* || idf==tSEMIK */) goto num;
+					if (idf == tCOMMA /* || idf==tSEMIK */) goto num;
 					goto op;
 				}
 				else
