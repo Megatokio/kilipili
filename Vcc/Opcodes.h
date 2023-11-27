@@ -34,38 +34,36 @@ enum Opcode : uint16 {
 	M(POP,			"POP",			NOARG),
 
 	M(PUSH0,		"PUSH_0",		NOARG),
-	M(PUSH0x2,		"PUSH_2x0", 	NOARG),
-	M(PUSH0x3,		"PUSH_3x0", 	NOARG),
-	M(PUSH0x4,		"PUSH_4x0", 	NOARG),
+	M(PUSH2x0,		"PUSH_2x0", 	NOARG),
+	M(PUSH3x0,		"PUSH_3x0", 	NOARG),
+	M(PUSH4x0,		"PUSH_4x0", 	NOARG),
 
-	M(IVAL,			"IVAL", 		ARGi16),	// TOP = IVAL
-	M(IVALi16,		"IVALs",		ARGi16),
-	M(PUSH_IVAL,	"PUSH IVAL",	ARGi16),
-	M(PUSH_IVALi16,	"PUSH IVALs",	ARGi16),
+	M(IVAL,			"IVAL", 		ARGi32),	// TOP = IVAL
+	M(PUSH_IVAL,	"PUSH IVAL",	ARGi32),
 	
-	M(GVAR,			"GVAR",			ARGu16),	// TOP = GVAR
-	M(GGET,			"GGET",			ARGu16),
-	M(GSET,			"GSET",			ARGu16),
-	M(PUSH_GVAR,	"PUSH GVAR",	ARGu16),
-	M(PUSH_GGET,	"PUSH GGET",	ARGu16),
+	M(GVAR,			"GVAR",			ARGu32),	// TOP = GVAR
+	M(GGET,			"GGET",			ARGu32),
+	M(GSET,			"GSET",			ARGu32),
+	M(PUSH_GVAR,	"PUSH GVAR",	ARGu32),
+	M(PUSH_GGET,	"PUSH GGET",	ARGu32),
 	
-	M(LVAR,			"LVAR",			ARGu16),	// TOP = LVAR
-	M(LGET,			"LGET",			ARGu16),
-	M(LSET,			"LSET",			ARGu16),
-	M(PUSH_LVAR,	"PUSH LVAR",	ARGu16),
-	M(PUSH_LGET,	"PUSH LGET",	ARGu16),
+	M(LVAR,			"LVAR",			ARGu32),	// TOP = LVAR
+	M(LGET,			"LGET",			ARGu32),
+	M(LSET,			"LSET",			ARGu32),
+	M(PUSH_LVAR,	"PUSH LVAR",	ARGu32),
+	M(PUSH_LGET,	"PUSH LGET",	ARGu32),
 
-	M(IVAR,			"IVAR",			ARGu16),
-	M(IVAR8,		"IVAR8",		ARGu16),
-	M(IVAR16,		"IVAR16",		ARGu16),
-	M(IGET,			"IGET",			ARGu16),
-	M(IGETi8,		"IGET8",		ARGu16),
-	M(IGETi16,		"IGET16",		ARGu16),
-	M(IGETu8,		"IGETu8",		ARGu16),
-	M(IGETu16,		"IGETu16",		ARGu16),
-	M(ISET,			"ISET",			ARGu16),
-	M(ISET8,		"ISET8",		ARGu16),
-	M(ISET16,		"ISET16",		ARGu16),
+	M(IVAR,			"IVAR",			ARGu32),
+	M(IVAR8,		"IVAR8",		ARGu32),
+	M(IVAR16,		"IVAR16",		ARGu32),
+	M(IGET,			"IGET",			ARGu32),
+	M(IGETi8,		"IGET8",		ARGu32),
+	M(IGETi16,		"IGET16",		ARGu32),
+	M(IGETu8,		"IGETu8",		ARGu32),
+	M(IGETu16,		"IGETu16",		ARGu32),
+	M(ISET,			"ISET",			ARGu32),
+	M(ISET8,		"ISET8",		ARGu32),
+	M(ISET16,		"ISET16",		ARGu32),
 
 	M(ATI,			"ATI",			NOARG),
 	M(ATI8,			"ATI8",			NOARG),
@@ -102,17 +100,17 @@ enum Opcode : uint16 {
 	M(SR,			">>",			NOARG),
 	M(SRu,			"u>>",			NOARG),
 
-	M(ADDI,			"addi",			ARGi16),
-	//M(SUBI,		"",				ARGi16), --> ADDI
-	M(MULI,			"muli",			ARGi16),
-	M(DIVI,			"divi",			ARGi16),
-	M(DIVIu,		"diviu",		ARGi16),
-	M(ANDI,			"andi",			ARGi16),
-	M(ORI,			"ori",			ARGi16),
-	M(XORI,			"xori",			ARGi16),
-	M(SLI,			"sli",			ARGi16),
-	M(SRI,			"sri",			ARGi16),
-	M(SRIu,			"sriu",			ARGi16),
+	M(ADDI,			"addi",			ARGi32),
+	//M(SUBI,		"",				ARGi32), --> ADDI
+	M(MULI,			"muli",			ARGi32),
+	M(DIVI,			"divi",			ARGi32),
+	M(DIVIu,		"diviu",		ARGi32),
+	M(ANDI,			"andi",			ARGi32),
+	M(ORI,			"ori",			ARGi32),
+	M(XORI,			"xori",			ARGi32),
+	M(SLI,			"sli",			ARGi32),
+	M(SRI,			"sri",			ARGi32),
+	M(SRIu,			"sriu",			ARGi32),
 
 	M(ADD1,			"1 -",			NOARG),
 	M(ADD2,			"2 -",			NOARG),
@@ -139,16 +137,16 @@ enum Opcode : uint16 {
 	M(RANDOMu,		"RANDOMu",		NOARG),	// ( void -- uint )
 	//M(NOW,		"NOW",			NOARG),
 
-	M(EQ,			"==",			ARGi16),
-	M(NE,			"!=",			ARGi16),
-	M(LT,			"<",			ARGi16),
-	M(LE,			"<=",			ARGi16),
-	M(GT,			">",			ARGi16),
-	M(GE,			">=",			ARGi16),
-	M(LTu,			"LTu",			ARGi16),
-	M(LEu,			"LEu",			ARGi16),
-	M(GTu,			"GTu",			ARGi16),
-	M(GEu,			"GEu",			ARGi16),
+	M(EQ,			"==",			ARGi32),
+	M(NE,			"!=",			ARGi32),
+	M(LT,			"<",			ARGi32),
+	M(LE,			"<=",			ARGi32),
+	M(GT,			">",			ARGi32),
+	M(GE,			">=",			ARGi32),
+	M(LTu,			"LTu",			ARGi32),
+	M(LEu,			"LEu",			ARGi32),
+	M(GTu,			"GTu",			ARGi32),
+	M(GEu,			"GEu",			ARGi32),
 
 	M(ADDGL,		"+0",			NOARG),
 	M(SUBGL,		"-=",			NOARG),
@@ -242,47 +240,48 @@ enum Opcode : uint16 {
 	M(INCRf,		"++f",			NOARG),
 	M(DECRf,		"--f",			NOARG),
 
-	M(JZ,			"JZ",			DISTi16),
-	M(JNZ,			"JNZ",			DISTi16),
-	M(JEQ,			"JEQ",			DISTi16),
-	M(JNE,			"JNE",			DISTi16),
-	M(JLT,			"JLT",			DISTi16),
-	M(JLE,			"JLE",			DISTi16),
-	M(JGT,			"JGT",			DISTi16),
-	M(JGE,			"JGE",			DISTi16),
-	M(JLTu,			"JLTu",			DISTi16),
-	M(JLEu,			"JLEu",			DISTi16),
-	M(JGTu,			"JGTu",			DISTi16),
-	M(JGEu,			"JGEu",			DISTi16),
+	M(JZ,			"JZ",			DISTi32),
+	M(JNZ,			"JNZ",			DISTi32),
+	M(JEQ,			"JEQ",			DISTi32),
+	M(JNE,			"JNE",			DISTi32),
+	M(JLT,			"JLT",			DISTi32),
+	M(JLE,			"JLE",			DISTi32),
+	M(JGT,			"JGT",			DISTi32),
+	M(JGE,			"JGE",			DISTi32),
+	M(JLTu,			"JLTu",			DISTi32),
+	M(JLEu,			"JLEu",			DISTi32),
+	M(JGTu,			"JGTu",			DISTi32),
+	M(JGEu,			"JGEu",			DISTi32),
 
-	M(JEQI,			"JEQI",			ARGi16_DISTi16), // 2 arguments: N and ±dis
-	M(JNEI,			"JNEI",			ARGi16_DISTi16),
-	M(JLTI,			"JLTI",			ARGi16_DISTi16),
-	M(JLTIu,		"JLTIu",		ARGi16_DISTi16),
-	M(JLEI,			"JLEI",			ARGi16_DISTi16),
-	M(JLEIu,		"JLEIu",		ARGi16_DISTi16),
-	M(JGEI,			"JGEI",			ARGi16_DISTi16),
-	M(JGEIu,		"JGEIu",		ARGi16_DISTi16),
-	M(JGTI,			"JGTI",			ARGi16_DISTi16),
-	M(JGTIu,		"JGTIu",		ARGi16_DISTi16),
+	M(JEQI,			"JEQI",			ARGi32_DISTi32), // 2 arguments: N and ±dis
+	M(JNEI,			"JNEI",			ARGi32_DISTi32),
+	M(JLTI,			"JLTI",			ARGi32_DISTi32),
+	M(JLTIu,		"JLTIu",		ARGi32_DISTi32),
+	M(JLEI,			"JLEI",			ARGi32_DISTi32),
+	M(JLEIu,		"JLEIu",		ARGi32_DISTi32),
+	M(JGEI,			"JGEI",			ARGi32_DISTi32),
+	M(JGEIu,		"JGEIu",		ARGi32_DISTi32),
+	M(JGTI,			"JGTI",			ARGi32_DISTi32),
+	M(JGTIu,		"JGTIu",		ARGi32_DISTi32),
 
-	M(JZf,			"JZf",			DISTi16),
-	M(JNZf,			"JNZf",			DISTi16),
-	M(JEQf,			"JEQf",			DISTi16),
-	M(JNEf,			"JNEf",			DISTi16),
-	M(JLTf,			"JLTf",			DISTi16),
-	M(JLEf,			"JLEf",			DISTi16),
-	M(JGEf,			"JGEf",			DISTi16),
-	M(JGTf,			"JGTf",			DISTi16),
+	M(JZf,			"JZf",			DISTi32),
+	M(JNZf,			"JNZf",			DISTi32),
+	M(JEQf,			"JEQf",			DISTi32),
+	M(JNEf,			"JNEf",			DISTi32),
+	M(JLTf,			"JLTf",			DISTi32),
+	M(JLEf,			"JLEf",			DISTi32),
+	M(JGEf,			"JGEf",			DISTi32),
+	M(JGTf,			"JGTf",			DISTi32),
 
-	M(JR,			"JR",			DISTi16),
+	M(JR,			"JR",			DISTi32),
 	M(JP,			"JP",			DESTu32),
 	M(JSR,			"JSR",			DESTu32),
+	M(BSR,			"JSR",			DISTi32),
 	M(CALL,			"CALL",			NOARG),
 	M(RET,			"RET",			NOARG),
 	M(SWITCH,		"SWITCH",		NOARG),
 	
-	M(TRY,			"try",			ARGi16),
+	M(TRY,			"try",			ARGi32),
 	M(THROW,		"throw",		NOARG),
 	M(TRYEND,		"tryend",		NOARG),
 	M(CATCH,		"catch",		NOARG),
@@ -290,7 +289,7 @@ enum Opcode : uint16 {
 	M(DROP,			"DROP",			NOARG),
 	M(DROP2,		"DROP2",		NOARG),
 	M(DROP3,		"DROP3",		NOARG),
-	M(DROPN,		"DROPN",		NOARG),
+	M(DROPN,		"DROPN",		ARGi32),
 
 	M(DROP_RET,		"DROP RET", 	NOARG),
 	M(DROP2_RET,	"DROP2 RET",	NOARG),
@@ -307,16 +306,6 @@ enum Opcode : uint16 {
 	M(FTOU,			"FTOU",			NOARG),
 	M(ITObool,		"ITObool",		NOARG),
 	M(FTObool,		"FTObool",		NOARG),
-
-	M(_filler1,"",0),
-	M(_filler2,"",0),
-	M(_filler3,"",0),
-	M(_filler4,"",0),
-	M(_filler5,"",0),
-	M(_filler6,"",0),
-	M(_filler7,"",0),
-	M(_filler8,"",0),
-	M(_filler9,"",0),
 	
 	M(EXIT,			"EXIT",			NOARG),
 
@@ -335,22 +324,22 @@ enum Opcode : uint16 {
 	M(PEEKl,		"PEEKl",		NOARG),
 	M(POKEl,		"POKEl",		NOARG),
 
-	M(GGETl,		"GGETl",		ARGu16),
-	M(LGETl,		"LGETl",		ARGu16),
-	M(PUSH_GGETl,	"PUSH GGETl",	ARGu16),
-	M(PUSH_GSETl,	"PUSH GSETl",	ARGu16),
-	M(PUSH_LGETl,	"PUSH LGET",	ARGu16),
-	M(PUSH_LSETl,	"PUSH LSET",	ARGu16),
-	M(PUSHl_IVAL,	"PUSHl IVAL",	ARGi16),
-	M(PUSHl_IVALs,	"PUSHl IVALs",	ARGi16),
-	M(PUSHl_GVAR,	"PUSHl GVAR",	ARGu16),
-	M(PUSHl_GGET,	"PUSHl GGET",	ARGu16),
-	M(PUSHl_LVAR,	"PUSHl LVAR",	ARGu16),
-	M(PUSHl_LGET,	"PUSHl LGET",	ARGu16),	
-	M(PUSHl_GGETl,	"PUSHl GGETl",	ARGu16),
-	M(PUSHl_GSETl,	"PUSHl GSETl",	ARGu16),
-	M(PUSHl_LGETl,	"PUSHl LGET",	ARGu16),
-	M(PUSHl_LSETl,	"PUSHl LSET",	ARGu16),
+	M(GGETl,		"GGETl",		ARGu32),
+	M(LGETl,		"LGETl",		ARGu32),
+	M(PUSH_GGETl,	"PUSH GGETl",	ARGu32),
+	M(PUSH_GSETl,	"PUSH GSETl",	ARGu32),
+	M(PUSH_LGETl,	"PUSH LGET",	ARGu32),
+	M(PUSH_LSETl,	"PUSH LSET",	ARGu32),
+	M(PUSHl_IVAL,	"PUSHl IVAL",	ARGi32),
+	M(PUSHl_IVALs,	"PUSHl IVALs",	ARGi32),
+	M(PUSHl_GVAR,	"PUSHl GVAR",	ARGu32),
+	M(PUSHl_GGET,	"PUSHl GGET",	ARGu32),
+	M(PUSHl_LVAR,	"PUSHl LVAR",	ARGu32),
+	M(PUSHl_LGET,	"PUSHl LGET",	ARGu32),	
+	M(PUSHl_GGETl,	"PUSHl GGETl",	ARGu32),
+	M(PUSHl_GSETl,	"PUSHl GSETl",	ARGu32),
+	M(PUSHl_LGETl,	"PUSHl LGET",	ARGu32),
+	M(PUSHl_LSETl,	"PUSHl LSET",	ARGu32),
 	
 #endif 
 		
@@ -500,8 +489,8 @@ enum Opcode : uint16 {
 	M(DECRv,		"DECRv",		NOARG),
 	
 	M(VTOB,"",0),
-	M(VTOX,			"VTOX",			ARGi16),
-	M(XTOV,			"XTOV",			ARGi16),
+	M(VTOX,			"VTOX",			ARGi32),
+	M(XTOV,			"XTOV",			ARGi32),
 	
 #endif 
 	
@@ -511,8 +500,8 @@ enum Opcode : uint16 {
 //	
 	
 
-//	M(NEW_OBJECT, "", ARGu16),
-//	M(NEW_ARRAY, "", ARGu16),
+//	M(NEW_OBJECT, "", ARGu32),
+//	M(NEW_ARRAY, "", ARGu32),
 //	M(SETCONST, "", NOARG),
 //
 //	M(COUNT, "", NOARG),
@@ -537,6 +526,10 @@ enum Opcode : uint16 {
 
   #ifdef M_wasnt_defined
 }; // enum
+
+
+constexpr uint num_VxOpcodes = EXIT + 1;
+
 
 	#if !VCC_LONG && !VCC_VARIADIC
 	  #define ATIl		  NOP

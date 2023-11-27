@@ -6,7 +6,7 @@
 #include "Array.h"
 #include "Names.h"
 #include "ObjCode.h"
-#include "Opcode.h"
+#include "Opcodes.h"
 #include "Signature.h"
 #include "Symbol.h"
 #include "Type.h"
@@ -747,21 +747,21 @@ ObjCode Vcc::compile(uint indent)
 
 constexpr char opcode_names[][14] = {
 #define M(MNEMONIC, NAME, ARGS) NAME
-#include "Opcode.h"
+#include "Opcodes.h"
 };
 
 enum OpcodeArgument : uint8 {
 	NOARG,
-	ARGi16,
-	ARGu16,
-	ARGi16_DISTi16,
+	ARGi32,
+	ARGu32,
+	ARGi32_DISTi32,
 	DESTu32,
-	DISTi16,
+	DISTi32,
 };
 
 constexpr uint8 opcode_arguments[] = {
 #define M(MNEMONIC, NAME, ARGS) ARGS
-#include "Opcode.h"
+#include "Opcodes.h"
 };
 
 void Vcc::disass(const ObjCode& objcode, void (*print)(cstr))
