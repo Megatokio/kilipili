@@ -244,7 +244,7 @@ void RAM VideoController::video_runner()
 				wait_for_event();
 			}
 
-			assert_eq(line_at_frame_start, row0);
+			assert_eq(line_at_frame_start, row0); // TODO: seen: 360 != 240 ((in screensize 160x120)
 		}
 
 		while (unlikely(row >= current_scanline() + int(scanline_buffer.count)))
