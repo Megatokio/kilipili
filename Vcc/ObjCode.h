@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Opcode.h"
+#include "Opcodes.h"
 #include "Type.h"
 #include "Var.h"
 #include "string.h"

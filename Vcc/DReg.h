@@ -17,7 +17,7 @@ class Memory;
 */
 union DReg
 {
-	uint32	u32;
+	uint32	u32 = 0;
 	int32	i32;
 	void*	ptr;
 	uint8*	u8ptr;
@@ -32,6 +32,7 @@ union DReg
 	float	f32;
 	Memory* memptr;
 
+	DReg() = default;
 	DReg(uint32 n) : u32(n) {}
 	DReg(int32 n) : i32(n) {}
 	DReg(uint16 n) : u32(n) {}
