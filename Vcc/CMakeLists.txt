@@ -22,7 +22,8 @@ add_library(kilipili_vcc STATIC
 	Symbol.h
 	ObjCode.h
 	Names.h
-	ViOpcode.h 
+	ViSymbol.h 
+	ViSymbol.cpp 
 	)
 
 target_compile_definitions(kilipili_vcc PUBLIC 
