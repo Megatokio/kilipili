@@ -6,8 +6,8 @@
 #include "Opcodes.h"
 #include "Type.h"
 #include "Var.h"
+#include "VxRunner.h"
 #include "string.h"
-
 
 namespace kio::Vcc
 {
@@ -15,10 +15,10 @@ namespace kio::Vcc
 
 struct ObjCode
 {
-	Type	rtype = VOID;
-	uint	cnt	  = 0;
-	uint	max	  = 0;
-	uint16* code  = nullptr;
+	Type	  rtype = VOID;
+	uint	  cnt	= 0;
+	uint	  max	= 0;
+	VxOpcode* code	= nullptr;
 
 	~ObjCode() { free(code); }
 	ObjCode() = default;
@@ -41,34 +41,41 @@ struct ObjCode
 		void* p = realloc(code, (newmax = cnt + d + 512) * sizeof(*code));
 		if (!p) p = realloc(code, (newmax = cnt + d) * sizeof(*code));
 		if (!p) panic(OUT_OF_MEMORY);
-		code = uint16ptr(p);
+		code = VxOpcodePtr(p);
 		max	 = newmax;
 	}
-	void append(const uint16* q, uint sz)
+	void append(const int* objcode, uint count)
 	{
-		grow(sz);
-		memcpy(code + cnt, q, sz * sizeof(*code));
-		cnt += sz;
+		assert(sizeof(*objcode) == sizeof(*code));
+		grow(count);
+		memcpy(code + cnt, objcode, count * sizeof(*code));
+		cnt += count;
 	}
 	template<typename T>
-	void append(T v)
+	void append(T value)
 	{
 		static_assert(sizeof(T) % sizeof(*code) == 0);
 		constexpr uint sz = sizeof(T) / sizeof(*code);
-		append(&v, sz);
+		append(&value, sz);
 	}
-	void append(uint16 v)
+	void append(VxOpcode opcode) // actual opcode
 	{
 		grow(1);
-		code[cnt++] = v;
+		code[cnt++] = opcode;
 	}
-	void append(int16 v)
+	void append(Opcode opcode) // opcode enumeration
 	{
-		append(uint16(v)); //
+		append(vx_opcodes[opcode]);
 	}
-	void append(Opcode v)
+	void append(int value)
 	{
-		append(uint16(v)); //
+		assert(sizeof(value) == sizeof(*code));
+		append(VxOpcode(value));
+	}
+	void append(uint value)
+	{
+		assert(sizeof(value) == sizeof(*code));
+		append(VxOpcode(value));
 	}
 	void append_opcode(Opcode opcode, Type t)
 	{
@@ -77,27 +84,18 @@ struct ObjCode
 	}
 	void append_ival(int value, Type t = INT)
 	{
-		if (int16(value) == value)
-		{
-			grow(2);
-			code[cnt++] = PUSH_IVALi16;
-			code[cnt++] = uint16(value);
-		}
-		else
-		{
-			grow(3);
-			code[cnt++] = PUSH_IVAL;
-			code[cnt++] = uint16(value);
-			code[cnt++] = uint16(value >> 16);
-		}
-		rtype = t;
+		assert(sizeof(value) == sizeof(*code));
+		grow(2);
+		code[cnt++] = vx_opcodes[PUSH_IVAL];
+		code[cnt++] = VxOpcode(value);
+		rtype		= t;
 	}
 	void append_ival(Var value, Type t) { append_ival(value.i32, t); }
 	void append_ival(float value) { append_ival(Var(value), FLOAT); }
 	void append_ival(cstr string) { append_ival(Var(string), STRING); }
 	void append_ival(int64) { throw "TODO: append_ival64"; }
 
-	void append(const uint16* q, uint cnt, Type t)
+	void append(const int* q, uint cnt, Type t)
 	{
 		append(q, cnt);
 		rtype = t;
@@ -117,15 +115,9 @@ struct ObjCode
 	bool is_ival()
 	{
 		if (rtype == VOID) return false;
-		assert(cnt);
-		switch (code[0])
-		{
-		case PUSH_IVALi16:
-		case IVALi16: return cnt == 2;
-		case PUSH_IVAL:
-		case IVAL: return cnt == 3;
-		default: return false;
-		}
+		if (cnt == 2 && code[0] == vx_opcodes[IVAL]) return true;
+		if (cnt == 2 && code[0] == vx_opcodes[PUSH_IVAL]) return true;
+		return false;
 	}
 
 	int value()
