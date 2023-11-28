@@ -21,7 +21,8 @@ add_library(kilipili_vcc STATIC
 	Signature.h
 	Symbol.h
 	ObjCode.h
-	Names.h	
+	Names.h
+	ViOpcode.h 
 	)
 
 target_compile_definitions(kilipili_vcc PUBLIC 
