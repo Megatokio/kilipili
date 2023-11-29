@@ -6,6 +6,7 @@
 #include "Names.h"
 #include "ObjCode.h"
 #include "Var.h"
+#include "ViSymbol.h"
 #include "idf_id.h"
 #include "standard_types.h"
 #include <utility>
@@ -23,13 +24,14 @@ class Vcc
 
 	void	setup(uint romsize, uint ramsize);
 	ObjCode compile(cstr& source);
-	ObjCode value(uint prio);
-	void	compile_const();
-	void	compile_enum();
-	void	compile_struct();
-	ObjCode compile_definition();
-	ObjCode compile_block(uint indent);
-	ObjCode compile(uint indent);
+
+	ViSymbol* value(uint prio);
+	void	  compile_const();
+	void	  compile_enum();
+	void	  compile_struct();
+	ObjCode	  compile_definition();
+	ObjCode	  compile_block(uint indent);
+	ObjCode	  compile(uint indent);
 
 	IdfID next_word();
 	IdfID next_word(Var*);
@@ -45,8 +47,8 @@ class Vcc
 	void optimize(ObjCode&);
 	void remove_labels(ObjCode&);
 
-	uint16* rom;
-	Var*	ram;
+	VxOpcode* rom;
+	Var*	  ram;
 
 	uint ram_size;	 // allocated size (in int32)
 	uint rom_size;	 // allocated size (in uint16)
