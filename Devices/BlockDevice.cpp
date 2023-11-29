@@ -19,6 +19,12 @@ uint32 BlockDevice::ioctl(IoCtl cmd, void*, void*)
 	case IoCtl::CTRL_SYNC: return 0;
 	case IoCtl::GET_SECTOR_SIZE: return 1u << ss_write;
 	case IoCtl::GET_BLOCK_SIZE: return 1u << ss_erase;
+	case IoCtl::CTRL_TRIM: return 0;
+
+	case IoCtl::FLUSH_IN: return 0;
+	case IoCtl::CTRL_RESET: return 0;
+	case IoCtl::CTRL_CONNECT: return 0;
+	case IoCtl::CTRL_DISCONNECT: return 0;
 	default: throw INVALID_ARGUMENT;
 	}
 }

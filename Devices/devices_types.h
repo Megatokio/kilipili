@@ -3,8 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "RCPtr.h"
 #include "standard_types.h"
-
+#include "tempmem.h"
+#include <memory>
 
 namespace kio::Devices
 {
@@ -14,12 +16,104 @@ using ADDR = uint64; // uint32/64: disk size, file size, file position. exFAT ne
 using LBA  = uint32; // up to 2TB
 
 
+class FileSystem;
+using FileSystemPtr = RCPtr<FileSystem>;
+class Directory;
+using DirectoryPtr = RCPtr<Directory>;
+class File;
+using FilePtr = RCPtr<File>;
+
+
 constexpr char NOT_WRITABLE[]	  = "not writable";
 constexpr char NOT_READABLE[]	  = "not readable";
 constexpr char NOT_ERASABLE[]	  = "not erasable";
 constexpr char END_OF_FILE[]	  = "end of file";
 constexpr char TIMEOUT[]		  = "timeout";
 constexpr char INVALID_ARGUMENT[] = "invalid argument";
+
+
+enum FileOpenMode : uint8 {
+	READ	 = 1,	 // FA_READ,		   - Open for reading
+	WRITE	 = 2,	 // FA_WRITE,		   - Open for writing.
+	EXIST	 = 0,	 // FA_OPEN_EXISTING, - File must already exist. (Default)
+	NEW		 = 4,	 // FA_CREATE_NEW,	   - File must not exist.
+	TRUNCATE = 8,	 // FA_CREATE_ALWAYS, - File may exist. Create if not. Truncate existing file.
+	PRESERVE = 0x10, // FA_OPEN_ALWAYS,   - File may exist. Create if not. Don't truncate existing file.
+	APPEND	 = 0x30, // FA_OPEN_APPEND,   - Same as OPEN_PRESERVE except fpos is set to end of file.
+};
+
+inline FileOpenMode operator|(FileOpenMode a, FileOpenMode b) { return FileOpenMode(uint8(a) | uint8(b)); }
+
+/*	POSIX fopen() flags vs. FatFs mode flags:
+		"r"		FA_READ
+		"r+"	FA_READ | FA_WRITE
+		"w"		FA_CREATE_ALWAYS | FA_WRITE
+		"w+"	FA_CREATE_ALWAYS | FA_WRITE | FA_READ
+		"a"		FA_OPEN_APPEND | FA_WRITE
+		"a+"	FA_OPEN_APPEND | FA_WRITE | FA_READ
+		"wx"	FA_CREATE_NEW | FA_WRITE
+		"w+x"	FA_CREATE_NEW | FA_WRITE | FA_READ
+*/
+
+enum FileType : uint8 {
+	NoFile		  = 0,
+	RegularFile	  = 1,
+	DirectoryFile = 2,
+};
+
+enum FileMode : uint8 {
+	WriteProtected = 0x1, // Fat: Read-only
+	Hidden		   = 0x2, // Fat: Hidden
+	SystemFile	   = 0x4, // Fat: System
+	Modified	   = 0x8, // Fat: Archive
+};
+
+
+struct DateTime
+{
+	uint8 year;	 // 1970 = 0
+	uint8 month; // Jan = 0
+	uint8 day;	 // 1st = 0
+	uint8 hour;
+	uint8 minute;
+	uint8 second;
+
+	DateTime() = default;
+	DateTime(uint8 y, uint8 mo, uint8 d, uint8 h, uint8 mi, uint8 s) noexcept :
+		year(y),
+		month(mo),
+		day(d),
+		hour(h),
+		minute(mi),
+		second(s)
+	{}
+};
+
+
+struct FileInfo
+{
+	cstr	 fname = nullptr;
+	SIZE	 fsize;
+	DateTime mtime;
+	FileType ftype;
+	FileMode fmode;
+
+	operator bool() const noexcept { return fname != nullptr; }
+
+	FileInfo() noexcept = default;
+
+	FileInfo(cstr name, uint fsize, const DateTime& mtime, FileType ftype, FileMode fmode) :
+		fname(newcopy(name)),
+		fsize(fsize),
+		mtime(mtime),
+		ftype(ftype),
+		fmode(fmode)
+	{}
+	template<typename T>
+	explicit FileInfo(const T&);
+	~FileInfo() { delete[] fname; }
+	NO_COPY_MOVE(FileInfo);
+};
 
 
 // IoCtl enums
@@ -90,6 +184,7 @@ enum Flags : uint8 {
 	readwrite	 = readable | writable | overwritable,
 };
 inline Flags operator|(Flags a, Flags b) { return Flags(uint(a) | uint(b)); }
+inline Flags operator&(Flags a, int b) { return Flags(uint(a) & uint(b)); }
 
 
 } // namespace kio::Devices

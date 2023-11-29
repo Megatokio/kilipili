@@ -3,6 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "FatFS.h"
+#include "FatDir.h"
+#include "FatFile.h"
 #include "Logger.h"
 #include "basic_math.h"
 #include "cstrings.h"
@@ -10,58 +12,101 @@
 #include "ff15/source/diskio.h"
 #include "ff15/source/ffconf.h"
 #include "kilipili_cdefs.h"
+#include "pico/stdio.h"
 
 
-extern cstr VolumeStr[FF_VOLUMES];
+static const cstr ff_errors[] = {
+	/*  FR_OK,					*/ "Success",
+	/*  FR_DISK_ERR,			*/ "A hard error occurred in the low level disk I/O layer",
+	/*  FR_INT_ERR,				*/ "Assertion failed",
+	/*  FR_NOT_READY,			*/ "The physical drive cannot work",
+	/*  FR_NO_FILE,				*/ "Could not find the file",
+	/*  FR_NO_PATH,				*/ "Could not find the path",
+	/*  FR_INVALID_NAME,		*/ "The path name format is invalid",
+	/*  FR_DENIED,				*/ "Access denied due to prohibited access or directory full",
+	/*  FR_EXIST,				*/ "Access denied due to prohibited access",
+	/*  FR_INVALID_OBJECT,		*/ "The file/directory object is invalid",
+	/*  FR_WRITE_PROTECTED,		*/ "The physical drive is write protected",
+	/*  FR_INVALID_DRIVE,		*/ "The logical drive number is invalid",
+	/*  FR_NOT_ENABLED,			*/ "The volume has no work area",
+	/*  FR_NO_FILESYSTEM,		*/ "There is no valid FAT volume",
+	/*  FR_MKFS_ABORTED,		*/ "The f_mkfs() aborted due to any problem",
+	/*  FR_TIMEOUT,				*/ kio::Devices::TIMEOUT,
+	/*  FR_LOCKED,				*/ "The operation is rejected according to the file sharing policy",
+	/*  FR_NOT_ENOUGH_CORE,		*/ "LFN working buffer could not be allocated",
+	/*  FR_TOO_MANY_OPEN_FILES, */ "Number of open files > FF_FS_LOCK",
+	/*  FR_INVALID_PARAMETER	*/ kio::Devices::INVALID_ARGUMENT,
+};
 
-constexpr cstr				no_drive				 = "";
-cstr						VolumeStr[FF_VOLUMES]	 = {no_drive};
-static kio::Devices::FatFS* file_systems[FF_VOLUMES] = {nullptr};
+cstr tostr(FRESULT err) noexcept
+{
+	if (err < NELEM(ff_errors)) return ff_errors[err];
+	else return "FatFS unknown error";
+}
 
 
 namespace kio::Devices
 {
 
-
-FatFS::FatFS(BlockDevice& blkdev, cstr name) : FileSystem(blkdev, name)
+FatFS::FatFS(cstr name, BlockDevice* blkdev, int idx) throws : // ctor
+	FileSystem(name, blkdev)
 {
-	assert(name && *name);
+	printf("FatFS::FatFS\n");
 
-	for (uint i = 0; i < NELEM(VolumeStr); i++)
-	{
-		if (lceq(name, VolumeStr[i])) throw "volume name already exists";
-	}
-
-	for (uint i = 0; i < NELEM(VolumeStr); i++)
-	{
-		if (file_systems[i] == nullptr)
-		{
-			VolumeStr[i]	= name;
-			file_systems[i] = this;
-			f_mount(&fatfs, name, 0 /*don't mount*/);
-			return;
-		}
-	}
-	throw "FatFS: no more volumeIDs";
+	assert(uint(idx) <= FF_VOLUMES);
 }
 
-FatFS::~FatFS()
+FatFS::~FatFS() // dtor
 {
-	if (fatfs.fs_type != 0) f_mount(&fatfs, nullptr, 0); // unmount
+	printf("FatFS::~FatFS\n");
 
-	uint i = this->fatfs.pdrv;
-	assert(lceq(name, VolumeStr[i]));
-
-	file_systems[i] = nullptr;
-	VolumeStr[i]	= no_drive;
+	FRESULT err = f_mount(&fatfs, nullptr, 0); // unmount, unregister buffers
+	if (err) logline("unmount error: %s", tostr(err));
 }
 
-void FatFS::mkfs()
+ADDR FatFS::getFree()
 {
-	const uint	ssx	   = max(9u, blkdev.ss_erase);
+	DWORD	num_clusters;
+	FATFS*	fatfsptr = nullptr;
+	FRESULT err		 = f_getfree(name, &num_clusters, &fatfsptr);
+	if (err) throw tostr(err);
+	assert(fatfsptr == &fatfs);
+	return ADDR(num_clusters) * uint(fatfs.csize << 9);
+}
+
+ADDR FatFS::getSize()
+{
+	ADDR total_size = (ADDR(fatfs.n_fatent - 2) * uint(fatfs.csize << 9));
+	return total_size;
+}
+
+bool FatFS::mount()
+{
+	printf("FatFS::mount\n");
+
+	FRESULT err = f_mount(&fatfs, name, 1 /*mount now*/);
+	if (err && err != FR_NO_FILESYSTEM) throw tostr(err);
+	return !err; // ok = true
+}
+
+DirectoryPtr FatFS::openDir(cstr path)
+{
+	path = makeAbsolutePath(path);
+	return new FatDir(this, path);
+}
+
+FilePtr FatFS::openFile(cstr path, FileOpenMode flags)
+{
+	path = makeAbsolutePath(path);
+	return new FatFile(this, path, flags);
+}
+
+void FatFS::mkfs(BlockDevice* blkdev, int idx, cstr /*type*/)
+{
+	const uint	ssx	   = max(9u, blkdev->ss_erase);
 	const uint	align  = 1 << (ssx - 9);
-	const uint8 fmtopt = blkdev.flags & partition ? FM_ANY | FM_SFD : FM_ANY;
-	const uint	n_mix  = uint(blkdev.getSize() >> 16) >> (ssx - 7) << (ssx - 5);
+	const uint8 fmtopt = blkdev->flags & partition ? FM_ANY | FM_SFD : FM_ANY;
+	const uint	n_mix  = uint(blkdev->getSize() >> 16) >> (ssx - 7) << (ssx - 5);
 	const uint	n_root = minmax(align >> 5, n_mix, 512u);
 
 	MKFS_PARM options = {
@@ -72,51 +117,25 @@ void FatFS::mkfs()
 		.au_size = 0	   // Cluster size (byte): 0=default
 	};
 
+	char  name[2] = {char('0' + idx), 0};
 	uint  bu_size = 64 kB;
 	void* buffer;
 	while (!(buffer = malloc(bu_size)) && (bu_size /= 2) >= FF_MAX_SS) {}
+	if (!buffer) throw OUT_OF_MEMORY;
 	FRESULT err = f_mkfs(name, &options, buffer, bu_size);
 	free(buffer);
 	if (err) throw tostr(err);
 }
 
-void FatFS::mount()
-{
-	FRESULT err = f_mount(&fatfs, name, 1 /*mount now*/);
-	if (err) throw tostr(err);
-}
+} // namespace kio::Devices
 
-ADDR FatFS::getFree()
-{
-	DWORD	nclst;
-	FATFS*	fatfsptr = nullptr;
-	FRESULT err		 = f_getfree(name, &nclst, &fatfsptr);
-	if (err) throw tostr(err);
-	assert(fatfsptr == &fatfs);
-	return ADDR(nclst) * uint(fatfs.csize << 9);
-}
-
-ADDR FatFS::getSize()
-{
-	ADDR tot_sect = (ADDR(fatfs.n_fatent - 2) * uint(fatfs.csize << 9));
-	return tot_sect;
-}
 
 // ######################################################################
 
-__unused static cstr tostr(DRESULT err) noexcept
-{
-	constexpr cstr dresults[] = {
-		"Success",				 // RES_OK = 0
-		"Disk R/W Error",		 // RES_ERROR
-		"Disk Write Protected",	 // RES_WRPRT
-		"Disk Not Ready",		 // RES_NOTRDY
-		"Disk Invalid Parameter" // RES_PARERR
-	};
 
-	if (err < NELEM(dresults)) return dresults[err];
-	else return "FatFS disk unknown error";
-}
+using namespace kio;
+using namespace kio::Devices;
+
 
 /*-----------------------------------------------------------------------*/
 /* Get Drive Status                                                      */
@@ -124,6 +143,8 @@ __unused static cstr tostr(DRESULT err) noexcept
 
 DSTATUS disk_status(BYTE id)
 {
+	printf("%s\n", __func__);
+
 	// required callback for FatFS:
 
 	// id = Physical drive number to identify the drive
@@ -132,11 +153,11 @@ DSTATUS disk_status(BYTE id)
 	// STA_NODISK		0x02	/* No medium in the drive */
 	// STA_PROTECT		0x04	/* Write protected */
 
-	auto* volume = id < FF_VOLUMES ? &file_systems[id]->blkdev : nullptr;
-	if (!volume) return STA_NOINIT;
+	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
+	BlockDevice* blkdev = file_systems[id]->blkdev;
 
-	if (volume->is_writable()) return 0;
-	if (volume->is_readable()) return STA_PROTECT;
+	if (blkdev->isWritable()) return 0;
+	if (blkdev->isReadable()) return STA_PROTECT;
 	else return STA_NODISK;
 }
 
@@ -150,15 +171,32 @@ DSTATUS disk_initialize(BYTE id)
 	// STA_NODISK		0x02	/* No medium in the drive */
 	// STA_PROTECT		0x04	/* Write protected */
 
-	auto* device = id < FF_VOLUMES ? &file_systems[id]->blkdev : nullptr;
-	if (!device) return STA_NOINIT;
+	printf("***disk_initialize***\n");
 
-	// device->connect(); TODO: e.g. sdcard
-	return disk_status(id);
+	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
+	BlockDevice* blkdev = file_systems[id]->blkdev;
+
+	try
+	{
+		blkdev->ioctl(IoCtl::CTRL_CONNECT);
+		return disk_status(id);
+	}
+	catch (Error e)
+	{
+		printf("fatfs.disk_initialize: %s\n", e);
+		return STA_NODISK;
+	}
+	catch (...)
+	{
+		printf("fatfs.disk_initialize: unknown error\n");
+		return STA_NODISK;
+	}
 }
 
 DRESULT disk_read(BYTE id, BYTE* buff, LBA_t sector, UINT count)
 {
+	printf("%s\n", __func__);
+
 	// required callback for FatFS:
 
 	// BYTE id,  		/* Physical drive number to identify the drive */
@@ -172,28 +210,31 @@ DRESULT disk_read(BYTE id, BYTE* buff, LBA_t sector, UINT count)
 	// RES_NOTRDY,		/* 3: Not Ready */
 	// RES_PARERR		/* 4: Invalid Parameter */
 
-	auto* device = id < FF_VOLUMES ? &file_systems[id]->blkdev : nullptr;
-	if (!device) return RES_PARERR;
+	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
+	BlockDevice* blkdev = file_systems[id]->blkdev;
 
 	try
 	{
-		device->readSectors(sector, ptr(buff), count);
+		blkdev->readSectors(sector, ptr(buff), count);
 		return RES_OK;
 	}
-	catch (cstr e)
+	catch (Error e)
 	{
-		logline("fatfs.disk_read: %s", e);
+		printf("fatfs.disk_read: %s\n", e);
+		if (e == TIMEOUT) return RES_NOTRDY;
 		return RES_ERROR;
 	}
 	catch (...)
 	{
-		logline("fatfs.disk_read: unknown error");
+		printf("fatfs.disk_read: unknown error\n");
 		return RES_ERROR;
 	}
 }
 
 DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 {
+	printf("%s\n", __func__);
+
 	// required callback for FatFS:
 
 	// BYTE id,  		/* Physical drive nmuber to identify the drive */
@@ -207,19 +248,19 @@ DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 	// RES_NOTRDY,		/* 3: Not Ready */
 	// RES_PARERR		/* 4: Invalid Parameter */
 
-	auto* device = id < FF_VOLUMES ? &file_systems[id]->blkdev : nullptr;
-	if (!device) return RES_PARERR;
+	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
+	BlockDevice* blkdev = file_systems[id]->blkdev;
 
 	try
 	{
-		if (!device->is_writable()) return RES_WRPRT;
+		if (!blkdev->isWritable()) return RES_WRPRT;
 
-		device->writeSectors(sector, ptr(buff), count);
+		blkdev->writeSectors(sector, ptr(buff), count);
 		return RES_OK;
 	}
 	catch (cstr e)
 	{
-		logline("fatfs.disk_write: %s", e);
+		printf("fatfs.disk_write: %s\n", e);
 
 		if (e == END_OF_FILE) return RES_PARERR;
 		if (e == TIMEOUT) return RES_NOTRDY;
@@ -227,13 +268,15 @@ DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 	}
 	catch (...)
 	{
-		logline("fatfs.disk_write: unknown error");
+		printf("fatfs.disk_write: unknown error\n");
 		return RES_ERROR;
 	}
 }
 
 DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 {
+	printf("%s\n", __func__);
+
 	// required callback for FatFS:
 
 	// BYTE  id,	/* Physical drive nmuber (0..) */
@@ -253,8 +296,8 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 	// RES_NOTRDY,		/* 3: Not Ready */
 	// RES_PARERR		/* 4: Invalid Parameter */
 
-	BlockDevice* device = id < FF_VOLUMES ? &file_systems[id]->blkdev : nullptr;
-	if (!device) return RES_PARERR;
+	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
+	BlockDevice* blkdev = file_systems[id]->blkdev;
 
 	try
 	{
@@ -274,12 +317,12 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 		static_assert(IoCtl::GET_BLOCK_SIZE == get_block_size);
 		static_assert(IoCtl::CTRL_TRIM == ctrl_trim);
 
-		if (buff == nullptr) device->ioctl(IoCtl(IoCtl::Cmd(cmd)), buff);
+		if (buff == nullptr) blkdev->ioctl(IoCtl::Cmd(cmd));
 		throw "buff != null: TODO";
 	}
-	catch (cstr e)
+	catch (Error e)
 	{
-		logline("fatfs.ioctl: %s", e);
+		printf("fatfs.ioctl: %s\n", e);
 
 		if (e == INVALID_ARGUMENT) return RES_PARERR;
 		if (e == TIMEOUT) return RES_NOTRDY;
@@ -287,12 +330,10 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 	}
 	catch (...)
 	{
-		logline("fatfs.ioctl: unknown error");
+		printf("fatfs.ioctl: unknown error\n");
 		return RES_ERROR;
 	}
 }
-
-} // namespace kio::Devices
 
 /*
 

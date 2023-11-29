@@ -36,6 +36,9 @@ add_library(kilipili_devices STATIC
 	ff15/source/diskio.h
 	ff15/source/ffunicode.c
 	devices_types.h
+	Directory.h Directory.cpp
+	FatDir.h FatDir.cpp
+	FileSystem.cpp
 	)
 
 target_compile_definitions(kilipili_devices PUBLIC
