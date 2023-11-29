@@ -137,86 +137,86 @@ void Vcc::expect(IdfID idf)
 	else throw usingstr("expected '%s'", names[idf]);
 }
 
-
-ObjCode Vcc::value(uint prio)
+ViSymbol* Vcc::value(uint prio)
 {
-	Var		var;
-	ObjCode z;
-	IdfID	idf = next_word(&var);
+	Var		  var;
+	ViSymbol* v;
+	IdfID	  idf = next_word(&var);
 
 	switch (idf)
 	{
 	case tNL: throw "value expected";
 	case t_LONG: TODO();
-	case t_INT: z.append_ival(var.i32, tInt); break;
-	case t_CHAR: z.append_ival(var.i32, tChar); break;
-	case t_FLOAT: z.append_ival(var.f32); break;
-	case t_STRING: z.append_ival(cstr(var.cptr)); break;
+	case t_INT: v = newViSymbolIval(var, tInt); break;
+	case t_CHAR: v = newViSymbolIval(var, tChar); break;
+	case t_FLOAT: v = newViSymbolIval(var, tFloat); break;
+	case t_STRING: v = newViSymbolIval(var, tString); break;
 
 	case tRKauf:
-		z = value(pAny);
+		v = value(pAny);
 		expect(tRKzu);
 		break;
 
 	case tNOT:
 	{
-		z = value(pUna);
-		z.deref();
-		Type ztype = z.rtype.strip_enum();
-		if (ztype == tVoid) throw "not numeric";
-		else if (ztype.is_numeric())
+		v		   = value(pUna)->deref();
+		Type ztype = v->rtype;
+		if (ztype.is_numeric())
 		{
 			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
 
-			constexpr Opcode o[] = {NOP, NOT, NOT, NOT, NOTl, NOT, NOT, NOT, NOTl, NOTf, NOTd, NOTv};
-			z.append_opcode(o[ztype], tBool);
+			static constexpr Opcode o[] = {NOP, NOT, NOT, NOT, NOTl, NOT, NOT, NOT, NOTl, NOTf, NOTd, NOTv};
+			assert(ztype < NELEM(o));
+			v = newViSymbolOpcode(o[ztype], tBool, v);
 		}
+		else if (ztype == tVoid) throw "not numeric";
 		else // ptr == nullptr ?
 		{
 			assert(ztype.size_of() == sizeof(int));
-			z.append_opcode(NOT, tBool);
+			v = newViSymbolOpcode(NOT, tBool, v);
 		}
 		break;
 	}
 	case tCPL:
 	{
-		z = value(pUna);
-		z.deref();
-		Type ztype = z.rtype.strip_enum();
+		v		   = value(pUna)->deref();
+		Type ztype = v->rtype;
 		if (ztype.is_numeric())
 		{
 			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
 
-			constexpr Opcode o[] = {NOP, CPL, CPL, CPL, CPLl, CPL, CPL, CPL, CPLl, NOP, NOP, CPLv};
-			constexpr Type	 t[] = {VOID, UINT, UINT, UINT, ULONG, UINT, UINT, UINT, ULONG, VOID, VOID, VARIADIC};
+			static constexpr Opcode o[] = {NOP, CPL, CPL, CPL, CPLl, CPL, CPL, CPL, CPLl, NOP, NOP, CPLv};
+			static constexpr Type t[] = {VOID, UINT, UINT, UINT, ULONG, UINT, UINT, UINT, ULONG, VOID, VOID, VARIADIC};
+
+			assert(ztype < NELEM(o));
 			if (o[ztype] == NOP) throw "not supported";
-			z.append_opcode(o[ztype], t[ztype]);
+			v = newViSymbolOpcode(o[ztype], t[ztype], v);
 			break;
 		}
 		else throw "not numeric";
 	}
 	case tSUB:
 	{
-		z = value(pUna);
-		z.deref();
-		Type ztype = z.rtype.strip_enum();
+		v		   = value(pUna)->deref();
+		Type ztype = v->rtype;
 		if (ztype.is_numeric())
 		{
 			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
 
-			constexpr Opcode o[] = {NOP, NEG, NEG, NEG, NEGl, NEG, NEG, NEG, NEGl, NEGf, NEGd, NEGv};
-			constexpr Type	 t[] = {VOID, INT, INT, INT, LONG, INT, INT, INT, LONG, FLOAT, DOUBLE, VARIADIC};
+			static constexpr Opcode o[] = {NOP, NEG, NEG, NEG, NEGl, NEG, NEG, NEG, NEGl, NEGf, NEGd, NEGv};
+			static constexpr Type	t[] = {VOID, INT, INT, INT, LONG, INT, INT, INT, LONG, FLOAT, DOUBLE, VARIADIC};
+
+			assert(ztype < NELEM(o));
 			if (o[ztype] == NOP) throw "not supported";
-			z.append_opcode(o[ztype], t[ztype]);
+			v = newViSymbolOpcode(o[ztype], t[ztype], v);
 			break;
 		}
 		else throw "not numeric";
 	}
 	case tADD:
 	{
-		z = value(pUna);
-		z.deref();
-		if (!z.rtype.is_numeric()) throw "not numeric";
+		v = value(pUna)->deref();
+		if (!v->rtype.is_numeric()) throw "not numeric";
 		break;
 	}
 	default:
@@ -224,45 +224,41 @@ ObjCode Vcc::value(uint prio)
 		Symbol* symbol = symbols[idf];
 		if (!symbol) throw usingstr("'%s' not found", names[idf]);
 
-		if (GVarDef* gvar = symbol->as_gvar_def())
-		{
-			z.append_opcode(PUSH_GVAR, gvar->rtype.add_vref());
-			z.append(gvar->offset);
-			break;
-		}
 		if (ConstDef* constdef = symbol->as_const_def())
 		{
+			assert(!constdef->rtype.is_vref);
 			if (constdef->rtype.size_on_top() > 4) throw "TODO symbol size > 4";
-			z.append_ival(constdef->value.i32, constdef->rtype);
-			break;
+			v = newViSymbolIval(constdef->value.i32, constdef->rtype);
 		}
-		if (Callable* fu = symbol->as_callable())
+		else if (GVarDef* gvar = symbol->as_gvar_def())
+		{
+			assert(gvar->rtype.is_vref);
+			v = newViSymbol(ViSymbol::GVAR, gvar, gvar->rtype);
+		}
+		else if (LVarDef* lvar = symbol->as_lvar_def())
+		{
+			assert(lvar->rtype.is_vref);
+			v = newViSymbol(ViSymbol::LVAR, lvar, lvar->rtype);
+		}
+		else if (Callable* fu = symbol->as_callable())
 		{
 			assert(fu->rtype.basetype == PROC);
 			assert(fu->rtype.info < signatures.count());
 			Signature& signature = signatures[fu->rtype.info];
 
-			if (InlineDef* id = symbol->as_inline_def()) { z.append(id->code, id->count, signature.rtype); }
-			else if (OpcodeDef* pd = symbol->as_opcode_def()) { z.append_opcode(pd->opcode, signature.rtype); }
-			else if (ProcDef* pd = symbol->as_proc_def())
-			{
-				// TODO: use a CALL opcode?
-				// TODO: else need minimum address to distinguish from opcodes!
-				z.append_opcode(Opcode(pd->offset), signature.rtype);
-			}
+			if (auto* o = symbol->as_opcode_def()) v = newViSymbolOpcode(o->opcode, signature.rtype, signature.argc);
+			else if (symbol->isa_inline()) v = newViSymbol(ViSymbol::INLINE, fu, signature.rtype, signature.argc);
+			else if (symbol->isa_proc()) v = newViSymbol(ViSymbol::PROC, fu, signature.rtype, signature.argc);
+			else IERR();
 
 			for (uint i = 0; i < signature.argc; i++)
 			{
-				ObjCode arg;
 				if (i) expect(tCOMMA);
-				arg = value(pAny);
-				arg.cast_to(signature.args[i]);
-				z.prepend(arg);
+				v->args[i] = value(pAny)->cast_to(signature.args[i]);
 			}
 			expect(tRKzu);
-			break;
 		}
-		IERR();
+		else IERR();
 		break;
 	}
 
@@ -273,46 +269,42 @@ ObjCode Vcc::value(uint prio)
 
 		switch (oper)
 		{
-		case tNL: return z;
+		case tNL: return v;
 		case tINCR: // ++
 		case tDECR: // --
 		{
 			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
 
-			constexpr Opcode oo[2][12] = {
+			static constexpr Opcode oo[2][12] = {
 				{NOP, INCRb, INCRs, INCR, INCRl, INCRb, INCRs, INCR, INCRl, INCRf, INCRd, INCRv},
 				{NOP, DECRb, DECRs, DECR, DECRl, DECRb, DECRs, DECR, DECRl, DECRf, DECRd, DECRv}};
 
-			if (!(z.rtype.is_vref)) throw "vref required";
-			Type ztype = z.rtype.strip_enum().strip_vref();
+			if (!(v->rtype.is_vref)) throw "vref required";
+			Type ztype = v->rtype.strip_enum();
 			if (!ztype.is_numeric()) throw "numeric type required";
 
 			Opcode o = oo[oper - tINCR][ztype];
 			if (o == NOP) throw "not supported";
-			z.append_opcode(o, VOID);
-			return z;
+			v = newViSymbolOpcode(o, ztype);
+			goto o;
 		}
 		case tSL:
 		case tSR:
 		{
 			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
 
-			constexpr Opcode oo[2][12] = {
+			static constexpr Opcode oo[2][12] = {
 				{NOP, SL, SL, SL, SLl, SL, SL, SL, SLl, SLf, SLd, SLv},
 				{NOP, SR, SR, SR, SRl, SRu, SRu, SRu, SRul, SRf, SRd, SRv}};
 
-			if (prio >= pShift) return z;
-			z.deref();
-			Type ztype = z.rtype.strip_enum();
-			if (!ztype.is_numeric()) throw "numeric type required";
-			Opcode o = oo[oper - tSL][z.rtype];
+			if (prio >= pShift) return v;
+			v = v->deref();
+			if (!v->rtype.is_numeric()) throw "numeric type required";
+			Type rtype = v->rtype.arithmetic_result_type();
+
+			Opcode o = oo[oper - tSL][rtype];
 			if (o == NOP) throw "not supported";
-
-			ObjCode z2 = value(pShift);
-			z2.cast_to(INT);
-			z.prepend(z2);
-
-			z.append_opcode(o, z.rtype);
+			v = newViSymbolOpcode(o, rtype, v, value(pShift)->cast_to(INT));
 			goto o;
 		}
 		case tAND:
@@ -328,8 +320,8 @@ ObjCode Vcc::value(uint prio)
 
 			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
 
-			constexpr Opcode x		   = NOP;
-			constexpr Opcode oo[8][12] = {
+			static constexpr Opcode x		  = NOP;
+			static constexpr Opcode oo[8][12] = {
 				{x, ADD, ADD, ADD, ADDl, ADD, ADD, ADD, ADDl, ADDf, ADDd, ADDv},
 				{x, SUB, SUB, SUB, SUBl, SUB, SUB, SUB, SUBl, SUBf, SUBd, SUBv},
 				{x, MUL, MUL, MUL, MULl, MUL, MUL, MUL, MULl, MULf, MULd, MULv},
@@ -340,19 +332,21 @@ ObjCode Vcc::value(uint prio)
 				{x, XOR, XOR, XOR, XORl, XOR, XOR, XOR, XORl, x, x, XORv},
 			};
 
-			if (prio >= opri[oper - tADD]) return z;
-			z.deref();
-			Type rtype = z.rtype.strip_enum(); // TODO: preserve enum for +-&|^
-			if (!rtype.is_numeric()) throw "numeric type required";
+			if (prio >= opri[oper - tADD]) return v;
+			v = v->deref();
+			if (!v->rtype.is_numeric()) throw "numeric type required";
 
-			ObjCode z2 = value(opri[oper - tADD]);
-			z.cast_to_same(z2);
-			rtype = z.rtype.strip_enum();
-			z.prepend(z2);
+			Type	  rtype = v->rtype;
+			ViSymbol* v2	= value(opri[oper - tADD]);
+			ViSymbol::cast_to_same(v, v2);
 
-			Opcode o = oo[oper - tADD][z.rtype];
+			// preserve smaller size and enum for &|^
+			if (v->rtype.basetype != rtype.basetype || oper < tAND || oper > tXOR)
+				rtype = rtype.arithmetic_result_type();
+
+			Opcode o = oo[oper - tADD][rtype];
 			if (o == NOP) throw "not supported";
-			z.append_opcode(o, rtype);
+			v = newViSymbolOpcode(o, rtype, v, v2);
 			goto o;
 		}
 		case tEQ:
@@ -364,7 +358,7 @@ ObjCode Vcc::value(uint prio)
 		{
 			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
 
-			constexpr Opcode oo[6][12] = {
+			static constexpr Opcode oo[6][12] = {
 				{NOP, EQ, EQ, EQ, EQl, EQ, EQ, EQ, EQl, EQf, EQd, EQv},
 				{NOP, NE, NE, NE, NEl, NE, NE, NE, NEl, NEf, NEd, NEv},
 				{NOP, GE, GE, GE, GEl, GEu, GEu, GEu, GEul, GEf, GEd, GEv},
@@ -373,84 +367,60 @@ ObjCode Vcc::value(uint prio)
 				{NOP, LT, LT, LT, LTl, LTu, LTu, LTu, LTul, LTf, LTd, LTv},
 			};
 
-			if (prio >= pCmp) return z;
-			z.deref();
-			if (!z.rtype.is_numeric()) throw "numeric type required";
+			if (prio >= pCmp) return v;
+			v = v->deref();
+			if (!v->rtype.is_numeric()) throw "numeric type required";
 
-			ObjCode z2 = value(pCmp);
-			z.cast_to_same(z2);
-			z.prepend(z2);
+			ViSymbol* v2 = value(pCmp);
+			ViSymbol::cast_to_same(v, v2);
 
-			Type ztype = z.rtype.strip_enum();
-			assert(ztype >= 0 && ztype < 12);
-			Opcode o = oo[oper - tEQ][ztype];
+			assert(v->rtype < 12);
+			Opcode o = oo[oper - tEQ][v->rtype];
 			if (o == NOP) throw "not supported";
-			z.append_opcode(o, tBool);
+			v = newViSymbolOpcode(o, tBool, v, v2);
 			goto o;
 		}
 		case tANDAND:
-		{
-			if (prio >= pBoolean) return z;
-			z.cast_to_bool();
-			ObjCode z2 = value(pBoolean);
-			z2.cast_to_bool();
-			z.append_opcode(JZ, VOID);
-			z.append_label_ref(num_labels);
-			z.append(z2);
-			z.append_label_def(num_labels++);
-			goto o;
-		}
 		case tOROR:
 		{
-			if (prio >= pBoolean) return z;
-			z.cast_to_bool();
-			ObjCode z2 = value(pBoolean);
-			z2.cast_to_bool();
-			z.append_opcode(JNZ, VOID);
-			z.append_label_ref(num_labels);
-			z.append(z2);
-			z.append_label_def(num_labels++);
+			if (prio >= pBoolean) return v;
+
+			v			 = v->cast_to_bool();
+			ViSymbol* v2 = value(pBoolean)->cast_to_bool();
+			v			 = newViSymbol(ViSymbol::PRUNING_OPERATOR, oper, tBool, 2, v, v2);
 			goto o;
 		}
 		case tQMARK:
 		{
-			if (prio >= pTriadic + 1) return z;
-			z.cast_to_bool();
-			ObjCode z2 = value(pTriadic);
+			if (prio >= pTriadic + 1) return v;
+
+			ViSymbol* v1 = v->cast_to_bool();
+			ViSymbol* v2 = value(pTriadic);
 			expect(tCOLON);
-			ObjCode z3 = value(pTriadic);
-			z2.cast_to_same(z3);
-			z.append(JZ);
-			z.append_label_ref(num_labels);
-			z.append(z2);
-			z.append(JR);
-			z.append_label_ref(num_labels + 1);
-			z.append_label_def(num_labels);
-			z.append(z3);
-			z.append_label_def(num_labels + 1);
-			num_labels += 2;
+			ViSymbol* v3 = value(pTriadic);
+			ViSymbol::cast_to_same(v2, v3);
+
+			v		   = newViSymbol(ViSymbol::PRUNING_OPERATOR, oper, v2->rtype, 3, v1, v2);
+			v->args[2] = v3;
 			goto o;
 		}
 		case tGL:
 		{
-			if (prio >= pAssign) return z;
-			if (!z.rtype.is_vref) throw "vref required";
-			Type	ztype = z.rtype.strip_enum().strip_vref();
-			uint	sz	  = ztype.size_of();
-			ObjCode z2	  = value(pAssign);
-			z2.cast_to(ztype);
-			z2.append(z);
+			static constexpr Opcode oo[] = {NOP, POKE8, POKE16, NOP, POKE, NOP, NOP, NOP, POKEl};
 
-			if (sz <= 8)
-			{
-				Opcode o[] = {NOP, POKE8, POKE16, NOP, POKE, NOP, NOP, NOP, POKEl};
-				z2.append_opcode(o[sz], VOID);
-				return z2;
-			}
-			else
-			{
-				throw "assign sz>8 todo"; //
-			}
+			if (prio >= pAssign) return v;
+			if (!v->rtype.is_vref) throw "vref required";
+			Type ztype = v->rtype.strip_vref();
+			uint sz	   = ztype.size_of();
+
+			ViSymbol* v2 = value(pAssign);
+			if (!ztype.is_integer() || !v2->rtype.is_integer() || ztype.size_on_top() != v2->rtype.size_on_top())
+				v2 = v2->cast_to(ztype);
+
+			assert(sz <= 8);
+			Opcode o = oo[sz];
+			if (o == NOP) throw "not supported";
+			return newViSymbolOpcode(o, tVoid, v, v2);
 		}
 		case tADDGL: // TODO: += für strings
 		case tSUBGL:
@@ -465,8 +435,8 @@ ObjCode Vcc::value(uint prio)
 			// note: VOID INT8 INT16 INT LONG UINT8 UINT16 UINT ULONG FLOAT DBL VAR
 
 			// clang-format off
-			constexpr Opcode x		   = NOP;
-			constexpr Opcode oo[9][12] = {
+			static constexpr Opcode x		   = NOP;
+			static constexpr Opcode oo[9][12] = {
 				{x,	ADDGLb, ADDGLs, ADDGL,	ADDGLl,	ADDGLb, ADDGLs, ADDGL,	ADDGLl,	 ADDGLf, ADDGLd, ADDGLv},
 				{x,	SUBGLb, SUBGLs, SUBGL,	SUBGLl, SUBGLb, SUBGLs, SUBGL,	SUBGLl,	 SUBGLf, SUBGLd, SUBGLv},
 				{x,	x,		x,		MULGL,	MULGLl, x,		x,		MULGL,	MULGLl,	 MULGLf, MULGLd, MULGLv},
@@ -478,35 +448,36 @@ ObjCode Vcc::value(uint prio)
 				{x,	x,		x,		SRGL,	SRGLl,	x,		x,		SRGLu,	SRGLlu,	 x, x, SRGLv  } };
 			// clang-format on
 
-			if (prio >= pAssign) return z;
-			if (!z.rtype.is_vref) throw "vref required";
-			Type ztype = z.rtype.strip_enum().strip_vref();
+			if (prio >= pAssign) return v;
+			if (!v->rtype.is_vref) throw "vref required";
+			Type ztype = v->rtype.strip_vref();
 			if (!ztype.is_numeric()) throw "numeric type required";
+
+			ViSymbol* v2 = value(pAssign);
+			if (!ztype.is_integer() || !v2->rtype.is_integer() || ztype.size_on_top() != v2->rtype.size_on_top())
+				v2 = v2->cast_to(ztype);
+
+			assert(ztype < 12);
 			Opcode o = oo[oper - tADDGL][ztype];
 			if (o == NOP) throw "opcode not supported for data type";
-
-			ObjCode z2 = value(pAssign);
-			z2.cast_to(ztype);
-			z2.append(z);
-			z2.append_opcode(o, VOID);
-			return z2;
+			return newViSymbolOpcode(o, tVoid, v, v2);
 		}
 		case tEKauf:
 		{
-			if (!z.rtype.is_array()) throw "array required";
+			static constexpr Opcode ati[] = {NOP, ATI8, ATI16, NOP, ATI, NOP, NOP, NOP, ATIl};
+
+			if (!v->rtype.is_array()) throw "array required";
 
 			do {
-				if (z.rtype.dims == 0) throw "too many subscripts";
-				ObjCode z2 = value(pAny);
-				z2.cast_to(UINT);
-				z.prepend(z2);
-				z.deref();
-				Type   itype = z.rtype.strip_dim();
-				uint   sz	 = itype.size_of();
-				Opcode ati[] = {NOP, ATI8, ATI16, NOP, ATI, NOP, NOP, NOP, ATIl};
-				assert(sz > 8 || ati[sz] != NOP);
-				if (sz <= 8) z.append_opcode(ati[sz], itype.add_vref());
-				else throw "ati sz>8 todo";
+				if (v->rtype.dims == 0) throw "too many subscripts";
+				ViSymbol* v2 = value(pAny)->cast_to(tUint);
+				v			 = v->deref();
+				Type itype	 = v->rtype.strip_dim();
+				uint sz		 = itype.size_of();
+				assert(sz <= 8);
+				if (ati[sz] == NOP) throw "not supported";
+
+				v = newViSymbolOpcode(ati[sz], itype.add_vref(), v, v2);
 			}
 			while (test_word(tCOMMA));
 
@@ -515,19 +486,19 @@ ObjCode Vcc::value(uint prio)
 		}
 		case tRKauf: // proc ( arguments ... )
 		{
-			z.deref();
-			if (!z.rtype.is_callable()) throw "not callable";
-			assert(z.rtype.info < signatures.count());
-			Signature& signature = signatures[z.rtype.info];
-			z.append_opcode(CALL, signature.rtype);
+			v->deref();
+			if (!v->rtype.is_callable()) throw "not callable";
+			assert(v->rtype.info < signatures.count());
+			Signature& signature = signatures[v->rtype.info];
+
+			ViSymbol* v2 = v;
+			v			 = newViSymbolOpcode(CALL, signature.rtype, signature.argc + 1);
+			v->args[0]	 = v2;
 
 			for (uint i = 0; i < signature.argc; i++)
 			{
-				ObjCode z2;
 				if (i) expect(tCOMMA);
-				z2 = value(pAny);
-				z2.cast_to(signature.args[i]);
-				z.prepend(z2);
+				v->args[1 + i] = value(pAny)->cast_to(signature.args[i]);
 			}
 			expect(tRKzu);
 			goto o;
@@ -540,7 +511,7 @@ ObjCode Vcc::value(uint prio)
 		}
 
 		putback_word();
-		return z;
+		return v;
 	}
 }
 
@@ -554,9 +525,9 @@ void Vcc::compile_const()
 		if (!isaName(name)) throw "name expected";
 		if (symbols[name] != nullptr) throw "name exists";
 		expect(tGL);
-		ObjCode v = value(pAny);
-		if (!v.is_ival()) throw "immediate expression expected";
-		symbols.add(name, new ConstDef(v.rtype, v.value()));
+		ViSymbol* v = value(pAny);
+		if (!v->is_ival()) throw "immediate expression expected";
+		symbols.add(name, new ConstDef(v->rtype, v->value()));
 	}
 	while (test_word(tCOMMA));
 	expect(tNL);

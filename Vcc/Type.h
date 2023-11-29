@@ -62,11 +62,13 @@ union Type
 		info(info)
 	{}
 
-	constexpr operator int() { return int(basetype); }
+	constexpr operator uint() { return uint(basetype); }
 
-	static constexpr uint8 _size_of[]	  = {0, 1, 2, 4, 8, 1, 2, 4, 8, 4, 8, 12};
-	static constexpr uint8 _size_on_top[] = {4, 4, 4, 4, 8, 4, 4, 4, 8, 4, 8, 12};
-	static constexpr uint8 ss[]			  = {0, 0, 1, 2, 3, 0, 1, 2, 3, 2, 3, 4}; // not for void or variadic
+	static constexpr uint8 _size_of[]	  = {0, 1, 2, 4, 8, 1, 2, 4, 8, 4, 8, 8};
+	static constexpr uint8 _size_on_top[] = {4, 4, 4, 4, 8, 4, 4, 4, 8, 4, 8, 8};
+	static constexpr uint8 ss[]			  = {0, 0, 1, 2, 3, 0, 1, 2, 3, 2, 3, 3}; // not for void
+
+	constexpr Type arithmetic_result_type() const noexcept;
 
 	constexpr bool operator==(Type t) const noexcept { return all == t.all; }
 	constexpr bool operator==(BaseType t) const noexcept { return all == t; }
@@ -105,5 +107,13 @@ union Type
 		return Type(all - 0x400);
 	}
 };
+
+
+inline constexpr Type Type::arithmetic_result_type() const noexcept
+{
+	constexpr Type _ari_result[] = {VOID, INT, INT, INT, LONG, UINT, UINT, UINT, ULONG, FLOAT, DOUBLE, VARIADIC};
+	assert(basetype < NELEM(_ari_result));
+	return _ari_result[basetype];
+}
 
 } // namespace kio::Vcc

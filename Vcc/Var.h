@@ -21,6 +21,7 @@ union Var
 	float		f32;
 	void*		ptr;
 	const void* cptr;
+	cstr		string;
 
 	Var() = default;
 	Var(uint q) : u32(q) {}
