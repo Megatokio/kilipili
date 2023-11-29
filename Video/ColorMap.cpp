@@ -59,7 +59,7 @@ constexpr Color default_colormap_i8[256] = {
 };
 
 constexpr Color zx_colors[16] = {black,		   blue,		red,		   magenta,		green,		cyan,
-								 yellow,	   white,		bright_black,  bright_blue, bright_red, bright_magenta,
+								 yellow,	   white,		dark_grey,	   bright_blue, bright_red, bright_magenta,
 								 bright_green, bright_cyan, bright_yellow, bright_white};
 
 constexpr const Color* const default_colormaps[5] {
