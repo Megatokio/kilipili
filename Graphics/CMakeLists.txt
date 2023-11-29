@@ -8,8 +8,6 @@ cmake_minimum_required(VERSION 3.13)
 
 add_library(kilipili_graphics STATIC
 	fixint.h
-	geometry.h
-	geometry.cpp
 	Canvas.h
 	Canvas.cpp
 	Pixmap.h

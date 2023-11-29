@@ -102,7 +102,7 @@ static void pushKeyEvent(const KeyEvent& event) noexcept
 
 static KeyEventHandler* key_event_handler = &pushKeyEvent;
 
-void setKeyEventHandler(KeyEventHandler& handler)
+void setKeyEventHandler(KeyEventHandler* handler)
 {
 	key_event_handler = handler ? handler : &pushKeyEvent;
 	key_event_queue.flush();
@@ -115,7 +115,7 @@ static bool find(const HidKeyboardReport& report, HIDKey key)
 	return memchr(report.keys, key, sizeof(report.keys)) != nullptr;
 }
 
-void defaultHidKeyboardEventHandler(const HidKeyboardReport& new_report) noexcept
+void __weak_symbol defaultHidKeyboardEventHandler(const HidKeyboardReport& new_report) noexcept
 {
 	// this handler is called by `tuh_hid_report_received_cb()`
 	// which receives the USB Host events

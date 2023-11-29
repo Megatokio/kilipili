@@ -39,13 +39,15 @@ public:
 	const Color* const colormap;
 	uint8*			   pixels; // next position
 	int				   row;	   // expected next row
+	uint			   width;
 
 	FrameBuffer(const Pixmap& px, const ColorMap colormap) noexcept : pixmap(px), colormap(colormap) {}
 
 	virtual ~FrameBuffer() noexcept override = default;
 
-	virtual void setup(coord /*width*/) throws override
+	virtual void setup(coord width) throws override
 	{
+		this->width = width;
 		setupScanlineRenderer<CM>(colormap); // setup render function
 		FrameBuffer::vblank();				 // reset state variables
 	}
@@ -62,7 +64,6 @@ public:
 			pixels += pixmap.row_offset;
 		}
 
-		uint width = uint(pixmap.width);
 		scanlineRenderFunction<CM>(plane_data, width, pixels);
 
 		pixels += pixmap.row_offset;
@@ -94,13 +95,22 @@ public:
 	int				   row;	   // expected next row
 	uint8*			   attributes;
 	int				   arow;
+	uint			   width;
+	int				   row_offset;
+	int				   attrheight;
 
-	FrameBuffer(const Pixmap& px, const ColorMap cm) noexcept : pixmap(px), colormap(cm) {}
+	FrameBuffer(const Pixmap& px, const ColorMap cm) noexcept :
+		pixmap(px),
+		colormap(cm),
+		row_offset(px.row_offset),
+		attrheight(px.attrheight)
+	{}
 
 	virtual ~FrameBuffer() noexcept override = default;
 
-	virtual void setup(coord /*width*/) throws override
+	virtual void setup(coord width) throws override
 	{
+		this->width = width;
 		setupScanlineRenderer<CM>(colormap); // setup render function
 		FrameBuffer::vblank();				 // reset state variables
 	}
@@ -115,18 +125,17 @@ public:
 		while (unlikely(++this->row <= row)) // increment row and check whether we missed some rows
 		{
 			pixels += pixmap.row_offset;
-			if (unlikely(++arow == pixmap.attrheight))
+			if unlikely (++arow == pixmap.attrheight)
 			{
 				arow = 0;
 				attributes += pixmap.attributes.row_offset;
 			}
 		}
 
-		uint width = uint(pixmap.width);
 		scanlineRenderFunction<CM>(plane_data, width, pixels, attributes);
 
-		pixels += pixmap.row_offset;
-		if (unlikely(++arow == pixmap.attrheight))
+		pixels += row_offset;
+		if unlikely (++arow == attrheight)
 		{
 			arow = 0;
 			attributes += pixmap.attributes.row_offset;

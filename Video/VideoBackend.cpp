@@ -38,6 +38,7 @@ namespace kio ::Video
 
 #define video_pio pio0
 
+constexpr uint SIZEOF_COLOR	  = VIDEO_COLOR_PIN_COUNT <= 8 ? 1 : 2;
 constexpr uint SYNC_PIN_BASE  = VIDEO_SYNC_PIN_BASE;
 constexpr uint HSYNC_PIN	  = VIDEO_SYNC_PIN_BASE;
 constexpr uint VSYNC_PIN	  = VIDEO_SYNC_PIN_BASE + 1;
@@ -67,6 +68,7 @@ uint			cc_per_us;		 // cpu clock cycles per microsecond
 volatile bool	in_vblank;
 volatile int	line_at_frame_start;
 volatile uint32 time_us_at_frame_start; // timestamp of start of active screen lines (updated ~1 scanline early)
+volatile int	current_frame = 0;
 
 static uint cc_per_frame_fract;
 static uint cc_per_frame_rest;
@@ -115,7 +117,8 @@ static void RAM timing_isr() noexcept
 
 		if (state == in_frontporch)
 		{
-			in_vblank = true;
+			in_vblank	  = true;
+			current_frame = current_frame + 1;
 			__sev();
 		}
 		else if (state == in_active_screen)
@@ -171,12 +174,16 @@ static void initialize_state_machines() noexcept
 	// load state machine programs:
 	timing_program_load_offset	 = uint8(pio_add_program(video_pio, &timing_program));
 	scanline_program_load_offset = uint8(pio_add_program(
-		video_pio, ENABLE_DEN	? &scanline_den_program :
-				   ENABLE_CLOCK ? &scanline_clk_program :
-								  &scanline_program));
+		video_pio, VIDEO_COLOR_PIN_COUNT <= 8 ? //
+					   ENABLE_DEN	? &scanline_den_8bpp_program :
+					   ENABLE_CLOCK ? &scanline_clk_8bpp_program :
+									  &scanline_vga_8bpp_program :
+					   ENABLE_DEN	? &scanline_den_program :
+					   ENABLE_CLOCK ? &scanline_clk_program :
+									  &scanline_vga_program));
 
 	// setup scanline state machine:
-	pio_sm_config config = scanline_program_get_default_config(scanline_program_load_offset);
+	pio_sm_config config = scanline_vga_program_get_default_config(scanline_program_load_offset);
 	sm_config_set_out_pins(&config, VIDEO_COLOR_PIN_BASE, VIDEO_COLOR_PIN_COUNT);
 	sm_config_set_out_shift(&config, true, true, 32); // autopull
 	sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
@@ -317,10 +324,10 @@ static void setup_dma(const VgaMode& vga_mode)
 
 	dma_channel_configure(
 		SCANLINE_DMA_DATA_CHANNEL, &config,
-		&video_pio->txf[SCANLINE_SM], // write address
-		nullptr,					  // read address: set by control channel
-		vga_mode.h_active() / 2,	  // count
-		false);						  // don't start now
+		&video_pio->txf[SCANLINE_SM],			  // write address
+		nullptr,								  // read address: set by control channel
+		vga_mode.h_active() / (4 / SIZEOF_COLOR), // count
+		false);									  // don't start now
 
 	// configure timing dma interrupt:
 
@@ -356,8 +363,8 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 	min_sys_clock			   = max(min_sys_clock, 60 MHz);
 	const uint32 pixel_clock   = vga_mode.pixel_clock;
 	uint32		 new_sys_clock = (min_sys_clock + pixel_clock - 1 MHz) / pixel_clock * pixel_clock;
-	while (new_sys_clock % (1 MHz) && new_sys_clock < SYSCLOCK_fMAX) new_sys_clock += pixel_clock;
-	while (new_sys_clock % (1 MHz) || new_sys_clock > SYSCLOCK_fMAX) new_sys_clock -= pixel_clock;
+	while (new_sys_clock % (1 MHz) && new_sys_clock < VIDEO_MAX_SYSCLOCK_MHz MHz) new_sys_clock += pixel_clock;
+	while (new_sys_clock % (1 MHz) || new_sys_clock > VIDEO_MAX_SYSCLOCK_MHz MHz) new_sys_clock -= pixel_clock;
 	const uint cc_per_pixel = new_sys_clock / pixel_clock;
 	if (cc_per_pixel < 2) throw "No system clock found for the requested vga mode"; // this means: there is none!
 
@@ -436,13 +443,21 @@ void VideoBackend::stop() noexcept
 	assert(get_core_num() == 1);
 	assert(state != not_initialized);
 
-	// clear the currently used scanline buffers to all-black and continue displaying from them.
-	// the ScanlineBuffer does not delete the scanlines[] array and does not clear the addresses within
-	// that array, so everything remains 'valid' until data in the deleted scanlines is overwritten.
-	// By then video output is already started again or some void non-black pixels will be displayed.
+	static uint32  two_black_pixels			   = 0;
+	static uint32* address_of_two_black_pixels = &two_black_pixels;
 
-	for (uint i = 0; i < scanline_buffer.count << vga_mode.vss; i++)
-		memset(scanline_buffer.scanlines[i], 0, vga_mode.h_active() * sizeof(uint16));
+	// set data dma to fixed source address:
+	dma_channel_hw_t* hw = dma_channel_hw_addr(SCANLINE_DMA_DATA_CHANNEL);
+	hw->al1_ctrl		 = hw->al1_ctrl & ~DMA_CH0_CTRL_TRIG_INCR_READ_BITS;
+
+	// set ctrl dma to fixed source address & source address = &address_of_two_black_pixels:
+	hw			  = dma_channel_hw_addr(SCANLINE_DMA_CTRL_CHANNEL);
+	hw->al1_ctrl  = hw->al1_ctrl & ~DMA_CH0_CTRL_TRIG_INCR_READ_BITS;
+	hw->read_addr = uint32(&address_of_two_black_pixels);
+
+	// wait for data dma to read from two_black_pixels:
+	hw = dma_channel_hw_addr(SCANLINE_DMA_DATA_CHANNEL);
+	while (hw->read_addr != uint32(&two_black_pixels)) {}
 }
 
 void VideoBackend::initialize() noexcept

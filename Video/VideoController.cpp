@@ -15,6 +15,7 @@
 #include "utilities/utilities.h"
 #include <hardware/clocks.h>
 #include <hardware/dma.h>
+#include <hardware/exception.h>
 #include <hardware/gpio.h>
 #include <hardware/irq.h>
 #include <hardware/pio.h>
@@ -36,8 +37,6 @@ namespace kio::Video
 
 #define RAM __attribute__((section(".time_critical.VideoController")))
 
-using namespace kio::Graphics;
-
 uint  scanlines_missed			   = 0;
 Error VideoController::core1_error = NO_ERROR;
 
@@ -54,8 +53,6 @@ struct Locker
 
 
 // =========================================================
-
-using namespace Graphics;
 
 VideoController::VideoController() noexcept
 {
@@ -77,29 +74,29 @@ VideoController& VideoController::getRef() noexcept
 	return videocontroller;
 }
 
-void VideoController::startVideo(const VgaMode& mode, uint32 system_clock, uint scanline_buffer_size, bool blocking)
+void VideoController::startVideo(const VgaMode& mode, uint32 system_clock, uint scanline_buffer_count)
 {
 	assert(get_core_num() == 0);
 	assert(state == STOPPED);
 	assert(requested_state == STOPPED);
 
 	vga_mode = mode;
-	scanline_buffer.setup(vga_mode, scanline_buffer_size); // throws
+	scanline_buffer.setup(vga_mode, scanline_buffer_count); // throws
 	core1_error			   = NO_ERROR;
 	requested_system_clock = system_clock;
 	requested_state		   = RUNNING;
 	__sev();
-	while (blocking && state != RUNNING && core1_error == NO_ERROR) { wfe(); }
-	if (core1_error) throw core1_error;
+	while (state != RUNNING && core1_error == NO_ERROR) { wfe(); }
+	if (core1_error != NO_ERROR) throw core1_error;
 }
 
-void VideoController::stopVideo(bool blocking)
+void VideoController::stopVideo()
 {
 	assert(get_core_num() == 0);
 
 	requested_state = STOPPED;
 	__sev();
-	while (blocking && state != STOPPED) { wfe(); }
+	while (state != STOPPED) { wfe(); }
 }
 
 __attribute((noreturn)) //
@@ -108,6 +105,10 @@ void VideoController::core1_runner() noexcept
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
 	stackinfo();
+	exception_set_exclusive_handler(HARDFAULT_EXCEPTION, [] {
+		// contraire to documentation, this sets the handler for both cores:
+		panic("CORE%i: HARD FAULT\n", get_core_num());
+	});
 
 	try
 	{
@@ -119,13 +120,6 @@ void VideoController::core1_runner() noexcept
 		{
 			wfe();
 
-			if (onetime_action)
-			{
-				onetime_action();
-				onetime_action = nullptr;
-				__sev();
-			}
-
 			if (requested_state == RUNNING)
 			{
 				VideoBackend::start(vga_mode, requested_system_clock);
@@ -136,12 +130,12 @@ void VideoController::core1_runner() noexcept
 				assert(requested_state == STOPPED);
 
 				VideoBackend::stop();
+				while (num_planes) { planes[--num_planes]->teardown(); }
+				scanline_buffer.teardown();
 				idle_action	   = nullptr;
 				vblank_action  = nullptr;
 				onetime_action = nullptr;
-				while (num_planes) { planes[--num_planes]->teardown(); }
-				scanline_buffer.teardown();
-				state = STOPPED;
+				state		   = STOPPED;
 				__sev();
 			}
 		}
@@ -325,9 +319,20 @@ void VideoController::setIdleAction(const IdleAction& fu) noexcept
 
 void VideoController::addOneTimeAction(const std::function<void()>& fu) noexcept
 {
-	while (volatile bool f = onetime_action != nullptr) { wfe(); }
 	locker();
-	onetime_action = fu;
+
+	if (!onetime_action)
+	{
+		onetime_action = fu; //
+	}
+	else
+	{
+		OneTimeAction ota = std::move(onetime_action);
+		onetime_action	  = [=] {
+			   ota();
+			   fu();
+		};
+	}
 }
 
 

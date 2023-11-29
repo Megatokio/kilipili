@@ -205,14 +205,6 @@ enum Modifiers : uint8 {
 	GUI			 = LEFTGUI + RIGHTGUI
 };
 
-// USB keyboard report in "boot" mode
-struct HidKeyboardReport
-{
-	Modifiers modifiers; // Modifier keys
-	uint8	  reserved;	 // Reserved for OEM use, always set to 0
-	HIDKey	  keys[6];	 // USB/HID Key codes of the currently pressed keys
-};
-
 
 } // namespace kio::USB
 

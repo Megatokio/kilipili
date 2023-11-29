@@ -35,9 +35,9 @@
 */
 
   #include "hid_handler.h"
+  #include "standard_types.h"
   #include <class/hid/hid_host.h>
   #include <tusb.h>
-
 
 // Each HID instance can have multiple reports
 static constexpr uint MAX_REPORT = 4;
@@ -52,13 +52,18 @@ static struct
 
 namespace kio::USB
 {
+static HidMouseEventHandler*	mouse_event_handler	   = defaultHidMouseEventHandler;
 static HidKeyboardEventHandler* keyboard_event_handler = defaultHidKeyboardEventHandler;
+
+void setHidMouseEventHandler(HidMouseEventHandler* handler) noexcept
+{
+	mouse_event_handler = handler ? handler : defaultHidMouseEventHandler;
+}
 
 void setHidKeyboardEventHandler(HidKeyboardEventHandler* handler) noexcept
 {
 	keyboard_event_handler = handler ? handler : defaultHidKeyboardEventHandler;
 }
-
 
 static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* report, uint16 len)
 {
@@ -122,7 +127,7 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 		case HID_USAGE_DESKTOP_MOUSE:
 			//printf("HID receive mouse report\n");
 			// Assume mouse follow boot report layout
-			handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
+			mouse_event_handler(reinterpret_cast<const HidMouseReport&>(*report));
 			break;
   #endif
 
@@ -193,7 +198,7 @@ extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const
   #if ENABLE_USB_MOUSE
 	case HID_ITF_PROTOCOL_MOUSE:
 		//printf("HID receive boot mouse report\n");
-		handle_hid_mouse_event(reinterpret_cast<const hid_mouse_report_t*>(report));
+		mouse_event_handler(reinterpret_cast<const HidMouseReport&>(*report));
 		break;
   #endif
 

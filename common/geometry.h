@@ -8,7 +8,7 @@
 #include <utility>
 
 
-namespace kio::Graphics
+namespace kio
 {
 
 using coord = int;
@@ -30,7 +30,7 @@ struct Point
 	coord x, y;
 
 	Point() noexcept = default;
-	Point(coord x, coord y) noexcept : x(x), y(y) {}
+	constexpr Point(coord x, coord y) noexcept : x(x), y(y) {}
 };
 
 struct Dist
@@ -38,10 +38,11 @@ struct Dist
 	coord dx, dy;
 
 	Dist() noexcept = default;
-	Dist(coord w, coord h) noexcept : dx(w), dy(h) {}
+	constexpr Dist(coord w, coord h) noexcept : dx(w), dy(h) {}
 };
 
 inline Point operator+(const Point& p, const Dist& d) noexcept { return Point(p.x + d.dx, p.y + d.dy); }
+inline Point operator-(const Point& p, const Dist& d) noexcept { return Point(p.x - d.dx, p.y - d.dy); }
 inline Dist	 operator-(const Point& a, const Point& b) noexcept { return Dist(a.x - b.x, a.y - b.y); }
 
 struct Size
@@ -130,4 +131,4 @@ struct Rect
 };
 
 
-} // namespace kio::Graphics
+} // namespace kio

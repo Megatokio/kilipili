@@ -63,7 +63,7 @@ struct KeyEvent
 extern void setHidKeyTranslationTable(const HidKeyTable& table);
 
 using KeyEventHandler = void(const KeyEvent&);
-extern void		setKeyEventHandler(KeyEventHandler&); // set a callback, or ...
+extern void		setKeyEventHandler(KeyEventHandler*); // set a callback, or ...
 extern KeyEvent getKeyEvent();						  // ... get next key up/down event
 extern int		getChar();							  // ... get next char
 

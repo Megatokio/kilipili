@@ -5,6 +5,7 @@
 #pragma once
 #include <cctype>
 #include <cstdint>
+#include <limits.h>
 
 
 // ######################################
@@ -37,14 +38,38 @@ constexpr Error OUT_OF_MEMORY = "out of memory";
 // ######################################
 // exact size defs:
 
+
+#if UCHAR_MAX == 0xff
+using uint8 = unsigned char;
+using int8	= signed char;
+#else
 using uint8	 = uint8_t;
-using uint16 = uint16_t;
-using uint32 = uint32_t;
-using uint64 = uint64_t;
 using int8	 = int8_t;
+#endif
+
+#if SHRT_MAX == 0x7fff
+using uint16 = unsigned short;
+using int16	 = signed short;
+#else
+using uint16 = uint16_t;
 using int16	 = int16_t;
+#endif
+
+#if INT_MAX == 0x7fffffff
+using uint32 = unsigned int;
+using int32	 = signed int;
+#else
+using uint32 = uint32_t;
 using int32	 = int32_t;
+#endif
+
+#if LONG_LONG_MAX == 0x7fffffffffffffffl
+using uint64 = unsigned long long;
+using int64	 = signed long long;
+#else
+using uint64 = uint64_t;
 using int64	 = int64_t;
+#endif
 
 using uint8ptr	= uint8*;
 using uint16ptr = uint16*;
@@ -55,14 +80,14 @@ using int16ptr	= int16*;
 using int32ptr	= int32*;
 using int64ptr	= int64*;
 
-using cuint8  = const uint8_t;
-using cuint16 = const uint16_t;
-using cuint32 = const uint32_t;
-using cuint64 = const uint64_t;
-using cint8	  = const int8_t;
-using cint16  = const int16_t;
-using cint32  = const int32_t;
-using cint64  = const int64_t;
+using cuint8  = const uint8;
+using cuint16 = const uint16;
+using cuint32 = const uint32;
+using cuint64 = const uint64;
+using cint8	  = const int8;
+using cint16  = const int16;
+using cint32  = const int32;
+using cint64  = const int64;
 
 using cuint8ptr	 = const uint8*;
 using cuint16ptr = const uint16*;

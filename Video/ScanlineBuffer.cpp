@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "ScanlineBuffer.h"
+#include "Color.h"
 #include "basic_math.h"
 #include "kilipili_cdefs.h"
 #include <stdio.h>
@@ -19,12 +20,12 @@ alignas(sizeof(ScanlineBuffer::scanlines)) //
 
 void ScanlineBuffer::setup(const VgaMode& vga_mode, uint buffer_size) throws
 {
-	assert_eq(count, 0);						   // must be invalid
-	assert_eq(buffer_size & (buffer_size - 1), 0); // must be 2^N
-	assert_ge(buffer_size, 2u);					   // must buffer at least 2 lines
-	assert_eq(vga_mode.h_active() % 2, 0);		   // dma transfer unit is uint32 = 2 pixels
+	assert_eq(count, 0);									 // must be invalid
+	assert_eq(buffer_size & (buffer_size - 1), 0);			 // must be 2^N
+	assert_ge(buffer_size, 2u);								 // must buffer at least 2 lines
+	assert_eq(vga_mode.h_active() % (4 / sizeof(Color)), 0); // dma transfer unit is uint32 = 2 or 4 pixels
 
-	uint size	   = vga_mode.h_active() / 2;
+	uint size	   = vga_mode.h_active() / (4 / sizeof(Color));
 	vss			   = vga_mode.vss;
 	uint new_count = min(buffer_size, max_count >> vss);
 

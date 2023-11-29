@@ -35,7 +35,7 @@ class Canvas
 	NO_COPY_MOVE(Canvas);
 
 protected:
-	Canvas(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept;
+	constexpr Canvas(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept;
 
 public:
 	union
@@ -50,7 +50,7 @@ public:
 	const ColorMode	 colormode;
 	const AttrHeight attrheight;
 	const bool		 allocated; // whether pixmap[] was allocated and will be deleted in dtor
-	char			 padding[1];
+	char			 padding = 0;
 
 	ColorDepth colordepth() const noexcept { return get_colordepth(colormode); } // log2 of bits per color in attr[]
 	AttrMode   attrmode() const noexcept { return get_attrmode(colormode); }	 // log2 of bits per color in pixmap[]
@@ -180,6 +180,14 @@ private:
 //								Implementations
 // ###################################################################################
 
+
+constexpr Canvas::Canvas(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept :
+	width(w),
+	height(h),
+	colormode(CM),
+	attrheight(AH),
+	allocated(allocated)
+{}
 
 inline void Canvas::setPixel(coord x, coord y, uint color, uint ink) noexcept
 {

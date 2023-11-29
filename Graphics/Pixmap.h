@@ -37,7 +37,7 @@ using Pixmap_i1	 = Pixmap<colormode_i1>;
 using Pixmap_i2	 = Pixmap<colormode_i2>;
 using Pixmap_i4	 = Pixmap<colormode_i4>;
 using Pixmap_i8	 = Pixmap<colormode_i8>;
-using Pixmap_rgb = Pixmap<colormode_rgb>;
+using Pixmap_i16 = Pixmap<colormode_i16>;
 
 
 // how ugly can it be?
@@ -77,8 +77,8 @@ public:
 	Pixmap(coord w, coord h, AttrHeight = attrheight_none) throws;
 
 	// not allocating: wrap existing pixels:
-	Pixmap(const Size& size, uint8* pixels, int row_offset) noexcept;
-	Pixmap(coord w, coord h, uint8* pixels, int row_offset) noexcept;
+	constexpr Pixmap(const Size& size, uint8* pixels, int row_offset) noexcept;
+	constexpr Pixmap(coord w, coord h, uint8* pixels, int row_offset) noexcept;
 
 	// window into other pixmap:
 	Pixmap(Pixmap& q, const Rect& r) noexcept;
@@ -91,7 +91,7 @@ public:
 	template<ColorMode QCM>
 	Pixmap(typename std::enable_if_t<CM == colormode_i1, const Pixmap<QCM>>& q, uint color, bool set) noexcept;
 
-	virtual ~Pixmap() noexcept override;
+	virtual constexpr ~Pixmap() noexcept override;
 
 	// -----------------------------------------------
 
@@ -137,8 +137,8 @@ public:
 	void copyRect(const Point& z, const Pixmap& src, const Point& q, const Size&) noexcept;
 
 protected:
-	Pixmap(coord w, coord h, ColorMode, AttrHeight) throws;
-	Pixmap(coord w, coord h, ColorMode, AttrHeight, uint8* pixels, int row_offset) noexcept;
+	constexpr Pixmap(coord w, coord h, ColorMode, AttrHeight) throws;
+	constexpr Pixmap(coord w, coord h, ColorMode, AttrHeight, uint8* pixels, int row_offset) noexcept;
 };
 
 
@@ -152,7 +152,7 @@ protected:
 
 // allocating, throws. for use by subclass:
 template<ColorMode CM>
-DirectColorPixmap::Pixmap(coord w, coord h, ColorMode cm, AttrHeight ah) throws :
+constexpr DirectColorPixmap::Pixmap(coord w, coord h, ColorMode cm, AttrHeight ah) throws :
 	Canvas(w, h, cm, ah, true /*allocated*/),
 	row_offset(calc_row_offset(w)),
 	pixmap(new uint8[uint(h * row_offset)])
@@ -173,19 +173,20 @@ DirectColorPixmap::Pixmap(const Size& sz, AttrHeight) throws : Pixmap(sz.width, 
 
 // not allocating: wrap existing pixels. for use by subclass:
 template<ColorMode CM>
-DirectColorPixmap::Pixmap(coord w, coord h, ColorMode cm, AttrHeight ah, uint8* pixels, int row_offset) noexcept :
+constexpr DirectColorPixmap::Pixmap(
+	coord w, coord h, ColorMode cm, AttrHeight ah, uint8* pixels, int row_offset) noexcept :
 	Canvas(w, h, cm, ah, false /*not allocated*/),
 	row_offset(row_offset),
 	pixmap(pixels)
 {}
 
 template<ColorMode CM>
-DirectColorPixmap::Pixmap(coord w, coord h, uint8* pixels, int row_offset) noexcept :
+constexpr DirectColorPixmap::Pixmap(coord w, coord h, uint8* pixels, int row_offset) noexcept :
 	Pixmap(w, h, CM, attrheight_none, pixels, row_offset)
 {}
 
 template<ColorMode CM>
-DirectColorPixmap::Pixmap(const Size& sz, uint8* pixels, int row_offset) noexcept :
+constexpr DirectColorPixmap::Pixmap(const Size& sz, uint8* pixels, int row_offset) noexcept :
 	Pixmap(sz.width, sz.height, CM, attrheight_none, pixels, row_offset)
 {}
 
@@ -223,7 +224,7 @@ DirectColorPixmap::Pixmap(
 }
 
 template<ColorMode CM>
-DirectColorPixmap::~Pixmap() noexcept
+constexpr DirectColorPixmap::~Pixmap() noexcept
 {
 	if (allocated) delete[] pixmap;
 }
@@ -394,7 +395,7 @@ extern template class Pixmap<colormode_i1>;
 extern template class Pixmap<colormode_i2>;
 extern template class Pixmap<colormode_i4>;
 extern template class Pixmap<colormode_i8>;
-extern template class Pixmap<colormode_rgb>;
+extern template class Pixmap<colormode_i16>;
 
 } // namespace kio::Graphics
 
