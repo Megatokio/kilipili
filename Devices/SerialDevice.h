@@ -14,16 +14,16 @@ constexpr uint gets_max_len = 512; // max string length handled by gets()
 
 /* Interface class `SerialDevice`
 */
-class SerialDevice
+class SerialDevice : public RCObject
 {
 public:
-	char  last_char = 0; // used by gets()
-	Flags flags;
-	char  _padding[2];
+	char   last_char = 0; // used by gets()
+	Flags  flags;
+	uint16 _padding;
 
 public:
 	SerialDevice(Flags flags) noexcept : flags(flags) {}
-	virtual ~SerialDevice() noexcept			 = default;
+	virtual ~SerialDevice() noexcept override	 = default;
 	SerialDevice(const SerialDevice&) noexcept	 = default;
 	SerialDevice(SerialDevice&&) noexcept		 = default;
 	SerialDevice& operator=(const SerialDevice&) = delete;
@@ -51,7 +51,7 @@ public:
 };
 
 
-SIZE SerialDevice::read(char*, SIZE, bool) { throw NOT_READABLE; }
-SIZE SerialDevice::write(const char*, SIZE, bool) { throw NOT_WRITABLE; }
+inline SIZE SerialDevice::read(char*, SIZE, bool) { throw NOT_READABLE; }
+inline SIZE SerialDevice::write(const char*, SIZE, bool) { throw NOT_WRITABLE; }
 
 } // namespace kio::Devices

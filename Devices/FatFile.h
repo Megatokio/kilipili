@@ -12,35 +12,15 @@ namespace kio::Devices
 
 static_assert(sizeof(ADDR) == sizeof(FSIZE_t));
 
-extern cstr tostr(FRESULT) noexcept;
+class FatFile;
+using FatFilePtr = RCPtr<FatFile>;
+class FatFS;
+using FatFSPtr = RCPtr<FatFS>;
 
 
 class FatFile : public File
 {
-	FIL fatfile;
-
 public:
-	enum Mode : uint8 {
-		READ		  = FA_READ,		  // Open for reading
-		WRITE		  = FA_WRITE,		  // Open for writing. Combine with READ for read-write access.
-		EXIST		  = FA_OPEN_EXISTING, // File must already exist. (Default)
-		NEW			  = FA_CREATE_NEW,	  // File must not exist.
-		OPEN_TRUNCATE = FA_CREATE_ALWAYS, // Create file if not exist. Truncate existing file.
-		OPEN_PRESERVE = FA_OPEN_ALWAYS,	  // Create file if not exist. Don't truncate existing file.
-		OPEN_APPEND	  = FA_OPEN_APPEND,	  // Same as OPEN_PRESERVE except fpos is set to end of file.
-	};
-	/*	POSIX fopen() flags vs. FatFs mode flags:
-		"r"		FA_READ
-		"r+"	FA_READ | FA_WRITE
-		"w"		FA_CREATE_ALWAYS | FA_WRITE
-		"w+"	FA_CREATE_ALWAYS | FA_WRITE | FA_READ
-		"a"		FA_OPEN_APPEND | FA_WRITE
-		"a+"	FA_OPEN_APPEND | FA_WRITE | FA_READ
-		"wx"	FA_CREATE_NEW | FA_WRITE
-		"w+x"	FA_CREATE_NEW | FA_WRITE | FA_READ
-	*/
-
-	FatFile(cstr fpath, uint8 mode);
 	~FatFile() override;
 
 	// *** Interface: ***
@@ -62,6 +42,16 @@ public:
 	virtual void setFpos(ADDR) override;
 	virtual void close(bool force = true) override;
 	virtual void truncate() override;
+
+private:
+	FatFSPtr device; // keep alive
+	FIL		 fatfile;
+
+	FatFile(FatFSPtr device, cstr path, FileOpenMode mode);
+	friend class FatDir;
+	friend class FatFS;
 };
 
 } // namespace kio::Devices
+
+extern cstr tostr(FRESULT) noexcept;

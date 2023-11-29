@@ -153,7 +153,7 @@
 /  on character encoding. When LFN is not enabled, these options have no effect. */
 
 
-#define FF_FS_RPATH 2
+#define FF_FS_RPATH 0
 /* This option configures support for relative path.
 /
 /   0: Disable relative path and remove related functions.
@@ -213,7 +213,7 @@
 /  f_fdisk function. 0x100000000 max. This option has no effect when FF_LBA64 == 0. */
 
 
-#define FF_USE_TRIM 0
+#define FF_USE_TRIM 1
 /* This option switches support for ATA-TRIM. (0:Disable or 1:Enable)
 /  To enable Trim function, also CTRL_TRIM command should be implemented to the
 /  disk_ioctl() function. */

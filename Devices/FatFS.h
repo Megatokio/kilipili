@@ -9,25 +9,32 @@
 namespace kio::Devices
 {
 
-extern cstr tostr(FRESULT) noexcept;
-
-
 class FatFS : public FileSystem
 {
 	FATFS fatfs;
 
 public:
-	FatFS(BlockDevice& blkdev, cstr name);
-	virtual ~FatFS() override;
+	virtual ADDR		 getFree() override;
+	virtual ADDR		 getSize() override;
+	virtual DirectoryPtr openDir(cstr path) override;
+	virtual FilePtr		 openFile(cstr path, FileOpenMode flags = READ) override;
 
-	virtual void mkfs() override;
-	virtual void mount() override;
-	virtual ADDR getFree() override;
-	virtual ADDR getSize() override;
+private:
+	friend class FileSystem;
+	friend class FatDir;
+	friend class FatFile;
+	friend class RCPtr<FatFS>;
+
+	static void mkfs(BlockDevice*, int idx, cstr type = "FAT");
+	FatFS(cstr name, BlockDevice* blkdev, int idx) throws;
+	virtual ~FatFS() override;
+	virtual bool mount() override;
 };
 
-
 } // namespace kio::Devices
+
+
+extern cstr tostr(FRESULT) noexcept;
 
 
 #if 0
@@ -35,11 +42,11 @@ public:
 FatFs provides various filesystem functions for the applications as shown below.
 
     File Access
-        f_open		-> FatFS.open() -> FatFile ctor
-        f_close		-> FatFile.close and dtor
+        f_open		-> FatDir.open() -> FatFile ctor
+        f_close		-> FatFile.close() and dtor
         f_read		-> FatFile.read() etc.
         f_write		-> FatFile.write() etc. 
-        f_lseek		-> FatFile.set_fpos() 
+        f_lseek		-> FatFile.setFpos() 
         f_truncate	-> FatFile.truncate() 
         f_sync		-> FatFile.ioctl() 
         f_forward	-  Forward data to the stream
@@ -48,31 +55,31 @@ FatFs provides various filesystem functions for the applications as shown below.
         f_putc		-> Not Used
         f_puts		-> Not Used
         f_printf	-> Not Used
-        f_tell		-> FatFile.get_fpos()
+        f_tell		-> FatFile.getFpos()
         f_eof		-> Not used. File.eof() basically does exactly the same.
-        f_size		-> FatFile.get_size()
+        f_size		-> FatFile.getSize()
         f_error		-  Test for an error
     Directory Access
         f_opendir	-> FatFS.opendir()
-        f_closedir	-  Close an open directory
-        f_readdir	-  Read a directory item
-        f_findfirst	-  Open a directory and read the first item matched
-        f_findnext	-  Read a next item matched
+        f_closedir	-  FatDir.close() and dtor
+        f_readdir	-  FatDir.next()
+        f_findfirst	-  Not Used - FatDir.rewind() and find(pattern)
+        f_findnext	-  Not Used - FatDir.find(pattern)
     File and Directory Management
-        f_stat		-> FatFS.getinfo()
-        f_unlink	-  FatFS.remove()
-        f_rename	-> FatFS.rename()
-        f_chmod		-> FatFS.setmode()
-        f_utime		-> FatFS.setmtime()
-        f_mkdir		-> FatFS.mkdir()
-        f_chdir		-> FatFS.setcwd()
-        f_chdrive	-> FatFS.setcwd()
-        f_getcwd	-> FatFS.getcwd()
+        f_stat		-> FatDir.getInfo()
+        f_unlink	-  FatDir.remove()
+        f_rename	-> FatDir.rename()
+        f_chmod		-> FatDir.setFmode()
+        f_utime		-> FatDir.setMtime()
+        f_mkdir		-> FatDir.makeDir()
+        f_chdir		-> Not Used - FatFS.setcwd()
+        f_chdrive	-> Not Used - FatFS.setcwd()
+        f_getcwd	-> Not Used - FatFS.getcwd()
     Volume Management and System Configuration
         f_mount		-> FatFS ctor and dtor, FatFS.mount() 
         f_mkfs		-> FatFS.mkfs()
         f_fdisk		-> Not Used
-        f_getfree	-> FatFS.get_free()
+        f_getfree	-> FatFS.getFree()
         f_getlabel	-> Not Used
         f_setlabel	-> Not Used
         f_setcp		-> Not Used. using fixed cp850 Latin-1 instead.

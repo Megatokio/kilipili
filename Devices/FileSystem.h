@@ -4,66 +4,127 @@
 
 #pragma once
 #include "BlockDevice.h"
+#include "Directory.h"
 
 namespace kio::Devices
 {
 
-class FatFile;
-class FatDir;
+/*	note:
+	Devices::openDir(path) and openFile(path):
+		path must start with "someDevice:"
+		the path without the device is used for a call to the FileSystem function.
+	FileSystem::openDir(path) and openFile(path):
+		absolute path "/" starts at root directory.
+		relative path starts at the current workdir.
+	Directory::openDir(path) and openFile(path):
+		absolute path "/" starts at root directory.
+		relative path starts in this directory.
+		relative path may start with "./" and "../".		
+*/
 
-
-enum FileType : uint8 {
-	NoFile		= 0,
-	RegularFile = 1,
-	Directory	= 2,
-};
-
-enum FileMode : uint8 {
-	WriteProtected = 0x1, // Fat: Read-only
-	Hidden		   = 0x2, // Fat: Hidden
-	SystemFile	   = 0x4, // Fat: System
-	Modified	   = 0x8, // Fat: Archive
-};
-
-struct FileInfo
-{
-	cstr	 fname; // tempmem or stat() argument!
-	SIZE	 fsize;
-	uint32	 mtime; // seconds since 1970
-	FileType ftype;
-	FileMode fmode;
-	uint8	 padding[2] = {0};
-};
-
-
-class FileSystem
+class FileSystem : public RCObject
 {
 public:
-	BlockDevice& blkdev;
-	cstr		 name; // static
+	/* —————————————————————————————————————————————
+		Mount supplied device or the named device and register it as device `name`.
+		Normally not needed but may be used to check FS beforehand
+		or to keep it in memory to prevent repeated unmount-mount cycles.
+	*/
+	static FileSystemPtr mount(cstr name, BlockDevicePtr device) throws;
+	static FileSystemPtr mount(cstr name) throws;
 
-public:
-	FileSystem(BlockDevice& blkdev, cstr name) noexcept : blkdev(blkdev), name(name) {}
-	virtual ~FileSystem() noexcept;
+	/* —————————————————————————————————————————————
+		Create filesystem on the supplied device or on the named device.
+		Type "FAT" creates the default variant of FAT for the disk size.
+		Other filesystems are TODO.
+	*/
+	static void makeFS(BlockDevicePtr, cstr type = "FAT") throws;
+	static void makeFS(cstr devname, cstr type = "FAT") throws;
 
-	virtual void mkfs()	   = 0;
-	virtual void mount()   = 0;
+	/* —————————————————————————————————————————————
+		Get total size and free space.
+		If exact calculation of free space is expensive return a lower limit.
+	*/
 	virtual ADDR getFree() = 0;
 	virtual ADDR getSize() = 0;
 
-	virtual void setcwd(cstr path); // chdir+chdrive
-	virtual cstr getcwd();
+	/* —————————————————————————————————————————————
+		Get and open directory.
+		Get and open regular file.
+	*/
+	virtual DirectoryPtr openDir(cstr path)								= 0;
+	virtual FilePtr		 openFile(cstr path, FileOpenMode flags = READ) = 0;
 
-	virtual bool getinfo(cstr path, FileInfo* = nullptr); // check exist, get info
-	virtual void rename(cstr path, cstr name);
-	virtual void setmtime(cstr path, uint mtime);
-	virtual void setmode(cstr path, FileMode);
+	/* ——————————————————————————————————————————————
+		Manage a working directory.
+	*/
+	void setWorkDir(cstr path);
+	cstr getWorkDir() const noexcept { return workdir; }
+	cstr makeAbsolutePath(cstr path); // utility for subclasses
 
-	virtual FatFile* open(cstr path, uint8 mode);
-	virtual FatDir*	 opendir(cstr path);
 
-	virtual void mkdir(cstr path);
-	virtual void remove(cstr path);
+	char			   name[8] = "";
+	RCPtr<BlockDevice> blkdev;
+	cstr			   workdir = nullptr; // allocated
+
+protected:
+	FileSystem(cstr name, BlockDevice* blkdev) throws;
+	virtual ~FileSystem() noexcept override;
+
+private:
+	virtual bool mount() throws = 0;
 };
 
+
+extern FileSystem* file_systems[];
+
+
+// =================================================== //
+//			global methods without object			   //
+// =================================================== //
+
+
+/* ————————————————————————————————————————————————————
+	Open a file or directory.
+	The path must start with a device name followed by a colon.
+	After that the name may be absolute or relative.
+	Relative paths are appended to the current workdir of the device.
+*/
+extern FilePtr		openFile(cstr path, FileOpenMode flags) throws;
+extern DirectoryPtr openDir(cstr path) throws;
+
 } // namespace kio::Devices
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
