@@ -21,9 +21,8 @@
 
 // ====================================================================
 
-namespace kio::Video
+namespace kio::USB
 {
-using namespace USB;
 
 static Queue<MouseEvent, 4, uint16> mouse_event_queue;
 static_assert(sizeof(mouse_event_queue) == 4 + 8 * 4);
@@ -33,7 +32,7 @@ static bool enable_move_with_button_down_events = true;
 static bool enable_move_events					= false;
 
 static MouseButtons old_buttons = NO_BUTTON;
-static int16		old_x = 0, old_y = 0;
+static int16		old_x = 80, old_y = 60;
 static int16		screen_width  = 320;
 static int16		screen_height = 240;
 
@@ -44,9 +43,11 @@ void setScreenSize(int width, int height) noexcept
 {
 	screen_width  = int16(width);
 	screen_height = int16(height);
+	old_x		  = screen_width / 2;
+	old_y		  = screen_height / 3;
 }
 
-Point getMousePosition() noexcept //
+Point RAM getMousePosition() noexcept //
 {
 	return Point(old_x, old_y);
 }
@@ -67,11 +68,7 @@ MouseEvent::MouseEvent(const HidMouseReport& report) noexcept :
 	pan(report.pan),
 	x(int16(minmax(0, old_x + report.dx, screen_width - 1))),
 	y(int16(minmax(0, old_y + report.dy, screen_height - 1)))
-{
-	old_buttons = buttons;
-	old_x		= x;
-	old_y		= y;
-}
+{}
 
 // =============================================================
 
@@ -111,16 +108,10 @@ void enableMouseEvents(bool btn_up, bool move_w_btn_dn, bool move) noexcept
 	enable_move_events					= move;
 }
 
-} // namespace kio::Video
-
-namespace kio::USB
-{
 void __weak_symbol defaultHidMouseEventHandler(const HidMouseReport& report) noexcept
 {
 	// this handler is called by `tuh_hid_report_received_cb()`
 	// which receives the USB Host events
-
-	using namespace Video;
 
 	auto event = MouseEvent(report); // always calculate the event wg. side effects in ctor!
 
@@ -129,6 +120,46 @@ void __weak_symbol defaultHidMouseEventHandler(const HidMouseReport& report) noe
 			 (enable_button_up_events && (report.buttons != old_buttons)) || report.pan || report.wheel;
 
 	if (f) mouse_event_handler(event);
+
+	old_buttons = event.buttons;
+	old_x		= event.x;
+	old_y		= event.y;
 }
 
 } // namespace kio::USB
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
