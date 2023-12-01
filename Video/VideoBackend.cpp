@@ -242,7 +242,9 @@ static void setup_timing_programs(const VgaMode& vga_mode)
 	// horizontal timing:
 
 	// bits are read backwards (lsb to msb) by PIO pogram
-	// the scanline starts with the HSYNC pulse!
+	// the scanline starts with the front porch!
+	// note: formerly the scanline started with the hsync pulse.
+	//       makes no difference with my monitor, but 1280*768 now works slightly better.
 
 	const uint set_irq_4 = pio_encode_irq_set(false, 4);
 	const uint clr_irq_4 = pio_encode_irq_clear(false, 4);
@@ -257,22 +259,22 @@ static void setup_timing_programs(const VgaMode& vga_mode)
 	const uint32 h_pulse	  = uint32(vga_mode.h_pulse       - count_base) << 16;
 
 	// display area:
-	prog_active[0] = clr_irq_4 + h_pulse      +  hsync + !vsync;
-	prog_active[1] = clr_irq_4 + h_backporch  + !hsync + !vsync;
-	prog_active[2] = set_irq_4 + h_active     + !hsync + !vsync;
-	prog_active[3] = clr_irq_4 + h_frontporch + !hsync + !vsync;
+	prog_active[1] = clr_irq_4 + h_pulse      +  hsync + !vsync;
+	prog_active[2] = clr_irq_4 + h_backporch  + !hsync + !vsync;
+	prog_active[3] = set_irq_4 + h_active     + !hsync + !vsync;
+	prog_active[0] = clr_irq_4 + h_frontporch + !hsync + !vsync;
 
 	// vblank, front & back porch:
-	prog_vblank[0] = clr_irq_4 + h_pulse      +  hsync + !vsync;
-	prog_vblank[1] = clr_irq_4 + h_backporch  + !hsync + !vsync;
-	prog_vblank[2] = clr_irq_4 + h_active     + !hsync + !vsync;
-	prog_vblank[3] = clr_irq_4 + h_frontporch + !hsync + !vsync;
+	prog_vblank[1] = clr_irq_4 + h_pulse      +  hsync + !vsync;
+	prog_vblank[2] = clr_irq_4 + h_backporch  + !hsync + !vsync;
+	prog_vblank[3] = clr_irq_4 + h_active     + !hsync + !vsync;
+	prog_vblank[0] = clr_irq_4 + h_frontporch + !hsync + !vsync;
 
 	// vblank, vsync pulse:
-	prog_vpulse[0] = clr_irq_4 + h_pulse	  +  hsync +  vsync;
-	prog_vpulse[1] = clr_irq_4 + h_backporch  + !hsync +  vsync;
-	prog_vpulse[2] = clr_irq_4 + h_active     + !hsync +  vsync;
-	prog_vpulse[3] = clr_irq_4 + h_frontporch + !hsync +  vsync;
+	prog_vpulse[1] = clr_irq_4 + h_pulse	  +  hsync +  vsync;
+	prog_vpulse[2] = clr_irq_4 + h_backporch  + !hsync +  vsync;
+	prog_vpulse[3] = clr_irq_4 + h_active     + !hsync +  vsync;
+	prog_vpulse[0] = clr_irq_4 + h_frontporch + !hsync +  vsync;
 	// clang-format on
 
 	// vertical timing:
@@ -426,7 +428,7 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 	}
 
 	uint freq = (pixel_clock / vga_mode.h_total() * 1000 + vga_mode.v_total() / 2) / vga_mode.v_total();
-	printf("set resolution %i x %i @ %u.%03u MHz\n", vga_mode.width, vga_mode.height, freq / 1000, freq % 1000);
+	printf("set resolution %i x %i @ %u.%03u Hz\n", vga_mode.width, vga_mode.height, freq / 1000, freq % 1000);
 	printf("system clock = %u\n", get_system_clock());
 	printf("pixel clock  = %u\n", vga_mode.pixel_clock);
 	printf("cc_per_us = %u\n", cc_per_us);
