@@ -7,6 +7,7 @@
 #include "basic_math.h"
 #include "kilipili_cdefs.h"
 #include <stdio.h>
+#include <string.h>
 
 namespace kio::Video
 {
@@ -34,6 +35,7 @@ void ScanlineBuffer::setup(const VgaMode& vga_mode, uint buffer_size) throws
 		for (count = 0; count < new_count; count++)
 		{
 			uint32* sl = new uint32[size];
+			memset(sl, 0, size * sizeof(uint32));
 			for (uint y = 0; y < (1 << vss); y++) { scanlines[(count << vss) + y] = sl; }
 		}
 		mask = count - 1;
