@@ -6,7 +6,7 @@
 #include "USBHost/hid_handler.h"
 #include "geometry.h"
 
-namespace kio::Video
+namespace kio::USB
 {
 
 enum MouseButtons : uint8 {
@@ -78,7 +78,7 @@ extern bool mouseEventAvailable() noexcept;
 extern MouseEvent getMouseEvent() noexcept;
 
 
-} // namespace kio::Video
+} // namespace kio::USB
 
 /*
 
