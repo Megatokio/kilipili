@@ -10,78 +10,70 @@
 #include "atomic.h"
 #include "geometry.h"
 #include "kilipili_cdefs.h"
+#include "video_types.h"
+
+
+/* —————————————————————————————————————————————————————————
+	A Shape defines the static shape of a sprite.
+	A HotShape renders the shape.
+	A Sprite contains a Shape and adds some state like x and y position.
+	A AnimatedShape consists of many frames (Shapes).
+	A AnimatedSprite contains a Shape and adds some state like position and frame state.
+	A SingleSpritePlane is a VideoPlane which contains just one Sprite.
+	A MultiSpritesPlane is a VideoPlane which can contain many Sprites.
+
+	Hints for writing own variants: (if you need it)
+	
+	A HotShape must provide:	
+		bool skip_row() noexcept;
+		bool render_row(Color* out_pixels) noexcept;
+		
+	A Shape must provide:
+		typedef HotShape;
+		static constexpr bool isa_shape	  = true;  // debugging aid
+		uint8 width() const noexcept;
+		uint8 height() const noexcept;
+		int8  hot_x() const noexcept;
+		int8  hot_y() const noexcept;
+		void  start(HotShape&, int x, bool ghostly) const noexcept;
+ 		
+   ————————————————————————————————————————————————————————— */
+
 
 namespace kio::Video
 {
 
-// A Shape is merely a string of true color pixels
-// of which some are interpreted as commands to define how they are placed.
-
-// Softening is done by down scaling the sprite horizontally 2:1.
-// => there is no difference in the stored data.
-// displaying a softened shape as a normal one will display it in double width.
-// displaying a normal shape as a softened one will display it in half width.
-// the constructors are different thou.
-
-// Animated Shapes are just the frames stringed together with some added data to the FramePrefix.
-
-/*
-	layout of one row:
-	
-		{dx,width} pixels[width]  N*{ cmd:gap {dx,width} pixels[width] } 
-
-	layout of a static frame:
-
-		{width,height,hot_x,hot_y}  row  { row }*N cmd:end  [alignment byte]
-		
-	layout of an animated shape:
-	
-		{ {next_frame.w,duration,magic}  frame }*N
+/* ——————————————————————————————————————————————————————————————————————————
+	reference-counted array of pixels with intermixed commands.
 */
-
-// frame = sequence of rows.
-// each frame starts with a preamble to define the total size and the hot spot for this frame.
-// Each row starts with a HDR and then that number of colors follow.
-// After that there is the HDR of the next row.
-// If the next HDR is a CMD, then handle this CMD as part of the current line:
-// 	 END:  shape is finished, remove it from hotlist.
-// 	 SKIP: resume one more HDR at the current position: used to insert transparent space.
-
-
-enum Softening : bool { NotSoftened = 0, Softened = 1 };
-enum Animation : bool { NotAnimated = 0, Animated = 1 };
-enum ZPlane : bool { NoZ = 0, HasZ = 1 };
-
-
-/*	——————————————————————————————————————————————————————————————————————————
-	reference-counted array of Colors
-*/
-class Colors
+class Pixels
 {
 private:
 public:
 	mutable uint16 rc;
-	Color		   colors[8888];
+	uint16		   count;
+	Color		   pixels[8888];
 
-	static Colors* newColors(uint cnt) throws
+	static Pixels* newPixels(uint cnt) throws
 	{
-		Colors* z = reinterpret_cast<Colors*>(new char[sizeof(rc) + cnt * sizeof(Color)]);
+		Pixels* z = reinterpret_cast<Pixels*>(new Color[cnt + 2 * sizeof(uint16) / sizeof(Color)]);
+		z->count  = uint16(cnt);
 		z->rc	  = 0;
 		return z;
 	}
 
 	uint16 refcnt() const noexcept { return rc; }
 
-	Color&		 operator[](uint i) noexcept { return colors[i]; }
-	const Color& operator[](uint i) const noexcept { return colors[i]; }
+	Color&		 operator[](uint i) noexcept { return pixels[i]; }
+	const Color& operator[](uint i) const noexcept { return pixels[i]; }
 
 private:
-	NO_COPY_MOVE(Colors);
-	Colors() noexcept  = delete;
-	~Colors() noexcept = default;
+	NO_COPY_MOVE(Pixels);
+	Pixels() noexcept  = delete;
+	~Pixels() noexcept = default;
 
-	friend class kio::RCPtr<Colors>;
-	friend class kio::RCPtr<const Colors>;
+	friend class kio::RCPtr<Pixels>;
+	friend class kio::RCPtr<const Pixels>;
 
 	void retain() const noexcept { pp_atomic(rc); }
 	void release() const noexcept
@@ -91,33 +83,32 @@ private:
 };
 
 
-/*	——————————————————————————————————————————————————————————————————————————
-	A HotShape is a wrapper around the pixels[] of a sprite.
-	It provides the function to render the shape.
+/* ——————————————————————————————————————————————————————————————————————————
+	A HotShape provides the function to render the shape.
+	
+	A Shape is merely a string of true color pixels
+	of which some are interpreted as commands to define how they are placed.
+
+	layout of one row:
+	
+		{dx,width} pixels[width]  N*{ cmd:gap {dx,width} pixels[width] } 
+
+	Each row starts with a HDR {dx,width} and then that number of colors follow.
+	After that there is the HDR of the next row or a CMD.
+	In case of a CMD handle this CMD as part of the current line:
+		 END:  shape is finished.
+		 SKIP: resume one more HDR at the current position: used to insert space.
 */
-template<typename Shape, ZPlane WZ>
 struct HotShape
 {
-	static_assert(Shape::isa_shape);
-
-	const Color* pixels;
-	int			 x;
-	bool		 ghostly;
-	char		 _padding[3];
-
-	bool is_cmd() const noexcept { return pfx().dx == -128; }
-	bool is_pfx() const noexcept { return pfx().dx != -128; }
-	bool is_end() const noexcept { return cmd() == END; }
-	bool is_skip() const noexcept { return cmd() == GAP; }
-
-	int8  dx() const noexcept { return pfx().dx; }
-	uint8 width() const noexcept { return pfx().width; }
-	void  skip_cmd() noexcept { pixels += sizeof(CMD) / sizeof(*pixels); }
-	void  skip_pfx() noexcept { pixels += sizeof(PFX) / sizeof(*pixels); }
-
-	void skip_row() noexcept;
-	bool render_row(Color* scanline) noexcept;
-
+	__always_inline bool skip_row() noexcept;
+	__always_inline bool render_row(Color* scanline) noexcept;
+	__always_inline void init(const Color* pixels, int x, bool ghostly) noexcept
+	{
+		this->pixels  = pixels;
+		this->x		  = x;
+		this->ghostly = ghostly;
+	}
 
 	struct PFX // raw pixels prefix
 	{
@@ -127,153 +118,100 @@ struct HotShape
 
 	enum CMD : uint16 { END = 0x0080, GAP = 0x0180 }; // little endian
 
-	const PFX& pfx() const noexcept { return *reinterpret_cast<const PFX*>(pixels); }
-	CMD		   cmd() const noexcept
+protected:
+	const Color* pixels = nullptr;
+	int			 x;
+	bool		 ghostly;
+	char		 _padding[3];
+
+	const __always_inline PFX& pfx() const noexcept { return *reinterpret_cast<const PFX*>(pixels); }
+	__always_inline CMD		   cmd() const noexcept
 	{
 		if constexpr (sizeof(Color) >= sizeof(CMD)) return *reinterpret_cast<const CMD*>(pixels);
 		return CMD(reinterpret_cast<const uchar*>(pixels)[0] + (reinterpret_cast<const uchar*>(pixels)[1] << 8));
 	}
-};
 
-template<typename Shape>
-struct HotShape<Shape, HasZ> : public HotShape<Shape, NoZ>
-{
-	uint z;
+	__always_inline void  skip_cmd() noexcept { pixels += sizeof(CMD) / sizeof(*pixels); }
+	__always_inline void  skip_pfx() noexcept { pixels += sizeof(PFX) / sizeof(*pixels); }
+	__always_inline bool  is_cmd() const noexcept { return pfx().dx == -128; }
+	__always_inline bool  is_pfx() const noexcept { return pfx().dx != -128; }
+	__always_inline bool  is_end() const noexcept { return cmd() == END; }
+	__always_inline bool  is_skip() const noexcept { return cmd() == GAP; }
+	__always_inline int8  dx() const noexcept { return pfx().dx; }
+	__always_inline uint8 width() const noexcept { return pfx().width; }
 };
 
 
 /*	——————————————————————————————————————————————————————————————————————————
 	A Shape defines the shape of a sprite.
+	It provides a typedef for a HotShape which can render this Shape.
+	It provides methods to measure the Shape.
+	It provides a method to setup a HotShape.
 */
-template<Softening SOFT>
 struct Shape
 {
-	using ColorMode = Graphics::ColorMode;
-	template<ColorMode CM>
-	using Pixmap = Graphics::Pixmap<CM>;
-	template<ZPlane WZ>
-	using HotShape = Video::HotShape<Shape, WZ>;
+	using HotShape = Video::HotShape;
 
-	static constexpr bool animated	= false;
-	static constexpr bool softened	= SOFT == Softened;
 	static constexpr bool isa_shape = true;
 
-	RCPtr<const Colors> pixels;
-	uint8				_width	= 0;
-	uint8				_height = 0;
-	int8				_hot_x	= 0;
-	int8				_hot_y	= 0;
+	__always_inline uint8 width() const noexcept { return _width; }
+	__always_inline uint8 height() const noexcept { return _height; }
+	__always_inline int8  hot_x() const noexcept { return _hot_x; }
+	__always_inline int8  hot_y() const noexcept { return _hot_y; }
+	Size				  size() const noexcept { return Size(_width, _height); }
+	Dist				  hotspot() const noexcept { return Dist(_hot_x, _hot_y); }
 
-	uint8 width() const noexcept { return _width; }
-	uint8 height() const noexcept { return _height; }
-	int8  hot_x() const noexcept { return _hot_x; }
-	int8  hot_y() const noexcept { return _hot_y; }
-
-	template<Graphics::ColorMode CM>
-	Shape(const Graphics::Pixmap<CM>& pm, uint transp, const Color* clut, int8 hot_x, int8 hot_y) throws;
-	Shape() noexcept {}
-};
-
-
-/*	——————————————————————————————————————————————————————————————————————————
-	An animated Shape is a list of frames which are not-animated Shapes.
-	It provides functions to render the shape.
-*/
-
-template<typename Shape>
-struct ShapeWithDuration
-{
-	Shape shape;
-	int16 duration = 0;
-};
-
-template<typename SHAPE>
-struct AnimatedShape
-{
-	using Shape = SHAPE;
-	template<ZPlane WZ>
-	using HotShape = typename Shape::template HotShape<WZ>;
-
-	static constexpr bool animated	= true;
-	static constexpr bool isa_shape = true;
-
-	ShapeWithDuration<Shape>* frames	 = nullptr;
-	uint					  num_frames = 0;
-
-	const ShapeWithDuration<Shape>& operator[](uint i) const noexcept { return frames[i]; }
-
-	uint8 width(uint i = 0) const noexcept { return frames[i].width(); }
-	uint8 height(uint i = 0) const noexcept { return frames[i].height(); }
-	int8  hot_x(uint i = 0) const noexcept { return frames[i].hot_x(); }
-	int8  hot_y(uint i = 0) const noexcept { return frames[i].hot_y(); }
-
-	AnimatedShape() noexcept = default;
-	AnimatedShape(ShapeWithDuration<Shape>* frames, uint8 num_frames) noexcept; // ctor
-	AnimatedShape(AnimatedShape&& q) noexcept;									// move
-	AnimatedShape(const AnimatedShape& q) throws;								// copy
-	AnimatedShape& operator=(AnimatedShape&& q) noexcept;
-	AnimatedShape& operator=(const AnimatedShape& q) throws;
-	~AnimatedShape() noexcept;
-};
-
-
-//
-// ****************************** Implementations ************************************
-//
-
-template<typename SHAPE>
-AnimatedShape<SHAPE>::AnimatedShape(ShapeWithDuration<SHAPE>* frames, uint8 num_frames) noexcept : // ctor
-	frames(frames),
-	num_frames(num_frames)
-{}
-
-template<typename SHAPE>
-AnimatedShape<SHAPE>::AnimatedShape(AnimatedShape&& q) noexcept : // move
-	AnimatedShape(q.frames, num_frames)
-{
-	q.frames	 = nullptr;
-	q.num_frames = 0;
-}
-
-template<typename SHAPE>
-AnimatedShape<SHAPE>::AnimatedShape(const AnimatedShape& q) throws : // copy
-	AnimatedShape(new ShapeWithDuration<Shape>[ q.num_frames ], q.num_frames)
-{
-	for (uint i = 0; i < num_frames; i++) frames[i] = q.frames[i];
-}
-
-template<typename SHAPE>
-AnimatedShape<SHAPE>& AnimatedShape<SHAPE>::operator=(AnimatedShape&& q) noexcept
-{
-	std::swap(num_frames, q.num_frames);
-	std::swap(frames, q.frames);
-	return *this;
-}
-
-template<typename SHAPE>
-AnimatedShape<SHAPE>& AnimatedShape<SHAPE>::operator=(const AnimatedShape& q) throws
-{
-	if (this != &q)
+	__always_inline void start(HotShape& hs, int x, bool ghostly) const noexcept
 	{
-		this->~AnimatedShape<Shape>();
-		new (this) AnimatedShape<Shape>(q);
+		hs.init(pixels->pixels, x, ghostly);
 	}
-	return *this;
-}
 
-template<typename SHAPE>
-AnimatedShape<SHAPE>::~AnimatedShape() noexcept
+	template<typename Pixmap>
+	Shape(const Pixmap& pm, uint transp, const Dist& hotspot, const Color* clut) throws;
+	Shape() noexcept {}
+
+	template<typename Pixmap>
+	static int calc_count(const Pixmap& pm, uint transp, uint8* _height) noexcept;
+
+	template<typename Pixmap>
+	void create_shape(const Pixmap& pm, uint transp, const Color* clut) noexcept;
+
+private:
+	RCPtr<Pixels> pixels;
+
+	uint8 _width  = 0;
+	uint8 _height = 0;
+	int8  _hot_x  = 0;
+	int8  _hot_y  = 0;
+};
+
+
+/* ——————————————————————————————————————————————————————————————————————————
+	A HotShape provides the function to render the shape.
+	A HotSoftenedShape renders a shape with softened l+r edges:
+	This can be thought as having a double width shape compressed horizontally 2:1 
+	and the half-set pixels at the edges are rendered half-transparent.
+*/
+struct HotSoftenedShape : public HotShape
 {
-	while (--num_frames >= 0) { frames[num_frames].~ShapeWithDuration<Shape>(); }
-	delete[] frames;
-}
+	bool skip_row() noexcept;
+	bool render_row(Color* scanline) noexcept;
+};
+
+struct SoftenedShape : public Shape
+{
+	// sprites are scaled 2:1 horizontally, odd pixels l+r are set using blend
+
+	using HotShape = Video::HotSoftenedShape;
+	// TODO ctor
+};
+
 
 //
 // ************************************************************************
 //
 
-template<>
-inline void __attribute__((section(".scratch_x.next_row"))) HotShape<Shape<NotSoftened>, NoZ>::skip_row() noexcept
+inline bool __section(".scratch_x.shape") HotShape::skip_row() noexcept
 {
 	while (1)
 	{
@@ -285,10 +223,10 @@ inline void __attribute__((section(".scratch_x.next_row"))) HotShape<Shape<NotSo
 		x += w;
 		skip_cmd();
 	}
+	return !is_pfx(); // true => end of shape
 }
 
-template<>
-inline void __attribute__((section(".scratch_x.next_row"))) HotShape<Shape<Softened>, NoZ>::skip_row() noexcept
+inline bool __section(".scratch_x.shape") HotSoftenedShape::skip_row() noexcept
 {
 	int hx = x << 1;
 	while (1)
@@ -297,16 +235,16 @@ inline void __attribute__((section(".scratch_x.next_row"))) HotShape<Shape<Softe
 		hx += dx();
 		uint w = width();
 		pixels += sizeof(PFX) / sizeof(*pixels) + width();
+
 		if (!is_skip()) break;
 		hx += w;
 		skip_cmd();
 	}
-	x = hx >> 1; // same as in render_one_row()
+	x = hx >> 1;	  // same as in render_one_row()
+	return !is_pfx(); // true => end of shape
 }
 
-template<>
-inline bool __attribute__((section(".scratch_x.render_one_row")))
-HotShape<Shape<NotSoftened>, NoZ>::render_row(Color* scanline) noexcept
+inline bool __section(".scratch_x.shape") HotShape::render_row(Color* scanline) noexcept
 {
 	for (;;)
 	{
@@ -341,9 +279,7 @@ HotShape<Shape<NotSoftened>, NoZ>::render_row(Color* scanline) noexcept
 	}
 }
 
-template<>
-inline bool __attribute__((section(".scratch_x.render_one_row")))
-HotShape<Shape<Softened>, NoZ>::render_row(Color* scanline) noexcept
+inline bool __section(".scratch_x.shape") HotSoftenedShape::render_row(Color* scanline) noexcept
 {
 	// "softening" is done by scaling down the image 2:1 horizontally.
 	// => half-set pixels l+r of a stripe are blended with the underlying one.
@@ -405,135 +341,152 @@ HotShape<Shape<Softened>, NoZ>::render_row(Color* scanline) noexcept
 
 // ****************************** Constructor ************************************
 
-template<Softening SOFT>
-template<Graphics::ColorMode CM>
-Shape<SOFT>::Shape(
-	const Graphics::Pixmap<CM>& pm, uint transparent_pixel, const Color* clut, int8 hot_x, int8 hot_y) throws
+//static
+template<typename Pixmap>
+int Shape::calc_count(const Pixmap& pm, uint transparent_pixel, uint8* _height) noexcept
 {
-	// TODO SOFT
+	// calculate exact number of pixels required for this shape:
 
-	using namespace Graphics;
-	using Shape				 = Video::Shape<NotSoftened>;
-	using HotShape			 = Video::HotShape<Shape, NoZ>;
-	using PFX				 = HotShape::PFX;
-	using CMD				 = HotShape::CMD;
-	static constexpr CMD GAP = HotShape::GAP;
-	static constexpr CMD END = HotShape::END;
+	static constexpr int pixels_per_cmd = sizeof(HotShape::PFX) / sizeof(Color);
 
-	HotShape::PFX a_pfx;
-	Color*		  pixels = nullptr;
+	int height		= 1;				  // 1 line is mandatory
+	int total_count = 1 * pixels_per_cmd; // CMD::END
 
-	auto skip_transp = [&, transparent_pixel](int x, int y, int end) {
-		while (x < end && pm.get_color(x, y) == transparent_pixel) x++;
-		return x;
-	};
-
-	auto skip_pixels = [&, transparent_pixel](int x, int y, int end) {
-		while (x < end && pm.get_color(x, y) != transparent_pixel) x++;
-		return x;
-	};
-
-	auto store_pixels = [&, transparent_pixel](int x, int y, int end) {
-		//TODO CLUT
-		for (uint color; x < end && (color = pm.get_color(x, y)) != transparent_pixel; x++)
-		{
-			if constexpr (1) *pixels++ = Color(color);
-			else *pixels++ = clut[color];
-		}
-		return x;
-	};
-
-	auto is_empty_row = [&, transparent_pixel](int y) {
-		for (int x = 0; x < pm.width; x++)
-			if (pm.get_color(x, y) != transparent_pixel) return false;
-		return true;
-	};
-
-	auto is_empty_col = [&, transparent_pixel](int x) {
-		for (int y = 0; y < pm.height; y++)
-			if (pm.get_color(x, y) != transparent_pixel) return false;
-		return true;
-	};
-
-	auto calc_bounding_rect = [&, transparent_pixel]() {
-		Rect rect {0, 0, pm.width, pm.height};
-		for (auto& y = rect.p1.y; y < pm.height && is_empty_row(y); y++) {}
-		if (rect.p1.y == pm.height) return Rect {0, 0, 0, 1}; // w=0, h=1
-		for (auto& y = rect.p2.y; is_empty_row(y - 1); y--) {}
-		for (auto& x = rect.p1.x; is_empty_col(x); x++) {}
-		for (auto& x = rect.p2.x; is_empty_col(x - 1); x--) {}
-		return rect;
-	};
-
-	auto store_cmd = [&](CMD cmd) {
-		uint8* p = reinterpret_cast<uint8*>(pixels);
-		p[0]	 = uint8(cmd);
-		p[1]	 = uint8(cmd >> 8);
-	};
-
-	for (bool hot = false;; hot = true)
+	for (int x0 = 0, x, w = pm.width, y = 0; y < pm.height; y++)
 	{
-		Rect bbox = calc_bounding_rect();
+		for (x = 0; x < w && pm.get_color(x, y) == transparent_pixel;) x++;
 
-		assert(bbox.height() <= 255);
-		assert(bbox.width() <= 255);
-
-		if (hot)
+		if (x == w) // empty line
 		{
-			this->pixels = Colors::newColors(size_t(pixels));
-			pixels		 = const_cast<Color*>(&this->pixels[0u]);
-
-			_width	= uint8(bbox.width());
-			_height = uint8(bbox.height());
-			_hot_x	= hot_x - int8(bbox.left());
-			_hot_y	= hot_y - int8(bbox.top());
+			x0 = 127 + !!x0;
+			continue;
 		}
 
+		height = y + 1;
 
-		int x0 = bbox.left(); // left border adjusted by dx
-
-		for (int y = bbox.top(); y < bbox.bottom(); y++)
+		for (;;)
 		{
-			int x = skip_transp(bbox.left(), y, bbox.right()); // find start of strip
-
-			if (x == bbox.right()) // empty row
+			while (unlikely((x - x0) != int8(x - x0))) // dx too far?
 			{
-				PFX* pfx = hot ? reinterpret_cast<PFX*>(pixels) : &a_pfx;
-				pixels += sizeof(PFX) / sizeof(Color); // skip pfx
-
-				pfx->dx	   = 0; // store empty strip
-				pfx->width = 0;
-				continue;
+				x0 += x < x0 ? -128 : +127;
+				total_count += 2 * pixels_per_cmd; // PFX + CMD::GAP
 			}
 
-			while (1)
-			{
-				PFX* pfx = hot ? reinterpret_cast<PFX*>(pixels) : &a_pfx;
-				pixels += sizeof(PFX) / sizeof(Color);
+			x0 = x;
 
-				assert((x - x0) == int8(x - x0)); //TODO
+			while (x < w && pm.get_color(x, y) != transparent_pixel) x++;
+			total_count += x - x0;
 
-				pfx->dx = int8(x - x0);
-				x0		= x;
+			int gap = x;
+			while (x < w && pm.get_color(x, y) == transparent_pixel) x++;
+			if (x == w) break;
 
-				x		   = hot ? store_pixels(x, y, bbox.right()) : skip_pixels(x, y, bbox.right());
-				pfx->width = uint8(x - x0);
-
-				x = skip_transp(x, y, bbox.right()); // find start of next strip
-				if (x == bbox.right()) break;
-
-				if (hot) store_cmd(GAP);
-				pixels += sizeof(CMD) / sizeof(Color);
-				x0 += pfx->width;
-			}
+			x0 = gap;
+			total_count += 2 * pixels_per_cmd; // PFX + CMD::GAP
 		}
-
-		if (hot) store_cmd(END);
-		pixels += sizeof(CMD) / sizeof(Color);
-		if constexpr (sizeof(Color) == 1) pixels += uint(pixels) & 1; // align
-
-		if (hot) break;
 	}
+
+	if (_height) *_height = uint8(height);
+	return total_count + height * pixels_per_cmd; // 1 PFX per line
+}
+
+template<typename Pixmap>
+void Shape::create_shape(const Pixmap& pm, uint transparent_pixel, const Color* clut) noexcept
+{
+	using PFX = HotShape::PFX;
+	using CMD = HotShape::CMD;
+
+	assert(pm.width <= 255);
+	assert(pm.height <= 255);
+	assert(!clut == is_true_color(pm.colormode));
+
+	static constexpr int pixels_per_cmd = sizeof(PFX) / sizeof(Color);
+
+	auto store_cmd = [](Color*& dp, CMD cmd) {
+		if constexpr (pixels_per_cmd == 1) //
+			*dp++ = Color(cmd);
+		else
+		{
+			*dp++ = Color(cmd & 0xff);
+			*dp++ = Color(cmd >> 8);
+		}
+	};
+	auto store_pfx = [](Color*& dp, int8 dx, uint8 w) {
+		if constexpr (pixels_per_cmd == 1) //
+			*dp++ = Color(uint(dx + (w << 8)));
+		else
+		{
+			*dp++ = Color(uint8(dx));
+			*dp++ = Color(w);
+		}
+	};
+
+	Color* dp = pixels->pixels;
+
+	for (int x0 = 0, x, y = 0; y < _height; y++)
+	{
+		for (x = 0; x < pm.width && pm.get_color(x, y) == transparent_pixel;) x++;
+
+		if (x == pm.width) // empty line
+		{
+			uint8 z = pm.width / 2 + !!x0;
+			store_pfx(dp, int8(z - x0), 0);
+			x0 = z;
+			continue;
+		}
+
+		for (;;)
+		{
+			while (unlikely((x - x0) != int8(x - x0))) // dx too far?
+			{
+				int8 dx = x < x0 ? -128 : +127;
+				x0 += dx;
+				store_pfx(dp, dx, 0);
+				store_cmd(dp, CMD::GAP);
+			}
+
+			PFX* pfx = reinterpret_cast<PFX*>(dp);
+			dp += pixels_per_cmd;
+			pfx->dx = int8(x - x0);
+			x0		= x;
+
+			while (x < pm.width)
+			{
+				Color pixel = pm.get_color(x, y);
+				if unlikely (pixel == transparent_pixel) break;
+				*dp++ = clut ? clut[pixel] : pixel;
+				x++;
+			}
+			pfx->width = uint8(x - x0);
+
+			int gap = x;
+			while (x < pm.width && pm.get_color(x, y) == transparent_pixel) x++;
+			if (x == pm.width) break;
+
+			x0 = gap;
+			store_cmd(dp, CMD::GAP);
+		}
+	}
+
+	store_cmd(dp, CMD::END);
+	assert_le(dp, pixels->pixels + pixels->count);
+}
+
+template<typename Pixmap>
+Shape::Shape(const Pixmap& pm, uint transparent_pixel, const Dist& hotspot, const Color* clut) throws
+{
+	assert(pm.width <= 255);
+	assert(pm.height <= 255);
+	assert(!clut == is_true_color(pm.colormode));
+
+	_width = uint8(pm.width);
+	_hot_x = int8(hotspot.dx);
+	_hot_y = int8(hotspot.dy);
+
+	int count = calc_count(pm, transparent_pixel, &_height);
+	pixels	  = Pixels::newPixels(uint(count));
+	assert(pixels->rc == 1);
+	create_shape(pm, transparent_pixel, clut);
 }
 
 
@@ -576,5 +529,29 @@ Shape<SOFT>::Shape(
 
 
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
 */
