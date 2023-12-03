@@ -119,10 +119,10 @@ constexpr Color Color::fromRGB4(uint rgb)
 
 constexpr void Color::blend_with(Color b) noexcept
 {
-	constexpr int lsb = (1 << rshift) | (1 << gshift) | (1 << bshift);
+	constexpr int lsb = (1 << rshift) | (1 << gshift) | (1 << bshift) | (1 << (bshift + bbits));
 
 	uRGB roundup = (rgb | b.rgb) & lsb;
-	rgb			 = ((rgb & ~lsb + b.rgb & ~lsb) >> 1) + roundup;
+	rgb			 = (((rgb & ~lsb) + (b.rgb & ~lsb)) >> 1) + roundup;
 }
 
 static_assert(Color::fromRGB4(0xf2, 0xf3, 0xf4).red == 2 << Color::rbits >> 4);
