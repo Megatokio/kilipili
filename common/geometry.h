@@ -31,6 +31,8 @@ struct Point
 
 	Point() noexcept = default;
 	constexpr Point(coord x, coord y) noexcept : x(x), y(y) {}
+	Point& operator+=(const struct Dist&) noexcept;
+	Point& operator-=(const struct Dist&) noexcept;
 };
 
 struct Dist
@@ -41,9 +43,23 @@ struct Dist
 	constexpr Dist(coord w, coord h) noexcept : dx(w), dy(h) {}
 };
 
-inline Point operator+(const Point& p, const Dist& d) noexcept { return Point(p.x + d.dx, p.y + d.dy); }
-inline Point operator-(const Point& p, const Dist& d) noexcept { return Point(p.x - d.dx, p.y - d.dy); }
-inline Dist	 operator-(const Point& a, const Point& b) noexcept { return Dist(a.x - b.x, a.y - b.y); }
+inline Point  operator+(const Point& p, const Dist& d) noexcept { return Point(p.x + d.dx, p.y + d.dy); }
+inline Point  operator-(const Point& p, const Dist& d) noexcept { return Point(p.x - d.dx, p.y - d.dy); }
+inline Dist	  operator-(const Point& a, const Point& b) noexcept { return Dist(a.x - b.x, a.y - b.y); }
+inline Dist	  operator-(const Dist& a, const Dist& b) noexcept { return Dist(a.dx - b.dx, a.dy - b.dy); }
+inline Dist	  operator+(const Dist& a, const Dist& b) noexcept { return Dist(a.dx + b.dx, a.dy + b.dy); }
+inline Point& Point::operator+=(const struct Dist& d) noexcept
+{
+	x += d.dx;
+	y += d.dy;
+	return *this;
+}
+inline Point& Point::operator-=(const struct Dist& d) noexcept
+{
+	x -= d.dx;
+	y -= d.dy;
+	return *this;
+}
 
 struct Size
 {
