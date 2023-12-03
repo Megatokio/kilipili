@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "AnimatedSprite.h"
 #include "Shape.h"
-#include "Sprite.h"
 #include "VideoPlane.h"
 #include <pico/sync.h>
 
@@ -14,20 +14,34 @@ namespace kio::Video
 
 extern bool hotlist_overflow; // set by add_to_hotlist()
 
+enum ZPlane : bool { NoZ = 0, HasZ = 1 };
+
 
 /*	==============================================================================
 	class Sprites is a VideoPlane which can be added to the VideoController
 	to display sprites.
+	@tparam WZ with z coord ordering
 */
 template<typename Sprite, ZPlane WZ>
-class Sprites : public VideoPlane
+class MultiSpritesPlane : public VideoPlane
 {
 public:
-	using Shape	   = typename Sprite::Shape;
-	using HotShape = typename Shape::template HotShape<WZ>;
+	using Shape = typename Sprite::Shape;
 
-	Sprites() noexcept = default;
-	virtual ~Sprites() noexcept override;
+
+	template<typename HotShape, ZPlane>
+	struct MyHotShape : public HotShape
+	{};
+	template<typename HotShape>
+	struct MyHotShape<HotShape, HasZ> : public HotShape
+	{
+		uint z;
+	};
+
+	using HotShape = MyHotShape<typename Shape::HotShape, WZ>;
+
+	MultiSpritesPlane() noexcept = default;
+	virtual ~MultiSpritesPlane() noexcept override;
 
 	virtual void setup(coord width) override;
 	virtual void teardown() noexcept override;
@@ -71,7 +85,7 @@ private:
 // Implementations
 
 template<typename Sprite, ZPlane WZ>
-Sprites<Sprite, WZ>::~Sprites() noexcept
+MultiSpritesPlane<Sprite, WZ>::~MultiSpritesPlane() noexcept
 {
 	assert(displaylist == nullptr); // else teardown not called => plane still in planes[] ?
 	assert(hotlist == nullptr);
@@ -81,14 +95,14 @@ Sprites<Sprite, WZ>::~Sprites() noexcept
 // ============================================================================
 
 // yes, we have them all!
-extern template class Sprites<Sprite<Shape<NotSoftened>>, NoZ>;
-extern template class Sprites<Sprite<Shape<NotSoftened>>, HasZ>;
-extern template class Sprites<Sprite<Shape<Softened>>, NoZ>;
-extern template class Sprites<Sprite<Shape<Softened>>, HasZ>;
-extern template class Sprites<Sprite<AnimatedShape<Shape<NotSoftened>>>, NoZ>;
-extern template class Sprites<Sprite<AnimatedShape<Shape<NotSoftened>>>, HasZ>;
-extern template class Sprites<Sprite<AnimatedShape<Shape<Softened>>>, NoZ>;
-extern template class Sprites<Sprite<AnimatedShape<Shape<Softened>>>, HasZ>;
+extern template class MultiSpritesPlane<Sprite<Shape>, NoZ>;
+extern template class MultiSpritesPlane<Sprite<Shape>, HasZ>;
+extern template class MultiSpritesPlane<Sprite<SoftenedShape>, NoZ>;
+extern template class MultiSpritesPlane<Sprite<SoftenedShape>, HasZ>;
+extern template class MultiSpritesPlane<AnimatedSprite<Shape>, NoZ>;
+extern template class MultiSpritesPlane<AnimatedSprite<Shape>, HasZ>;
+extern template class MultiSpritesPlane<AnimatedSprite<SoftenedShape>, NoZ>;
+extern template class MultiSpritesPlane<AnimatedSprite<SoftenedShape>, HasZ>;
 
 
 } // namespace kio::Video
