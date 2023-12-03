@@ -1,31 +1,39 @@
 # kilipili
-Kio's Little Pico Library
+*Kio's Little Pico Library*
 
-A c++ library for video, audio and input devices for the RP2040.
+*A c++ library for video, audio and input devices for the RP2040.*
 
-**This is work in progress**   
-Anybody who runs into a bug is welcome to file a bug report or a merge request.
+***This is work in progress***   
+*Anybody who runs into a bug is welcome to file a bug report or a merge request.*
 
 ## Video 
-- Video output fully functional and tested.
-- start-and-forget.
-- The video engine can display **up to 1280 x 768 pixel** in **16 bit true color**.  
-- Low RAM usage by use of attributes. =\> colorful display in high resolutions.  
+The video engine provides many video modes with indexed or true color up to highest resolution by use of attributes. It provides sprites and a mouse pointer.
+
+- `[done]` Video output fully functional and tested.
+- `[done]` Screen resolution 160\*120 up to **1280\*768** in **16 bit true color**.  
+- `[done]` Low RAM usage by use of attributes. =\> colorful display in high resolutions.  
   e.g. **1024 x 768** with 8 x 12 pixel **true color** attributes uses **only 132 kB of Ram**, leaving over 100 kB to the application.
-- runs entirely in RAM: stable video while writing to the internal flash possible.
-- can be restarted in different video mode.
-- automatically sets the required system clock.  
-- Sprites **WIP**
-- Tiled background mode **TODO**
+- `[done]` Mouse pointer. 
+- `[done]` can switch between different video mode and screen resolutions.
+- `[done]` automatically sets the required system clock.  
+- `[test]` runs entirely in RAM: stable video while writing to the internal flash possible.
+- `[test]` Sprites.
+- `[todo]` Tiled background mode. 
 
 ## USB Host
-- USB keyboard support. 
-- USB mouse support. 
+The USB host mode currently supports keyboards and pointer devices (aka 'Mouse'). 
+
+- `[done]` USB keyboard support. 
+- `[done]` English and German key translation tables
+- `[todo]` more key translation tables
+- `[done]` USB mouse support
 
 ## Graphics
-- **Direct pixel color modes**: 1, 2, 4, 8 and 16 bpp.  
+The Graphics engine supports pixmaps with many modes which are supported by the video engine. It provides some graphics primitives, but here is some work to go. Does someone want to help?
+
+- `[done]` **Direct pixel color modes**: 1, 2, 4, 8 and 16 bpp.  
   16 bpp is normally true color while i1 .. i8 are normally indexed color.
-- **Attribute modes**: The image is composed from a 1 bpp or 2 bpp pixmap and lower resolution color cells.  
+- `[done]` **Attribute modes**: The image is composed from a 1 bpp or 2 bpp pixmap and lower resolution color cells.  
   The attributes cells normally match the character cell size which is normally 8 x 12 pixels.  
   By using templates all graphics functions are supported in all modes.  
   Supported attribute modes:
@@ -33,22 +41,24 @@ Anybody who runs into a bug is welcome to file a bug report or a merge request.
   - 1, 2, 4 or 8 pixel wide attributes
   - attribute cell height from 1 to 99
   - 4, 8 and 16 bit colors in the attributes, where i4 and i8 are normally indexed colors  
-- Graphics primitives
-- Text output
-- Graphics still lack some functionality.
+- `[done]` Graphics primitives
+- `[done]` Text output
+- `[todo]` Graphics still lack some functionality.
 
 ## SDCard support
-- Access SC card in SPI mode
-- FAT file system support **WIP**
+The SDcard interface accesses the SD card via it's SPI interface.  
+
+- `[test]` Access SC card in SPI mode
+- `[todo]` FAT file system support **WIP**
 
 ## Other
-- cpu load sensor
-- **malloc** replacement which doesn't fail to return available memory
-- Audio: TODO
+- `[done]` cpu load sensor
+- `[done]` **malloc** replacement which doesn't fail to return available memory
+- `[todo]` Audio
 
 ## Resources & restrictions
 - Uses CPU core 1, 3 DMA channels and 2 state machines in PIO 1.  
-  (The 2 other state machines will probably be used by audio)
+  (The 2 other state machines will probably be used for audio)
 - Some video modes require excessive high system clock in high screen resolutions.
 - Pixel clock restricted to full MHz.
 - System clock must be a multiple of the pixel clock.
@@ -58,10 +68,8 @@ Anybody who runs into a bug is welcome to file a bug report or a merge request.
 *Full working example without the cmake stuff.*
 
 ```cpp
-main()
-{
 // VGA Video 800 x 600 pixel
-// with 8x12 pixel true color attributes (character size used in PicoTerm)
+// with 8x12 pixel true color attributes (this is the character size used in PicoTerm)
 
 #include "kilipili/Graphics/PicoTerm.h"
 #include "kilipili/Graphics/Pixmap_wAttr.h"
