@@ -40,12 +40,14 @@ add_library(kilipili_video STATIC
 	Shape.h
 	Sprite.h
 	Sprite.cpp
-	SingleSprite.h
-	SingleSprite.cpp
-	Sprites.cpp
-	Sprites.h
+	AnimatedSprite.h
+	SingleSpritePlane.h
+	SingleSpritePlane.cpp
+	MultiSpritesPlane.cpp
+	MultiSpritesPlane.h
 	UniColorBackdrop.h
 	video_types.h
+	Frames.h
 )
 
 target_compile_definitions(kilipili_video PUBLIC
