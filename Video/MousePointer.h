@@ -3,13 +3,13 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "SingleSprite.h"
+#include "SingleSpritePlane.h"
 
 
 namespace kio::Video
 {
 
-enum MouseShapeID {
+enum MousePointerID {
 	MOUSE_POINTER,
 	MOUSE_BUSY,
 	MOUSE_CROSSHAIR,
@@ -20,27 +20,25 @@ enum MouseShapeID {
 };
 
 
-template<typename SHAPE>
-class MousePointer : public SingleSprite<Sprite<SHAPE>>
+template<typename Sprite>
+class MousePointer : public SingleSpritePlane<Sprite>
 {
 public:
-	static_assert(SHAPE::isa_shape);
+	using super = SingleSpritePlane<Sprite>;
+	using Shape = typename Sprite::Shape;
+	static_assert(Shape::isa_shape);
 
-	using super = SingleSprite<Sprite<SHAPE>>;
-	using Shape = SHAPE;
-	//using Sprite = typename Video::Sprite<SHAPE>;
 
-	MousePointer(MouseShapeID, const Point&);
+	MousePointer(MousePointerID, const Point&);
 	MousePointer(const Shape& s, const Point& p) : super(s, p) {}
 	~MousePointer() noexcept override = default;
 
-	//virtual void setup(coord width) override;
+	virtual void setup(coord width) override;
 	//virtual void teardown() noexcept override;
 	virtual void vblank() noexcept override;
 	//virtual void renderScanline(int row, uint32* scanline) noexcept override;
 
 	using super::getPosition;
-	using super::modify;
 	using super::replace;
 	using super::setPosition;
 };
@@ -49,10 +47,10 @@ public:
 // =========================================================================
 
 // yes, we have them all!
-extern template class MousePointer<Shape<NotSoftened>>;
-extern template class MousePointer<Shape<Softened>>;
-extern template class MousePointer<AnimatedShape<Shape<NotSoftened>>>;
-extern template class MousePointer<AnimatedShape<Shape<Softened>>>;
+extern template class MousePointer<Sprite<Shape>>;
+extern template class MousePointer<Sprite<SoftenedShape>>;
+extern template class MousePointer<AnimatedSprite<Shape>>;
+extern template class MousePointer<AnimatedSprite<SoftenedShape>>;
 
 } // namespace kio::Video
 
