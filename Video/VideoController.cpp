@@ -11,6 +11,7 @@
 #include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "kilipili_cdefs.h"
+#include "tempmem.h"
 #include "utilities/LoadSensor.h"
 #include "utilities/utilities.h"
 #include <hardware/clocks.h>
@@ -22,9 +23,6 @@
 #include <pico/multicore.h>
 #include <pico/platform.h>
 #include <pico/sem.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 
 #ifndef VIDEO_RECOVERY_PER_LINE
@@ -136,6 +134,7 @@ void VideoController::core1_runner() noexcept
 				vblank_action  = nullptr;
 				onetime_action = nullptr;
 				state		   = STOPPED;
+				purge_tempmem();
 				__sev();
 			}
 		}
@@ -216,6 +215,7 @@ void RAM VideoController::video_runner()
 			}
 
 			call_vblank_actions();
+			purge_tempmem();
 
 			while (!in_vblank && line_at_frame_start == row0)
 			{

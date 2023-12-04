@@ -50,16 +50,16 @@ namespace kio
 
 extern str emptystr; // non-const version of ""
 
-extern str	 newstr(uint n) noexcept;	  // allocate memory with new[]
-extern str	 newcopy(cstr) noexcept;	  // allocate memory with new[] and copy string
-extern char* tempmem(uint size) noexcept; // allocate in current pool: aligned, not cleared
-extern str	 tempstr(uint size) noexcept; // allocate in current pool: 0-terminated, not cleared
-extern str	 dupstr(cstr) noexcept;		  // allocate  and copy string in the current pool
-extern cstr	 xdupstr(cstr) noexcept;	  // allocate  and copy string in the surrounding pool.
-extern void	 purge_tempmem() noexcept;	  // purge the current pool
+extern str	newstr(uint n) noexcept;	 // allocate memory with new[]
+extern str	newcopy(cstr) noexcept;		 // allocate memory with new[] and copy string
+extern str	tempstr(uint size) noexcept; // allocate in current pool: 0-terminated, not cleared
+extern str	dupstr(cstr) noexcept;		 // allocate  and copy string in the current pool
+extern cstr xdupstr(cstr) noexcept;		 // allocate  and copy string in the surrounding pool.
+extern void purge_tempmem() noexcept;	 // purge the current pool
 
 
-/* Class to create and auto-destruct a local TempMem pool:
+/*
+	Class to create and auto-destruct a local TempMem pool:
 */
 class TempMem
 {
