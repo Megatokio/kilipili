@@ -30,9 +30,9 @@ static constexpr bool disabled = false;
 // ######################################
 // throwable cstring errors:
 
-using Error					  = const char*;
-constexpr Error NO_ERROR	  = nullptr;
-constexpr Error OUT_OF_MEMORY = "out of memory";
+using Error						= const char*;
+constexpr Error NO_ERROR		= nullptr;
+constexpr char	OUT_OF_MEMORY[] = "out of memory";
 
 
 // ######################################

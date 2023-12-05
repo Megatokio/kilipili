@@ -4,8 +4,42 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <new>
 #include <pico/malloc.h>
 #include <pico/mutex.h>
+
+
+#ifndef PICO_CXX_ENABLE_EXCEPTIONS
+  #define PICO_CXX_ENABLE_EXCEPTIONS false
+#endif
+
+static constexpr bool enable_exceptions = PICO_CXX_ENABLE_EXCEPTIONS;
+constexpr char		  OUT_OF_MEMORY[]	= "out of memory";
+
+void* operator new(size_t n)
+{
+	if (void* p = malloc(n)) return p;
+	if constexpr (enable_exceptions) throw OUT_OF_MEMORY;
+	else panic(OUT_OF_MEMORY);
+}
+void* operator new[](size_t n)
+{
+	if (void* p = malloc(n)) return p;
+	if constexpr (enable_exceptions) throw OUT_OF_MEMORY;
+	else panic(OUT_OF_MEMORY);
+}
+
+void* operator new(size_t n, const std::nothrow_t&) noexcept { return malloc(n); }
+
+void* operator new[](size_t n, const std::nothrow_t&) noexcept { return malloc(n); }
+
+void operator delete(void* p) noexcept { free(p); }
+void operator delete[](void* p) noexcept { free(p); }
+
+#if __cpp_sized_deallocation
+void operator delete(void* p, __unused size_t n) noexcept { free(p); }
+void operator delete[](void* p, __unused size_t n) noexcept { free(p); }
+#endif
 
 
 /*
