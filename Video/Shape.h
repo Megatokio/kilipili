@@ -56,7 +56,7 @@ public:
 
 	static Pixels* newPixels(uint cnt) throws
 	{
-		Pixels* z = reinterpret_cast<Pixels*>(new Color[cnt + 2 * sizeof(uint16) / sizeof(Color)]);
+		Pixels* z = reinterpret_cast<Pixels*>(new char[cnt * sizeof(Color) + 2 * sizeof(uint16)]);
 		z->count  = uint16(cnt);
 		z->rc	  = 0;
 		return z;

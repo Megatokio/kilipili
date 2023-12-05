@@ -175,7 +175,7 @@ template<typename Shape>
 void Frames<Shape>::dealloc() noexcept
 {
 	while (num_frames) frames[--num_frames].~Frame();
-	delete[] frames;
+	delete[] ptr(frames);
 	frames = nullptr;
 }
 
