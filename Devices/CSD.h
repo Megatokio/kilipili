@@ -32,7 +32,7 @@ inline constexpr uint mask(uint bits) { return (1 << bits) - 1; }
 struct CSD
 {
 	// the actual data:
-	uint32 data[4];
+	uint32 data[4] = {0};
 
 	// get/set bitfield with right-aligned bit numbers, e.g. foo[7:0] as used in SDcard specs
 	// note: can't read accross uint32 boundary!

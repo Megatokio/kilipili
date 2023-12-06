@@ -79,7 +79,7 @@ static bool		 is_rx_pin(uint pin) { return (pin & 3) == 0; }
 static bool		 is_clk_pin(uint pin) { return (pin & 3) == 2; }
 static bool		 is_tx_pin(uint pin) { return (pin & 3) == 3; }
 
-SDCard::SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) :
+SDCard::SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) noexcept :
 	BlockDevice(9, 9, 9 /*ss*/, readwrite /*flags*/),
 	spi(inst_for_pin(rx)),
 	rx_pin(rx),
@@ -100,8 +100,8 @@ void SDCard::init_spi() noexcept
 {
 	// chip select CSn:
 	gpio_init(cs_pin);
-	gpio_set_dir(cs_pin, GPIO_OUT);
 	gpio_put(cs_pin, 1); // deselect
+	gpio_set_dir(cs_pin, GPIO_OUT);
 
 	// spi:
 	spi_init(spi, 10 * 1000 * 1000);
@@ -112,10 +112,10 @@ void SDCard::init_spi() noexcept
 	gpio_set_function(tx_pin, GPIO_FUNC_SPI);
 }
 
-void SDCard::disconnect()
+void SDCard::disconnect() noexcept
 {
 	deselect();
-	spi_deinit(spi);
+	//spi_deinit(spi);
 	total_size = 0;
 	flags	   = Flags(0);
 	card_type  = SD_unknown;
@@ -353,7 +353,7 @@ void SDCard::read_scr()
 	read_spi(bu, 10);
 	deselect();
 	if (token != DataToken) throwReadDataErrorToken(token);
-	if (crc16(bu, 8) != peek_u16(bu + 8)) throw CRC_ERROR;
+	if (crc16(bu, 8) != peek_u16(bu + 8)) debugstr("crc_error "); //xxx throw CRC_ERROR;
 	erased_byte = bu[1] & 0x80 ? 0xff : 0x00;
 }
 
@@ -376,15 +376,17 @@ void SDCard::read_card_info(uint8 cmd) throws
 	read_spi(bu, 18);
 	deselect();
 
-	if (crc7(bu, 15) != bu[15])
-	{
-		debugstr("crc7 failed ");
-		throw CRC_ERROR;
-	}
 	if (crc16(bu, 16) != peek_u16(bu + 16))
 	{
-		debugstr("crc16 failed ");
-		throw CRC_ERROR;
+		// attn: intenso year 2023 4GB sdcards return crc = 0x00 and 0x0000
+		debugstr("crc16 failed (%04x != %04x)\n", crc16(bu, 16), peek_u16(bu + 16));
+		if (peek_u16(bu + 16) || bu[15]) throw CRC_ERROR; // TODO: retry once
+	}
+	if (crc7(bu, 15) != bu[15])
+	{
+		// attn: intenso year 2023 4GB sdcards return crc = 0x00 and 0x0000
+		debugstr("crc7 failed (%02x != %02x)", crc7(bu, 15), bu[15]);
+		if (peek_u16(bu + 16) || bu[15]) throw CRC_ERROR; // TODO: retry once
 	}
 
 	// store data but take care for our little Endian:
@@ -397,10 +399,10 @@ void SDCard::read_card_info(uint8 cmd) throws
 
 void SDCard::connect() throws
 {
-	// attach to a card
-	// insert() may take several seconds if called directly after inserting the card
+	printf("SDCard::connect\n");
 
-	printf("SDCard::insert\n");
+	// attach to a card
+	// connect() may take several seconds if called directly after inserting the card
 
 	//while (time_us_32() < 1000) {}		// delay after power-up
 
@@ -511,7 +513,7 @@ void SDCard::connect() throws
 		if (1 << ss_read != csd.erase_sector_size()) throw DEVICE_NOT_SUPPORTED;
 		//if (ss != csd.read_bl_bits()) throw DEVICE_NOT_SUPPORTED;
 		//if (ss != csd.write_bl_bits()) throw DEVICE_NOT_SUPPORTED;
-		flags = csd.write_prot() ? readable : readwrite;
+		flags = csd.write_prot() ? partition | readable : partition | readwrite | overwritable;
 
 		debugstr("\n");
 		total_size = ADDR(csd.disk_size());
@@ -777,14 +779,14 @@ void SDCard::write(ADDR zpos, const uint8* data, SIZE size)
 }
 #endif
 
-uint32 SDCard::ioctl(IoCtl ctl, void*, void*)
+uint32 SDCard::ioctl(IoCtl ctl, void*, void*) throws
 {
 	switch (ctl.cmd)
 	{
 	case IoCtl::CTRL_RESET: // reset internal state, discard pending input and output, keep connected
 		break;
 	case IoCtl::CTRL_CONNECT: // connect to hardware, load removable disk
-		connect();
+		connect();			  // throws
 		break;
 	case IoCtl::CTRL_DISCONNECT: // disconnect from hardware, unload removable disk
 		disconnect();
