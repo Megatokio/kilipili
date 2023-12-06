@@ -7,21 +7,21 @@
 #include <hardware/spi.h>
 //#include "errors.h"
 #include "CSD.h"
+#include "kilipili_cdefs.h"
 #include "standard_types.h"
-
 
 namespace kio::Devices
 {
 
 struct CID
-{				  // note: MSB first!
-	uint8 mid;	  // Manufacturer ID
-	uint8 oid[2]; // OEM/Application ID
-	char  pnm[5]; // Product name: ascii[5]
-	uint8 prv;	  // Product revision: bcd_digits[2] -> x.y
-	uint8 psn[4]; // Product serial number: uint32
-	uint8 mdt[2]; // reserved nibble + Manufacturing date: hex_nibbles[3] -> yy.m
-	uint8 crc;	  // crc7 << 1 | 0x01
+{						// note: MSB first!
+	uint8 mid	 = 0;	// Manufacturer ID
+	uint8 oid[2] = {0}; // OEM/Application ID
+	char  pnm[5] = {0}; // Product name: ascii[5]
+	uint8 prv	 = 0;	// Product revision: bcd_digits[2] -> x.y
+	uint8 psn[4] = {0}; // Product serial number: uint32
+	uint8 mdt[2] = {0}; // reserved nibble + Manufacturing date: hex_nibbles[3] -> yy.m
+	uint8 crc	 = 0;	// crc7 << 1 | 0x01
 };
 static_assert(sizeof(CID) == 16, "");
 
@@ -66,20 +66,20 @@ public:
 	char	 _padding;
 	CSD		 csd;
 	CID		 cid;
-	uint32	 ocr;
+	uint32	 ocr		= 0;
 	ADDR	 total_size = 0;
 
-	SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx);
+	SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) noexcept;
 
-	void connect();
-	void disconnect();
+	void connect() throws;
+	void disconnect() noexcept;
 
 	//virtual void read (ADDR q, uint8* bu, SIZE) override;
 	//virtual void write (ADDR z, const uint8* bu, SIZE) override;
 	//virtual void copy_blocks (ADDR z, ADDR q, SIZE sz) override { copy_hd(z,q,sz); }
-	virtual void   readSectors(LBA, char* bu, SIZE) override;
-	virtual void   writeSectors(LBA, const char* bu, SIZE) override;
-	virtual uint32 ioctl(IoCtl, void* arg1 = nullptr, void* arg2 = nullptr) override;
+	virtual void   readSectors(LBA, char* bu, SIZE) throws override;
+	virtual void   writeSectors(LBA, const char* bu, SIZE) throws override;
+	virtual uint32 ioctl(IoCtl, void* arg1 = nullptr, void* arg2 = nullptr) throws override;
 
 	void print_scr(uint v = 1);
 	void print_cid(uint v = 1);
