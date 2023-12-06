@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "kilipili_cdefs.h"
 #include <type_traits>
-
 
 namespace kio
 {
@@ -125,6 +125,20 @@ public:
 	bool is(const T* b) const noexcept { return p == b; }
 	bool isnot(const T* b) const noexcept { return p != b; }
 		 operator bool() const noexcept { return p != nullptr; }
+};
+
+
+class RCObject
+{
+public:
+	int	 rc = 0;
+	int	 refcnt() const noexcept { return rc; }
+	void retain() { rc++; }
+	void release()
+	{
+		if (--rc == 0) delete this;
+	}
+	virtual ~RCObject() noexcept { assert(rc == 0); }
 };
 
 } // namespace kio
