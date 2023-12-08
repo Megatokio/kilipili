@@ -240,7 +240,7 @@ namespace kio
 inline constexpr bool is_space(char c) noexcept { return uchar(c) <= ' ' && c != 0; }
 inline constexpr bool is_letter(char c) noexcept { return uchar((c | 0x20) - 'a') <= 'z' - 'a'; }
 inline constexpr bool is_control(char c) noexcept { return uchar(c) < 0x20 || uchar(c) == 0x7f; }
-inline constexpr bool is_printable(char c) noexcept { return uchar(c) >= 0x20 && uchar(c) != 0x7f; }
+inline constexpr bool is_printable(char c) noexcept { return (c & 0x7f) >= 0x20 && uchar(c) != 0x7f; }
 inline constexpr bool is_ascii(char c) noexcept { return uchar(c) <= 0x7F; }
 inline constexpr bool is_utf8_fup(char c) noexcept
 {

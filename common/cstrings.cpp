@@ -509,7 +509,7 @@ str usingstr(cstr fmt, va_list va) noexcept
 	static char bu[160];
 	va_list		va2;
 	va_copy(va2, va);
-	int n = vsnprintf(bu, 0, fmt, va2); // calc. req. size
+	int n = vsnprintf(bu, sizeof(bu), fmt, va2); // calc. req. size
 	va_end(va2);
 
 	assert(n >= 0);
