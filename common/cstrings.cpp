@@ -1050,6 +1050,53 @@ bool ne(cptr s, cptr t) noexcept
 	}
 }
 
+cptr lcfind(cstr s, char c) noexcept
+{
+	for (c = to_lower(c); *s; s++)
+		if (to_lower(*s) == c) return s;
+	return c == 0 ? s : nullptr;
+}
+
+bool fnmatch(cstr pattern, cstr path, bool casefold) noexcept
+{
+	if (!pattern || !*pattern) return true; // no pattern matches any path
+
+	auto* eq = casefold ? [](char a, char b) { return to_lower(a) == to_lower(b); } : //
+						  [](char a, char b) { return a == b; };
+
+	for (;;)
+	{
+		char c = *pattern++;
+		if (c == 0) return *path == 0;
+
+		if (c == '*')
+		{
+		a:
+			c = *pattern++;			 // next char after '*'
+			if (c == 0) return true; // final '*' matches any remainder in path
+			if (c == '*') goto a;	 // "**"  == "*"
+			if (c == '?')			 // "*?"  ==  "?*"
+			{
+				if (*path++ != 0) goto a;
+				else return false;
+			}
+
+			while ((path = casefold ? lcfind(path, c) : find(path, c)))
+			{
+				if (fnmatch(pattern, ++path, casefold)) return true;
+			}
+
+			return false;
+		}
+
+		if (c == '?')
+		{
+			if (*path++ == 0) return false;
+		}
+		else if (!eq(c, *path++)) return false;
+	}
+}
+
 str hexstr(cptr s, uint n) noexcept
 {
 	assert(s != nullptr || n == 0);

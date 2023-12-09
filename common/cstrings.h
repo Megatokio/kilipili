@@ -57,9 +57,13 @@ extern bool ne(cstr, cstr) noexcept;
 inline bool le(cstr a, cstr b) noexcept { return !gt(a, b); }
 inline bool ge(cstr a, cstr b) noexcept { return !lt(a, b); }
 extern bool lceq(cstr s, cstr t) noexcept;
+extern bool fnmatch(cstr pattern, cstr path, bool casefold) noexcept;
 
 extern cptr find(cstr target, cstr search) noexcept;
 inline ptr	find(str target, cstr search) noexcept;
+inline ptr	find(str target, char c) noexcept { return strchr(target, c); }
+inline cptr find(cstr target, char c) noexcept { return strchr(target, c); }
+extern cptr lcfind(cstr target, char c) noexcept;
 extern cptr rfind(cstr target, cstr search) noexcept;
 inline ptr	rfind(str target, cstr search) noexcept;
 extern cptr rfind(cstr start, cstr end, char c) noexcept;
