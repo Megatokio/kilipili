@@ -1,14 +1,13 @@
-// Copyright (c) 2008 - 2022 kio@little-bat.de
+// Copyright (c) 2008 - 2023 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "tempmem.h"
 #include "basic_math.h"
 #include "kilipili_cdefs.h"
-#include <cstring>
-#include <pico/platform.h>
+#include "string.h"
+#include "tempmem.h"
 
-// this file provides tempmem buffers on the RP2040 (Raspberry Pico).
+// this file provides tempmem buffers on systems supporting c++11 thread_local variables.
 
 namespace kio
 {
@@ -16,16 +15,14 @@ namespace kio
 struct Block
 {
 	Block* prev;
-	uint16 size;
-	uint16 used;
-	char   data[4];
+	uint   size;
+	uint   used;
+	char   data[8];
 };
 
 Block* newBlock(uint size, Block* prev)
 {
-	assert(size == uint16(size));
-
-	uint* p = uintptr(malloc(sizeof(Block) - 4 + size));
+	uint* p = uintptr(malloc(sizeof(Block) - sizeof(Block::data) + size));
 	if unlikely (!p) throw OUT_OF_MEMORY;
 
 	Block* pm = reinterpret_cast<Block*>(p);
@@ -55,19 +52,17 @@ void Pool::purge()
 
 ptr Pool::alloc(uint size)
 {
+	static constexpr uint min_block_size = 8 kB - sizeof(Block);
+
 	if unlikely (!data) // first allocation
-		data = newBlock(max(size, 100u), nullptr);
+		data = newBlock(max(size, min_block_size), nullptr);
 
 	uint used = data->used;
 
 	if unlikely (used + size > data->size)
 	{
-		void* p = realloc(data, sizeof(Block) - 4 + used); // shrink to fit
-		assert(p == data);								   // shrinking never moves
-
-		uint newsize = max(size, min(uint(data->size) * 2, 3200u));
-		data		 = newBlock(newsize, data);
-		used		 = 0;
+		data = newBlock(max(size, min_block_size), data);
+		used = 0;
 	}
 
 	data->used = uint16(used + size);
@@ -75,9 +70,9 @@ ptr Pool::alloc(uint size)
 }
 
 
-static char null	 = 0;
-str			emptystr = &null;
-static Pool pools[2];
+static char				 null	  = 0;
+str						 emptystr = &null;
+static thread_local Pool pool;
 
 
 TempMem::TempMem(uint size)
@@ -86,9 +81,8 @@ TempMem::TempMem(uint size)
 	// the TempMem object itself contains no data.
 	// the local pool with all required data is 'static pools[core]'
 
-	Pool& pool = pools[get_core_num()];
-	pool.prev  = new Pool(pool);
-	pool.data  = nullptr;
+	pool.prev = new Pool(pool);
+	pool.data = nullptr;
 	if (size) pool.data = newBlock(size, nullptr);
 }
 
@@ -97,7 +91,6 @@ TempMem::~TempMem()
 	// dispose of the current pool for this core
 	// and replace it with the current previous one:
 
-	Pool& pool = pools[get_core_num()];
 	pool.purge();
 	Pool* prev = pool.prev;
 	pool	   = *prev;
@@ -106,7 +99,7 @@ TempMem::~TempMem()
 
 void purge_tempmem() noexcept
 {
-	pools[get_core_num()].purge(); //
+	pool.purge(); //
 }
 
 str newstr(uint len) noexcept
@@ -128,7 +121,7 @@ str newcopy(cstr s) noexcept
 
 	if unlikely (!s) return nullptr;
 
-	uint len = strlen(s) + 1;
+	uint len = uint(strlen(s)) + 1;
 	str	 z	 = new char[len];
 	memcpy(z, s, len);
 	return z;
@@ -139,8 +132,6 @@ char* tempstr(uint len) noexcept
 	// Allocate a cstring
 	// in the thread's current tempmem pool
 	// the returned string is not aligned and may start on an odd address
-
-	Pool& pool = pools[get_core_num()];
 
 	char* s = pool.alloc(len + 1);
 	s[len]	= 0;
@@ -154,9 +145,7 @@ str dupstr(cstr s) noexcept
 	if unlikely (!s) return nullptr;
 	if unlikely (*s == 0) return emptystr;
 
-	Pool& pool = pools[get_core_num()];
-
-	uint  len = strlen(s);
+	uint  len = uint(strlen(s));
 	char* z	  = pool.alloc(len + 1);
 	memcpy(z, s, len + 1);
 	return z;
@@ -166,21 +155,19 @@ cstr xdupstr(cstr s) noexcept
 {
 	// Copy string into the surrounding tempmem pool
 
-	Pool& pool = pools[get_core_num()];
-
 	if (size_t(s - pool.data->data) >= pool.data->size) return s; // not in this pool!
 
-	uint len = strlen(s);
+	uint len = uint(strlen(s));
 	str	 z	 = pool.prev->alloc(len + 1);
 	memcpy(z, s, len + 1);
 	return z;
 }
 
+
 } // namespace kio
 
+
 /*
-
-
 
 
 
