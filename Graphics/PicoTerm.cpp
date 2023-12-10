@@ -3,7 +3,11 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "PicoTerm.h"
-#include "kilipili_common.h"
+#include "cstrings.h"
+#include "string.h"
+#include <cstdarg>
+#include <cstdio>
+#include <new>
 
 namespace kio::Graphics
 {
