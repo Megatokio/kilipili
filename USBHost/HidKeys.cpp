@@ -4,7 +4,7 @@
 
 #include "HidKeys.h"
 #include "common/tempmem.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include <string.h>
 
 static const char* const hidkey[0xA4 + 1] = {

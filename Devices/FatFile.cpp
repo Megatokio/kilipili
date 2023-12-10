@@ -6,7 +6,7 @@
 #include "FatFS.h"
 #include "Logger.h"
 #include "cstrings.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 
 namespace kio::Devices
 {

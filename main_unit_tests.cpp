@@ -7,7 +7,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 //
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 
 
 void panic(const char* fmt, ...)

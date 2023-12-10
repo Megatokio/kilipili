@@ -10,7 +10,7 @@
 #include "StackInfo.h"
 #include "VideoBackend.h"
 #include "VideoPlane.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "tempmem.h"
 #include "utilities/LoadSensor.h"
 #include "utilities/utilities.h"

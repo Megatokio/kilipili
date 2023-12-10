@@ -4,7 +4,7 @@
 
 #pragma once
 #include "VgaMode.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "standard_types.h"
 
 namespace kio::Video

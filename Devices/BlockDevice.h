@@ -4,7 +4,7 @@
 
 #pragma once
 #include "devices_types.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 
 namespace kio::Devices
 {

@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "basic_math.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "string.h"
 #include "tempmem.h"
 

@@ -11,7 +11,7 @@
 #include "devices_types.h"
 #include "ff15/source/diskio.h"
 #include "ff15/source/ffconf.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "pico/stdio.h"
 
 

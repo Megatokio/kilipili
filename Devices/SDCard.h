@@ -7,7 +7,7 @@
 #include <hardware/spi.h>
 //#include "errors.h"
 #include "CSD.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "standard_types.h"
 
 namespace kio::Devices

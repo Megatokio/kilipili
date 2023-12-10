@@ -3,7 +3,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "standard_types.h"
 #include <atomic>
 

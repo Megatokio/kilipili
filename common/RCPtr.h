@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include <type_traits>
 
 namespace kio

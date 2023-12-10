@@ -7,7 +7,7 @@
 #include "FatFile.h"
 #include "Logger.h"
 #include "cstrings.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include <utility>
 
 namespace kio ::Devices

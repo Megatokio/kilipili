@@ -9,7 +9,7 @@
 #include "VideoBackend.h"
 #include "atomic.h"
 #include "geometry.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "video_types.h"
 
 

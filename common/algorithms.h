@@ -4,7 +4,7 @@
 
 #pragma once
 #include "basic_math.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "standard_types.h"
 #include "template_helpers.h"
 #include <string.h>
