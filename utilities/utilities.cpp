@@ -4,7 +4,7 @@
 
 #include "utilities.h"
 #include "LoadSensor.h"
-#include "kilipili_common.h"
+#include "cdefs.h"
 #include <hardware/clocks.h>
 #include <hardware/pll.h>
 #include <hardware/vreg.h>

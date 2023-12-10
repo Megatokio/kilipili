@@ -4,7 +4,7 @@
 
 #include "LoadSensor.h"
 #include "basic_math.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "utilities.h"
 #include <stdio.h>
 

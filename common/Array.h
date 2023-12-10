@@ -5,7 +5,7 @@
 
 #include "basic_math.h"
 #include "cstrings.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "relational_operators.h"
 #include "sort.h"
 #include "standard_types.h"

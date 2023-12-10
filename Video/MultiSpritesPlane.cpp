@@ -5,7 +5,7 @@
 #include "MultiSpritesPlane.h"
 #include "StackInfo.h"
 #include "VideoBackend.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include <pico/platform.h>
 #include <pico/stdlib.h>
 #include <pico/sync.h>

@@ -4,7 +4,7 @@
 
 #include "tempmem.h"
 #include "basic_math.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include <cstring>
 #include <pico/platform.h>
 

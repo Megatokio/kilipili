@@ -5,7 +5,7 @@
 #include "ScanlineBuffer.h"
 #include "Color.h"
 #include "basic_math.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include <stdio.h>
 #include <string.h>
 

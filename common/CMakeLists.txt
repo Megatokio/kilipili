@@ -23,7 +23,7 @@ endif()
 
 add_library(kilipili_common STATIC
 	dummy.cpp
-	kilipili_cdefs.h
+	cdefs.h
 	standard_types.h
 	no_copy_move.h
 	basic_math.h

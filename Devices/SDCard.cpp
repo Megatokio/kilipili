@@ -5,7 +5,7 @@
 #include "SDCard.h"
 #include "basic_math.h"
 #include "crc.h"
-#include "kilipili_cdefs.h"
+#include "cdefs.h"
 #include "stdio.h"
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
