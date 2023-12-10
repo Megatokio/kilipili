@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "BlockDevice.h"
-#include "kilipili_common.h"
 #include <memory>
+#include <string.h>
 
 
 namespace kio::Devices

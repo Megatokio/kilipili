@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "BitBlit.h"
+#include "standard_types.h"
 
 namespace kio::Graphics::bitblit
 {

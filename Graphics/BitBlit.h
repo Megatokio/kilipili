@@ -4,8 +4,7 @@
 
 #pragma once
 #include "graphics_types.h"
-#include "kilipili_common.h"
-
+#include "string.h"
 
 /*
 	CPU Rendering Bit Blit Library

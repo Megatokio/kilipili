@@ -6,6 +6,7 @@
 #include "kilipili_cdefs.h"
 #include "standard_types.h"
 #include "string.h"
+#include <new>
 #include <utility>
 
 namespace kio::Video

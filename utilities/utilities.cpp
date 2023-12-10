@@ -8,6 +8,9 @@
 #include <hardware/clocks.h>
 #include <hardware/pll.h>
 #include <hardware/vreg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // defined by linker:
 extern char end;
