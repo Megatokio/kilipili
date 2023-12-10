@@ -6,6 +6,19 @@ cmake_minimum_required(VERSION 3.13)
 # Graphics/CMakeLists.txt
 
 
+if(${UNIT_TEST})
+	set(distinct_sources 
+		)
+	set(distinct_libraries 
+		)
+else()
+	set(distinct_sources 
+		)
+	set(distinct_libraries 
+		pico_stdlib)
+endif()
+
+
 add_library(kilipili_graphics STATIC
 	fixint.h
 	Canvas.h
@@ -20,6 +33,7 @@ add_library(kilipili_graphics STATIC
 	rsrc/font_12x8.h
 	PicoTerm.h
 	PicoTerm.cpp
+	${distinct_sources}
 	)
 
 target_compile_definitions(kilipili_graphics PUBLIC
@@ -30,24 +44,14 @@ target_include_directories(kilipili_graphics PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
 	)
 
+# dependencies:
+target_link_libraries(kilipili_graphics PUBLIC
+	kilipili_common
+	${distinct_libraries}
+	)
 
-if(${UNIT_TEST})
 
-	# dependencies:
-	target_link_libraries(kilipili_graphics PUBLIC
-		kilipili_common
-		)
-
-else()
 	
-	# dependencies:
-	target_link_libraries(kilipili_graphics PUBLIC
-		kilipili_common
-		pico_stdlib
-		)
-
-endif()
-
 
 
 

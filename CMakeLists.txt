@@ -2,11 +2,12 @@
 cmake_minimum_required(VERSION 3.13)
 
 
-#########################################
+###########################################
 # kilipili/CMakeLists.txt
-#
-# all kilipili subdirectories 
 
+
+###########################################
+# executable for unit tests:
 
 if(${UNIT_TEST})
 
@@ -16,12 +17,7 @@ if(${UNIT_TEST})
 	add_subdirectory(Graphics)
 	
 	add_executable(unit_tests
-		unit_tests.cpp
-		common/unit_test.cpp
-		common/Array.test.cpp
-		common/sort.h
-		common/relational_operators.h
-		common/template_helpers.h
+		main_unit_tests.cpp
 		Graphics/Pixmap_unit_test.cpp
 		Graphics/Canvas_unit_test.cpp
 		Graphics/BitBlit_unit_test.cpp
@@ -38,11 +34,14 @@ if(${UNIT_TEST})
 		kilipili_graphics 
 		)
 	
-else() 
-	
-	add_library(kilipili STATIC
-	)
+endif()
 
+
+###########################################
+# library with all kilipili subdirectories:
+
+if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
+	
 	# dependencies:
 	add_subdirectory(common)
 	add_subdirectory(utilities)
@@ -51,6 +50,9 @@ else()
 	add_subdirectory(Devices)
 	add_subdirectory(USBHost)
 	
+	add_library(kilipili STATIC
+	)
+
 	# add current dir to 'include search path':
 	target_include_directories(kilipili PUBLIC
 		${CMAKE_CURRENT_LIST_DIR}
