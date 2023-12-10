@@ -4,7 +4,7 @@
 
 #pragma once
 #include "Canvas.h"
-
+#undef CHAR_WIDTH
 
 namespace kio::Graphics
 {

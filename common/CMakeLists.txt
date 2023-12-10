@@ -6,6 +6,21 @@ cmake_minimum_required(VERSION 3.13)
 # common/CMakeLists.txt 
 
 
+if(${UNIT_TEST})
+	set(distinct_sources 
+		"tempmem-posix.cpp")
+	set(distinct_headers 
+		${CMAKE_CURRENT_LIST_DIR}/linux)
+	set(distinct_libraries )
+else()
+	set(distinct_sources 
+		"tempmem-pico.cpp")
+	set(distinct_headers 
+		${CMAKE_CURRENT_LIST_DIR}/linux)
+	set(distinct_libraries 
+		pico_stdlib)
+endif()
+
 add_library(kilipili_common STATIC
 	dummy.cpp
 	kilipili_common.h
@@ -25,8 +40,9 @@ add_library(kilipili_common STATIC
 	Xoshiro256.h	
 	Xoshiro128.cpp
 	Xoshiro128.h	
+	${distinct_sources}
 	)
- 
+
 target_compile_definitions(kilipili_common PUBLIC
 	ON=1 OFF=0
 	#
@@ -39,10 +55,12 @@ target_compile_definitions(kilipili_common PUBLIC
 target_include_directories(kilipili_common PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
 	${CMAKE_CURRENT_LIST_DIR}/..
+	${distinct_headers}
 	)
 
 # dependencies:
 target_link_libraries(kilipili_common PUBLIC
+	${distinct_libraries}
 	)
 
  
