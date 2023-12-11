@@ -6,6 +6,7 @@
 #include "cdefs.h"
 #include "string.h"
 #include "tempmem.h"
+#include <cstddef>
 
 // this file provides tempmem buffers on systems supporting c++11 thread_local variables.
 
@@ -34,14 +35,14 @@ Block* newBlock(uint size, Block* prev)
 
 struct Pool
 {
-	Pool*  prev;
-	Block* data;
+	Pool*  prev = nullptr;
+	Block* data = nullptr;
 
 	ptr	 alloc(uint size);
-	void purge();
+	void purge() noexcept;
 };
 
-void Pool::purge()
+void Pool::purge() noexcept
 {
 	while (Block* block = data)
 	{
@@ -86,7 +87,7 @@ TempMem::TempMem(uint size)
 	if (size) pool.data = newBlock(size, nullptr);
 }
 
-TempMem::~TempMem()
+TempMem::~TempMem() noexcept
 {
 	// dispose of the current pool for this core
 	// and replace it with the current previous one:
@@ -102,7 +103,7 @@ void purge_tempmem() noexcept
 	pool.purge(); //
 }
 
-str newstr(uint len) noexcept
+str newstr(uint len)
 {
 	// allocate char[]
 	// => deallocate with delete[]
@@ -113,7 +114,7 @@ str newstr(uint len) noexcept
 	return z;
 }
 
-str newcopy(cstr s) noexcept
+str newcopy(cstr s)
 {
 	// allocate char[]
 	// => deallocate with delete[]
@@ -127,7 +128,7 @@ str newcopy(cstr s) noexcept
 	return z;
 }
 
-char* tempstr(uint len) noexcept
+char* tempstr(uint len)
 {
 	// Allocate a cstring
 	// in the thread's current tempmem pool
@@ -138,7 +139,16 @@ char* tempstr(uint len) noexcept
 	return s;
 }
 
-str dupstr(cstr s) noexcept
+ptr tempmem(uint size)
+{
+	if (Block* data = pool.data)
+		if (uint odd = data->used & (sizeof(max_align_t) - 1)) //
+			data->used += sizeof(max_align_t) - odd;
+
+	return pool.alloc(size);
+}
+
+str dupstr(cstr s)
 {
 	// Create copy of string in the current tempmem pool
 
@@ -151,11 +161,14 @@ str dupstr(cstr s) noexcept
 	return z;
 }
 
-cstr xdupstr(cstr s) noexcept
+cstr xdupstr(cstr s)
 {
 	// Copy string into the surrounding tempmem pool
 
-	if (size_t(s - pool.data->data) >= pool.data->size) return s; // not in this pool!
+	assert(pool.prev);
+
+	if unlikely (!s) return nullptr;
+	if unlikely (*s == 0) return emptystr;
 
 	uint len = uint(strlen(s));
 	str	 z	 = pool.prev->alloc(len + 1);
@@ -163,6 +176,25 @@ cstr xdupstr(cstr s) noexcept
 	return z;
 }
 
+str xtempstr(uint len)
+{
+	assert(pool.prev);
+
+	char* s = pool.prev->alloc(len + 1);
+	s[len]	= 0;
+	return s;
+}
+
+ptr xtempmem(uint size)
+{
+	assert(pool.prev);
+
+	if (Block* data = pool.prev->data)
+		if (uint odd = data->used & (sizeof(max_align_t) - 1)) //
+			data->used += sizeof(max_align_t) - odd;
+
+	return pool.prev->alloc(size);
+}
 
 } // namespace kio
 

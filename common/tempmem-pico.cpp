@@ -2,9 +2,10 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "tempmem.h"
 #include "basic_math.h"
 #include "cdefs.h"
+#include "tempmem.h"
+#include <cstddef>
 #include <cstring>
 #include <pico/platform.h>
 
@@ -26,7 +27,7 @@ Block* newBlock(uint size, Block* prev)
 	assert(size == uint16(size));
 
 	uint* p = uintptr(malloc(sizeof(Block) - sizeof(Block::data) + size));
-	if unlikely (!p) throw OUT_OF_MEMORY;
+	if unlikely (!p) panic(OUT_OF_MEMORY);
 
 	Block* pm = reinterpret_cast<Block*>(p);
 	pm->prev  = prev;
@@ -37,14 +38,14 @@ Block* newBlock(uint size, Block* prev)
 
 struct Pool
 {
-	Pool*  prev;
-	Block* data;
+	Pool*  prev = nullptr;
+	Block* data = nullptr;
 
 	ptr	 alloc(uint size);
-	void purge();
+	void purge() noexcept;
 };
 
-void Pool::purge()
+void Pool::purge() noexcept
 {
 	while (Block* block = data)
 	{
@@ -63,7 +64,7 @@ ptr Pool::alloc(uint size)
 	if unlikely (used + size > data->size)
 	{
 		void* p = realloc(data, sizeof(Block) - sizeof(Block::data) + used); // shrink to fit
-		assert(p == data);								   // shrinking never moves
+		assert(p == data);													 // shrinking never moves
 
 		uint newsize = max(size, min(uint(data->size) * 2, 3200u));
 		data		 = newBlock(newsize, data);
@@ -92,7 +93,7 @@ TempMem::TempMem(uint size)
 	if (size) pool.data = newBlock(size, nullptr);
 }
 
-TempMem::~TempMem()
+TempMem::~TempMem() noexcept
 {
 	// dispose of the current pool for this core
 	// and replace it with the current previous one:
@@ -109,7 +110,7 @@ void purge_tempmem() noexcept
 	pools[get_core_num()].purge(); //
 }
 
-str newstr(uint len) noexcept
+str newstr(uint len)
 {
 	// allocate char[]
 	// => deallocate with delete[]
@@ -120,7 +121,7 @@ str newstr(uint len) noexcept
 	return z;
 }
 
-str newcopy(cstr s) noexcept
+str newcopy(cstr s)
 {
 	// allocate char[]
 	// => deallocate with delete[]
@@ -134,7 +135,7 @@ str newcopy(cstr s) noexcept
 	return z;
 }
 
-char* tempstr(uint len) noexcept
+char* tempstr(uint len)
 {
 	// Allocate a cstring
 	// in the thread's current tempmem pool
@@ -147,7 +148,18 @@ char* tempstr(uint len) noexcept
 	return s;
 }
 
-str dupstr(cstr s) noexcept
+ptr tempmem(uint size)
+{
+	Pool& pool = pools[get_core_num()];
+
+	if (Block* data = pool.data)
+		if (uint odd = data->used & (sizeof(max_align_t) - 1)) //
+			data->used += sizeof(max_align_t) - odd;
+
+	return pool.alloc(size);
+}
+
+str dupstr(cstr s)
 {
 	// Create copy of string in the current tempmem pool
 
@@ -162,13 +174,16 @@ str dupstr(cstr s) noexcept
 	return z;
 }
 
-cstr xdupstr(cstr s) noexcept
+cstr xdupstr(cstr s)
 {
 	// Copy string into the surrounding tempmem pool
 
 	Pool& pool = pools[get_core_num()];
 
-	if (size_t(s - pool.data->data) >= pool.data->size) return s; // not in this pool!
+	assert(pool.prev);
+
+	if unlikely (!s) return nullptr;
+	if unlikely (*s == 0) return emptystr;
 
 	uint len = strlen(s);
 	str	 z	 = pool.prev->alloc(len + 1);
@@ -176,6 +191,30 @@ cstr xdupstr(cstr s) noexcept
 	return z;
 }
 
+
+str xtempstr(uint len)
+{
+	Pool& pool = pools[get_core_num()];
+
+	assert(pool.prev);
+
+	char* s = pool.prev->alloc(len + 1);
+	s[len]	= 0;
+	return s;
+}
+
+ptr xtempmem(uint size)
+{
+	Pool& pool = pools[get_core_num()];
+
+	assert(pool.prev);
+
+	if (Block* data = pool.prev->data)
+		if (uint odd = data->used & (sizeof(max_align_t) - 1)) //
+			data->used += sizeof(max_align_t) - odd;
+
+	return pool.prev->alloc(size);
+}
 } // namespace kio
 
 /*
