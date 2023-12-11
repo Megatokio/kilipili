@@ -39,14 +39,13 @@ add_library(kilipili_common STATIC
 	Xoshiro256.h	
 	Xoshiro128.cpp
 	Xoshiro128.h	
+	sdbm_hash.h
 	${distinct_sources}
 	)
 
 target_compile_definitions(kilipili_common PUBLIC
 	ON=1 OFF=0
-	#
 	PICO_MALLOC_PANIC=0
-	PICO_DEBUG_MALLOC=0
 	PICO_STDIO_ENABLE_CRLF_SUPPORT=1
 	)
 

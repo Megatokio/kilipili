@@ -21,6 +21,10 @@ if(${UNIT_TEST})
 		Graphics/Pixmap_unit_test.cpp
 		Graphics/Canvas_unit_test.cpp
 		Graphics/BitBlit_unit_test.cpp
+		common/tempmem.test.cpp
+		#common/Array.test.cpp 		
+		#common/relational_operators.test.cpp
+		#common/cstrings.test.cpp
 		)
 	
 	# add current dir to 'include search path':
