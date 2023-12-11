@@ -21,6 +21,9 @@ namespace kio
 // #define REForVALUE(T) typename select_type<std::is_class<T>::value, const T&, T>::type
 
 
+
+
+
 /**	General Array 
 
 	assumptions:
@@ -39,6 +42,10 @@ namespace kio
 */
 
 
+//template<typename T>
+//inline void _growmax(Array<T>& a, uint newmax) throws;
+
+
 template<typename T>
 class Array
 {
@@ -51,14 +58,19 @@ protected:
 	static void _free(T* data) noexcept;
 	static void _move_up(T* z, const T* q, uint n) noexcept;
 	static void _move_dn(T* z, const T* q, uint n) noexcept;
-	static void _init_with_copy(T* z, const T* q, uint n) noexcept;
-	static void _copy(T* z, const T* q, uint n) throws;
-	void		_init(uint a, uint n) noexcept;
-	void		_kill(uint a, uint n) noexcept;
-	void		_clear(uint a, uint e) noexcept;
+	static void _init_with_copy(T* z, const T* q, uint n);
+	static void _init_with_move(T* z, T* q, uint n) noexcept;
+	static void _init(T* a, uint n) noexcept;
+	static void	_kill(T* a, uint n) noexcept;
 	void		_growmax(uint newmax) throws;
 	void		_shrinkmax(uint newmax) throws;
-
+	
+	static void _init(T& a) noexcept{new(&a)T;}
+	static void	_kill(T& a) noexcept{a.~T();}
+	static void _init_with(T& z, const T& q){new(&z)T(q);}
+	static void _init_with(T& z, T&& q) noexcept{new(&z)T(std::move(q));}
+	
+	
 public:
 	// see https://stackoverflow.com/questions/11562/how-to-overload-stdswap
 	static void swap(Array& a, Array& b) noexcept
@@ -175,7 +187,7 @@ public:
 	}
 	void purge() noexcept
 	{
-		_kill(0, cnt);
+		_kill(data, cnt);
 		_free(data);
 		max = cnt = 0;
 		data	  = nullptr;
@@ -294,22 +306,31 @@ public:
 // -----------------------------------------------------------------------
 
 template<typename T>
-void Array<T>::_init(uint a, uint n) noexcept
+void Array<T>::_init(T* a, uint n) noexcept
 {
-	for (T* p = data + a; n;) { new (&p[--n]) T; }
+	while(n--) { new (a) T; }
 }
 
 template<typename T>
-void Array<T>::_kill(uint a, uint n) noexcept
+void Array<T>::_init_with_copy(T* z, const T* q, uint n) 
 {
-	for (T* p = data + a; n;) { p[--n].~T(); }
+	// initialize data from some other source
+	
+	while (n--) { new (z++) T(*q++); }
 }
 
 template<typename T>
-void Array<T>::_clear(uint a, uint n) noexcept
+void Array<T>::_init_with_move(T* z, T* q, uint n) noexcept
 {
-	_kill(a, n);
-	_init(a, n);
+	// initialize data from some other source
+	
+	while (n--) { new (z++) T(std::move(*q++)); }
+}
+
+template<typename T>
+void Array<T>::_kill(T* a, uint n) noexcept
+{
+	while (n--) { a->~T(); }
 }
 
 template<typename T>
@@ -324,31 +345,15 @@ T* Array<T>::_malloc(uint n) throws // static
 template<typename T>
 void Array<T>::_free(T* data) noexcept // static
 {
-	// deallocate initialized memory
+	// deallocate uninitialized memory
 
 	free(data);
 }
 
 template<typename T>
-void Array<T>::_init_with_copy(T* z, const T* q, uint n) noexcept
-{
-	// initialize data from some other source
-
-	while (n--) { new (z++) T(*q++); }
-}
-
-template<typename T>
-void Array<T>::_copy(T* z, const T* q, uint n) throws
-{
-	// copy data from some other source
-
-	while (n--) { *z++ = *q++; }
-}
-
-template<typename T>
 void Array<T>::_move_dn(T* z, const T* q, uint n) noexcept // static
 {
-	// copy data from higher or non-overlapping source
+	// move data from higher or non-overlapping source
 
 	while (n--) { *z++ = std::move(*q++); }
 }
@@ -356,32 +361,39 @@ void Array<T>::_move_dn(T* z, const T* q, uint n) noexcept // static
 template<typename T>
 void Array<T>::_move_up(T* z, const T* q, uint n) noexcept // static
 {
-	// copy data from lower or non-overlapping source
+	// move data from lower or non-overlapping source
 
 	while (n--) { z[n] = std::move(q[n]); }
 }
+
 
 template<typename T>
 void Array<T>::_growmax(uint newmax) throws
 {
 	// grow data[]
 	// grow only
-	// update max
-	// may relocate data
-
-	if (newmax > max)
+	
+	if(newmax > max)
 	{
-		if (T* newdata = reinterpret_cast<T*>(realloc(data, newmax * sizeof(T))))
+		if constexpr (std::is_trivially_move_constructible_v<T>)
 		{
-			if (newdata != data) // memory was moved
+			if (T* newdata = reinterpret_cast<T*>(realloc(data, newmax * sizeof(T))))
 			{
-				_init_with_copy(newdata, data, cnt); // if T has custom copy_ctor
-				_kill(0, cnt);						 // if T has custom dtor
 				data = newdata;
+				max = newmax;
 			}
+			else throw OUT_OF_MEMORY;
+		}
+		else
+		{
+			newmax += newmax/8 + 4;
+			T* newdata = _malloc(newmax);
+			_init_with_move(newdata, data, cnt); // if T has custom copy_ctor
+			_kill(data, cnt);						 // if T has custom dtor
+			_free(data);
+			data = newdata;
 			max = newmax;
 		}
-		else throw OUT_OF_MEMORY;
 	}
 }
 
@@ -407,7 +419,7 @@ Array<T>::Array(uint cnt, uint max) throws : Array()
 	if (max < cnt) max = cnt;
 	data	  = _malloc(max);
 	this->max = max;
-	_init(0, cnt);
+	_init(data, cnt);
 	this->cnt = cnt;
 }
 
@@ -534,12 +546,9 @@ void Array<T>::grow(uint newcnt, uint newmax) throws
 	// newcnt > cnt: grow cnt and clear new items
 
 	assert(newmax >= newcnt);
+	
 	_growmax(newmax);
-	while (cnt < newcnt)
-	{
-		new (data + cnt) T;
-		cnt++;
-	}
+	while (cnt < newcnt) { new (data + cnt++) T; }
 }
 
 template<typename T>
@@ -573,7 +582,7 @@ void Array<T>::removeat(uint idx, bool fast) noexcept
 	if (idx < --cnt)
 	{
 		if (fast) { data[idx] = std::move(data[cnt]); }
-		else { _move_dn(&data[idx], &data[idx + 1], cnt - idx); }
+		else { _move_dn(data + idx, data + idx + 1, cnt - idx); }
 	}
 
 	data[cnt].~T();
@@ -600,9 +609,9 @@ void Array<T>::removerange(uint a, uint e) noexcept
 	if (a >= e) return;
 
 	uint n = e - a;
-	_move_dn(data + a, data + e, n);
+	_move_dn(data + a, data + e, cnt-e);
+	_kill(data+cnt-n, n);
 	cnt -= n;
-	_kill(cnt, n);
 }
 
 template<typename T>
@@ -615,9 +624,17 @@ void Array<T>::insertat(uint idx, T t) throws
 
 	_growmax(cnt + 1);
 	new (data + cnt) T;
-	_move_up(&data[idx + 1], &data[idx], cnt - idx);
+	_move_up(data + idx + 1, data + idx, cnt - idx);
 	cnt++;
 	data[idx] = std::move(t);
+}
+
+template<typename T>
+void Array<T>::insertsorted(T q) throws
+{
+	uint i;
+	for (i = 0; i < cnt && !gt(q, data[i]); i++) {}
+	insertat(i, std::move(q));
 }
 
 template<typename T>
@@ -630,10 +647,11 @@ void Array<T>::insertat(uint idx, const T* q, uint n) throws
 	if (n == 0) return;
 
 	_growmax(cnt + n);
-	_init(cnt, n);
-	_move_up(&data[idx + n], &data[idx], cnt - idx);
+	_init(data+cnt, n);
+	_move_up(data + idx + n, data + idx, cnt - idx);
 	cnt += n;
-	_copy(data + idx, q, n);
+	_kill(data + idx, n);  
+	_init_with_copy(data + idx, q, n);
 }
 
 template<typename T>
@@ -658,18 +676,11 @@ void Array<T>::insertrange(uint a, uint e) throws
 
 	uint n = e - a;
 	_growmax(cnt + n);
-	_init(cnt, n);
-	_move_up(data + e, data + a, n);
-	_clear(cnt, n);
+	_init(data+cnt, n);
+	_move_up(data + e, data + a, cnt-e);
+	_kill(data+a, n);
+	_init(data+a, n);
 	cnt += n;
-}
-
-template<typename T>
-void Array<T>::insertsorted(T q) throws
-{
-	uint i;
-	for (i = 0; i < cnt && !gt(q, data[i]); i++) {}
-	insertat(i, std::move(q));
 }
 
 template<typename T>
