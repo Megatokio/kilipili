@@ -23,8 +23,8 @@ if(${UNIT_TEST})
 		Graphics/BitBlit_unit_test.cpp
 		common/tempmem.test.cpp
 		common/cstrings.test.cpp
+		common/relational_operators.test.cpp
 		#common/Array.test.cpp 		
-		#common/relational_operators.test.cpp
 		)
 	
 	# add current dir to 'include search path':

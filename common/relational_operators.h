@@ -103,7 +103,7 @@ inline Bool eq(cT& a, cT& b) noexcept
 template<class T>
 inline Bool ne(cT& a, cT& b) noexcept
 {
-	return a && b ? ne(*a, *b) : a != b;
+	return a && b ? ne(*a, *b) : !!a != !!b;
 }
 template<class T>
 inline Bool gt(cT& a, cT& b) noexcept

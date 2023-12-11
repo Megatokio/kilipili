@@ -124,7 +124,6 @@ public:
 
 	bool is(const T* b) const noexcept { return p == b; }
 	bool isnot(const T* b) const noexcept { return p != b; }
-		 operator bool() const noexcept { return p != nullptr; }
 };
 
 
