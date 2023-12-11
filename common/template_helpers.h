@@ -6,19 +6,13 @@
 #include <type_traits>
 
 namespace kio
-{
+{ 
 
 // select type T1 or T2:
-template<bool, typename T1, typename T2>
-struct select_type
-{
-	typedef T2 type;
-};
-template<typename T1, typename T2>
-struct select_type<true, T1, T2>
-{
-	typedef T1 type;
-};
+template<bool, typename T1, typename T2> struct _select_type { typedef T2 type; };
+template<typename T1, typename T2> struct _select_type<true, T1, T2> { typedef T1 type; };
+template<bool f, typename T1, typename T2>
+using select_type = typename _select_type<f,T1,T2>::type;
 
 
 template<typename T>
@@ -59,7 +53,7 @@ struct _has_operator_lt
 
 	static constexpr bool value = !std::is_same<Foo, decltype(test<T>(99))>::value;
 };
-
+ 
 template<typename T>
 constexpr bool has_operator_lt = _has_operator_lt<T>::value;
 

@@ -24,7 +24,7 @@ if(${UNIT_TEST})
 		common/tempmem.test.cpp
 		common/cstrings.test.cpp
 		common/relational_operators.test.cpp
-		#common/Array.test.cpp 		
+		common/Array.test.cpp 		
 		)
 	
 	# add current dir to 'include search path':

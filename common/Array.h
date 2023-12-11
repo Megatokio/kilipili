@@ -18,33 +18,17 @@
 namespace kio
 {
 
-// #define REForVALUE(T) typename select_type<std::is_class<T>::value, const T&, T>::type
-
-
-
+#define ref_or_value(T) select_type<std::is_scalar_v<T>, T, const T&>
 
 
 /**	General Array 
 
-	assumptions:
-	items must not have virtual member functions. (must not have a vtable)
-	new items are initialized with zero.
-	items are moved around in memory with memcpy().
-	items which have been moved with the move creator are not destroyed with ~T()
-	except this new(), ~T() and swap() are called.
-	item's eq(), ne(), gt() should be implemented for operator==() and sort() etc.
-	sort() uses gt(const T&,const T&) for classes else gt(T,T)
- 
-	operator[] aborts on failed index check!
-
-	specializations for Array<str> and Array<cstr> with allocation in TempMem.
-	see StrArray.h for strings with new[] & delete[].
+	· new items are initialized with their ctor; scalar items are initialized with zero.
+	· operator[] etc. abort on failed index check!
+	· item's eq(), ne(), lt() should be implemented for operator==() and sort() etc.
+	· specializations for Array<str> and Array<cstr> with allocation in TempMem.
 */
-
-
-//template<typename T>
-//inline void _growmax(Array<T>& a, uint newmax) throws;
-
+ 
 
 template<typename T>
 class Array
@@ -63,12 +47,9 @@ protected:
 	static void _init(T* a, uint n) noexcept;
 	static void	_kill(T* a, uint n) noexcept;
 	void		_growmax(uint newmax) throws;
-	void		_shrinkmax(uint newmax) throws;
-	
-	static void _init(T& a) noexcept{new(&a)T;}
+	void		_shrinkmax(uint newmax) throws;	
+	static void _init(T& a) noexcept;
 	static void	_kill(T& a) noexcept{a.~T();}
-	static void _init_with(T& z, const T& q){new(&z)T(q);}
-	static void _init_with(T& z, T&& q) noexcept{new(&z)T(std::move(q));}
 	
 	
 public:
@@ -159,15 +140,15 @@ public:
 	bool operator>=(const Array& q) const noexcept { return !operator<(q); }
 	bool operator<=(const Array& q) const noexcept { return !operator>(q); }
 
-	uint indexof(REForVALUE(T) item) const noexcept; // compare using '==' except str/cstr: 'eq'
-	bool contains(REForVALUE(T) item) const noexcept { return indexof(item) != ~0u; } // uses indexof()
+	uint indexof(ref_or_value(T) item) const noexcept; // compare using '==' except str/cstr: 'eq'
+	bool contains(ref_or_value(T) item) const noexcept { return indexof(item) != ~0u; } // uses indexof()
 
 	// resize:
 	void growmax(uint newmax) throws { _growmax(newmax); }
 	T&	 grow() throws
 	{
 		_growmax(cnt + 1);
-		new (&data[cnt]) T();
+		_init(data[cnt]);
 		return data[cnt++];
 	}
 	void grow(uint cnt, uint max) throws;
@@ -221,7 +202,7 @@ public:
 		cnt += q.cnt;
 	}
 
-	void removeitem(REForVALUE(T) item, bool fast = 0) noexcept;
+	void removeitem(ref_or_value(T) item, bool fast = 0) noexcept;
 	void removeat(uint idx, bool fast = 0) noexcept;
 	void removerange(uint a, uint e) noexcept;
 
@@ -241,11 +222,11 @@ public:
 		Foo2() = delete;
 	};
 	void
-	remove(typename select_type<std::is_fundamental<T>::value, Foo1, REForVALUE(T)>::type item, bool fast = 0) noexcept
+	remove(select_type<std::is_fundamental_v<T>, Foo1, ref_or_value(T)> item, bool fast = 0) noexcept
 	{
 		removeitem(item, fast);
 	}
-	void remove(typename kio::select_type<std::is_fundamental<T>::value, Foo2, uint>::type idx, bool fast = 0) noexcept
+	void remove(select_type<std::is_fundamental_v<T>, Foo2, uint> idx, bool fast = 0) noexcept
 	{
 		removeat(idx, fast);
 	}
@@ -254,7 +235,7 @@ public:
 	void insertat(uint idx, const T* q, uint n) throws;
 	void insertat(uint idx, const Array&) throws;
 	void insertrange(uint a, uint e) throws;
-	void insertsorted(T) throws; // uses gt()
+	void insertsorted(T) throws; // uses lt()
 
 	void revert(uint a, uint e) noexcept;  // revert items in range [a..[e
 	void rol(uint a, uint e) noexcept;	   // roll left  range  [a..[e
@@ -270,28 +251,19 @@ public:
 		if (e > cnt) e = cnt;
 		if (a < e) kio::rsort(data + a, data + e);
 	}
-	void sort(uint a, uint e, COMPARATOR(T) gt) noexcept
+	void sort(uint a, uint e, compare_fu(T) lt) noexcept
 	{
 		if (e > cnt) e = cnt;
-		if (a < e) kio::sort(data + a, data + e, gt);
+		if (a < e) kio::sort(data + a, data + e, lt);
 	}
 
 	void revert() noexcept { revert(0, cnt); }
 	void rol() noexcept { rol(0, cnt); }
 	void ror() noexcept { ror(0, cnt); }
 	void shuffle() noexcept { shuffle(0, cnt); }
-	void sort() noexcept
-	{
-		if (cnt) kio::sort(data, data + cnt);
-	} // uses gt()
-	void rsort() noexcept
-	{
-		if (cnt) kio::rsort(data, data + cnt);
-	} // uses gt()
-	void sort(COMPARATOR(T) gt) noexcept
-	{
-		if (cnt) kio::sort(data, data + cnt, gt);
-	}
+	void sort() noexcept { if (cnt) kio::sort(data, data + cnt); } // uses lt()
+	void rsort() noexcept { if (cnt) kio::rsort(data, data + cnt); } // uses gt()
+	void sort(compare_fu(T) lt) noexcept { if (cnt) kio::sort(data, data + cnt, lt); }
 
 	void swap(uint i, uint j) noexcept
 	{
@@ -308,7 +280,15 @@ public:
 template<typename T>
 void Array<T>::_init(T* a, uint n) noexcept
 {
-	while(n--) { new (a) T; }
+	if constexpr (std::is_scalar_v<T>) memset(a,0,n*sizeof(T)); // arith, enum, ptr
+	else while(n--) { new (a) T; }
+}
+
+template<typename T>
+void Array<T>::_init(T& a) noexcept
+{
+	if constexpr (std::is_scalar_v<T>) a=T(0); // arith, enum, ptr
+	else new(&a)T;
 }
 
 template<typename T>
@@ -497,7 +477,7 @@ bool Array<T>::operator>(const Array& q) const noexcept
 }
 
 template<typename T>
-uint Array<T>::indexof(REForVALUE(T) item) const noexcept
+uint Array<T>::indexof(ref_or_value(T) item) const noexcept
 {
 	// find first occurance
 	// using == (find pointers by identity)
@@ -548,7 +528,7 @@ void Array<T>::grow(uint newcnt, uint newmax) throws
 	assert(newmax >= newcnt);
 	
 	_growmax(newmax);
-	while (cnt < newcnt) { new (data + cnt++) T; }
+	while (cnt < newcnt) { _init(data[cnt++]); }
 }
 
 template<typename T>
@@ -589,7 +569,7 @@ void Array<T>::removeat(uint idx, bool fast) noexcept
 }
 
 template<typename T>
-void Array<T>::removeitem(REForVALUE(T) item, bool fast) noexcept
+void Array<T>::removeitem(ref_or_value(T) item, bool fast) noexcept
 {
 	// find first occurance and remove it
 	// uses indexof()
@@ -623,7 +603,7 @@ void Array<T>::insertat(uint idx, T t) throws
 	assert(idx <= cnt);
 
 	_growmax(cnt + 1);
-	new (data + cnt) T;
+	_init(data[cnt]);
 	_move_up(data + idx + 1, data + idx, cnt - idx);
 	cnt++;
 	data[idx] = std::move(t);
@@ -633,7 +613,7 @@ template<typename T>
 void Array<T>::insertsorted(T q) throws
 {
 	uint i;
-	for (i = 0; i < cnt && !gt(q, data[i]); i++) {}
+	for (i = cnt; i>0 && lt(q, data[i-1]); i--) {}
 	insertat(i, std::move(q));
 }
 
@@ -677,7 +657,7 @@ void Array<T>::insertrange(uint a, uint e) throws
 	uint n = e - a;
 	_growmax(cnt + n);
 	_init(data+cnt, n);
-	_move_up(data + e, data + a, cnt-e);
+	_move_up(data + e, data + a, cnt-a);
 	_kill(data+a, n);
 	_init(data+a, n);
 	cnt += n;
