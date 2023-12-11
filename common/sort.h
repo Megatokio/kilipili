@@ -59,9 +59,7 @@ namespace kio
 */
 
 
-// macro returns the type of the compare function for item type:
-#define REForVALUE(T) typename select_type<std::is_class<T>::value, T const&, T>::type
-#define COMPARATOR(T) typename select_type<std::is_class<T>::value, bool (*)(T const&, T const&), bool (*)(T, T)>::type
+#define compare_fu(T) select_type<std::is_scalar_v<T>, bool (*)(T, T), bool (*)(const T&, const T&)>
 
 
 // ------------------------------------------------------------
@@ -69,7 +67,7 @@ namespace kio
 // ------------------------------------------------------------
 
 template<typename T>
-inline void sort(T* a, T* e, COMPARATOR(T) gt)
+inline void sort(T* a, T* e, compare_fu(T) lt)
 {
 	assert(a != nullptr && e != nullptr);
 	assert(a + (e - a) == e); // check alignment
@@ -90,12 +88,12 @@ inline void sort(T* a, T* e, COMPARATOR(T) gt)
 		switch (e - a)
 		{
 		case 2: // 3 items
-			if (gt(a[0], a[2])) std::swap(a[0], a[2]);
-			if (gt(a[1], a[2])) std::swap(a[1], a[2]);
+			if (lt(a[2],a[0])) std::swap(a[0], a[2]);
+			if (lt(a[2],a[1])) std::swap(a[1], a[2]);
 			/* fall through */
 
 		case 1: // 2 items
-			if (gt(a[0], a[1])) std::swap(a[0], a[1]);
+			if (lt(a[1],a[0])) std::swap(a[0], a[1]);
 			/* fall through */
 
 		case 0: // 1 item
@@ -114,7 +112,7 @@ inline void sort(T* a, T* e, COMPARATOR(T) gt)
 		T* a0 = a;
 		T* e0 = e;
 
-		if (gt(*a, *e)) std::swap(*a, *e);
+		if (lt(*e, *a)) std::swap(*a, *e);
 
 		T* a_lim = a++;
 		T* e_lim = e--;
@@ -123,15 +121,15 @@ inline void sort(T* a, T* e, COMPARATOR(T) gt)
 		{
 			if (a >= e) break;
 
-			if (gt(*a, *a_lim))
-				if (gt(*e_lim, *a)) a_lim = a++;
+			if (lt(*a_lim,*a))
+				if (lt(*a,*e_lim)) a_lim = a++;
 				else std::swap(*a, *e), e--;
 			else a++;
 
 			if (a >= e) break;
 
-			if (gt(*e_lim, *e))
-				if (gt(*e, *a_lim)) e_lim = e--;
+			if (lt(*e,*e_lim))
+				if (lt(*a_lim,*e)) e_lim = e--;
 				else std::swap(*a, *e), a++;
 			else e--;
 		}
@@ -139,7 +137,7 @@ inline void sort(T* a, T* e, COMPARATOR(T) gt)
 		// letztes Element unten oder oben zuschlagen.
 		// wäre unnötig, wenn in der schleife oben das abbruchkriterium (a>b) verwendet würde.
 		// dann würde das letzte Element aber häufig mit sich selbst geswappt, was stören kann.
-		if (gt(*a, *a_lim)) e--;
+		if (lt(*a_lim,*a)) e--;
 		else a++;
 
 		// größeren der subbereiche [a0..e] und [a..e0] pushen, den anderen sofort sortieren
@@ -170,13 +168,13 @@ inline void sort(T* a, T* e, COMPARATOR(T) gt)
 template<typename TYPE>
 inline void sort(TYPE* a, TYPE* e)
 {
-	sort(a, e, gt);
+	sort(a, e, lt);
 }
 
 template<typename TYPE>
 inline void rsort(TYPE* a, TYPE* e)
 {
-	sort(a, e, lt);
+	sort(a, e, gt);
 }
 
 } // namespace kio
