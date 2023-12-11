@@ -51,7 +51,7 @@ inline constexpr char hexchar(int n) noexcept;			// masked legal
 extern uint strlen(cstr s) noexcept;
 extern bool lt(cstr, cstr) noexcept;
 extern bool gt(cstr, cstr) noexcept;
-extern bool gt_tolower(cstr, cstr) noexcept;
+extern bool lcgt(cstr, cstr) noexcept;
 extern bool eq(cstr, cstr) noexcept;
 extern bool ne(cstr, cstr) noexcept;
 inline bool le(cstr a, cstr b) noexcept { return !gt(a, b); }
@@ -76,58 +76,58 @@ extern bool islowerstr(cstr) noexcept;
 
 
 // ----	allocate with new[] ----
-extern str newstr(uint n) noexcept; // tempmem.h: allocate memory with new[]
-extern str newcopy(cstr) noexcept;	// tempmem.h: allocate memory with new[] and copy text
+extern str newstr(uint n); // tempmem.h: allocate memory with new[]
+extern str newcopy(cstr);  // tempmem.h: allocate memory with new[] and copy text
 
 
 // ---- allocate in TempMemPool ----
-extern str	tempstr(uint n) noexcept;
-inline str	tempstr(int size) noexcept;
-inline str	tempstr(ulong size) noexcept;
-inline str	tempstr(long size) noexcept;
-extern str	spacestr(int n, char c = ' ') noexcept;
-extern cstr spaces(uint n) noexcept;
-extern str	whitestr(cstr, char c = ' ') noexcept;
+extern str	tempstr(uint n);
+inline str	tempstr(int size);
+inline str	tempstr(ulong size);
+inline str	tempstr(long size);
+extern str	spacestr(int n, char c = ' ');
+extern cstr spaces(uint n);
+extern str	whitestr(cstr, char c = ' ');
 
-extern str	substr(cptr a, cptr e) noexcept;
-inline str	substr(cuptr a, cuptr e) noexcept { return substr(cptr(a), cptr(e)); } // convenience method
-extern str	mulstr(cstr, uint n) throws;										   // std::length_error
-extern str	catstr(cstr, cstr) noexcept;
-extern str	catstr(cstr, cstr, cstr, cstr = nullptr, cstr = nullptr, cstr = nullptr) noexcept;
-extern str	catstr(cstr, cstr, cstr, cstr, cstr, cstr, cstr, cstr = nullptr, cstr = nullptr, cstr = nullptr) noexcept;
-extern str	midstr(cstr, int a, int n) noexcept;
-extern str	midstr(cstr, int a) noexcept;
-extern str	leftstr(cstr, int n) noexcept;
-extern str	rightstr(cstr, int n) noexcept;
+extern str	substr(cptr a, cptr e);
+inline str	substr(cuptr a, cuptr e) { return substr(cptr(a), cptr(e)); } // convenience method
+extern str	mulstr(cstr, uint n) throws;								  // std::length_error
+extern str	catstr(cstr, cstr);
+extern str	catstr(cstr, cstr, cstr, cstr = nullptr, cstr = nullptr, cstr = nullptr);
+extern str	catstr(cstr, cstr, cstr, cstr, cstr, cstr, cstr, cstr = nullptr, cstr = nullptr, cstr = nullptr);
+extern str	midstr(cstr, int a, int n);
+extern str	midstr(cstr, int a);
+extern str	leftstr(cstr, int n);
+extern str	rightstr(cstr, int n);
 inline char lastchar(cstr s) noexcept;
 
 inline void toupper(str s) noexcept;
 inline void tolower(str s) noexcept;
-extern str	upperstr(cstr) noexcept;
-extern str	lowerstr(cstr) noexcept;
-extern str	replacedstr(cstr, char oldchar, char newchar) noexcept;
-extern cstr replacedstr(cstr, cstr oldtext, cstr newtext) noexcept;
-extern str	quotedstr(cstr) noexcept;
-extern str	unquotedstr(cstr) noexcept; // sets errno
-extern str	escapedstr(cstr) noexcept;
-extern str	unescapedstr(cstr) noexcept; // sets errno
-extern str	tohtmlstr(cstr) noexcept;
-extern cstr fromhtmlstr(cstr) noexcept; // may return original string
-extern str	toutf8str(cstr) noexcept;
-extern str	fromutf8str(cstr) noexcept; // ucs1, sets errno
-extern str	unhexstr(cstr) noexcept;	// may return nullptr
-extern str	base64str(cstr) noexcept;
-extern str	unbase64str(cstr) noexcept;			// may return nullptr
-extern cstr croppedstr(cstr) noexcept;			// may return (substring of) original string
-extern cstr detabstr(cstr, uint tabs) noexcept; // may return original string
+extern str	upperstr(cstr);
+extern str	lowerstr(cstr);
+extern str	replacedstr(cstr, char oldchar, char newchar);
+extern cstr replacedstr(cstr, cstr oldtext, cstr newtext);
+extern str	quotedstr(cstr);
+extern str	unquotedstr(cstr); // sets errno
+extern str	escapedstr(cstr);
+extern str	unescapedstr(cstr); // sets errno
+extern str	tohtmlstr(cstr);
+extern cstr fromhtmlstr(cstr); // may return original string
+extern str	toutf8str(cstr);
+extern str	fromutf8str(cstr); // ucs1, sets errno
+extern str	unhexstr(cstr);	   // may return nullptr
+extern str	base64str(cstr);
+extern str	unbase64str(cstr);		   // may return nullptr
+extern cstr croppedstr(cstr);		   // may return (substring of) original string
+extern cstr detabstr(cstr, uint tabs); // may return original string
 
-extern str usingstr(cstr fmt, va_list) noexcept __printflike(1, 0);
-extern str usingstr(cstr fmt, ...) noexcept __printflike(1, 2);
+extern str usingstr(cstr fmt, va_list) __printflike(1, 0);
+extern str usingstr(cstr fmt, ...) __printflike(1, 2);
 
-extern str binstr(uint32 n, cstr b0 = "00000000", cstr b1 = "11111111") noexcept;
-extern str binstr(uint64 n, cstr b0 = "00000000", cstr b1 = "11111111") noexcept;
-extern str hexstr(uint32 n, uint len) noexcept;
-extern str hexstr(uint64 n, uint len) noexcept;
+extern str binstr(uint32 n, cstr b0 = "00000000", cstr b1 = "11111111");
+extern str binstr(uint64 n, cstr b0 = "00000000", cstr b1 = "11111111");
+extern str hexstr(uint32 n, uint len);
+extern str hexstr(uint64 n, uint len);
 
 // this is a PITA:
 #define str_if_Tle4 \
@@ -136,53 +136,53 @@ extern str hexstr(uint64 n, uint len) noexcept;
   typename std::enable_if<(std::is_integral<T>::value || std::is_enum<T>::value) && 4 < sizeof(T), str>::type
 
 template<typename T>
-inline str_if_Tle4 binstr(T n, cstr b0 = "00000000", cstr b1 = "11111111") noexcept;
+inline str_if_Tle4 binstr(T n, cstr b0 = "00000000", cstr b1 = "11111111");
 template<typename T>
-inline str_if_Tgt4 binstr(T n, cstr b0 = "00000000", cstr b1 = "11111111") noexcept;
+inline str_if_Tgt4 binstr(T n, cstr b0 = "00000000", cstr b1 = "11111111");
 
 template<typename T>
-inline str_if_Tle4 hexstr(T n, uint len) noexcept;
+inline str_if_Tle4 hexstr(T n, uint len);
 template<typename T>
-inline str_if_Tgt4 hexstr(T n, uint len) noexcept;
+inline str_if_Tgt4 hexstr(T n, uint len);
 
-extern str hexstr(cptr, uint len) noexcept;
-inline str hexstr(cstr s) noexcept; // must not contain nullbyte
+extern str hexstr(cptr, uint len);
+inline str hexstr(cstr s); // must not contain nullbyte
 
 //template<class T> str hexstr (T* p, uint cnt) throws AMBIGUITY: reinterpret vs. static cast!
 //template<class T> str hexstr (T n, uint len)  throws AMBIGUITY: reinterpret vs. static cast!
 
 template<class T>
-inline str numstr(T n) throws;
+inline str numstr(T n);
 
 static constexpr char str36[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-extern str numstr(uint32 n, uint base, cstr digits = str36) noexcept;
-extern str numstr(uint64 n, uint base, cstr digits = str36) noexcept;
+extern str numstr(uint32 n, uint base, cstr digits = str36);
+extern str numstr(uint64 n, uint base, cstr digits = str36);
 template<typename T>
-inline str_if_Tle4 numstr(T n, uint base, cstr digits = str36) noexcept;
+inline str_if_Tle4 numstr(T n, uint base, cstr digits = str36);
 template<typename T>
-inline str_if_Tgt4 numstr(T n, uint base, cstr digits = str36) noexcept;
+inline str_if_Tgt4 numstr(T n, uint base, cstr digits = str36);
 
-extern str charstr(char) noexcept;
-extern str charstr(char, char) noexcept;
-extern str charstr(char, char, char) noexcept;
-extern str charstr(char, char, char, char) noexcept;
-extern str charstr(char, char, char, char, char) noexcept;
+extern str charstr(char);
+extern str charstr(char, char);
+extern str charstr(char, char, char);
+extern str charstr(char, char, char, char);
+extern str charstr(char, char, char, char, char);
 
-extern str	  datestr(time_t secs) noexcept; // returned string is in local time
-inline str	  datestr(double secs) noexcept { return datestr(time_t(secs)); }
-extern str	  timestr(time_t secs) noexcept; // returned string is in local time
-inline str	  timestr(double secs) noexcept { return timestr(time_t(secs)); }
-inline str	  timestr(float secs) noexcept { return timestr(time_t(secs)); }
-extern str	  datetimestr(time_t secs) noexcept; // returned string is in local time
-inline str	  datetimestr(double secs) noexcept { return datetimestr(time_t(secs)); }
+extern str	  datestr(time_t secs); // returned string is in local time
+inline str	  datestr(double secs) { return datestr(time_t(secs)); }
+extern str	  timestr(time_t secs); // returned string is in local time
+inline str	  timestr(double secs) { return timestr(time_t(secs)); }
+inline str	  timestr(float secs) { return timestr(time_t(secs)); }
+extern str	  datetimestr(time_t secs); // returned string is in local time
+inline str	  datetimestr(double secs) { return datetimestr(time_t(secs)); }
 extern time_t dateval(cstr localtimestr) noexcept;
 
-extern str durationstr(time_t secs) noexcept;
-extern str durationstr(double secs) noexcept;
-inline str durationstr(float secs) noexcept { return durationstr(double(secs)); }
+extern str durationstr(time_t secs);
+extern str durationstr(double secs);
+inline str durationstr(float secs) { return durationstr(double(secs)); }
 template<typename T>
-inline str durationstr(T secs) noexcept;
+inline str durationstr(T secs);
 
 // NOTE: _split() reuses the source buffer and overwrites line delimiters with 0, evtl. overwriting char at ptr e!
 extern void _split(Array<str>& z, ptr a, ptr e) throws;			// split at line breaks
@@ -209,27 +209,27 @@ str join(const Array<cstr>& q) throws;
 str join(const Array<cstr>& q, char, bool final = false) throws;
 str join(const Array<cstr>& q, cstr, bool final = false) throws;
 
-cstr filename_from_path(cstr path) noexcept;		 // "…/name.ext" --> "name.ext"	"…/" -> ""
-cstr extension_from_path(cstr path) noexcept;		 // "….ext"		--> ".ext"		"…"  -> ""
-cstr basename_from_path(cstr path) noexcept;		 // "…/name.ext"	--> "name"
-cstr directory_from_path(cstr path) noexcept;		 // "path/…"		--> "path/"		"…"	 -> "./"
-cstr parent_directory_from_path(cstr path) noexcept; // "path/name/" -> "path/";  "path/name" -> "path/"; "…" -> "./"
-cstr last_component_from_path(cstr path) noexcept;	 // "…/name.ext"	--> "name.ext"	"…/dir/" -> "dir/"
+cstr filename_from_path(cstr path) noexcept;	   // "…/name.ext" --> "name.ext"	"…/" -> ""
+cstr extension_from_path(cstr path) noexcept;	   // "….ext"		--> ".ext"		"…"  -> ""
+cstr basename_from_path(cstr path);				   // "…/name.ext"	--> "name"
+cstr directory_from_path(cstr path);			   // "path/…"		--> "path/"		"…"	 -> "./"
+cstr parent_directory_from_path(cstr path);		   // "path/name/" -> "path/";  "path/name" -> "path/"; "…" -> "./"
+cstr last_component_from_path(cstr path) noexcept; // "…/name.ext"	--> "name.ext"	"…/dir/" -> "dir/"
 
 } // namespace kio
 
 
 inline cstr tostr(bool f) noexcept { return f ? "true" : "false"; }
-inline str	tostr(float n) noexcept { return kio::usingstr("%.10g", double(n)); }
-inline str	tostr(double n) noexcept { return kio::usingstr("%.14g", n); }
-inline str	tostr(long double n) noexcept { return kio::usingstr("%.22Lg", n); }
-inline str	tostr(int n) noexcept { return kio::usingstr("%i", n); }
-inline str	tostr(unsigned int n) noexcept { return kio::usingstr("%u", n); }
-inline str	tostr(long n) noexcept { return kio::usingstr("%li", n); }
-inline str	tostr(unsigned long n) noexcept { return kio::usingstr("%lu", n); }
-inline str	tostr(long long n) noexcept { return kio::usingstr("%lli", n); }
-inline str	tostr(unsigned long long n) noexcept { return kio::usingstr("%llu", n); }
-inline cstr tostr(cstr s) noexcept { return s ? kio::quotedstr(s) : "nullptr"; }
+inline str	tostr(float n) { return kio::usingstr("%.10g", double(n)); }
+inline str	tostr(double n) { return kio::usingstr("%.14g", n); }
+inline str	tostr(long double n) { return kio::usingstr("%.22Lg", n); }
+inline str	tostr(int n) { return kio::usingstr("%i", n); }
+inline str	tostr(unsigned int n) { return kio::usingstr("%u", n); }
+inline str	tostr(long n) { return kio::usingstr("%li", n); }
+inline str	tostr(unsigned long n) { return kio::usingstr("%lu", n); }
+inline str	tostr(long long n) { return kio::usingstr("%lli", n); }
+inline str	tostr(unsigned long long n) { return kio::usingstr("%llu", n); }
+inline cstr tostr(cstr s) { return s ? kio::quotedstr(s) : "nullptr"; }
 
 
 //
@@ -292,17 +292,17 @@ inline ptr	find(str target, cstr search) noexcept { return ptr(find(cstr(target)
 inline ptr	rfind(str target, cstr search) noexcept { return ptr(rfind(cstr(target), search)); }
 inline cptr rfind(cstr target, char c) noexcept { return target ? rfind(target, strchr(target, 0), c) : target; }
 
-inline str tempstr(int size) noexcept
+inline str tempstr(int size)
 {
 	assert(size >= 0);
 	return tempstr(uint(size));
 }
-inline str tempstr(ulong size) noexcept
+inline str tempstr(ulong size)
 {
 	assert(size == uint(size));
 	return tempstr(uint(size));
 }
-inline str tempstr(long size) noexcept
+inline str tempstr(long size)
 {
 	assert(size >= 0);
 	return tempstr(ulong(size));
@@ -322,29 +322,29 @@ inline void tolower(str s) noexcept
 }
 
 template<typename T>
-inline str_if_Tle4 hexstr(T n, uint len) noexcept
+inline str_if_Tle4 hexstr(T n, uint len)
 {
 	return hexstr(uint32(n), len);
 }
 
 template<typename T>
-inline str_if_Tgt4 hexstr(T n, uint len) noexcept
+inline str_if_Tgt4 hexstr(T n, uint len)
 {
 	return hexstr(uint64(n), len);
 }
 
 template<typename T>
-inline str_if_Tle4 binstr(T n, cstr b0, cstr b1) noexcept
+inline str_if_Tle4 binstr(T n, cstr b0, cstr b1)
 {
 	return binstr(uint32(n), b0, b1);
 }
 template<typename T>
-inline str_if_Tgt4 binstr(T n, cstr b0, cstr b1) noexcept
+inline str_if_Tgt4 binstr(T n, cstr b0, cstr b1)
 {
 	return binstr(uint64(n), b0, b1);
 }
 
-inline str hexstr(cstr s) noexcept { return hexstr(s, strlen(s)); }
+inline str hexstr(cstr s) { return hexstr(s, strlen(s)); }
 
 template<class T>
 inline str numstr(T n) throws
@@ -353,18 +353,18 @@ inline str numstr(T n) throws
 }
 
 template<typename T>
-inline str_if_Tle4 numstr(T n, uint base, cstr digits) noexcept
+inline str_if_Tle4 numstr(T n, uint base, cstr digits)
 {
 	return numstr(uint32(n), base, digits);
 }
 template<typename T>
-inline str_if_Tgt4 numstr(T n, uint base, cstr digits) noexcept
+inline str_if_Tgt4 numstr(T n, uint base, cstr digits)
 {
 	return numstr(uint64(n), base, digits);
 }
 
 template<typename T>
-inline str durationstr(T secs) noexcept
+inline str durationstr(T secs)
 {
 	return durationstr(time_t(secs));
 }

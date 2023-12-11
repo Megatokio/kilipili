@@ -9,9 +9,8 @@
 #include <limits.h>
 #include <stdexcept>
 
-#define NO_Kio_Array
 #ifndef NO_Kio_Array
-  #include "Templates/Array.h"
+  #include "Array.h"
 #endif
 
 // hint for decimal POINT:
@@ -93,7 +92,7 @@ cptr rfind(cstr start, cstr end, char c) noexcept
 	return nullptr;
 }
 
-str spacestr(int n, char c) noexcept
+str spacestr(int n, char c)
 {
 	// Create and clear a string
 
@@ -103,7 +102,7 @@ str spacestr(int n, char c) noexcept
 	return s;
 }
 
-cstr spaces(uint n) noexcept
+cstr spaces(uint n)
 {
 	// return a const space string
 	// returned string is const if ≤ 40 char
@@ -115,7 +114,7 @@ cstr spaces(uint n) noexcept
 	return n > maxlen ? spacestr(int(n)) : _spaces + maxlen - n;
 }
 
-str whitestr(cstr q, char c) noexcept
+str whitestr(cstr q, char c)
 {
 	// create blanked-out copy of string
 	// replace all printable characters with space
@@ -130,20 +129,20 @@ str whitestr(cstr q, char c) noexcept
 }
 
 // create string from char:
-str charstr(char c) noexcept
+str charstr(char c)
 {
 	str s = tempstr(1);
 	*s	  = c;
 	return s;
 }
-str charstr(char c1, char c2) noexcept
+str charstr(char c1, char c2)
 {
 	str s = tempstr(2);
 	s[0]  = c1;
 	s[1]  = c2;
 	return s;
 }
-str charstr(char c1, char c2, char c3) noexcept
+str charstr(char c1, char c2, char c3)
 {
 	str s = tempstr(3);
 	s[0]  = c1;
@@ -151,7 +150,7 @@ str charstr(char c1, char c2, char c3) noexcept
 	s[2]  = c3;
 	return s;
 }
-str charstr(char c1, char c2, char c3, char c4) noexcept
+str charstr(char c1, char c2, char c3, char c4)
 {
 	str s = tempstr(4);
 	s[0]  = c1;
@@ -160,7 +159,7 @@ str charstr(char c1, char c2, char c3, char c4) noexcept
 	s[3]  = c4;
 	return s;
 }
-str charstr(char c1, char c2, char c3, char c4, char c5) noexcept
+str charstr(char c1, char c2, char c3, char c4, char c5)
 {
 	str s = tempstr(5);
 	s[0]  = c1;
@@ -171,7 +170,7 @@ str charstr(char c1, char c2, char c3, char c4, char c5) noexcept
 	return s;
 }
 
-str replacedstr(cstr s, char old, char nju) noexcept
+str replacedstr(cstr s, char old, char nju)
 {
 	// Replace any occurance of a character by another
 
@@ -181,7 +180,7 @@ str replacedstr(cstr s, char old, char nju) noexcept
 	return t;
 }
 
-cstr replacedstr(cstr q, cstr old, cstr nju) noexcept
+cstr replacedstr(cstr q, cstr old, cstr nju)
 {
 	// Replace any occurance of one text by another
 	// returns the original string if no replacements were made
@@ -213,7 +212,7 @@ cstr replacedstr(cstr q, cstr old, cstr nju) noexcept
 	return rval;
 }
 
-str lowerstr(cstr s) noexcept
+str lowerstr(cstr s)
 {
 	// Convert a string to all lower case
 
@@ -222,7 +221,7 @@ str lowerstr(cstr s) noexcept
 	return t;
 }
 
-str upperstr(cstr s) noexcept
+str upperstr(cstr s)
 {
 	// Convert a string to all upper case
 
@@ -278,7 +277,7 @@ str mulstr(cstr q, uint n) throws // std::length_error
 	return s;
 }
 
-str catstr(cstr s1, cstr s2) noexcept
+str catstr(cstr s1, cstr s2)
 {
 	// Concatenate 2 strings
 
@@ -289,7 +288,7 @@ str catstr(cstr s1, cstr s2) noexcept
 	return s;
 }
 
-str catstr(cstr s1, cstr s2, cstr s3, cstr s4, cstr s5, cstr s6) noexcept
+str catstr(cstr s1, cstr s2, cstr s3, cstr s4, cstr s5, cstr s6)
 {
 	// Concatenate up to 6 strings
 
@@ -304,7 +303,7 @@ str catstr(cstr s1, cstr s2, cstr s3, cstr s4, cstr s5, cstr s6) noexcept
 	return s;
 }
 
-str catstr(cstr s1, cstr s2, cstr s3, cstr s4, cstr s5, cstr s6, cstr s7, cstr s8, cstr s9, cstr s10) noexcept
+str catstr(cstr s1, cstr s2, cstr s3, cstr s4, cstr s5, cstr s6, cstr s7, cstr s8, cstr s9, cstr s10)
 {
 	// Concatenate up to 10 strings
 
@@ -325,7 +324,7 @@ str catstr(cstr s1, cstr s2, cstr s3, cstr s4, cstr s5, cstr s6, cstr s7, cstr s
 	return s;
 }
 
-str hexstr(uint32 n, uint digits) noexcept
+str hexstr(uint32 n, uint digits)
 {
 	// Convert number to hexadecimal string
 
@@ -339,7 +338,7 @@ str hexstr(uint32 n, uint digits) noexcept
 	return c;
 }
 
-str hexstr(uint64 n, uint digits) noexcept
+str hexstr(uint64 n, uint digits)
 {
 	// Convert number to hexadecimal string
 
@@ -353,7 +352,7 @@ str hexstr(uint64 n, uint digits) noexcept
 	return c;
 }
 
-str numstr(uint32 n, uint base, cstr digits) noexcept
+str numstr(uint32 n, uint base, cstr digits)
 {
 	assert(base >= 2 && digits && base <= strlen(digits));
 
@@ -369,7 +368,7 @@ str numstr(uint32 n, uint base, cstr digits) noexcept
 	return newcopy(p);
 }
 
-str numstr(uint64 n, uint base, cstr digits) noexcept
+str numstr(uint64 n, uint base, cstr digits)
 {
 	assert(base >= 2 && digits && base <= strlen(digits));
 
@@ -385,7 +384,7 @@ str numstr(uint64 n, uint base, cstr digits) noexcept
 	return newcopy(p);
 }
 
-str binstr(uint32 value, cstr b0, cstr b1) noexcept
+str binstr(uint32 value, cstr b0, cstr b1)
 {
 	// Convert number to binary string
 
@@ -403,7 +402,7 @@ str binstr(uint32 value, cstr b0, cstr b1) noexcept
 	return s;
 }
 
-str binstr(uint64 value, cstr b0, cstr b1) noexcept
+str binstr(uint64 value, cstr b0, cstr b1)
 {
 	// Convert number to binary string
 
@@ -421,7 +420,7 @@ str binstr(uint64 value, cstr b0, cstr b1) noexcept
 	return s;
 }
 
-str substr(cstr a, cstr e) noexcept
+str substr(cstr a, cstr e)
 {
 	// create string [a ... [e
 	// does not check for 0-characters between a and e
@@ -434,7 +433,7 @@ str substr(cstr a, cstr e) noexcept
 	return c;
 }
 
-str leftstr(cstr s, int n) noexcept
+str leftstr(cstr s, int n)
 {
 	// create left substring
 	// splits n bytes from the left
@@ -452,7 +451,7 @@ str leftstr(cstr s, int n) noexcept
 	return c;
 }
 
-str rightstr(cstr s, int n) noexcept
+str rightstr(cstr s, int n)
 {
 	// create right substring
 	// splits n bytes from the right
@@ -466,7 +465,7 @@ str rightstr(cstr s, int n) noexcept
 	return c;
 }
 
-str midstr(cstr s, int a, int n) noexcept
+str midstr(cstr s, int a, int n)
 {
 	// create mid substring
 	// skip a bytes from the left then split n bytes
@@ -482,7 +481,7 @@ str midstr(cstr s, int a, int n) noexcept
 	return substr(s + a, s + a + n);
 }
 
-str midstr(cstr s, int a) noexcept
+str midstr(cstr s, int a)
 {
 	// create mid-to-end substring
 
@@ -491,7 +490,7 @@ str midstr(cstr s, int a) noexcept
 	return substr(s + a, strchr(s, 0));
 }
 
-str usingstr(cstr format, ...) noexcept
+str usingstr(cstr format, ...)
 {
 	// create formatted string
 
@@ -502,7 +501,7 @@ str usingstr(cstr format, ...) noexcept
 	return s;
 }
 
-str usingstr(cstr fmt, va_list va) noexcept
+str usingstr(cstr fmt, va_list va)
 {
 	// note: caller must call va_start() before and va_end() afterwards.
 
@@ -546,7 +545,7 @@ static cptr str_comp(cstr a, cstr b) noexcept
 	return a;
 }
 
-str tohtmlstr(cstr s0) noexcept
+str tohtmlstr(cstr s0)
 {
 	str	 s;
 	char c;
@@ -574,7 +573,7 @@ str tohtmlstr(cstr s0) noexcept
 	return s != s0 ? s : dupstr(s0);
 }
 
-str escapedstr(cstr s0) noexcept
+str escapedstr(cstr s0)
 {
 	str	 s;
 	cptr q;
@@ -621,9 +620,9 @@ str escapedstr(cstr s0) noexcept
 	return s != s0 ? s : dupstr(s0);
 }
 
-str quotedstr(cstr s) noexcept { return catstr("\"", escapedstr(s), "\""); }
+str quotedstr(cstr s) { return catstr("\"", escapedstr(s), "\""); }
 
-str unescapedstr(cstr s0) noexcept // sets errno
+str unescapedstr(cstr s0) // sets errno
 {
 	char c, *q, *z;
 
@@ -709,7 +708,7 @@ str unescapedstr(cstr s0) noexcept // sets errno
 	return s;
 }
 
-str unquotedstr(cstr s0) noexcept // sets errno
+str unquotedstr(cstr s0) // sets errno
 {
 	char c;
 	str	 s;
@@ -732,7 +731,7 @@ str unquotedstr(cstr s0) noexcept // sets errno
 	return unescapedstr(s);
 }
 
-cstr fromhtmlstr(cstr s0) noexcept
+cstr fromhtmlstr(cstr s0)
 {
 	// decode &lt; &rt; &amp; &quot; and <br>
 	// more versatile decoder in utf8.cpp
@@ -789,7 +788,7 @@ cstr fromhtmlstr(cstr s0) noexcept
 	}
 }
 
-str fromutf8str(cstr qstr) noexcept // sets errno
+str fromutf8str(cstr qstr) // sets errno
 {
 	if (!qstr || *qstr == 0) return emptystr;
 
@@ -833,7 +832,7 @@ str fromutf8str(cstr qstr) noexcept // sets errno
 	return zstr;
 }
 
-str toutf8str(cstr qstr) noexcept
+str toutf8str(cstr qstr)
 {
 	if (qstr == nullptr || *qstr == 0) return nullptr;
 
@@ -917,7 +916,7 @@ time_t dateval(cstr datestr) noexcept
 					   //return timegm(&d);	// UTC
 }
 
-str datetimestr(time_t secs) noexcept
+str datetimestr(time_t secs)
 {
 	tm d;
 	localtime_r(&secs, &d);
@@ -925,14 +924,14 @@ str datetimestr(time_t secs) noexcept
 		"%04u-%02u-%02u %02u:%02u:%02u", d.tm_year + 1900, d.tm_mon + 1, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec);
 }
 
-str datestr(time_t secs) noexcept
+str datestr(time_t secs)
 {
 	tm d;
 	localtime_r(&secs, &d);
 	return usingstr("%04u-%02u-%02u", d.tm_year + 1900, d.tm_mon + 1, d.tm_mday);
 }
 
-str timestr(time_t secs) noexcept
+str timestr(time_t secs)
 {
 	tm d;
 	localtime_r(&secs, &d);
@@ -942,7 +941,7 @@ str timestr(time_t secs) noexcept
 // ON_INIT(tzset); // because localtime_r() is not guaranteed to call tzset()
 
 
-str durationstr(time_t secs) noexcept
+str durationstr(time_t secs)
 {
 	uint s = uint(secs);
 	if (s < 300) return usingstr("%u sec.", s);
@@ -957,7 +956,7 @@ str durationstr(time_t secs) noexcept
 	return usingstr("%ud:%02uh:%02um", d, h, m);
 }
 
-str durationstr(double secs) noexcept { return secs >= 300 ? durationstr(time_t(secs)) : usingstr("%.3f sec.", secs); }
+str durationstr(double secs) { return secs >= 300 ? durationstr(time_t(secs)) : usingstr("%.3f sec.", secs); }
 
 
 bool lt(cptr a, cptr b) noexcept
@@ -994,7 +993,7 @@ bool gt(cptr a, cptr b) noexcept
 	}
 }
 
-bool gt_tolower(cptr a, cptr b) noexcept
+bool lcgt(cptr a, cptr b) noexcept
 {
 	while (*a && to_lower(*a) == to_lower(*b))
 	{
@@ -1097,7 +1096,7 @@ bool fnmatch(cstr pattern, cstr path, bool casefold) noexcept
 	}
 }
 
-str hexstr(cptr s, uint n) noexcept
+str hexstr(cptr s, uint n)
 {
 	assert(s != nullptr || n == 0);
 
@@ -1112,7 +1111,7 @@ str hexstr(cptr s, uint n) noexcept
 	return z;
 }
 
-str unhexstr(cstr s) noexcept
+str unhexstr(cstr s)
 {
 	// returns nullptr on any error
 
@@ -1143,7 +1142,7 @@ static const uint8 unbase64[128] = {
 	33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, x,	x,	x,	x,	x};
 #undef x
 
-str base64str(cstr s0) noexcept
+str base64str(cstr s0)
 {
 	// base64 encode a string
 	// base64 encoding uses only 3 special characters: '+'  and  '/'  and  '='
@@ -1187,7 +1186,7 @@ str base64str(cstr s0) noexcept
 	return z - zlen;
 }
 
-str unbase64str(cstr s0) noexcept
+str unbase64str(cstr s0)
 {
 	// returns nullptr on any error
 
@@ -1412,7 +1411,7 @@ str join(const Array<cstr>& q, char c, bool final) throws
 
 #endif // #ifdef CSTRINGS_USE_KIOS_ARRAY
 
-cstr croppedstr(cstr s) noexcept
+cstr croppedstr(cstr s)
 {
 	// remove white spaces at start and end of string
 	// may return original string
@@ -1463,7 +1462,7 @@ uint strcat(ptr z, cptr q, uint sz) noexcept
 	return uint(z - za) + strcpy(z, q, uint(ze - z));
 }
 
-cstr detabstr(cstr s, uint tabstops) noexcept
+cstr detabstr(cstr s, uint tabstops)
 {
 	// expand tabs to spaces
 	// returns the original string if there were no tabs found
@@ -1544,7 +1543,7 @@ cstr extension_from_path(cstr path) noexcept
 	else return strchr(path, 0);
 }
 
-cstr basename_from_path(cstr path) noexcept
+cstr basename_from_path(cstr path)
 {
 	// separate filename basename from path
 	// returns string in cstring pool
@@ -1553,7 +1552,7 @@ cstr basename_from_path(cstr path) noexcept
 	return substr(path, extension_from_path(path));
 }
 
-cstr directory_from_path(cstr path) noexcept
+cstr directory_from_path(cstr path)
 {
 	// separate directory path from path
 	// returns string in cstring pool
@@ -1575,7 +1574,7 @@ cstr last_component_from_path(cstr path) noexcept
 	return p >= path ? p + 1 : path;
 }
 
-cstr parent_directory_from_path(cstr path) noexcept
+cstr parent_directory_from_path(cstr path)
 {
 	// separate directory path from path
 	// returns string in cstring pool
