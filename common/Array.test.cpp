@@ -5,21 +5,14 @@
 
 #include "Array.h"
 #include "doctest.h"
-#include "kilipili_common.h"
 
 using namespace kio;
 
-static bool foo_gt(int a, int b) { return (a ^ 3) > (b ^ 3); }
+static bool foo_lt(int a, int b) { return (a ^ 3) < (b ^ 3); }
 
 
-TEST_CASE("Array: test_relational_operators: eq() ne() gt() lt()")
+TEST_CASE("Array: sort")
 {
-	CHECK(1 == 0); //test_relational_operators(num_tests, num_errors);
-}
-
-TEST_CASE("Array: test_prerequisites: sort")
-{
-	if constexpr (0)
 	{
 		int	 array1[] = {6, 4, 9, 2, 1, 0, 4, 8, 7, 6, 2, 1, 9, 9, 1};
 		uint size = sizeof(array1), count = NELEM(array1);
@@ -32,13 +25,12 @@ TEST_CASE("Array: test_prerequisites: sort")
 		CHECK(memcmp(array1, sorted, size) == 0);
 		rsort(&array2[0], &array2[count]);
 		CHECK(memcmp(array2, rsorted, size) == 0);
-		sort(&array3[0], &array3[count], gt);
+		sort(&array3[0], &array3[count], lt);
 		CHECK(memcmp(array3, sorted, size) == 0);
-		sort(&array4[0], &array4[count], lt);
+		sort(&array4[0], &array4[count], gt);
 		CHECK(memcmp(array4, rsorted, size) == 0);
 	}
 
-	if constexpr (0)
 	{
 		const char q[]		 = {'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd', '!',
 								10,	 'D', 'i', 'e', ' ', 'K', 'u', 'h', '.', 10,  0};
@@ -54,16 +46,15 @@ TEST_CASE("Array: test_prerequisites: sort")
 		rsort(s, strchr(s, 0));
 		CHECK(eq(s, rsorted));
 		s = dupstr(q);
-		sort(s, strchr(s, 0), gt);
+		sort(s, strchr(s, 0), lt);
 		CHECK(eq(s, sorted));
 		s = dupstr(q);
-		sort(s, strchr(s, 0), lt);
+		sort(s, strchr(s, 0), gt);
 		CHECK(eq(s, rsorted));
 	}
 
 	// sort str and cstr
 
-	if constexpr (0)
 	{
 		cstr  q[]  = {"Anton", "\tfoo", nullptr, "\t", "anton", "Antonov"};
 		uint  size = sizeof(q), count = NELEM(q);
@@ -80,15 +71,14 @@ TEST_CASE("Array: test_prerequisites: sort")
 		CHECK(memcmp(a, rsorted, size) == 0);
 		a = new cstr[count];
 		memcpy(a, q, size);
-		sort(a, a + count, gt);
+		sort(a, a + count, lt);
 		CHECK(memcmp(a, sorted, size) == 0);
 		a = new cstr[count];
 		memcpy(a, q, size);
-		sort(a, a + count, lt);
+		sort(a, a + count, gt);
 		CHECK(memcmp(a, rsorted, size) == 0);
 	}
 
-	if constexpr (0)
 	{
 		cstr q[]  = {"Anton", "\tfoo", nullptr, "\t", "anton", "Antonov"};
 		uint size = sizeof(q), count = NELEM(q);
@@ -105,11 +95,11 @@ TEST_CASE("Array: test_prerequisites: sort")
 		CHECK(memcmp(a, rsorted, size) == 0);
 		a = new str[count];
 		memcpy(a, q, size);
-		sort(a, a + count, gt);
+		sort(a, a + count, lt);
 		CHECK(memcmp(a, sorted, size) == 0);
 		a = new str[count];
 		memcpy(a, q, size);
-		sort(a, a + count, lt);
+		sort(a, a + count, gt);
 		CHECK(memcmp(a, rsorted, size) == 0);
 	}
 }
@@ -220,6 +210,7 @@ TEST_CASE("Array: test1")
 	{
 		Array<int> a;
 		a << 1 << 3 << 5 << 7;
+		CHECK(a == Array<int>() << 1 << 3 << 5 << 7);
 		a.insertsorted(4);
 		CHECK(a == Array<int>() << 1 << 3 << 4 << 5 << 7);
 		a.insertsorted(4);
@@ -273,7 +264,7 @@ TEST_CASE("Array: test1")
 		a.grow(0, 55);
 		CHECK(a.count() == 20);
 		CHECK(a[0] == 11);
-		CHECK(&a[0] != bb); // expected not required
+		//CHECK(&a[0] != bb); // expected not required
 	}
 
 	Array<int> array;
@@ -515,7 +506,7 @@ TEST_CASE("Array: test1")
 	}
 
 	{
-		array.sort(foo_gt);
+		array.sort(foo_lt);
 		CHECK(array == Array<int>() << 3 << 1 << 0 << 7 << 5 << 5 << 9 << 8);
 	}
 
@@ -525,7 +516,7 @@ TEST_CASE("Array: test1")
 	}
 
 	{
-		array.sort(2, 99, gt);
+		array.sort(2, 99, lt);
 		CHECK(array == Array<int>() << 3 << 1 << 0 << 5 << 5 << 7 << 8 << 9);
 	}
 
