@@ -3,7 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "PicoTerm.h"
+#include "USBHost/USBKeyboard.h"
 #include "cstrings.h"
+#include "glue.h"
 #include "string.h"
 
 namespace kio::Graphics
@@ -44,11 +46,11 @@ PicoTerm::PicoTerm(Canvas& pixmap) :
 	pixmap(pixmap),
 	colormode(pixmap.colormode),
 	attrheight(pixmap.attrheight),
-	colordepth(get_colordepth(colormode)), // 0 .. 4  log2 of bits per color in attributes[]
-	attrmode(get_attrmode(colormode)),	   // 0 .. 2  log2 of bits per color in pixmap[]
-	attrwidth(get_attrwidth(colormode)),   // 0 .. 3  log2 of width of tiles
-	bits_per_color(1 << colordepth),	   // bits per color in pixmap[] or attributes[]
-	bits_per_pixel(is_attribute_mode(colormode) ? 1 << attrmode : bits_per_color) // bpp in pixmap[]
+	colordepth(get_colordepth(colormode)),	// 0 .. 4  log2 of bits per color in attributes[]
+	attrmode(get_attrmode(colormode)),		// 0 .. 2  log2 of bits per color in pixmap[]
+	attrwidth(get_attrwidth(colormode)),	// 0 .. 3  log2 of width of tiles
+	bits_per_color(uint8(1 << colordepth)), // bits per color in pixmap[] or attributes[]
+	bits_per_pixel(is_attribute_mode(colormode) ? uint8(1 << attrmode) : bits_per_color) // bpp in pixmap[]
 {
 	reset();
 }
@@ -61,12 +63,10 @@ void PicoTerm::showCursor(bool on)
 	show_cursor(on);
 }
 
-
 void PicoTerm::hideCursor()
 {
 	if unlikely (cursorVisible) show_cursor(false);
 }
-
 
 void PicoTerm::scrollScreen(coord dx /*chars*/, coord dy /*chars*/)
 {
@@ -94,30 +94,25 @@ void PicoTerm::scrollScreen(coord dx /*chars*/, coord dy /*chars*/)
 	if (dy < 0) pixmap.fillRect(0, h, screen_width * CHAR_WIDTH, -dy, bgcolor, bg_ink);
 }
 
-
 void PicoTerm::scrollScreenUp(int rows /*char*/)
 {
 	if (rows > 0) scrollScreen(0, -rows);
 }
-
 
 void PicoTerm::scrollScreenDown(int rows /*char*/)
 {
 	if (rows > 0) scrollScreen(0, +rows);
 }
 
-
 void PicoTerm::scrollScreenLeft(int cols)
 {
 	if (cols > 0) scrollScreen(-cols, 0);
 }
 
-
 void PicoTerm::scrollScreenRight(int cols)
 {
 	if (cols > 0) scrollScreen(+cols, 0);
 }
-
 
 void PicoTerm::validateCursorPosition()
 {
@@ -131,7 +126,6 @@ void PicoTerm::validateCursorPosition()
 
 	if unlikely (uint(col) >= uint(screen_width))
 	{
-		col = int8(col - 0x40) + 0x40; // clamp to range -0x40 .. 0x80+0x40 (assuming 128 cols max)
 		while (col < 0)
 		{
 			col += screen_width;
@@ -146,7 +140,6 @@ void PicoTerm::validateCursorPosition()
 
 	if unlikely (uint(row) >= uint(screen_height))
 	{
-		row = int8(row - 0x60) + 0x60; // clamp to range -0x60 .. 0x40+0x60 (assuming 64 rows max)
 		if (row < 0)
 		{
 			scrollScreenDown(-row);
@@ -159,7 +152,6 @@ void PicoTerm::validateCursorPosition()
 		}
 	}
 }
-
 
 void PicoTerm::readBmp(CharMatrix bmp, bool use_fgcolor)
 {
@@ -176,7 +168,6 @@ void PicoTerm::readBmp(CharMatrix bmp, bool use_fgcolor)
 	int y = row * CHAR_HEIGHT;
 	pixmap.readBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, use_fgcolor ? fgcolor : bgcolor, use_fgcolor);
 }
-
 
 void PicoTerm::writeBmp(CharMatrix bmp, uint8 attr)
 {
@@ -238,7 +229,6 @@ void PicoTerm::writeBmp(CharMatrix bmp, uint8 attr)
 	pixmap.drawChar(x, y, bmp, CHAR_HEIGHT, fgcolor, fg_ink);
 }
 
-
 void PicoTerm::getCharMatrix(CharMatrix charmatrix, char cc)
 {
 	// get character matrix of character c
@@ -266,7 +256,6 @@ void PicoTerm::getCharMatrix(CharMatrix charmatrix, char cc)
 		memcpy(charmatrix, p, CHAR_HEIGHT);
 	}
 }
-
 
 void PicoTerm::getGraphicsCharMatrix(CharMatrix charmatrix, char cc)
 {
@@ -370,7 +359,6 @@ void PicoTerm::getGraphicsCharMatrix(CharMatrix charmatrix, char cc)
 	// else {} // 16 unused
 }
 
-
 void PicoTerm::applyAttributes(CharMatrix bmp)
 {
 	// apply the simple attributes to a character matrix
@@ -401,7 +389,6 @@ void PicoTerm::applyAttributes(CharMatrix bmp)
 	}
 }
 
-
 void PicoTerm::eraseRect(int row, int col, int rows, int cols)
 {
 	// erase a rectangular area on the screen
@@ -416,7 +403,6 @@ void PicoTerm::eraseRect(int row, int col, int rows, int cols)
 	}
 }
 
-
 void PicoTerm::copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols)
 {
 	hideCursor();
@@ -428,7 +414,6 @@ void PicoTerm::copyRect(int src_row, int src_col, int dest_row, int dest_col, in
 			cols * CHAR_WIDTH, rows * CHAR_HEIGHT);
 	}
 }
-
 
 void PicoTerm::reset()
 {
@@ -443,10 +428,6 @@ void PicoTerm::reset()
 	bgcolor = default_bgcolor; // white / light
 	fgcolor = default_fgcolor; // black / dark
 
-	pushedRow  = 0;
-	pushedCol  = 0;
-	pushedAttr = 0;
-
 	row = col = 0;
 	dx = dy		  = 1;
 	attributes	  = 0;
@@ -455,7 +436,6 @@ void PicoTerm::reset()
 	auto_crlf = true;
 	sm_state  = 0;
 }
-
 
 void PicoTerm::cls()
 {
@@ -469,7 +449,6 @@ void PicoTerm::cls()
 	pixmap.clear(bgcolor);
 }
 
-
 void PicoTerm::moveTo(int row, int col) noexcept
 {
 	hideCursor();
@@ -477,30 +456,11 @@ void PicoTerm::moveTo(int row, int col) noexcept
 	this->col = col;
 }
 
-
 void PicoTerm::moveToCol(int col) noexcept
 {
 	hideCursor();
 	this->col = col;
 }
-
-
-void PicoTerm::pushCursorPosition()
-{
-	//TODO: visibility, window
-	pushedRow  = row;
-	pushedCol  = col;
-	pushedAttr = attributes;
-}
-
-
-void PicoTerm::popCursorPosition()
-{
-	row = pushedRow;
-	col = pushedCol;
-	setPrintAttributes(pushedAttr);
-}
-
 
 void PicoTerm::setPrintAttributes(uint8 attr)
 {
@@ -508,7 +468,6 @@ void PicoTerm::setPrintAttributes(uint8 attr)
 	dx		   = attr & ATTR_DOUBLE_WIDTH ? 2 : 1;
 	dy		   = attr & ATTR_DOUBLE_HEIGHT ? 2 : 1;
 }
-
 
 void PicoTerm::cursorLeft(int count) // BS
 {
@@ -527,7 +486,6 @@ void PicoTerm::cursorLeft(int count) // BS
 		}
 }
 
-
 void PicoTerm::cursorRight(int count) // FF
 {
 	// scrolls
@@ -545,7 +503,6 @@ void PicoTerm::cursorRight(int count) // FF
 		}
 }
 
-
 void PicoTerm::cursorUp(int count)
 {
 	// scrolls
@@ -554,7 +511,6 @@ void PicoTerm::cursorUp(int count)
 	if (count > 0) row -= dy * count;
 }
 
-
 void PicoTerm::cursorDown(int count) // NL
 {
 	// scrolls
@@ -562,7 +518,6 @@ void PicoTerm::cursorDown(int count) // NL
 	hideCursor();
 	if (count > 0) row += dy * count;
 }
-
 
 void PicoTerm::cursorTab(int count)
 {
@@ -581,7 +536,6 @@ void PicoTerm::cursorTab(int count)
 		}
 }
 
-
 void PicoTerm::cursorReturn()
 {
 	// COL := 0
@@ -590,6 +544,12 @@ void PicoTerm::cursorReturn()
 	col = 0;
 }
 
+void PicoTerm::newLine()
+{
+	hideCursor();
+	col = 0;
+	row += dy;
+}
 
 void PicoTerm::clearToEndOfLine()
 {
@@ -597,13 +557,11 @@ void PicoTerm::clearToEndOfLine()
 	if (col < screen_width && row < screen_height) eraseRect(row, col, 1 /*rows*/, screen_width - col /*cols*/);
 }
 
-
 void PicoTerm::clearToEndOfScreen()
 {
 	clearToEndOfLine();
 	if (row + 1 < screen_height) eraseRect(row + 1, 0, screen_height - (row + 1), screen_width);
 }
-
 
 void PicoTerm::printCharMatrix(CharMatrix charmatrix, int count)
 {
@@ -611,14 +569,12 @@ void PicoTerm::printCharMatrix(CharMatrix charmatrix, int count)
 	while (count--) { writeBmp(charmatrix, attributes); }
 }
 
-
 void PicoTerm::printChar(char c, int count)
 {
 	CharMatrix charmatrix;
 	getCharMatrix(charmatrix, c);
 	printCharMatrix(charmatrix, count);
 }
-
 
 void PicoTerm::printText(cstr s)
 {
@@ -633,7 +589,6 @@ void PicoTerm::printText(cstr s)
 	}
 }
 
-
 uint32 PicoTerm::ioctl(IoCtl cmd, void*, void*)
 {
 	switch (cmd.cmd)
@@ -643,7 +598,6 @@ uint32 PicoTerm::ioctl(IoCtl cmd, void*, void*)
 	default: throw INVALID_ARGUMENT;
 	}
 }
-
 
 #define BEGIN       \
   switch (sm_state) \
@@ -660,7 +614,6 @@ uint32 PicoTerm::ioctl(IoCtl cmd, void*, void*)
   c = data[idx++]
 
 #define FINISH }
-
 
 SIZE PicoTerm::write(const char* data, SIZE count, bool /*partial*/)
 {
@@ -683,15 +636,13 @@ SIZE PicoTerm::write(const char* data, SIZE count, bool /*partial*/)
 		case CLS:			   cls(); continue;
 		case MOVE_TO_POSITION: goto move_to_position;
 		case MOVE_TO_COL:      goto move_to_col;
-		case PUSH_CURSOR_POSITION: pushCursorPosition(); continue;
-		case POP_CURSOR_POSITION:  popCursorPosition(); continue;
 		case SHOW_CURSOR:	   showCursor(); continue;
 		case CURSOR_LEFT:	   cursorLeft(repeat_cnt); continue;  // scrolls
 		case TAB:			   cursorTab(repeat_cnt); continue;	  // scrolls
-		case CURSOR_DOWN:	   cursorDown(repeat_cnt); continue;  // scrolls
+		case CURSOR_DOWN:	   cursorDown(repeat_cnt); if (auto_crlf) cursorReturn(); continue;  // scrolls
 		case CURSOR_UP:		   cursorUp(repeat_cnt); continue;	  // scrolls
 		case CURSOR_RIGHT:	   cursorRight(repeat_cnt); continue; // scrolls
-		case RETURN:		   cursorReturn(); if (auto_crlf) cursorDown(); continue;
+		case RETURN:		   cursorReturn(); continue;
 		case CLEAR_TO_END_OF_LINE:   clearToEndOfLine(); continue;
 		case CLEAR_TO_END_OF_SCREEN: clearToEndOfScreen(); continue;
 		case SET_ATTRIBUTES:   goto set_attributes;
@@ -712,8 +663,8 @@ SIZE PicoTerm::write(const char* data, SIZE count, bool /*partial*/)
 		else printText(usingstr("{$%02X}", c));
 		continue;
 
-		move_to_position: GETC(); hideCursor(); row = uchar(c); 
-		move_to_col: GETC(); hideCursor(); col = uchar(c); continue;
+		move_to_position: GETC(); hideCursor(); row = int8(c-0x40)+0x40; 
+		move_to_col: GETC(); hideCursor(); col = int8(c-0x40)+0x40; continue;
 		set_attributes: GETC(); setPrintAttributes(c); continue;
 		repeat_next_char: GETC(); repeat_cnt = uchar(c); goto loop_repeat;
 		scroll_screen: // scroll screen u/d/l/r
@@ -742,7 +693,6 @@ SIZE PicoTerm::write(const char* data, SIZE count, bool /*partial*/)
 	// clang-format on
 }
 
-
 char* PicoTerm::identify()
 {
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=rgb
@@ -754,7 +704,6 @@ char* PicoTerm::identify()
 		"PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s%s", pixmap.width, pixmap.height, screen_width, screen_height,
 		CHAR_WIDTH, CHAR_HEIGHT, tostr(colordepth), amstr);
 }
-
 
 void PicoTerm::show_cursor(bool show)
 {
@@ -770,6 +719,124 @@ void PicoTerm::show_cursor(bool show)
 	cursorVisible = show;
 }
 
+int PicoTerm::getc(void (*run_statemachines)(), int timeout_us)
+{
+	constexpr int32 crsr_phase = 600 * 1000; // 0.6 sec
+	int32			now		   = int32(time_us_32());
+	int32			crsr_start = now;
+	int32			end		   = now + timeout_us;
+	int				inchar	   = USB::getChar();
+
+	while (inchar == -1 && (timeout_us == 0 || (now = int32(time_us_32())) - end < 0))
+	{
+		if (now - (crsr_start + crsr_phase) >= 0) crsr_start += crsr_phase;
+		showCursor(now - (crsr_start + crsr_phase / 2) < 0);
+
+		run_statemachines();
+		inchar = USB::getChar();
+	}
+
+	return inchar;
+}
+
+str PicoTerm::input_line(void (*run_statemachines)(), str oldtext, int epos)
+{
+	if (oldtext == nullptr) oldtext = emptystr;
+	assert(epos <= int(strlen(oldtext)));
+
+	int col0 = col;
+	int row0 = row;
+
+	printText(oldtext);
+
+	for (;;)
+	{
+		moveTo(row0, col0 + epos);
+		int c = getc(run_statemachines);
+
+		if (c < 32)
+		{
+			switch (c)
+			{
+			case RETURN:
+				printText(oldtext + epos);
+				moveTo(row + 1, 0);
+				return oldtext;
+			case CURSOR_LEFT: c = USB::KEY_ARROW_LEFT; break;
+			case CURSOR_RIGHT: c = USB::KEY_ARROW_RIGHT; break;
+			case CURSOR_UP: c = USB::KEY_ARROW_UP; break;
+			case CURSOR_DOWN: c = USB::KEY_ARROW_DOWN; break;
+			case ESC:
+				c = getc(run_statemachines);
+				if (c != '[')
+				{
+					printf("{ESC,0x%02x}", c);
+					continue;
+				}
+				c = getc(run_statemachines);
+				switch (c)
+				{
+				case 'A': c = USB::KEY_ARROW_UP; break;	   // VT100
+				case 'B': c = USB::KEY_ARROW_DOWN; break;  // VT100
+				case 'C': c = USB::KEY_ARROW_RIGHT; break; // VT100
+				case 'D': c = USB::KEY_ARROW_LEFT; break;  // VT100
+				default: printf("{ESC[0x%02x}", c); continue;
+				}
+				break;
+			default: printf("{0x%02x}", c); continue;
+			}
+		}
+
+		else if (c == 127) //
+		{
+			c = USB::KEY_BACKSPACE;
+		}
+
+		else if (c <= 255)
+		{
+			oldtext = catstr(leftstr(oldtext, epos), charstr(char(c)), oldtext + epos);
+			printText(oldtext + epos++);
+			continue;
+		}
+
+		else if (c == USB::HID_KEY_OTHER + USB::KEY_BACKSPACE + (USB::LEFTSHIFT << 16)) //
+		{
+			c = USB::KEY_DELETE;
+		}
+
+		if (c >> 16) // with modifiers
+		{
+			printf("{%s+%s}", tostr(USB::HIDKey(c & 0xff)), tostr(USB::Modifiers(c >> 16), true));
+			continue;
+		}
+
+		static_assert(USB::KEY_ARROW_LEFT == 0x50);
+		static_assert(USB::KEY_EXSEL == 0xA4);
+		static_assert(USB::KEY_GUI_RIGHT == 0xE7);
+
+		switch (c & 0xff)
+		{
+		case USB::KEY_BACKSPACE:
+			if (epos == 0) break;
+			epos--;
+			cursorLeft();
+			[[fallthrough]];
+		case USB::KEY_DELETE:
+			if (oldtext[epos] == 0) break;
+			oldtext = catstr(leftstr(oldtext, epos), oldtext + epos + 1);
+			printText(oldtext + epos);
+			printChar(' ');
+			break;
+		case USB::KEY_ARROW_LEFT: epos = max(epos - 1, 0); break;
+		case USB::KEY_ARROW_RIGHT:
+			if (oldtext[epos] != 0) printChar(oldtext[epos++]);
+			break;
+		case USB::KEY_ARROW_UP: epos = max(epos - screen_width, 0); break;
+		case USB::KEY_ARROW_DOWN: epos = min(epos + screen_width, int(strlen(oldtext))); break;
+		default: printf("{%s}", tostr(USB::HIDKey(c & 0xff)));
+		}
+	}
+}
 
 } // namespace kio::Graphics
 

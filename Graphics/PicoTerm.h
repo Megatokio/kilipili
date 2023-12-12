@@ -13,6 +13,7 @@ namespace kio::Graphics
 class PicoTerm : public Devices::SerialDevice
 {
 public:
+	using super = Devices::SerialDevice;
 	using SIZE	= Devices::SIZE;
 	using IoCtl = Devices::IoCtl;
 
@@ -42,8 +43,6 @@ public:
 		CLS					   = 1,
 		MOVE_TO_POSITION	   = 2,
 		MOVE_TO_COL			   = 3,
-		PUSH_CURSOR_POSITION   = 5,
-		POP_CURSOR_POSITION	   = 6,
 		SHOW_CURSOR			   = 7,	 //				(BELL)
 		CURSOR_LEFT			   = 8,	 // scrolls		(BS)
 		TAB					   = 9,	 // scrolls
@@ -55,11 +54,10 @@ public:
 		CLEAR_TO_END_OF_SCREEN = 15,
 		SET_ATTRIBUTES		   = 16,
 		XON					   = 17,
-		//PRINT_INLINE_GLYPH   = 18,
-		XOFF			 = 19,
-		REPEAT_NEXT_CHAR = 20,
-		SCROLL_SCREEN	 = 21,
-		ESC				 = 27,
+		XOFF				   = 19,
+		REPEAT_NEXT_CHAR	   = 20,
+		SCROLL_SCREEN		   = 21,
+		ESC					   = 27,
 	};
 
 	Canvas& pixmap;
@@ -69,18 +67,13 @@ public:
 	const ColorDepth colordepth;	 // 0 .. 4  log2 of bits per color in attributes[]
 	const AttrMode	 attrmode;		 // 0 .. 2  log2 of bits per color in pixmap[]
 	const AttrWidth	 attrwidth;		 // 0 .. 3  log2 of width of tiles
-	const int		 bits_per_color; // bits per color in pixmap[] or attributes[]
-	const int		 bits_per_pixel; // bpp in pixmap[]
+	const uint8		 bits_per_color; // bits per color in pixmap[] or attributes[]
+	const uint8		 bits_per_pixel; // bpp in pixmap[]
+	char			 _padding = 0;
 
 	// Screen size:
 	int screen_width;  // [characters]
 	int screen_height; // [characters]
-
-	// current print position:
-	int	  row;
-	int	  col;
-	int	  dx, dy; // 1 or 2, if double width & double height
-	uint8 attributes;
 
 	// foreground and background color:
 	uint bgcolor;	 // paper color
@@ -88,10 +81,11 @@ public:
 	uint fg_ink = 1; // for attribute pixmaps
 	uint bg_ink = 0; // for attribute pixmaps
 
-	// a "cursor stack":
-	int	  pushedRow;
-	int	  pushedCol;
-	uint8 pushedAttr;
+	// current print position:
+	int	  row;
+	int	  col;
+	uint8 dx, dy; // 1 or 2, if double width & double height
+	uint8 attributes;
 
 	// cursor blob:
 	bool   cursorVisible;  // currently visible?
@@ -109,19 +103,17 @@ public:
 	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) override;
 	virtual SIZE   read(char*, SIZE, bool = false) override { throw Devices::NOT_READABLE; }
 	virtual SIZE   write(const char* data, SIZE, bool partial = false) override;
-	//virtual int  getc(uint timeout) override;
-	//virtual char getc() override;
-	//virtual str  gets() override;
 	//virtual SIZE putc(char) override;
 	//virtual SIZE puts(cstr) override;
 	//virtual SIZE printf(cstr fmt, ...) override __printflike(2, 3);
+
+	int getc(void (*sm)(), int timeout_us = 0);
+	str input_line(void (*sm)(), str oldtext = nullptr, int epos = 0);
 
 	void reset();
 	void cls();
 	void moveTo(int row, int col) noexcept;
 	void moveToCol(int col) noexcept;
-	void pushCursorPosition();
-	void popCursorPosition();
 	void setPrintAttributes(uint8 attr);
 	void printCharMatrix(CharMatrix, int count = 1);
 	void printChar(char c, int count = 1); // no ctl
@@ -132,6 +124,7 @@ public:
 	void cursorDown(int count = 1);
 	void cursorTab(int count = 1);
 	void cursorReturn();
+	void newLine();
 	void clearToEndOfLine();
 	void clearToEndOfScreen();
 	void copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols);
@@ -155,6 +148,14 @@ public:
 
 private:
 	void show_cursor(bool f);
+
+protected:
+	// these will stall because USB isn't polled:
+	using super::getc;
+	using super::gets;
+	//virtual char getc() override;
+	//virtual str  gets() override;
+	//virtual int  getc(uint timeout) override;
 };
 
 
