@@ -102,7 +102,9 @@ SIZE SerialDevice::printf(cstr fmt, ...)
 	SIZE size = uint(n);
 	if (size <= 255) return write(bu, size);
 
-	std::unique_ptr<char[]> bp {new char[size + 1]};
+	std::unique_ptr<char[]> bp {new (std::nothrow) char[size + 1]};
+
+	if (!bp) return write(bu, 256); // desperately short of memory
 
 	va_start(va, fmt);
 	vsnprintf(bp.get(), size + 1, fmt, va);
