@@ -8,15 +8,19 @@ cmake_minimum_required(VERSION 3.13)
 
 if(${UNIT_TEST})
 	set(distinct_sources 
-		"tempmem-posix.cpp")
+		linux/glue.cpp
+		linux/glue.h
+		tempmem-posix.cpp)
 	set(distinct_headers 
 		${CMAKE_CURRENT_LIST_DIR}/linux)
 	set(distinct_libraries )
 else()
 	set(distinct_sources 
-		"tempmem-pico.cpp")
+		pico/glue.cpp
+		pico/glue.h
+		tempmem-pico.cpp)
 	set(distinct_headers 
-		${CMAKE_CURRENT_LIST_DIR}/linux)
+		${CMAKE_CURRENT_LIST_DIR}/pico)
 	set(distinct_libraries 
 		pico_stdlib)
 endif()
