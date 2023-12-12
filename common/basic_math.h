@@ -46,10 +46,10 @@ inline constexpr T abs(T a) noexcept
 {
 	return a < 0 ? -a : a;
 }
-inline constexpr uint8	abs(int8 a) noexcept { return a < 0 ? uint8(-a) : uint8(a); }
-inline constexpr uint16 abs(int16 a) noexcept { return a < 0 ? uint16(-a) : uint16(a); }
-inline constexpr uint32 abs(int32 a) noexcept { return a < 0 ? uint32(-a) : uint32(a); }
-inline constexpr uint64 abs(int64 a) noexcept { return a < 0 ? uint64(-a) : uint64(a); }
+inline constexpr int abs(int8 a) noexcept { return a < 0 ? int8(-a) : int8(a); }
+inline constexpr int abs(int16 a) noexcept { return a < 0 ? int16(-a) : int16(a); }
+//inline constexpr int32 abs(int32 a) noexcept { return a < 0 ? int32(-a) : int32(a); }
+//inline constexpr int64 abs(int64 a) noexcept { return a < 0 ? int64(-a) : int64(a); }
 
 template<class T>
 inline constexpr T minmax(T a, T n, T e) noexcept
