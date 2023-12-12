@@ -5,12 +5,10 @@
 #include "PicoTerm.h"
 #include "cstrings.h"
 #include "string.h"
-#include <cstdarg>
-#include <cstdio>
-#include <new>
 
 namespace kio::Graphics
 {
+using namespace Devices;
 
 
 // ------------------------------------------------------------
@@ -42,6 +40,7 @@ static constexpr const uint8 dblw[16] = {
 
 
 PicoTerm::PicoTerm(Canvas& pixmap) :
+	SerialDevice(writable),
 	pixmap(pixmap),
 	colormode(pixmap.colormode),
 	attrheight(pixmap.attrheight),
@@ -452,6 +451,9 @@ void PicoTerm::reset()
 	dx = dy		  = 1;
 	attributes	  = 0;
 	cursorVisible = false;
+
+	auto_crlf = true;
+	sm_state  = 0;
 }
 
 
@@ -632,198 +634,112 @@ void PicoTerm::printText(cstr s)
 }
 
 
-void PicoTerm::print(cstr s, bool auto_crlf)
+uint32 PicoTerm::ioctl(IoCtl cmd, void*, void*)
 {
-	// print string up to char(0)
-	// char(0) is only detected on character positions, not argument positions,
-	// so char(0) can be used as argument to MOVE_TO_POSITION, SET_ATTRIBUTE etc.
-
-	assert(s);
-
-loop:
-	int repeat_count = 1;
-
-loop_repeat:
-	uchar c = uchar(*s++);
-
-	if (c >= 32) // printable char
+	switch (cmd.cmd)
 	{
-		if (c != 127) { printChar(c, repeat_count); }
-		else // delete
-		{
-			cursorLeft(repeat_count);
-			printChar(' ', repeat_count);
-			cursorLeft(repeat_count);
-		}
-
-		goto loop;
+	case IoCtl::FLUSH_OUT: return 0;
+	case IoCtl::CTRL_RESET: reset(); return 0;
+	default: throw INVALID_ARGUMENT;
 	}
-
-	switch (c)
-	{
-	case 0: return;
-	case CLS: // CLS, HOME CURSOR, RESET ATTR
-	{
-		cls();
-		break;
-	}
-	case MOVE_TO_POSITION: // MOVE_TO_POSITION, <row>, <col>
-	{
-		hideCursor();
-		row = *s++;
-		col = *s++;
-		break;
-	}
-	case MOVE_TO_COL: // MOVE_TO_COL, <row>
-	{
-		hideCursor();
-		col = *s++;
-		break;
-	}
-	case PUSH_CURSOR_POSITION:
-	{
-		pushCursorPosition();
-		break;
-	}
-	case POP_CURSOR_POSITION:
-	{
-		popCursorPosition();
-		break;
-	}
-	case SHOW_CURSOR: // (BELL)
-	{
-		showCursor();
-		break;
-	}
-	case CURSOR_LEFT: // (BS) scrolls
-	{
-		cursorLeft(repeat_count);
-		break;
-	}
-	case TAB: //		scrolls
-	{
-		cursorTab(repeat_count);
-		break;
-	}
-	case CURSOR_DOWN: // (NL) scrolls
-	{
-		if (auto_crlf) col = 0;
-		cursorDown(repeat_count);
-		break;
-	}
-	case CURSOR_UP: //		scrolls
-	{
-		cursorUp(repeat_count);
-		break;
-	}
-	case CURSOR_RIGHT: // (FF)	scrolls
-	{
-		cursorRight(repeat_count);
-		break;
-	}
-	case RETURN: // COL := 0
-	{
-		cursorReturn();
-		break;
-	}
-	case CLEAR_TO_END_OF_LINE:
-	{
-		clearToEndOfLine();
-		break;
-	}
-	case CLEAR_TO_END_OF_SCREEN:
-	{
-		clearToEndOfScreen();
-		break;
-	}
-	case SCROLL_SCREEN: // SCROLL SCREEN u/d/l/r
-	{
-		uchar dir = *s++;
-		if (dir == 'u') scrollScreenUp(repeat_count);
-		else if (dir == 'd') scrollScreenDown(repeat_count);
-		else if (dir == 'l') scrollScreenLeft(repeat_count);
-		else if (dir == 'r') scrollScreenRight(repeat_count);
-		break;
-	}
-	case REPEAT_NEXT_CHAR:
-	{
-		repeat_count = *s++;
-		goto loop_repeat;
-	}
-	case SET_ATTRIBUTES:
-	{
-		setPrintAttributes(*s++);
-		break;
-	}
-	case PRINT_INLINE_GLYPH: // PRINT INLINE CHARACTER BMP
-	{
-		CharMatrix charmatrix;
-		for (int i = 0; i < CHAR_HEIGHT; i++) charmatrix[i] = *s++;
-		printCharMatrix(charmatrix, repeat_count);
-		break;
-	}
-	case ESC:
-	{
-		if (*s == '[')
-		{
-			cptr s0 = s++;
-			int	 n	= is_decimal_digit(*s) ? *s++ - '0' : repeat_count;
-			while (is_decimal_digit(*s)) { n = n * 10 + *s++ - '0'; }
-
-			switch (*s++)
-			{
-			case 'A': cursorUp(min(n, row)); goto loop;						  // VT100
-			case 'B': cursorDown(min(n, screen_height - 1 - row)); goto loop; // VT100
-			case 'C': cursorRight(min(n, screen_width - 1 - col)); goto loop; // VT100
-			case 'D': cursorLeft(min(n, col)); goto loop;					  // VT100
-			}
-			s = s0;
-		}
-		printText("[ESC]");
-		break;
-	}
-	default:
-	{
-		char txt[8];
-		sprintf(txt, "[$%02X]", c);
-		printText(txt);
-		break;
-	}
-	}
-
-	goto loop;
 }
 
 
-void PicoTerm::printf(cstr fmt, ...)
+#define BEGIN       \
+  switch (sm_state) \
+  {                 \
+  default:
+
+#define GETC()           \
+  while (idx == count)   \
+  {                      \
+	sm_state = __LINE__; \
+	return count;        \
+  case __LINE__:;        \
+  }                      \
+  c = data[idx++]
+
+#define FINISH }
+
+
+SIZE PicoTerm::write(const char* data, SIZE count, bool /*partial*/)
 {
-	constexpr int max_cnt = 127;
-	char		  bu[max_cnt + 1];
+	uint idx = 0;
+	char c;
 
-	va_list va;
-	va_start(va, fmt);
-
-	va_list va2;
-	va_copy(va2, va);
-	int cnt = vsnprintf(bu, max_cnt + 1, fmt, va2);
-	va_end(va2);
-	assert(cnt >= 0);
-
-	if (cnt > max_cnt)
+	// clang-format off
+	BEGIN
+	for (;;)
 	{
-		char* xbu = new (std::nothrow) char[size_t(cnt + 1)];
-		if (!xbu) goto p;
-		vsnprintf(xbu, size_t(cnt + 1), fmt, va);
-		print(xbu, true);
-		delete[] xbu;
-	}
-	else
-	{
-	p:
-		print(bu, true);
-	}
+		repeat_cnt = 1;
 
-	va_end(va);
+	loop_repeat:
+		GETC();
+		if (is_printable(c)) { printChar(c, repeat_cnt); continue; }
+
+		switch (c) 
+		{
+		case RESET:			   reset(); continue;
+		case CLS:			   cls(); continue;
+		case MOVE_TO_POSITION: goto move_to_position;
+		case MOVE_TO_COL:      goto move_to_col;
+		case PUSH_CURSOR_POSITION: pushCursorPosition(); continue;
+		case POP_CURSOR_POSITION:  popCursorPosition(); continue;
+		case SHOW_CURSOR:	   showCursor(); continue;
+		case CURSOR_LEFT:	   cursorLeft(repeat_cnt); continue;  // scrolls
+		case TAB:			   cursorTab(repeat_cnt); continue;	  // scrolls
+		case CURSOR_DOWN:	   cursorDown(repeat_cnt); continue;  // scrolls
+		case CURSOR_UP:		   cursorUp(repeat_cnt); continue;	  // scrolls
+		case CURSOR_RIGHT:	   cursorRight(repeat_cnt); continue; // scrolls
+		case RETURN:		   cursorReturn(); if (auto_crlf) cursorDown(); continue;
+		case CLEAR_TO_END_OF_LINE:   clearToEndOfLine(); continue;
+		case CLEAR_TO_END_OF_SCREEN: clearToEndOfScreen(); continue;
+		case SET_ATTRIBUTES:   goto set_attributes;
+		case REPEAT_NEXT_CHAR: goto repeat_next_char;
+		case SCROLL_SCREEN:    goto scroll_screen;
+		case ESC:			   goto esc;
+		}
+
+		if (c == 127)
+		{
+			auto attr = attributes;
+			attributes &= ~ATTR_OVERPRINT;
+			cursorLeft(repeat_cnt);
+			printChar(' ', repeat_cnt);
+			cursorLeft(repeat_cnt);
+			attributes = attr;
+		}
+		else printText(usingstr("{$%02X}", c));
+		continue;
+
+		move_to_position: GETC(); hideCursor(); row = uchar(c); 
+		move_to_col: GETC(); hideCursor(); col = uchar(c); continue;
+		set_attributes: GETC(); setPrintAttributes(c); continue;
+		repeat_next_char: GETC(); repeat_cnt = uchar(c); goto loop_repeat;
+		scroll_screen: // scroll screen u/d/l/r
+			GETC(); if (c == 'u') scrollScreenUp(repeat_cnt);
+			else if (c == 'd') scrollScreenDown(repeat_cnt);
+			else if (c == 'l') scrollScreenLeft(repeat_cnt);
+			else if (c == 'r') scrollScreenRight(repeat_cnt);
+			continue;
+		esc:
+			GETC(); if (c == '[')
+			{
+				GETC(); if (is_decimal_digit(c)) repeat_cnt = 0;
+				while (is_decimal_digit(c)) { repeat_cnt = repeat_cnt * 10 + c - '0'; GETC(); }
+				switch (c)
+				{
+				case 'A': cursorUp(min(row, repeat_cnt)); continue;						  // VT100
+				case 'B': cursorDown(min(screen_height - 1 - row, repeat_cnt)); continue; // VT100
+				case 'C': cursorRight(min(screen_width - 1 - col, repeat_cnt)); continue; // VT100
+				case 'D': cursorLeft(min(col, repeat_cnt)); continue;					  // VT100
+				}
+			}
+			printText("{ESC}");
+			continue;
+	}
+	FINISH
+	// clang-format on
 }
 
 
@@ -832,14 +748,11 @@ char* PicoTerm::identify()
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=rgb
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=i8 attr=8*12
 
-	char buffer[64];
-	sprintf(
-		buffer, "PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s", pixmap.width, pixmap.height, screen_width,
-		screen_height, CHAR_WIDTH, CHAR_HEIGHT, tostr(colordepth));
+	cstr amstr = attrmode == attrmode_none ? "" : usingstr(" attr=%u*%u", 1 << attrwidth, attrheight);
 
-	if (attrmode != attrmode_none) sprintf(strchr(buffer, 0), " attr=%u*%u", 1 << attrwidth, attrheight);
-
-	return dupstr(buffer);
+	return usingstr(
+		"PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s%s", pixmap.width, pixmap.height, screen_width, screen_height,
+		CHAR_WIDTH, CHAR_HEIGHT, tostr(colordepth), amstr);
 }
 
 

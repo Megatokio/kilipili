@@ -5,13 +5,17 @@
 #pragma once
 #include "Canvas.h"
 #undef CHAR_WIDTH
+#include "../Devices/SerialDevice.h"
 
 namespace kio::Graphics
 {
 
-class PicoTerm
+class PicoTerm : public Devices::SerialDevice
 {
 public:
+	using SIZE	= Devices::SIZE;
+	using IoCtl = Devices::IoCtl;
+
 	static constexpr int CHAR_HEIGHT = 12;
 	static constexpr int CHAR_WIDTH	 = 8;
 
@@ -51,11 +55,11 @@ public:
 		CLEAR_TO_END_OF_SCREEN = 15,
 		SET_ATTRIBUTES		   = 16,
 		XON					   = 17,
-		PRINT_INLINE_GLYPH	   = 18,
-		XOFF				   = 19,
-		REPEAT_NEXT_CHAR	   = 20,
-		SCROLL_SCREEN		   = 21,
-		ESC					   = 27,
+		//PRINT_INLINE_GLYPH   = 18,
+		XOFF			 = 19,
+		REPEAT_NEXT_CHAR = 20,
+		SCROLL_SCREEN	 = 21,
+		ESC				 = 27,
 	};
 
 	Canvas& pixmap;
@@ -93,7 +97,24 @@ public:
 	bool   cursorVisible;  // currently visible?
 	uint32 cursorXorColor; // value used to xor the colors
 
+	// write() state machine:
+	uint8  repeat_cnt;
+	bool   auto_crlf = true;
+	uint16 sm_state	 = 0;
+
 	PicoTerm(Canvas&);
+
+	/* SerialDevice Interface:
+	*/
+	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) override;
+	virtual SIZE   read(char*, SIZE, bool = false) override { throw Devices::NOT_READABLE; }
+	virtual SIZE   write(const char* data, SIZE, bool partial = false) override;
+	//virtual int  getc(uint timeout) override;
+	//virtual char getc() override;
+	//virtual str  gets() override;
+	//virtual SIZE putc(char) override;
+	//virtual SIZE puts(cstr) override;
+	//virtual SIZE printf(cstr fmt, ...) override __printflike(2, 3);
 
 	void reset();
 	void cls();
@@ -103,10 +124,8 @@ public:
 	void popCursorPosition();
 	void setPrintAttributes(uint8 attr);
 	void printCharMatrix(CharMatrix, int count = 1);
-	void printChar(char c, int count = 1);
-	void printText(cstr text);
-	void print(cstr text_w_controlcodes, bool auto_crlf = true);
-	void printf(cstr fmt, ...) __printflike(2, 3);
+	void printChar(char c, int count = 1); // no ctl
+	void printText(cstr text);			   // no ctl
 	void cursorLeft(int count = 1);
 	void cursorRight(int count = 1);
 	void cursorUp(int count = 1);
