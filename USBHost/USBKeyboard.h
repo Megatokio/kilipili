@@ -15,7 +15,7 @@
 		`getChar()` returns characters from the hidKeyTranslationTable or USB HID keycodes for non-printing keys.
 		`getChar()` returns non-printing keys in a page of the "private area" of the Unicode character set:
 			HID_KEY_OTHER + hidkey + modifiers<<16
-		The default hidKeyTranslationTable is set from `#define DEFAULT_KEYTABLE` and can be changed with 
+		The default hidKeyTranslationTable is set from `#define USB_DEFAULT_KEYTABLE` and can be changed with 
 			`setHidKeyTranslationTable()`.		
 
 	(2) Poll KeyEvents with `getKeyEvent()`. This gives you the same information as above only more directly.

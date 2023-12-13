@@ -14,9 +14,9 @@ if(${PICO_STDIO_USB})
 	
 	target_compile_definitions(kilipili_usb_host PUBLIC
 		ON=1 OFF=0
-		ENABLE_USB_HOST=OFF
-		ENABLE_USB_MOUSE=OFF
-		ENABLE_USB_KEYBOARD=OFF
+		USB_ENABLE_HOST=OFF
+		USB_ENABLE_MOUSE=OFF
+		USB_ENABLE_KEYBOARD=OFF
 		)
 	
 	target_link_libraries(kilipili_usb_host PUBLIC
@@ -42,25 +42,27 @@ else()
 		)
 	
 	
-	option(ENABLE_USB_HOST     "Enable USB host mode" ON)
-	option(ENABLE_USB_KEYBOARD "Enable USB keyboard in USB host mode" ON)
-	option(ENABLE_USB_MOUSE    "Enable USB mouse in USB host mode" ON)
+	option(USB_ENABLE_HOST         "Enable USB host mode" ON)
+	option(USB_ENABLE_KEYBOARD     "Enable USB keyboard in USB host mode" ON)
+	option(USB_ENABLE_MOUSE		   "Enable USB mouse in USB host mode" ON)	
+	option(USB_GETCHAR_MERGE_STDIN "USB getChar: Merge with input from stdin" ON)
 
-	set(USB_KEY_DELAY1 "600" CACHE STRING "USB keyboard: auto repeat delay for first repeat [msec]")
-	set(USB_KEY_DELAY  "60"  CACHE STRING "USB keyboard: auto repeat delay for following repeats [msec]")
-	set(DEFAULT_KEYTABLE "key_table_ger" CACHE STRING "USB keyboard: default key translation table")
+	set(USB_KEY_DELAY1		 "600"  CACHE STRING "USB keyboard: auto repeat delay for first repeat [msec]")
+	set(USB_KEY_DELAY		 "60"   CACHE STRING "USB keyboard: auto repeat delay for following repeats [msec]")
+	set(USB_DEFAULT_KEYTABLE "key_table_ger" CACHE STRING "USB keyboard: default key translation table")
 
-	set_property(CACHE DEFAULT_KEYTABLE PROPERTY STRINGS key_table_us key_table_ger)
+	set_property(CACHE USB_DEFAULT_KEYTABLE PROPERTY STRINGS key_table_us key_table_ger)
 	
 	
 	target_compile_definitions(kilipili_usb_host PUBLIC
 		ON=1 OFF=0
-		ENABLE_USB_HOST=${ENABLE_USB_HOST}
-		ENABLE_USB_MOUSE=${ENABLE_USB_MOUSE}
-		ENABLE_USB_KEYBOARD=${ENABLE_USB_KEYBOARD}
+		USB_ENABLE_HOST=${USB_ENABLE_HOST}
+		USB_ENABLE_MOUSE=${USB_ENABLE_MOUSE}
+		USB_ENABLE_KEYBOARD=${USB_ENABLE_KEYBOARD}
 		USB_KEY_DELAY1=${USB_KEY_DELAY1}
 		USB_KEY_DELAY=${USB_KEY_DELAY}
-		DEFAULT_KEYTABLE=${DEFAULT_KEYTABLE}
+		USB_DEFAULT_KEYTABLE=${USB_DEFAULT_KEYTABLE}
+		USB_GETCHAR_MERGE_STDIN=${USB_GETCHAR_MERGE_STDIN}
 		)
 
 	# Make sure TinyUSB can find tusb_config.h
