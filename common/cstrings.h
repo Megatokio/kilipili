@@ -31,7 +31,7 @@ inline constexpr char to_lower(char c) noexcept;
 
 inline constexpr bool is_bin_digit(char c) noexcept;
 inline constexpr bool is_oct_digit(char c) noexcept;
-inline constexpr bool is_decimal_digit(char c) noexcept;
+inline constexpr bool is_decimal_digit(int c) noexcept;
 inline constexpr bool is_hex_digit(char c) noexcept;
 
 inline constexpr bool no_bin_digit(char c) noexcept;
@@ -257,7 +257,7 @@ inline constexpr char to_lower(char c) noexcept { return uchar(c - 'A') <= 'Z' -
 
 inline constexpr bool is_bin_digit(char c) noexcept { return uchar(c - '0') <= '1' - '0'; } // { return (c|1)=='1'; }
 inline constexpr bool is_oct_digit(char c) noexcept { return uchar(c - '0') <= '7' - '0'; } // { return (c|7)=='7'; }
-inline constexpr bool is_decimal_digit(char c) noexcept { return uchar(c - '0') <= '9' - '0'; }
+inline constexpr bool is_decimal_digit(int c) noexcept { return uchar(c - '0') <= '9' - '0'; }
 inline constexpr bool is_hex_digit(char c) noexcept
 {
 	return uchar(c - '0') <= '9' - '0' || uchar((c | 0x20) - 'a') <= 'f' - 'a';
