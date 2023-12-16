@@ -82,7 +82,9 @@ struct Rect
 	Point p4() const noexcept { return Point(p2.x, p1.y); } // top-right
 
 	Rect() noexcept = default;
+	Rect(coord w, coord h) noexcept : p1(0, 0), p2(w, h) { normalize(); }
 	Rect(coord x, coord y, coord w, coord h) noexcept : p1(x, y), p2(x + w, y + h) { normalize(); }
+	Rect(const Size& d) noexcept : p1(0, 0), p2(p1 + d) { normalize(); }
 	Rect(const Point& p, const Size& d) noexcept : p1(p), p2(p1 + d) { normalize(); }
 	Rect(const Point& a, const Point& b) noexcept : p1(a), p2(b) { normalize(); }
 
