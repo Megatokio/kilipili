@@ -33,6 +33,17 @@ add_library(kilipili_graphics STATIC
 	rsrc/font_12x8.h
 	PicoTerm.h
 	PicoTerm.cpp
+	gif/Colormap.cpp
+	gif/Colormap.h
+	gif/GifArray.h
+	gif/GifDecoder.cpp
+	gif/GifDecoder.h
+	gif/GifEncoder.cpp
+	gif/GifEncoder.h
+	gif/GifReport.cpp
+	gif/GifReport.h
+	gif/Pixelmap.cpp
+	gif/Pixelmap.h
 	${distinct_sources}
 	)
 

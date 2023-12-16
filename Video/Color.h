@@ -80,7 +80,16 @@ struct Color
 
 	// blend this color with another. used for semi-transparency:
 	constexpr void blend_with(Color b) noexcept;
+
+	int distance(const Color& b)
+	{
+		// color components are weighted r=3, g=4, b=2
+		return abs(red - b.red) * (3 << (gbits - rbits)) + abs(green - b.green) * 4 +
+			   abs(blue - b.blue) * (2 << (gbits - bbits));
+	}
 };
+
+static_assert(sizeof(Color) == sizeof(Color::uRGB));
 
 
 // =========================== Implementations ================================
