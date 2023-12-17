@@ -27,8 +27,8 @@ public:
 
 	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) override;
 
-	virtual SIZE read(char* data, SIZE, bool partial = false) override;
-	virtual SIZE write(const char* data, SIZE, bool partial = false) override;
+	virtual SIZE read(void* data, SIZE, bool partial = false) override;
+	virtual SIZE write(const void* data, SIZE, bool partial = false) override;
 
 	virtual int	 getc(uint timeout_us) override;
 	virtual char getc() override;

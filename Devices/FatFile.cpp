@@ -48,7 +48,7 @@ void FatFile::truncate()
 	if (err) throw tostr(err);
 }
 
-SIZE FatFile::read(char* data, SIZE size, bool partial)
+SIZE FatFile::read(void* data, SIZE size, bool partial)
 {
 	SIZE	count = 0;
 	FRESULT err	  = f_read(&fatfile, data, size, &count);
@@ -57,7 +57,7 @@ SIZE FatFile::read(char* data, SIZE size, bool partial)
 	return count;
 }
 
-SIZE FatFile::write(const char* data, SIZE size, bool partial)
+SIZE FatFile::write(const void* data, SIZE size, bool partial)
 {
 	SIZE	count = 0;
 	FRESULT err	  = f_write(&fatfile, data, size, &count);

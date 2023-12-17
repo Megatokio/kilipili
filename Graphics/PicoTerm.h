@@ -101,8 +101,8 @@ public:
 	/* SerialDevice Interface:
 	*/
 	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) override;
-	virtual SIZE   read(char*, SIZE, bool = false) override { throw Devices::NOT_READABLE; }
-	virtual SIZE   write(const char* data, SIZE, bool partial = false) override;
+	virtual SIZE   read(void*, SIZE, bool = false) override { throw Devices::NOT_READABLE; }
+	virtual SIZE   write(const void* data, SIZE, bool partial = false) override;
 	//virtual SIZE putc(char) override;
 	//virtual SIZE puts(cstr) override;
 	//virtual SIZE printf(cstr fmt, ...) override __printflike(2, 3);

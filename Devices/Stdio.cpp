@@ -53,8 +53,10 @@ char Stdio::getc()
 	}
 }
 
-SIZE Stdio::read(char* data, SIZE sz, bool partial)
+SIZE Stdio::read(void* _data, SIZE sz, bool partial)
 {
+	ptr data = ptr(_data);
+
 	for (uint i = 0; i < sz; i++)
 	{
 		int c = getchar_timeout_us(0);
@@ -65,8 +67,10 @@ SIZE Stdio::read(char* data, SIZE sz, bool partial)
 	return sz;
 }
 
-SIZE Stdio::write(const char* data, SIZE sz, __unused bool partial)
+SIZE Stdio::write(const void* _data, SIZE sz, __unused bool partial)
 {
+	cptr data = cptr(_data);
+
 	for (uint i = 0; i < sz; i++) putchar_raw(data[i]);
 	return sz;
 }

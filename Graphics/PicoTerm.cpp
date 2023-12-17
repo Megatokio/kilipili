@@ -615,9 +615,10 @@ uint32 PicoTerm::ioctl(IoCtl cmd, void*, void*)
 
 #define FINISH }
 
-SIZE PicoTerm::write(const char* data, SIZE count, bool /*partial*/)
+SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 {
-	uint idx = 0;
+	cptr data = cptr(_data);
+	uint idx  = 0;
 	char c;
 
 	// clang-format off

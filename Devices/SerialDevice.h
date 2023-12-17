@@ -37,8 +37,8 @@ public:
 	//   blocking. default implementations use read() and write().
 
 	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr);
-	virtual SIZE   read(char* data, SIZE, bool partial = false);
-	virtual SIZE   write(const char* data, SIZE, bool partial = false);
+	virtual SIZE   read(void* data, SIZE, bool partial = false);
+	virtual SIZE   write(const void* data, SIZE, bool partial = false);
 
 	virtual int	 getc(uint timeout_us);
 	virtual char getc();
@@ -51,7 +51,7 @@ public:
 };
 
 
-inline SIZE SerialDevice::read(char*, SIZE, bool) { throw NOT_READABLE; }
-inline SIZE SerialDevice::write(const char*, SIZE, bool) { throw NOT_WRITABLE; }
+inline SIZE SerialDevice::read(void*, SIZE, bool) { throw NOT_READABLE; }
+inline SIZE SerialDevice::write(const void*, SIZE, bool) { throw NOT_WRITABLE; }
 
 } // namespace kio::Devices

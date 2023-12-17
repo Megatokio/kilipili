@@ -17,8 +17,10 @@ BlockDeviceFile::BlockDeviceFile(BlockDevice& bdev) noexcept :
 {}
 
 
-SIZE BlockDeviceFile::read(char* data, SIZE count, bool partial)
+SIZE BlockDeviceFile::read(void* _data, SIZE count, bool partial)
 {
+	ptr data = ptr(_data);
+
 	if (count > fsize - fpos)
 	{
 		count = SIZE(fsize - fpos);
@@ -56,8 +58,10 @@ SIZE BlockDeviceFile::read(char* data, SIZE count, bool partial)
 	return count;
 }
 
-SIZE BlockDeviceFile::write(const char* data, SIZE count, bool partial)
+SIZE BlockDeviceFile::write(const void* _data, SIZE count, bool partial)
 {
+	cptr data = cptr(_data);
+
 	if (count > fsize - fpos)
 	{
 		count = SIZE(fsize - fpos);
