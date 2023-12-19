@@ -100,12 +100,14 @@ void AttrModePixmap::copyRect(coord zx, coord zy, const Pixmap& q, coord qx, coo
 		assert(((qx << AM) & 7) == 0); // x must be a multiple of full bytes in pixmap[]
 
 		super::copy_rect(zx, zy, q.as_super(), qx, qy, w, h);
+		w  = calc_ax(zx + w - 1) + colors_per_attr;
+		h  = calc_ay(zy + h - 1) + 1;
 		zx = calc_ax(zx);
 		zy = calc_ay(zy);
 		qx = calc_ax(qx);
 		qy = calc_ay(qy);
-		w  = calc_ax(zx + w - 1) + 1 - zx;
-		h  = calc_ay(zy + h - 1) + 1 - zy;
+		w  = w - zx;
+		h  = h - zy;
 		attributes.copy_rect(zx, zy, q.attributes, qx, qy, w, h);
 	}
 }

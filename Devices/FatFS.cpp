@@ -7,12 +7,15 @@
 #include "FatFile.h"
 #include "Logger.h"
 #include "basic_math.h"
+#include "cdefs.h"
 #include "cstrings.h"
 #include "devices_types.h"
 #include "ff15/source/diskio.h"
 #include "ff15/source/ffconf.h"
-#include "cdefs.h"
 #include "pico/stdio.h"
+
+#undef debugstr
+#define debugstr(...) void(0)
 
 
 static const cstr ff_errors[] = {
@@ -51,16 +54,16 @@ namespace kio::Devices
 FatFS::FatFS(cstr name, BlockDevice* blkdev, int idx) throws : // ctor
 	FileSystem(name, blkdev)
 {
-	printf("FatFS::FatFS\n");
+	debugstr("FatFS::FatFS\n");
 
 	assert(uint(idx) <= FF_VOLUMES);
 }
 
 FatFS::~FatFS() // dtor
 {
-	printf("FatFS::~FatFS\n");
+	debugstr("FatFS::~FatFS\n");
 
-	FRESULT err = f_mount(&fatfs, nullptr, 0); // unmount, unregister buffers
+	FRESULT err = f_mount(nullptr, name, 0); // unmount, unregister buffers
 	if (err) logline("unmount error: %s", tostr(err));
 }
 
@@ -82,7 +85,7 @@ ADDR FatFS::getSize()
 
 bool FatFS::mount()
 {
-	printf("FatFS::mount\n");
+	debugstr("FatFS::mount\n");
 
 	FRESULT err = f_mount(&fatfs, name, 1 /*mount now*/);
 	if (err && err != FR_NO_FILESYSTEM) throw tostr(err);
@@ -143,7 +146,7 @@ using namespace kio::Devices;
 
 DSTATUS disk_status(BYTE id)
 {
-	printf("%s\n", __func__);
+	//debugstr("%s\n", __func__);
 
 	// required callback for FatFS:
 
@@ -171,7 +174,7 @@ DSTATUS disk_initialize(BYTE id)
 	// STA_NODISK		0x02	/* No medium in the drive */
 	// STA_PROTECT		0x04	/* Write protected */
 
-	printf("***disk_initialize***\n");
+	debugstr("***disk_initialize***\n");
 
 	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
 	BlockDevice* blkdev = file_systems[id]->blkdev;
@@ -195,7 +198,7 @@ DSTATUS disk_initialize(BYTE id)
 
 DRESULT disk_read(BYTE id, BYTE* buff, LBA_t sector, UINT count)
 {
-	printf("%s\n", __func__);
+	debugstr("%s\n", __func__);
 
 	// required callback for FatFS:
 
@@ -233,7 +236,7 @@ DRESULT disk_read(BYTE id, BYTE* buff, LBA_t sector, UINT count)
 
 DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 {
-	printf("%s\n", __func__);
+	debugstr("%s\n", __func__);
 
 	// required callback for FatFS:
 
@@ -275,7 +278,7 @@ DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 
 DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 {
-	printf("%s\n", __func__);
+	debugstr("%s\n", __func__);
 
 	// required callback for FatFS:
 
