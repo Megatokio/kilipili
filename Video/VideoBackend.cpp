@@ -126,11 +126,11 @@ static void RAM timing_isr() noexcept
 			in_vblank			= false;
 			line_at_frame_start = line_at_frame_start + vga_mode.height;
 
-			time_us_at_frame_start += cc_per_frame / cc_per_us;
+			time_us_at_frame_start = time_us_at_frame_start + cc_per_frame / cc_per_us;
 			if ((cc_per_frame_rest += cc_per_frame_fract) >= cc_per_us)
 			{
 				cc_per_frame_rest -= cc_per_us;
-				time_us_at_frame_start += 1;
+				time_us_at_frame_start = time_us_at_frame_start + 1;
 			}
 
 			__sev();
@@ -410,7 +410,8 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 
 	pio_enable_sm_mask_in_sync(video_pio, (1u << SCANLINE_SM) | (1 << TIMING_SM));
 
-	auto& prog = program[state = in_active_screen];
+	state	   = in_active_screen;
+	auto& prog = program[in_active_screen];
 	for (volatile uint32 now = time_us_32(); now == time_us_32();) {}
 	dma_channel_transfer_from_buffer_now(TIMING_DMA_CHANNEL, prog.program, prog.count);
 	time_us_at_frame_start = time_us_32(); // get *exact* system time for start of dma
