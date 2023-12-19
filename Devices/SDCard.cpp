@@ -4,13 +4,17 @@
 
 #include "SDCard.h"
 #include "basic_math.h"
-#include "crc.h"
 #include "cdefs.h"
+#include "crc.h"
 #include "stdio.h"
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
 #include <pico/stdlib.h>
 #include <string.h>
+
+#undef debugstr
+#define debugstr(...) void(0)
+
 
 static constexpr uint log2(uint n) { return n == 1 ? 0 : 1 + log2(n >> 1); }
 static_assert(log2(32) == 5, "");
