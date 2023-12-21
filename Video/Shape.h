@@ -8,8 +8,8 @@
 #include "RCPtr.h"
 #include "VideoBackend.h"
 #include "atomic.h"
-#include "geometry.h"
 #include "cdefs.h"
+#include "geometry.h"
 #include "video_types.h"
 
 
@@ -167,14 +167,14 @@ struct Shape
 	}
 
 	template<typename Pixmap>
-	Shape(const Pixmap& pm, uint transp, const Dist& hotspot, const Color* clut) throws;
+	Shape(const Pixmap& pm, int transp, const Dist& hotspot, const Color* clut) throws;
 	Shape() noexcept {}
 
 	template<typename Pixmap>
-	static int calc_count(const Pixmap& pm, uint transp, uint8* _height) noexcept;
+	static int calc_count(const Pixmap& pm, int transp, uint8* _height) noexcept;
 
 	template<typename Pixmap>
-	void create_shape(const Pixmap& pm, uint transp, const Color* clut) noexcept;
+	void create_shape(const Pixmap& pm, int transp, const Color* clut) noexcept;
 
 private:
 	RCPtr<Pixels> pixels;
@@ -343,7 +343,7 @@ inline bool __section(".scratch_x.shape") HotSoftenedShape::render_row(Color* sc
 
 //static
 template<typename Pixmap>
-int Shape::calc_count(const Pixmap& pm, uint transparent_pixel, uint8* _height) noexcept
+int Shape::calc_count(const Pixmap& pm, int transparent_pixel, uint8* _height) noexcept
 {
 	// calculate exact number of pixels required for this shape:
 
@@ -391,7 +391,7 @@ int Shape::calc_count(const Pixmap& pm, uint transparent_pixel, uint8* _height) 
 }
 
 template<typename Pixmap>
-void Shape::create_shape(const Pixmap& pm, uint transparent_pixel, const Color* clut) noexcept
+void Shape::create_shape(const Pixmap& pm, int transparent_pixel, const Color* clut) noexcept
 {
 	using PFX = HotShape::PFX;
 	using CMD = HotShape::CMD;
@@ -473,7 +473,7 @@ void Shape::create_shape(const Pixmap& pm, uint transparent_pixel, const Color* 
 }
 
 template<typename Pixmap>
-Shape::Shape(const Pixmap& pm, uint transparent_pixel, const Dist& hotspot, const Color* clut) throws
+Shape::Shape(const Pixmap& pm, int transparent_pixel, const Dist& hotspot, const Color* clut) throws
 {
 	assert(pm.width <= 255);
 	assert(pm.height <= 255);
