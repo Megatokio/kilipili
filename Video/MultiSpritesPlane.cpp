@@ -190,8 +190,9 @@ void MultiSpritesPlane<Sprite, WZ>::_link(Sprite* s) noexcept
 	}
 	else
 	{
-		s->next		= displaylist;
-		s->prev		= nullptr;
+		s->next = displaylist;
+		s->prev = nullptr;
+		if (s->next) s->next->prev = s;
 		displaylist = s;
 	}
 }
