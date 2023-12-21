@@ -1313,6 +1313,11 @@ scanlineRenderFunction<colormode_a2w8_rgb>(uint32* _dest, uint width, const uint
 	}
 }
 
+template void setupScanlineRenderer<colormode_a2w8_rgb>(const Color* colormap);
+
+template void teardownScanlineRenderer<colormode_a2w8_rgb>() noexcept;
+
+
 } // namespace kio::Video
 
 
