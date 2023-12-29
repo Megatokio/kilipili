@@ -14,11 +14,11 @@ The video engine provides many video modes with indexed or true color up to high
 - `[done]` Low RAM usage by use of attributes. =\> colorful display in high resolutions.  
   e.g. **1024 x 768** with 8 x 12 pixel **true color** attributes uses **only 132 kB of Ram**, leaving over 100 kB to the application.
 - `[done]` Mouse pointer. 
-- `[done]` can switch between different video mode and screen resolutions.
-- `[done]` automatically sets the required system clock.  
-- `[test]` runs entirely in RAM: stable video while writing to the internal flash possible.
+- `[done]` Switch between different video mode and screen resolutions.
+- `[done]` Automatically sets the required system clock.  
+- `[test]` Run entirely in RAM: video output while writing to the internal flash.
 - `[test]` Sprites.
-- `[todo]` Tiled background mode. 
+- `[test]` Tiled background. 
 
 ## USB Host
 The USB host mode currently supports keyboards and pointer devices (aka 'Mouse'). 
@@ -46,10 +46,10 @@ The Graphics engine supports pixmaps with many modes which are supported by the 
 - `[todo]` Graphics still lack some functionality.
 
 ## SDCard support
-The SDcard interface accesses the SD card via it's SPI interface.  
+The SDcard Interface accesses the SD card via it's SPI interface.  
 
 - `[test]` Access SC card in SPI mode
-- `[todo]` FAT file system support **WIP**
+- `[test]` FAT file system support 
 
 ## Other
 - `[done]` cpu load sensor
