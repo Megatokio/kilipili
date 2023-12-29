@@ -5,6 +5,8 @@ cmake_minimum_required(VERSION 3.13)
 ###########################################
 # kilipili/CMakeLists.txt
 
+set(PICO_BOARD_HEADER_DIRS  "${CMAKE_CURRENT_LIST_DIR}/boards")
+
 
 ###########################################
 # executable for unit tests:
