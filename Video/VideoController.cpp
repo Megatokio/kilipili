@@ -128,7 +128,11 @@ void VideoController::core1_runner() noexcept
 				assert(requested_state == STOPPED);
 
 				VideoBackend::stop();
-				while (num_planes) { planes[--num_planes]->teardown(); }
+				while (num_planes)
+				{
+					planes[--num_planes]->teardown();
+					planes[num_planes] = nullptr;
+				}
 				scanline_buffer.teardown();
 				idle_action	   = nullptr;
 				vblank_action  = nullptr;
@@ -270,7 +274,7 @@ void RAM VideoController::video_runner()
 	}
 }
 
-void VideoController::addPlane(VideoPlane* plane)
+void VideoController::addPlane(VideoPlanePtr plane)
 {
 	assert(plane != nullptr);
 	assert(num_planes < count_of(planes));
@@ -280,13 +284,12 @@ void VideoController::addPlane(VideoPlane* plane)
 	addOneTimeAction([this, plane] {
 		locker();
 		assert(num_planes < max_planes);
-		planes[num_planes] = plane;
 		plane->setup(vga_mode.width); // throws
-		num_planes++;
+		planes[num_planes++] = plane;
 	});
 }
 
-void VideoController::removePlane(VideoPlane* plane)
+void VideoController::removePlane(VideoPlanePtr plane)
 {
 	// plane must be removed by core1 because plane->teardown() may unclaim the hw interp:
 	// note: normally not used because teardown() removes all planes.
@@ -298,8 +301,8 @@ void VideoController::removePlane(VideoPlane* plane)
 			if (planes[--i] != plane) continue;
 
 			plane->teardown();
-			while (++i < num_planes) planes[i - 1] = planes[i];
-			num_planes--;
+			while (++i < num_planes) std::swap(planes[i - 1], planes[i]);
+			planes[--num_planes] = nullptr;
 			return;
 		}
 	});

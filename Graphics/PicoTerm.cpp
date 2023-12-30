@@ -41,11 +41,11 @@ static constexpr const uint8 dblw[16] = {
 // =============================================================================
 
 
-PicoTerm::PicoTerm(Canvas& pixmap) :
+PicoTerm::PicoTerm(CanvasPtr pixmap) :
 	SerialDevice(writable),
 	pixmap(pixmap),
-	colormode(pixmap.colormode),
-	attrheight(pixmap.attrheight),
+	colormode(pixmap->colormode),
+	attrheight(pixmap->attrheight),
 	colordepth(get_colordepth(colormode)),	// 0 .. 4  log2 of bits per color in attributes[]
 	attrmode(get_attrmode(colormode)),		// 0 .. 2  log2 of bits per color in pixmap[]
 	attrwidth(get_attrwidth(colormode)),	// 0 .. 3  log2 of width of tiles
@@ -75,7 +75,7 @@ void PicoTerm::scrollScreen(coord dx /*chars*/, coord dy /*chars*/)
 	int w = (screen_width - abs(dx)) * CHAR_WIDTH;
 	int h = (screen_height - abs(dy)) * CHAR_HEIGHT;
 
-	if (w <= 0 || h <= 0) return pixmap.clear(bgcolor);
+	if (w <= 0 || h <= 0) return pixmap->clear(bgcolor);
 
 	dx *= CHAR_WIDTH;
 	dy *= CHAR_HEIGHT;
@@ -85,13 +85,13 @@ void PicoTerm::scrollScreen(coord dx /*chars*/, coord dy /*chars*/)
 	coord qy = dy >= 0 ? 0 : -dy;
 	coord zy = dy >= 0 ? +dy : 0;
 
-	pixmap.copyRect(zx, zy, qx, qy, w, h);
+	pixmap->copyRect(zx, zy, qx, qy, w, h);
 
-	if (dx > 0) pixmap.fillRect(0, 0, +dx, screen_height * CHAR_HEIGHT, bgcolor, bg_ink);
-	if (dx < 0) pixmap.fillRect(w, 0, -dx, screen_height * CHAR_HEIGHT, bgcolor, bg_ink);
+	if (dx > 0) pixmap->fillRect(0, 0, +dx, screen_height * CHAR_HEIGHT, bgcolor, bg_ink);
+	if (dx < 0) pixmap->fillRect(w, 0, -dx, screen_height * CHAR_HEIGHT, bgcolor, bg_ink);
 
-	if (dy > 0) pixmap.fillRect(0, 0, screen_width * CHAR_WIDTH, +dy, bgcolor, bg_ink);
-	if (dy < 0) pixmap.fillRect(0, h, screen_width * CHAR_WIDTH, -dy, bgcolor, bg_ink);
+	if (dy > 0) pixmap->fillRect(0, 0, screen_width * CHAR_WIDTH, +dy, bgcolor, bg_ink);
+	if (dy < 0) pixmap->fillRect(0, h, screen_width * CHAR_WIDTH, -dy, bgcolor, bg_ink);
 }
 
 void PicoTerm::scrollScreenUp(int rows /*char*/)
@@ -166,7 +166,7 @@ void PicoTerm::readBmp(CharMatrix bmp, bool use_fgcolor)
 
 	int x = col++ * CHAR_WIDTH;
 	int y = row * CHAR_HEIGHT;
-	pixmap.readBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, use_fgcolor ? fgcolor : bgcolor, use_fgcolor);
+	pixmap->readBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, use_fgcolor ? fgcolor : bgcolor, use_fgcolor);
 }
 
 void PicoTerm::writeBmp(CharMatrix bmp, uint8 attr)
@@ -223,10 +223,10 @@ void PicoTerm::writeBmp(CharMatrix bmp, uint8 attr)
 	int x = col++ * CHAR_WIDTH;
 	int y = row * CHAR_HEIGHT;
 
-	if (!(attr & ATTR_OVERPRINT)) pixmap.fillRect(x, y, CHAR_WIDTH, CHAR_HEIGHT, bgcolor, bg_ink);
-	//pixmap.drawBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, fgcolor, fg_ink);
+	if (!(attr & ATTR_OVERPRINT)) pixmap->fillRect(x, y, CHAR_WIDTH, CHAR_HEIGHT, bgcolor, bg_ink);
+	//pixmap->drawBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, fgcolor, fg_ink);
 	static_assert(CHAR_WIDTH == 8);
-	pixmap.drawChar(x, y, bmp, CHAR_HEIGHT, fgcolor, fg_ink);
+	pixmap->drawChar(x, y, bmp, CHAR_HEIGHT, fgcolor, fg_ink);
 }
 
 void PicoTerm::getCharMatrix(CharMatrix charmatrix, char cc)
@@ -399,7 +399,7 @@ void PicoTerm::eraseRect(int row, int col, int rows, int cols)
 	{
 		int x = col * CHAR_WIDTH;
 		int y = row * CHAR_HEIGHT;
-		pixmap.fillRect(Rect(x, y, cols * CHAR_WIDTH, rows * CHAR_HEIGHT), bgcolor, bg_ink);
+		pixmap->fillRect(Rect(x, y, cols * CHAR_WIDTH, rows * CHAR_HEIGHT), bgcolor, bg_ink);
 	}
 }
 
@@ -409,7 +409,7 @@ void PicoTerm::copyRect(int src_row, int src_col, int dest_row, int dest_col, in
 
 	if (rows > 0 && cols > 0)
 	{
-		pixmap.copyRect(
+		pixmap->copyRect(
 			src_col * CHAR_WIDTH, src_row * CHAR_HEIGHT, dest_col * CHAR_WIDTH, dest_row * CHAR_HEIGHT,
 			cols * CHAR_WIDTH, rows * CHAR_HEIGHT);
 	}
@@ -420,8 +420,8 @@ void PicoTerm::reset()
 	// all settings = default, home cursor
 	// does not clear screen
 
-	screen_width  = pixmap.width / CHAR_WIDTH;
-	screen_height = pixmap.height / CHAR_HEIGHT;
+	screen_width  = pixmap->width / CHAR_WIDTH;
+	screen_height = pixmap->height / CHAR_HEIGHT;
 
 	bg_ink	= 0;
 	fg_ink	= 1;
@@ -446,7 +446,7 @@ void PicoTerm::cls()
 	attributes	  = 0;
 	cursorVisible = false;
 
-	pixmap.clear(bgcolor);
+	pixmap->clear(bgcolor);
 }
 
 void PicoTerm::moveTo(int row, int col) noexcept
@@ -702,7 +702,7 @@ char* PicoTerm::identify()
 	cstr amstr = attrmode == attrmode_none ? "" : usingstr(" attr=%u*%u", 1 << attrwidth, attrheight);
 
 	return usingstr(
-		"PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s%s", pixmap.width, pixmap.height, screen_width, screen_height,
+		"PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s%s", pixmap->width, pixmap->height, screen_width, screen_height,
 		CHAR_WIDTH, CHAR_HEIGHT, tostr(colordepth), amstr);
 }
 
@@ -716,7 +716,7 @@ void PicoTerm::show_cursor(bool show)
 		if (cursorXorColor == 0) cursorXorColor = ~0u;
 	}
 
-	pixmap.xorRect(col * CHAR_WIDTH, row * CHAR_HEIGHT, CHAR_WIDTH, CHAR_HEIGHT, cursorXorColor);
+	pixmap->xorRect(col * CHAR_WIDTH, row * CHAR_HEIGHT, CHAR_WIDTH, CHAR_HEIGHT, cursorXorColor);
 	cursorVisible = show;
 }
 

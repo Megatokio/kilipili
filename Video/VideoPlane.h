@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "RCPtr.h"
 #include "geometry.h"
-
 
 namespace kio::Video
 {
@@ -14,13 +14,13 @@ namespace kio::Video
 	The primary method is renderScanline() which is called to create the pixel data for one scanline.
 	Method vblank() is called at the start of each frame.
 */
-class VideoPlane
+class VideoPlane : public RCObject
 {
 protected:
 	VideoPlane() noexcept {}
 
 public:
-	virtual ~VideoPlane() noexcept = default;
+	virtual ~VideoPlane() noexcept override = default;
 
 	virtual void setup(coord width)	 = 0;
 	virtual void teardown() noexcept = 0;
@@ -40,5 +40,8 @@ public:
 	*/
 	virtual void renderScanline(int row, uint32* buffer) noexcept = 0;
 };
+
+using VideoPlanePtr = RCPtr<VideoPlane>;
+
 
 } // namespace kio::Video

@@ -91,7 +91,7 @@ public:
 	template<ColorMode QCM>
 	Pixmap(typename std::enable_if_t<CM == colormode_i1, const Pixmap<QCM>>& q, uint color, bool set) noexcept;
 
-	virtual constexpr ~Pixmap() noexcept override;
+	virtual ~Pixmap() noexcept override;
 
 	// -----------------------------------------------
 
@@ -224,7 +224,7 @@ DirectColorPixmap::Pixmap(
 }
 
 template<ColorMode CM>
-constexpr DirectColorPixmap::~Pixmap() noexcept
+DirectColorPixmap::~Pixmap() noexcept
 {
 	if (allocated) delete[] pixmap;
 }

@@ -35,13 +35,19 @@ public:
 	using Pixmap   = Video::Pixmap<CM>;
 	using ColorMap = Video::ColorMap<get_colordepth(CM)>;
 
-	const Pixmap&	   pixmap;
+	RCPtr<Pixmap>	   pixmap;
 	const Color* const colormap;
 	uint8*			   pixels; // next position
 	int				   row;	   // expected next row
 	uint			   width;
 
-	FrameBuffer(const Pixmap& px, const ColorMap colormap) noexcept : pixmap(px), colormap(colormap) {}
+	FrameBuffer(RCPtr<Pixmap> px, const ColorMap colormap) noexcept : pixmap(px), colormap(colormap) {}
+	FrameBuffer(RCPtr<Canvas> px, const ColorMap colormap) noexcept :
+		pixmap(static_cast<Pixmap*>(px.ptr())),
+		colormap(colormap)
+	{
+		assert(px->colormode == CM);
+	}
 
 	virtual ~FrameBuffer() noexcept override = default;
 
@@ -61,17 +67,17 @@ public:
 	{
 		while (unlikely(++this->row <= row)) // increment row and check whether we missed some rows
 		{
-			pixels += pixmap.row_offset;
+			pixels += pixmap->row_offset;
 		}
 
 		scanlineRenderFunction<CM>(plane_data, width, pixels);
 
-		pixels += pixmap.row_offset;
+		pixels += pixmap->row_offset;
 	}
 
 	virtual void RAM vblank() noexcept override final
 	{
-		pixels = pixmap.pixmap;
+		pixels = pixmap->pixmap;
 		row	   = 0;
 	}
 };
@@ -89,7 +95,7 @@ public:
 	using Pixmap   = Video::Pixmap<CM>;
 	using ColorMap = Video::ColorMap<get_colordepth(CM)>;
 
-	const Pixmap&	   pixmap;
+	RCPtr<Pixmap>	   pixmap;
 	const Color* const colormap;
 	uint8*			   pixels; // next position
 	int				   row;	   // expected next row
@@ -99,12 +105,20 @@ public:
 	int				   row_offset;
 	int				   attrheight;
 
-	FrameBuffer(const Pixmap& px, const ColorMap cm) noexcept :
+	FrameBuffer(RCPtr<Pixmap> px, const ColorMap cm) noexcept :
 		pixmap(px),
 		colormap(cm),
 		row_offset(px.row_offset),
 		attrheight(px.attrheight)
 	{}
+	FrameBuffer(RCPtr<Canvas> px, const ColorMap colormap) noexcept :
+		pixmap(static_cast<Pixmap*>(px.ptr())),
+		colormap(colormap),
+		row_offset(pixmap->row_offset),
+		attrheight(px->attrheight)
+	{
+		assert(px->colormode == CM);
+	}
 
 	virtual ~FrameBuffer() noexcept override = default;
 
@@ -124,11 +138,11 @@ public:
 	{
 		while (unlikely(++this->row <= row)) // increment row and check whether we missed some rows
 		{
-			pixels += pixmap.row_offset;
-			if unlikely (++arow == pixmap.attrheight)
+			pixels += pixmap->row_offset;
+			if unlikely (++arow == pixmap->attrheight)
 			{
 				arow = 0;
-				attributes += pixmap.attributes.row_offset;
+				attributes += pixmap->attributes.row_offset;
 			}
 		}
 
@@ -138,14 +152,14 @@ public:
 		if unlikely (++arow == attrheight)
 		{
 			arow = 0;
-			attributes += pixmap.attributes.row_offset;
+			attributes += pixmap->attributes.row_offset;
 		}
 	}
 
 	virtual void RAM vblank() noexcept override final
 	{
-		pixels	   = pixmap.pixmap;
-		attributes = pixmap.attributes.pixmap;
+		pixels	   = pixmap->pixmap;
+		attributes = pixmap->attributes.pixmap;
 		row		   = 0;
 		arow	   = 0;
 	}

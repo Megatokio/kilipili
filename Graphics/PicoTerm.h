@@ -60,7 +60,7 @@ public:
 		ESC					   = 27,
 	};
 
-	Canvas& pixmap;
+	CanvasPtr pixmap;
 
 	const ColorMode	 colormode;
 	const AttrHeight attrheight;
@@ -96,7 +96,7 @@ public:
 	bool   auto_crlf = true;
 	uint16 sm_state	 = 0;
 
-	PicoTerm(Canvas&);
+	PicoTerm(CanvasPtr);
 
 	/* SerialDevice Interface:
 	*/

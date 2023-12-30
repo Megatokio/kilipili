@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "RCPtr.h"
 #include "geometry.h"
 #include "graphics_types.h"
 #include "no_copy_move.h"
@@ -29,8 +30,11 @@
 namespace kio::Graphics
 {
 
+class Canvas;
+using CanvasPtr = RCPtr<Canvas>;
 
-class Canvas
+
+class Canvas : public RCObject
 {
 	NO_COPY_MOVE(Canvas);
 
@@ -58,7 +62,7 @@ public:
 	int		   bits_per_color() const noexcept { return 1 << colordepth(); }	 // bits per color in pixmap[] or attr[]
 	int bits_per_pixel() const noexcept { return is_attribute_mode(colormode) ? 1 << attrmode() : 1 << colordepth(); }
 
-	virtual ~Canvas() = default;
+	virtual ~Canvas() override = default;
 
 
 	// helper:

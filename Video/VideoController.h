@@ -77,17 +77,17 @@ public:
 		the plane will be added by core1 on the next vblank.
 		can be called before startVideo() and any time afterwards.
 	*/
-	void addPlane(VideoPlane*);
+	void addPlane(VideoPlanePtr);
 
 	/*
 		remove a plane from the video output.
 		the plane will be removed by core1 on the next vblank.
 		note: stopVideo() also disposes off all planes.
 	*/
-	void removePlane(VideoPlane*);
+	void removePlane(VideoPlanePtr);
 
 	/*
-		register a funcion to be called during every vblank.
+		register a function to be called during every vblank.
 		the video controller calls onetime actions, the vblank action and 
 		plane.vblank of all planes during vblank in this order.		
 	*/
@@ -112,10 +112,10 @@ public:
 
 private:
 	static Error		  core1_error;
-	static constexpr uint max_planes = 6;
+	static constexpr uint max_planes = 8;
 
-	uint		  num_planes;
-	VideoPlane*	  planes[max_planes] = {nullptr};
+	uint		  num_planes		 = 0;
+	VideoPlanePtr planes[max_planes] = {nullptr};
 	IdleAction	  idle_action		 = nullptr;
 	VBlankAction  vblank_action		 = nullptr;
 	OneTimeAction onetime_action	 = nullptr;
