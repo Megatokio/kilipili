@@ -6,13 +6,13 @@
 #include "FatDir.h"
 #include "FatFile.h"
 #include "Logger.h"
+#include "Trace.h"
 #include "basic_math.h"
 #include "cdefs.h"
-#include "cstrings.h"
 #include "devices_types.h"
 #include "ff15/source/diskio.h"
 #include "ff15/source/ffconf.h"
-#include "pico/stdio.h"
+#include <pico/stdio.h>
 
 #undef debugstr
 #define debugstr(...) void(0)
@@ -54,6 +54,8 @@ namespace kio::Devices
 FatFS::FatFS(cstr name, BlockDevice* blkdev, int idx) throws : // ctor
 	FileSystem(name, blkdev)
 {
+	trace(__func__);
+
 	debugstr("FatFS::FatFS\n");
 
 	assert(uint(idx) <= FF_VOLUMES);
@@ -61,6 +63,8 @@ FatFS::FatFS(cstr name, BlockDevice* blkdev, int idx) throws : // ctor
 
 FatFS::~FatFS() // dtor
 {
+	trace(__func__);
+
 	debugstr("FatFS::~FatFS\n");
 
 	FRESULT err = f_mount(nullptr, name, 0); // unmount, unregister buffers
@@ -69,6 +73,8 @@ FatFS::~FatFS() // dtor
 
 ADDR FatFS::getFree()
 {
+	trace(__func__);
+
 	DWORD	num_clusters;
 	FATFS*	fatfsptr = nullptr;
 	FRESULT err		 = f_getfree(name, &num_clusters, &fatfsptr);
@@ -79,12 +85,16 @@ ADDR FatFS::getFree()
 
 ADDR FatFS::getSize()
 {
+	trace(__func__);
+
 	ADDR total_size = (ADDR(fatfs.n_fatent - 2) * uint(fatfs.csize << 9));
 	return total_size;
 }
 
 bool FatFS::mount()
 {
+	trace(__func__);
+
 	debugstr("FatFS::mount\n");
 
 	FRESULT err = f_mount(&fatfs, name, 1 /*mount now*/);
@@ -94,18 +104,24 @@ bool FatFS::mount()
 
 DirectoryPtr FatFS::openDir(cstr path)
 {
+	trace(__func__);
+
 	path = makeAbsolutePath(path);
 	return new FatDir(this, path);
 }
 
 FilePtr FatFS::openFile(cstr path, FileOpenMode flags)
 {
+	trace(__func__);
+
 	path = makeAbsolutePath(path);
 	return new FatFile(this, path, flags);
 }
 
 void FatFS::mkfs(BlockDevice* blkdev, int idx, cstr /*type*/)
 {
+	trace(__func__);
+
 	const uint	ssx	   = max(9u, blkdev->ss_erase);
 	const uint	align  = 1 << (ssx - 9);
 	const uint8 fmtopt = blkdev->flags & partition ? FM_ANY | FM_SFD : FM_ANY;
@@ -146,6 +162,8 @@ using namespace kio::Devices;
 
 DSTATUS disk_status(BYTE id)
 {
+	trace(__func__);
+
 	//debugstr("%s\n", __func__);
 
 	// required callback for FatFS:
@@ -166,6 +184,8 @@ DSTATUS disk_status(BYTE id)
 
 DSTATUS disk_initialize(BYTE id)
 {
+	trace(__func__);
+
 	// required callback for FatFS:
 
 	// id = Physical drive number to identify the drive
@@ -198,6 +218,8 @@ DSTATUS disk_initialize(BYTE id)
 
 DRESULT disk_read(BYTE id, BYTE* buff, LBA_t sector, UINT count)
 {
+	trace(__func__);
+
 	debugstr("%s\n", __func__);
 
 	// required callback for FatFS:
@@ -236,6 +258,8 @@ DRESULT disk_read(BYTE id, BYTE* buff, LBA_t sector, UINT count)
 
 DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 {
+	trace(__func__);
+
 	debugstr("%s\n", __func__);
 
 	// required callback for FatFS:
@@ -278,6 +302,8 @@ DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 
 DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 {
+	trace(__func__);
+
 	debugstr("%s\n", __func__);
 
 	// required callback for FatFS:
@@ -320,7 +346,11 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 		static_assert(IoCtl::GET_BLOCK_SIZE == get_block_size);
 		static_assert(IoCtl::CTRL_TRIM == ctrl_trim);
 
-		if (buff == nullptr) blkdev->ioctl(IoCtl::Cmd(cmd));
+		if (buff == nullptr)
+		{
+			blkdev->ioctl(IoCtl::Cmd(cmd));
+			return RES_OK;
+		}
 		throw "buff != null: TODO";
 	}
 	catch (Error e)

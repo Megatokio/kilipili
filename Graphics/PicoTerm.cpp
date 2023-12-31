@@ -7,6 +7,7 @@
 #include "cstrings.h"
 #include "glue.h"
 #include "string.h"
+#include "utilities/Trace.h"
 
 namespace kio::Graphics
 {
@@ -742,6 +743,8 @@ int PicoTerm::getc(void (*run_statemachines)(), int timeout_us)
 
 str PicoTerm::input_line(void (*run_statemachines)(), str oldtext, int epos)
 {
+	trace(__func__);
+
 	if (oldtext == nullptr) oldtext = emptystr;
 	assert(epos <= int(strlen(oldtext)));
 

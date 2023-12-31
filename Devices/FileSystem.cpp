@@ -6,11 +6,11 @@
 #include "FatFS.h"
 #include "File.h"
 #include "SDCard.h"
+#include "Trace.h"
 #include "cstrings.h"
 #include "ff15/source/ffconf.h"
 #include "pico/stdio.h"
 #include <pico/config.h>
-
 
 // volume names as required by FatFS:
 constexpr char NoDevice[]			 = "";
@@ -51,6 +51,8 @@ int index_of(FileSystem* fs)
 
 BlockDevice* newBlockDeviceForName(cstr name)
 {
+	trace(__func__);
+
 	if (lceq(name, "sdcard"))
 	{
 		static constexpr uint8 rx  = PICO_DEFAULT_SPI_RX_PIN;
@@ -66,12 +68,16 @@ BlockDevice* newBlockDeviceForName(cstr name)
 FileSystem::FileSystem(cstr devname, BlockDevice* blkdev) throws : // ctor
 	blkdev(blkdev)
 {
+	trace(__func__);
+
 	if (strlen(devname) >= sizeof(name)) throw NAME_TOO_LONG;
 	memcpy(name, devname, sizeof(name));
 }
 
 FileSystem::~FileSystem() noexcept
 {
+	trace(__func__);
+
 	delete[] workdir;
 
 	int idx = index_of(this);
@@ -84,6 +90,8 @@ FileSystem::~FileSystem() noexcept
 
 void FileSystem::makeFS(BlockDevicePtr bdev, cstr type) throws // static
 {
+	trace(__func__);
+
 	type = lowerstr(type);
 	if (startswith(type, "fat"))
 	{
@@ -96,6 +104,8 @@ void FileSystem::makeFS(BlockDevicePtr bdev, cstr type) throws // static
 
 void FileSystem::makeFS(cstr devname, cstr type) throws // static
 {
+	trace(__func__);
+
 	int idx = index_of(devname);
 	if (idx >= 0) throw FILESYSTEM_IN_USE;
 
@@ -104,6 +114,8 @@ void FileSystem::makeFS(cstr devname, cstr type) throws // static
 
 FileSystemPtr FileSystem::mount(cstr devname, BlockDevicePtr bdev) throws // static
 {
+	trace(__func__);
+
 	int idx = index_of(devname);
 	if (idx >= 0) throw DEVICE_IN_USE;
 	idx = index_of(NoDevice);
@@ -126,6 +138,8 @@ FileSystemPtr FileSystem::mount(cstr devname, BlockDevicePtr bdev) throws // sta
 
 FileSystemPtr FileSystem::mount(cstr devname) throws // static
 {
+	trace(__func__);
+
 	int idx = index_of(devname);
 	if (idx >= 0) return file_systems[idx];
 
@@ -135,6 +149,8 @@ FileSystemPtr FileSystem::mount(cstr devname) throws // static
 
 void FileSystem::setWorkDir(cstr path)
 {
+	trace(__func__);
+
 	path = makeAbsolutePath(path);
 	delete[] workdir;
 	workdir = nullptr;
@@ -145,6 +161,8 @@ void FileSystem::setWorkDir(cstr path)
 
 cstr FileSystem::makeAbsolutePath(cstr path)
 {
+	trace(__func__);
+
 	if (path[0] == '/') return path;
 	if (workdir) return catstr(workdir, "/", path);
 	else return catstr("/", path);
@@ -152,6 +170,8 @@ cstr FileSystem::makeAbsolutePath(cstr path)
 
 DirectoryPtr openDir(cstr path) throws
 {
+	trace(__func__);
+
 	ptr dp = strchr(path, ':');
 	if (!dp) throw PATH_WITHOUT_DEVICE;
 
@@ -161,6 +181,8 @@ DirectoryPtr openDir(cstr path) throws
 
 FilePtr openFile(cstr path, FileOpenMode flags) throws
 {
+	trace(__func__);
+
 	ptr dp = strchr(path, ':');
 	if (!dp) throw PATH_WITHOUT_DEVICE;
 

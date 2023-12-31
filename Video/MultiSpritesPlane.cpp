@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "MultiSpritesPlane.h"
-#include "StackInfo.h"
+#include "Trace.h"
 #include "VideoBackend.h"
 #include "cdefs.h"
 #include <pico/platform.h>
@@ -45,7 +45,7 @@ void MultiSpritesPlane<Sprite, WZ>::setup(coord __unused width)
 template<typename Sprite, ZPlane WZ>
 void MultiSpritesPlane<Sprite, WZ>::clear_displaylist(bool delete_sprites) noexcept
 {
-	stackinfo();
+	trace(__func__);
 
 	while (displaylist)
 	{
@@ -68,7 +68,7 @@ void MultiSpritesPlane<Sprite, WZ>::teardown() noexcept
 {
 	// called by VideoController
 
-	stackinfo();
+	trace(__func__);
 	assert(get_core_num() == 1);
 
 	clear_displaylist();
@@ -81,7 +81,7 @@ void MultiSpritesPlane<Sprite, WZ>::teardown() noexcept
 template<typename Sprite, ZPlane WZ>
 Sprite* MultiSpritesPlane<Sprite, WZ>::add(Sprite* sprite) throws
 {
-	stackinfo();
+	trace(__func__);
 
 	Lock _;
 	_link(sprite);
@@ -91,7 +91,7 @@ Sprite* MultiSpritesPlane<Sprite, WZ>::add(Sprite* sprite) throws
 template<typename Sprite, ZPlane WZ>
 Sprite* MultiSpritesPlane<Sprite, WZ>::remove(Sprite* sprite) noexcept
 {
-	stackinfo();
+	trace(__func__);
 	assert(is_in_displaylist(sprite));
 
 	Lock _;
@@ -102,7 +102,7 @@ Sprite* MultiSpritesPlane<Sprite, WZ>::remove(Sprite* sprite) noexcept
 template<typename Sprite, ZPlane WZ>
 void MultiSpritesPlane<Sprite, WZ>::moveTo(Sprite* s, const Point& p) noexcept
 {
-	stackinfo();
+	trace(__func__);
 	assert(is_in_displaylist(s));
 
 	Lock _;
@@ -175,7 +175,7 @@ void __always_inline MultiSpritesPlane<Sprite, WZ>::_link_before(Sprite* s, Spri
 template<typename Sprite, ZPlane WZ>
 void MultiSpritesPlane<Sprite, WZ>::_link(Sprite* s) noexcept
 {
-	stackinfo();
+	trace(__func__);
 	assert(!is_in_displaylist(s));
 	assert(is_spin_locked(sprites_spinlock));
 
@@ -200,7 +200,7 @@ void MultiSpritesPlane<Sprite, WZ>::_link(Sprite* s) noexcept
 template<typename Sprite, ZPlane WZ>
 void RAM MultiSpritesPlane<Sprite, WZ>::_move(Sprite* s) noexcept
 {
-	stackinfo();
+	trace(__func__);
 	assert(is_spin_locked(sprites_spinlock));
 
 	int		y = s->pos.y;
@@ -262,7 +262,7 @@ void RAM MultiSpritesPlane<Sprite, WZ>::add_to_hotlist(const Sprite* sprite) noe
 template<typename Sprite, ZPlane WZ>
 void RAM MultiSpritesPlane<Sprite, WZ>::renderScanline(int hot_row, uint32* scanline) noexcept
 {
-	stackinfo();
+	trace(__func__);
 	assert(get_core_num() == 1);
 
 	Video::hot_row = hot_row;
@@ -296,7 +296,7 @@ void RAM MultiSpritesPlane<Sprite, WZ>::vblank() noexcept
 	// called by VideoController at start of each frame.
 	// variants: with and without animation.
 
-	stackinfo();
+	trace(__func__);
 	assert(get_core_num() == 1);
 
 	num_hot		= 0;

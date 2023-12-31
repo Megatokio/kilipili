@@ -6,8 +6,10 @@
 #include "FatFS.h"
 #include "FatFile.h"
 #include "Logger.h"
-#include "cstrings.h"
+#include "Trace.h"
 #include "cdefs.h"
+#include "cstrings.h"
+#include <pico/stdio.h>
 #include <utility>
 
 namespace kio ::Devices
@@ -24,6 +26,8 @@ cstr FatDir::makeAbsolutePath(cstr path)
 template<>
 FileInfo::FileInfo(const FILINFO& info)
 {
+	trace(__func__);
+
 	fname		 = newcopy(info.fname);
 	fsize		 = SIZE(info.fsize);
 	ftype		 = info.fattrib & AM_DIR ? DirectoryFile : RegularFile;
@@ -39,6 +43,8 @@ FileInfo::FileInfo(const FILINFO& info)
 FatDir::FatDir(FatFSPtr device, cstr path) throws : // ctor
 	device(device)
 {
+	trace(__func__);
+
 	assert(is_absolute_path(path));
 	this->path = newcopy(path);
 
@@ -48,6 +54,8 @@ FatDir::FatDir(FatFSPtr device, cstr path) throws : // ctor
 
 FatDir::~FatDir() noexcept
 {
+	trace(__func__);
+
 	FRESULT err = f_closedir(&fatdir);
 	if (err) logline("close FatDir: %s", tostr(err));
 	delete[] path;
@@ -55,12 +63,16 @@ FatDir::~FatDir() noexcept
 
 void FatDir::rewind() throws
 {
+	trace(__func__);
+
 	FRESULT err = f_readdir(&fatdir, nullptr);
 	if (err) throw tostr(err);
 }
 
 FileInfo FatDir::next(cstr pattern) throws
 {
+	trace(__func__);
+
 	for (;;)
 	{
 		FILINFO filinfo;
@@ -73,6 +85,8 @@ FileInfo FatDir::next(cstr pattern) throws
 
 FilePtr FatDir::openFile(cstr path, FileOpenMode mode)
 {
+	trace(__func__);
+
 	path = makeAbsolutePath(path);
 	FatFilePtr file(new FatFile(device, path, mode));
 	FRESULT	   err = f_open(&file->fatfile, path, mode);
@@ -82,12 +96,16 @@ FilePtr FatDir::openFile(cstr path, FileOpenMode mode)
 
 DirectoryPtr FatDir::openDir(cstr path)
 {
+	trace(__func__);
+
 	path = makeAbsolutePath(path);
 	return new FatDir(device, path);
 }
 
 void FatDir::remove(cstr path)
 {
+	trace(__func__);
+
 	path		= makeAbsolutePath(path);
 	FRESULT err = f_unlink(path);
 	if (err) throw tostr(err);
@@ -95,6 +113,8 @@ void FatDir::remove(cstr path)
 
 void FatDir::makeDir(cstr path)
 {
+	trace(__func__);
+
 	path		= makeAbsolutePath(path);
 	FRESULT err = f_mkdir(path);
 	if (err) throw tostr(err);
@@ -102,6 +122,8 @@ void FatDir::makeDir(cstr path)
 
 void FatDir::rename(cstr path, cstr name)
 {
+	trace(__func__);
+
 	path		= makeAbsolutePath(path);
 	FRESULT err = f_rename(path, name);
 	if (err) throw tostr(err);
@@ -109,6 +131,8 @@ void FatDir::rename(cstr path, cstr name)
 
 void FatDir::setFmode(cstr path, FileMode fmode, uint8 mask)
 {
+	trace(__func__);
+
 	if constexpr (!FF_USE_CHMOD) throw "option disabled";
 
 	path		= makeAbsolutePath(path);
@@ -118,6 +142,8 @@ void FatDir::setFmode(cstr path, FileMode fmode, uint8 mask)
 
 void FatDir::setMtime(cstr path, uint32 mtime)
 {
+	trace(__func__);
+
 	if constexpr (!FF_USE_CHMOD) throw "option disabled";
 
 	FILINFO				   info;

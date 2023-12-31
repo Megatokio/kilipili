@@ -7,13 +7,14 @@
 
 #include "VideoController.h"
 #include "ScanlineBuffer.h"
-#include "StackInfo.h"
+#include "Trace.h"
 #include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "cdefs.h"
 #include "tempmem.h"
 #include "utilities/LoadSensor.h"
 #include "utilities/utilities.h"
+#include <cstdio>
 #include <hardware/clocks.h>
 #include <hardware/dma.h>
 #include <hardware/exception.h>
@@ -102,10 +103,12 @@ void VideoController::core1_runner() noexcept
 {
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
-	stackinfo();
+	trace(__func__);
 	exception_set_exclusive_handler(HARDFAULT_EXCEPTION, [] {
 		// contraire to documentation, this sets the handler for both cores:
-		panic("CORE%i: HARD FAULT\n", get_core_num());
+		printf("CORE%i: HARD FAULT\n", get_core_num());
+		Trace::print(get_core_num());
+		panic("halted");
 	});
 
 	try
@@ -159,7 +162,7 @@ void VideoController::core1_runner() noexcept
 
 inline void RAM VideoController::wait_for_event() noexcept
 {
-	stackinfo();
+	trace(__func__);
 
 	idle_start();
 	if (idle_action) idle_action();
@@ -173,7 +176,7 @@ inline void RAM VideoController::call_vblank_actions() noexcept
 	//   vblank_action
 	//   plane.vblank
 
-	stackinfo();
+	trace(__func__);
 
 	if (onetime_action)
 	{
@@ -197,7 +200,7 @@ inline void RAM VideoController::call_vblank_actions() noexcept
 
 void RAM VideoController::video_runner()
 {
-	stackinfo();
+	trace(__func__);
 	print_stack_free();
 
 	int height = vga_mode.height;

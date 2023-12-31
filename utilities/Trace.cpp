@@ -2,10 +2,10 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "StackInfo.h"
+#include "Trace.h"
+#include "basic_math.h"
 #include "sm_utilities.h"
 #include <stdio.h>
-#include <string.h>
 
 namespace kio
 {
@@ -13,10 +13,18 @@ namespace kio
 #undef stackinfo
 #ifdef DEBUG
 
-cstr StackInfo::stackinfo[maxstackdepth];
-int	 StackInfo::stackdepth = 0;
+Trace::Path Trace::path[2];
 
-int sm_print_stackinfo() noexcept
+void Trace::print(uint core)
+{
+	Path& stack = path[core];
+	for (uint i = 0; i < min(stack.depth, maxdepth); i++)
+	{
+		printf("core%u: %u: %s\n", core, i, stack.procs[i]); //
+	}
+}
+
+int sm_print_trace() noexcept
 {
 	BEGIN
 	{
@@ -24,15 +32,7 @@ int sm_print_stackinfo() noexcept
 
 		for (;;)
 		{
-			{
-				cstr stackinfo[StackInfo::maxstackdepth];
-				int	 n = StackInfo::stackdepth;
-				memcpy(stackinfo, StackInfo::stackinfo, sizeof(stackinfo));
-				for (int i = 0; i < n; i++)
-				{
-					printf("core1:%u: %s\n", i, stackinfo[i]); //
-				}
-			}
+			Trace::print(1);
 			SLEEP_MS(10 * 1000);
 		}
 	}

@@ -17,8 +17,8 @@ add_library(kilipili_utilities STATIC
 	Logger.cpp
 	sm_utilities.h 
 	sm_utilities.cpp
-	StackInfo.cpp
-	StackInfo.h
+	Trace.cpp
+	Trace.h
 	atomic.h
 	)
 

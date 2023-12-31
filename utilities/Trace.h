@@ -1,0 +1,51 @@
+// Copyright (c) 2022 - 2023 kio@little-bat.de
+// BSD-2-Clause license
+// https://opensource.org/licenses/BSD-2-Clause
+
+#pragma once
+#include "standard_types.h"
+#include <pico/platform.h>
+#include <pico/sync.h>
+
+namespace kio
+{
+
+#ifdef DEBUG
+
+class Trace
+{
+public:
+	static constexpr uint maxdepth = 8;
+	
+	struct Path
+	{
+		cstr procs[maxdepth];
+		uint depth = 0;
+
+		void push(cstr fu) noexcept
+		{
+			if (depth < maxdepth) procs[depth] = fu;
+			__dmb();
+			depth += 1;
+		}
+		void pop() noexcept { depth -= 1; }
+	};
+	
+	static Path path[2];
+	
+	Trace(cstr func) noexcept { path[get_core_num()].push(func); }
+	~Trace() noexcept { path[get_core_num()].pop(); }
+
+	static void print(uint core);
+};
+
+  #define trace(func) Trace _trace(func)
+
+#else
+  #define trace(func) (void)0
+#endif
+
+extern int sm_print_trace() noexcept;
+
+
+} // namespace kio
