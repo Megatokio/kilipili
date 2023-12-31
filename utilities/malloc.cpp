@@ -6,8 +6,7 @@
 #include <cstring>
 #include <new>
 #include <pico/malloc.h>
-#include <pico/mutex.h>
-
+#include <pico/platform.h>
 
 #ifndef PICO_CXX_ENABLE_EXCEPTIONS
   #define PICO_CXX_ENABLE_EXCEPTIONS false
@@ -36,9 +35,9 @@ void* operator new[](size_t n, const std::nothrow_t&) noexcept { return malloc(n
 void operator delete(void* p) noexcept { free(p); }
 void operator delete[](void* p) noexcept { free(p); }
 
-#if __cpp_sized_deallocation
-void operator delete(void* p, __unused size_t n) noexcept { free(p); }
-void operator delete[](void* p, __unused size_t n) noexcept { free(p); }
+#if defined __cpp_sized_deallocation && __cpp_sized_deallocation
+void		operator delete(void* p, __unused size_t n) noexcept { free(p); }
+void		operator delete[](void* p, __unused size_t n) noexcept { free(p); }
 #endif
 
 
@@ -59,14 +58,14 @@ extern uint32 __StackLimit;
 extern uint32 __StackTop;
 
 
-/*	The heap occupies the space between `end` and `__stack_limit`, which are calculated by the linker.
+/*	The heap occupies the space between `end` and `__StackLimit`, which are calculated by the linker.
 
 	The whole heap is occupied by a list of chunks which can be either used or free.
 	Each chunk is preceeded by a uint32 size, which is the size in uint32 words incl. this size itself.
 	Therefore the next chunk after uint32* p can be reached by p += *p.
 
 	The variable `first_free` points to the first free chunk or a used chunk before that.
-	Malloc starts search for a free gap at that address. Malloc tries to update this variable
+	Malloc starts searching for a free gap at this address. Malloc tries to update this variable
 	where possible to eliminate skipping over the first used chunks in every call.
 
 	The upper bits of the `size` word are used to indicate used or free and to provide minimal validation.
