@@ -4,7 +4,7 @@
 
 #pragma once
 #include "standard_types.h"
-
+#include<atomic>
 
 /* get 32 bit microsecond timestamp. overflows every ~71 minutes
 */
@@ -15,3 +15,21 @@ extern uint32 time_us_32();
 extern int getchar_timeout_us(uint32 timeout_us);
 
 
+namespace kio
+{
+
+template<typename T>
+T pp_atomic(T& value) noexcept
+{
+	std::atomic_ref<T> v(value);
+	return ++v;
+}
+
+template<typename T>
+T mm_atomic(T& value) noexcept
+{
+	std::atomic_ref<T> v(value);
+	return --v;
+}
+
+}
