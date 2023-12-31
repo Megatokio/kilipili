@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "atomic.h"
 #include "cdefs.h"
 #include <type_traits>
 
@@ -127,15 +128,29 @@ public:
 };
 
 
+class RCObj
+{
+public:
+	mutable int rc = 0;
+	int			refcnt() const noexcept { return rc; }
+	void		retain() const { rc++; }
+	void		release() const
+	{
+		if (--rc == 0) delete this;
+	}
+	virtual ~RCObj() noexcept { assert(rc == 0); }
+};
+
+
 class RCObject
 {
 public:
-	int	 rc = 0;
-	int	 refcnt() const noexcept { return rc; }
-	void retain() { rc++; }
-	void release()
+	mutable int rc = 0;
+	int			refcnt() const noexcept { return rc; }
+	void		retain() const { pp_atomic(rc); }
+	void		release() const
 	{
-		if (--rc == 0) delete this;
+		if (mm_atomic(rc) == 0) delete this;
 	}
 	virtual ~RCObject() noexcept { assert(rc == 0); }
 };
