@@ -108,7 +108,7 @@ void SDCard::init_spi() noexcept
 	gpio_set_dir(cs_pin, GPIO_OUT);
 
 	// spi:
-	spi_init(spi, 10 * 1000 * 1000);
+	spi_init(spi, 20 * 1000 * 1000);
 	spi_set_format(spi, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
 	gpio_set_function(rx_pin, GPIO_FUNC_SPI);
 	gpio_pull_up(rx_pin);
@@ -791,6 +791,7 @@ uint32 SDCard::ioctl(IoCtl ctl, void*, void*) throws
 		break;
 	case IoCtl::CTRL_CONNECT: // connect to hardware, load removable disk
 		connect();			  // throws
+		print_card_info();
 		break;
 	case IoCtl::CTRL_DISCONNECT: // disconnect from hardware, unload removable disk
 		disconnect();
