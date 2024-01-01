@@ -238,7 +238,7 @@ void RAM MultiSpritesPlane<Sprite, WZ>::add_to_hotlist(const Sprite* sprite) noe
 	if constexpr (WZ == HasZ)
 	{
 		uint z = sprite->z;
-		while (idx && z < hotlist[idx - 1].z)
+		while (idx && z > hotlist[idx - 1].z)
 		{
 			hotlist[idx] = hotlist[idx - 1];
 			idx--;
@@ -285,7 +285,18 @@ void RAM MultiSpritesPlane<Sprite, WZ>::renderScanline(int hot_row, uint32* scan
 	{
 		HotShape& hot_shape = hotlist[--i];
 		bool	  finished	= hot_shape.render_row(reinterpret_cast<Color*>(scanline));
-		if unlikely (finished) hot_shape = hotlist[--num_hot]; // TODO: with z !!
+		if unlikely (finished)
+		{
+			if (WZ == NoZ) //
+			{
+				hot_shape = hotlist[--num_hot];
+			}
+			else // WithZ
+			{
+				for (uint j = i + 1; j < num_hot; j++) hotlist[j - 1] = hotlist[j];
+				num_hot -= 1;
+			}
+		}
 	}
 }
 
