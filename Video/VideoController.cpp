@@ -107,7 +107,9 @@ void VideoController::core1_runner() noexcept
 	exception_set_exclusive_handler(HARDFAULT_EXCEPTION, [] {
 		// contraire to documentation, this sets the handler for both cores:
 		printf("CORE%i: HARD FAULT\n", get_core_num());
+#ifdef DEBUG
 		Trace::print(get_core_num());
+#endif
 		panic("halted");
 	});
 
