@@ -50,6 +50,8 @@ set(video_sources
 	UniColorBackdrop.h
 	UniColorBackdrop.cpp  
 	Frames.h
+	FrameBufferHQi8.h 
+	FrameBufferHQi8.cpp	
 	HamImageVideoPlane.h 
 	HamImageVideoPlane.cpp
 	HamImageInfo.h 
