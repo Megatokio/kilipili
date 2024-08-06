@@ -164,10 +164,11 @@ void VideoController::core1_runner() noexcept
 
 inline void RAM VideoController::wait_for_event() noexcept
 {
-	trace(__func__);
-
 	idle_start();
-	if (idle_action) idle_action();
+	{
+		trace(__func__);
+		if (idle_action) idle_action();
+	}
 	idle_end();
 }
 
