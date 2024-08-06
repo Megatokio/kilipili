@@ -43,6 +43,8 @@ add_library(kilipili_video STATIC
 	MultiSpritesPlane.h
 	UniColorBackdrop.h
 	Frames.h
+	FrameBufferHQi8.h 
+	FrameBufferHQi8.cpp	
 	HamImageVideoPlane.h 
 	HamImageVideoPlane.cpp
 	HamImageInfo.h 
