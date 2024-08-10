@@ -357,70 +357,7 @@ constexpr VgaMode vga_mode_1024x768_50 =
 static_assert(vga_mode_1024x768_50.h_total() == 1368);
 static_assert(vga_mode_1024x768_50.v_total() == 806);
 
-
-enum ScreenSize : uint8 // screen size in pixels: width x height
-{
-	screensize_160x120,
-	screensize_200x150,
-	screensize_256x192,
-	screensize_320x192,
-	screensize_320x240,
-	screensize_400x300,
-	screensize_512x384,
-	screensize_640x384,
-	screensize_640x480,	
-	screensize_800x600,	
-	screensize_1024x768,
-	screensize_1280x768,
-};
-
-constexpr uint num_screensizes = 12;
-
-inline ScreenSize operator+(ScreenSize a, int b) { return ScreenSize(int(a)+b); }
-inline ScreenSize operator-(ScreenSize a, int b) { return ScreenSize(int(a)-b); }
-
-
-constexpr const VgaMode* vga_modes[] =
-{
-	&vga_mode_160x120_60,
-	&vga_mode_200x150_60,
-	&vga_mode_256x192_60,
-	&vga_mode_320x192_60,
-	&vga_mode_320x240_60,
-	&vga_mode_400x300_60,
-	&vga_mode_512x384_60,
-	&vga_mode_640x384_60,
-	&vga_mode_640x480_60,	
-	&vga_mode_800x600_60,	
-	&vga_mode_1024x768_60,	
-	&vga_mode_1280x768_60,
-};
-
-static_assert(sizeof(kio::Video::vga_modes) == num_screensizes * sizeof(ptr));
-
 } // namespace kio::Video
-
-
-inline cstr tostr(kio::Video::ScreenSize ss)
-{
-	static constexpr char tbl[][9] = 
-	{
-		"160*120",
-		"200*150",
-		"256*192",
-		"320*192",
-		"320*240",
-		"400*300",
-		"512*384",
-		"640*384",
-		"640*480", 		
-		"800*600", 		
-		"1024*768", 		
-		"1280*768", 
-	};
-	static_assert(sizeof(tbl) == kio::Video::num_screensizes * 9);
-	return tbl[ss];
-}
 
 
 // clang-format on

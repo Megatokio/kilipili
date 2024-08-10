@@ -29,7 +29,6 @@ add_library(kilipili_video STATIC
 	scanline.pio
 	video_options.h
 	timing.pio
-	vga_types.h
 	ScanlineBuffer.h 
 	ScanlineBuffer.cpp
 	VideoBackend.cpp
