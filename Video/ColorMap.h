@@ -15,6 +15,8 @@ template<ColorDepth CD>
 using ColorMap = Color[1 << (1 << CD)];
 
 extern const ColorMap<colordepth_4bpp> zx_colors;
+extern const ColorMap<colordepth_4bpp> vga4_colors;
+extern const ColorMap<colordepth_8bpp> vga8_colors;
 extern const ColorMap<colordepth_1bpp> default_colormap_i1;
 extern const ColorMap<colordepth_2bpp> default_colormap_i2;
 extern const ColorMap<colordepth_4bpp> default_colormap_i4;
