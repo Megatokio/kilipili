@@ -53,7 +53,7 @@ KeyEvent getKeyEvent()
 {
 	// get next KeyEvent
 	// if no event handler is installed
-	// returns KeyEvent with event.hidkey = NO_KEY if no event available
+	// returns KeyEvent with event.hidkey = NO_KEY and event.down = false  if no event available
 
 	if (key_event_queue.avail()) return key_event_queue.get();
 	else return KeyEvent {};

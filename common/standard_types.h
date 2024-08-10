@@ -34,6 +34,7 @@ static constexpr bool disabled = false;
 using Error						= const char*;
 constexpr Error NO_ERROR		= nullptr;
 constexpr char	OUT_OF_MEMORY[] = "out of memory";
+constexpr char	UNKNOWN_ERROR[] = "Unknown error";
 
 
 // ######################################

@@ -70,7 +70,7 @@ public:
 		deallocates buffers.
 		blocks until backend has stopped.
 	*/
-	void stopVideo();
+	void stopVideo() noexcept;
 
 	/*
 		add a plane to the video output.

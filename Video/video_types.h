@@ -4,7 +4,7 @@
 
 #pragma once
 #include "Color.h"
-#include "graphics_types.h"
+#include "Graphics/graphics_types.h"
 
 namespace kio::Graphics
 {

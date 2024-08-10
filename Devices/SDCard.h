@@ -32,7 +32,6 @@ constexpr char HARD_WRITE_ERROR[]		 = "Hard write error";
 constexpr char DEVICE_INVALID_RESPONSE[] = "Device illegal response";
 constexpr char HARD_READ_ERROR[]		 = "Hard read error";
 constexpr char CONTROLLER_FAILURE[]		 = "Controller failure";
-constexpr char UNKNOWN_ERROR[]			 = "Unknown error";
 constexpr char ILLEGAL_COMMAND[]		 = "Illegal command";
 constexpr char ADDRESS_ERROR[]			 = "Address error";
 constexpr char ERASE_CMD_ERROR[]		 = "Erase cmd error";

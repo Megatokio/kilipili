@@ -89,7 +89,7 @@ void VideoController::startVideo(const VgaMode& mode, uint32 system_clock, uint 
 	if (core1_error != NO_ERROR) throw core1_error;
 }
 
-void VideoController::stopVideo()
+void VideoController::stopVideo() noexcept
 {
 	assert(get_core_num() == 0);
 
