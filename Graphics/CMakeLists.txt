@@ -45,6 +45,7 @@ add_library(kilipili_graphics STATIC
 	gif/Pixelmap.cpp
 	gif/Pixelmap.h
 	${distinct_sources}
+	TextVDU.h TextVDU.cpp
 	)
 
 target_compile_definitions(kilipili_graphics PUBLIC
