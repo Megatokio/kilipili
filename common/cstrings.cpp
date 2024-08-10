@@ -365,7 +365,7 @@ str numstr(uint32 n, uint base, cstr digits)
 		n /= base;
 	}
 	while (n);
-	return newcopy(p);
+	return dupstr(p);
 }
 
 str numstr(uint64 n, uint base, cstr digits)
@@ -381,7 +381,7 @@ str numstr(uint64 n, uint base, cstr digits)
 		n /= base;
 	}
 	while (n);
-	return newcopy(p);
+	return dupstr(p);
 }
 
 str binstr(uint32 value, cstr b0, cstr b1)
