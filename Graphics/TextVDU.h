@@ -84,6 +84,8 @@ public:
 	void cursorTab(int count = 1) noexcept;
 	void cursorReturn() noexcept;
 	void newLine() noexcept;
+	void clearToStartOfLine(bool incl_cursorpos = 0) noexcept;
+	void clearToStartOfScreen(bool incl_cursorpos = 0) noexcept;
 	void clearToEndOfLine() noexcept;
 	void clearToEndOfScreen() noexcept;
 	void copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols) noexcept;

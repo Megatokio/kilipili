@@ -232,10 +232,24 @@ void TextVDU::eraseRect(int row, int col, int rows, int cols) noexcept
 	}
 }
 
+void TextVDU::clearToStartOfLine(bool incl_cpos) noexcept
+{
+	hideCursor();
+	if (col + incl_cpos > 0 && uint(row) < uint(screen_height))
+		eraseRect(row, 0 /*col*/, 1 /*rows*/, col + incl_cpos /*cols*/);
+}
+
+void TextVDU::clearToStartOfScreen(bool incl_cpos) noexcept
+{
+	clearToStartOfLine(incl_cpos);
+	if (row > 0) eraseRect(0, 0, row, screen_width);
+}
+
 void TextVDU::clearToEndOfLine() noexcept
 {
 	hideCursor();
-	if (col < screen_width && row < screen_height) eraseRect(row, col, 1 /*rows*/, screen_width - col /*cols*/);
+	if (col < screen_width && uint(row) < uint(screen_height))
+		eraseRect(row, col, 1 /*rows*/, screen_width - col /*cols*/);
 }
 
 void TextVDU::clearToEndOfScreen() noexcept
