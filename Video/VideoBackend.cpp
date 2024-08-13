@@ -146,8 +146,9 @@ static void initialize_gpio_pins() noexcept
 	constexpr uint32 RMASK = ((1u << VIDEO_PIXEL_RCOUNT) - 1u) << VIDEO_PIXEL_RSHIFT;
 	constexpr uint32 GMASK = ((1u << VIDEO_PIXEL_GCOUNT) - 1u) << VIDEO_PIXEL_GSHIFT;
 	constexpr uint32 BMASK = ((1u << VIDEO_PIXEL_BCOUNT) - 1u) << VIDEO_PIXEL_BSHIFT;
+	constexpr uint32 IMASK = ((1u << VIDEO_PIXEL_ICOUNT) - 1u) << VIDEO_PIXEL_ISHIFT;
 
-	constexpr uint32 color_pins = (RMASK | GMASK | BMASK) << VIDEO_COLOR_PIN_BASE;
+	constexpr uint32 color_pins = (RMASK | GMASK | BMASK | IMASK) << VIDEO_COLOR_PIN_BASE;
 	constexpr uint32 sync_pins	= (3 << SYNC_PIN_BASE) | (ENABLE_CLOCK << CLOCK_PIN) | (ENABLE_DEN << DEN_PIN);
 
 	for (uint pin_mask = color_pins | sync_pins, i = 0; pin_mask; i++, pin_mask >>= 1)
