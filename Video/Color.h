@@ -21,69 +21,45 @@ namespace kio::Video
 */
 struct Color
 {
-#define ORDER_RGB  (VIDEO_PIXEL_ICOUNT == 0 && VIDEO_PIXEL_RSHIFT == 0 && VIDEO_PIXEL_GSHIFT < VIDEO_PIXEL_BSHIFT)
-#define ORDER_BGR  (VIDEO_PIXEL_ICOUNT == 0 && VIDEO_PIXEL_BSHIFT == 0 && VIDEO_PIXEL_GSHIFT < VIDEO_PIXEL_RSHIFT)
-#define ORDER_RGBI (VIDEO_PIXEL_ICOUNT != 0 && VIDEO_PIXEL_RSHIFT == 0 && VIDEO_PIXEL_GSHIFT < VIDEO_PIXEL_BSHIFT)
+#define ORDER_RGB  (VIDEO_PIXEL_ICOUNT == 0)
 #define ORDER_GREY (VIDEO_PIXEL_ICOUNT == VIDEO_COLOR_PIN_COUNT)
+#define ORDER_RGBI (VIDEO_PIXEL_ICOUNT != 0 && VIDEO_PIXEL_ICOUNT < VIDEO_COLOR_PIN_COUNT)
 
-	static_assert(ORDER_RGB + ORDER_BGR + ORDER_RGBI + ORDER_GREY == 1);
+	static_assert(ORDER_RGB + ORDER_RGBI + ORDER_GREY == 1);
+	static_assert(ORDER_RGB || (VIDEO_PIXEL_RCOUNT == VIDEO_PIXEL_GCOUNT && VIDEO_PIXEL_RCOUNT == VIDEO_PIXEL_BCOUNT));
 
-#if ORDER_RGB
 	// the vgaboard uses RGB565
 	// the kiboard uses RGB444
-	// there may be unused bits between R and G, and between G and B block.
-	// these are added as fake additional low bits to the other color.
-	// e.g. in the vgaboard rgb555 becomes rgb565 because there is one unused bit between R and G.
-	static constexpr int rshift = 0;
-	static constexpr int rbits	= VIDEO_PIXEL_RCOUNT;
-	static constexpr int gshift = rshift + rbits;
-	static constexpr int gbits	= VIDEO_PIXEL_GCOUNT + VIDEO_PIXEL_GSHIFT - gshift;
-	static constexpr int bshift = gshift + gbits;
-	static constexpr int bbits	= VIDEO_PIXEL_BCOUNT + VIDEO_PIXEL_BSHIFT - bshift;
-	static constexpr int ibits	= 0;
-	static constexpr int ishift = 0;
-
-#elif ORDER_RGBI
 	// video output may include one or two 'common low bits' for all 3 channels
-	// there may be unused bits between B and I, but there must not be unused bits between R and G and B.
-	// these are added as fake additional low bits to the I block.
-	static constexpr int rshift = 0;
-	static constexpr int rbits	= VIDEO_PIXEL_RCOUNT;
-	static constexpr int gshift = VIDEO_PIXEL_GSHIFT;
-	static constexpr int gbits	= VIDEO_PIXEL_GCOUNT;
-	static constexpr int bshift = VIDEO_PIXEL_BSHIFT;
-	static constexpr int bbits	= VIDEO_PIXEL_BCOUNT;
-	static constexpr int ishift = bshift + bbits;
-	static constexpr int ibits	= VIDEO_PIXEL_ICOUNT + VIDEO_PIXEL_ISHIFT - ishift;
-	static_assert(gbits > 0 && gbits == rbits && bbits == rbits && ibits > 0);
-	static_assert(gshift == rshift + rbits);
-	static_assert(bshift == gshift + gbits);
-	static_assert(ishift >= bshift + bbits);
-
-#elif ORDER_BGR
 	// the picomite, a Pico-based Basic computer, uses BGR121
-	// there may be unused bits between B and G, and between G and R block.
-	// these are added as fake additional low bits to the other color.
-	static constexpr int bshift = 0;
-	static constexpr int bbits	= VIDEO_PIXEL_BCOUNT;
-	static constexpr int gshift = bshift + bbits;
-	static constexpr int gbits	= VIDEO_PIXEL_GCOUNT + VIDEO_PIXEL_GSHIFT - gshift;
-	static constexpr int rshift = gshift + gbits;
-	static constexpr int rbits	= VIDEO_PIXEL_RCOUNT + VIDEO_PIXEL_RSHIFT - rshift;
-	static constexpr int ibits	= 0;
-	static constexpr int ishift = 0;
+	// video output may be monochrome, possibly even 1 bit b&w only
 
-#elif ORDER_GREY
-	// video output may be monochrome, possibly even 1 bit b&w only:
-	static constexpr int ishift = 0;
+	// xbits  = number of bits for component
+	// xmask  = bitmask for component shifted in place in Color::raw.
+	// xshift = number of bits to shift left from int0 position (all bits outside) to it's place in Color::raw.
+	//          you must subtract the number of bits your source value has.
+	//			if xshift-N becomes negative then you must shift right.
+
+	static constexpr int rbits	= VIDEO_PIXEL_RCOUNT;
+	static constexpr int rmask	= ((1 << VIDEO_PIXEL_RCOUNT) - 1) << VIDEO_PIXEL_RSHIFT;
+	static constexpr int rshift = VIDEO_PIXEL_RCOUNT + VIDEO_PIXEL_RSHIFT;
+
+	static constexpr int gbits	= VIDEO_PIXEL_GCOUNT;
+	static constexpr int gmask	= ((1 << VIDEO_PIXEL_GCOUNT) - 1) << VIDEO_PIXEL_GSHIFT;
+	static constexpr int gshift = VIDEO_PIXEL_GCOUNT + VIDEO_PIXEL_GSHIFT;
+
+	static constexpr int bbits	= VIDEO_PIXEL_BCOUNT;
+	static constexpr int bmask	= ((1 << VIDEO_PIXEL_BCOUNT) - 1) << VIDEO_PIXEL_BSHIFT;
+	static constexpr int bshift = VIDEO_PIXEL_BCOUNT + VIDEO_PIXEL_BSHIFT;
+
 	static constexpr int ibits	= VIDEO_PIXEL_ICOUNT;
-	static constexpr int rbits	= 0;
-	static constexpr int gbits	= 0;
-	static constexpr int bbits	= 0;
-	static constexpr int rshift = 0;
-	static constexpr int gshift = 0;
-	static constexpr int bshift = 0;
-#endif
+	static constexpr int imask	= ((1 << VIDEO_PIXEL_ICOUNT) - 1) << VIDEO_PIXEL_ISHIFT;
+	static constexpr int ishift = VIDEO_PIXEL_ICOUNT + VIDEO_PIXEL_ISHIFT;
+
+	static constexpr uint total_colorbits = rbits + gbits + bbits + ibits;
+	static constexpr bool is_monochrome	  = total_colorbits == 1;
+	static constexpr bool is_greyscale	  = ORDER_GREY;
+	static constexpr bool is_colorful	  = !ORDER_GREY;
 
 #if VIDEO_COLOR_PIN_COUNT <= 8
 	using uRGB = uint8;
@@ -91,53 +67,60 @@ struct Color
 	using uRGB = uint16;
 #endif
 
-	static constexpr uint total_colorbits = rbits + gbits + bbits + ibits;
-	static constexpr bool is_monochrome	  = total_colorbits == 1;
-	static constexpr bool is_greyscale	  = ORDER_GREY;
-	static constexpr bool is_colorful	  = !ORDER_GREY;
-
-	union
-	{
-		uRGB rgb;
-		struct
-		{
-#if ORDER_RGB
-			uRGB red : rbits;
-			uRGB green : gbits;
-			uRGB blue : bbits;
-#elif ORDER_RGBI
-			uRGB red : rbits;
-			uRGB green : gbits;
-			uRGB blue : bbits;
-			uRGB grey : ibits;
-#elif ORDER_BGR
-			uRGB blue : bbits;
-			uRGB green : gbits;
-			uRGB red : rbits;
-#elif ORDER_GREY
-			uRGB grey : ibits;
-#endif
-		};
-	};
+	uRGB raw;
 
 	// low-level ctor, implicit casts:
-	constexpr Color() noexcept : rgb(0) {}
-	constexpr Color(uint raw) noexcept : rgb(uRGB(raw)) {}		  // GREY or raw value
-	constexpr Color(uint8 r, uint8 g, uint8 b) noexcept;		  // RGB or BGR only
-	constexpr Color(uint8 r, uint8 g, uint8 b, uint8 i) noexcept; // RGBI only
-	constexpr operator uRGB() const { return rgb; }
+	constexpr Color() noexcept : raw(0) {}
+	constexpr Color(uint raw) noexcept : raw(uRGB(raw)) {} // raw value
+	constexpr operator uRGB() const noexcept { return raw; }
 
 	// high-level factory methods:
-	static constexpr Color fromRGB8(uint8 r, uint8 g, uint8 b);
-	static constexpr Color fromRGB4(uint8 r, uint8 g, uint8 b);
-	static constexpr Color fromRGB8(uint rgb);
-	static constexpr Color fromRGB4(uint rgb);
-	static constexpr Color fromGrey8(uint8 grey);
+	static constexpr Color fromRGB8(uint8 r, uint8 g, uint8 b) noexcept;
+	static constexpr Color fromRGB4(uint8 r, uint8 g, uint8 b) noexcept;
+	static constexpr Color fromRGB8(uint rgb) noexcept;
+	static constexpr Color fromRGB4(uint rgb) noexcept;
+	static constexpr Color fromGrey8(uint8 grey) noexcept;
 
 	// blend this color with another. used for semi-transparency:
-	constexpr void blend_with(Color b) noexcept;
+	constexpr void blend_with(const Color b) noexcept;
 
-	int distance(const Color& b);
+	constexpr int distance(const Color& b) const noexcept;
+
+	// components scaled to n bit:
+	constexpr uint8 red(uint b = 8) const noexcept
+	{
+		return rshift >= b ? uint8((raw & rmask) >> (rshift - b)) : uint8((raw & rmask) << (b - rshift));
+	}
+	constexpr uint8 green(uint b = 8) const noexcept
+	{
+		return gshift >= b ? uint8((raw & gmask) >> (gshift - b)) : uint8((raw & gmask) << (b - gshift));
+	}
+	constexpr uint8 blue(uint n = 8) const noexcept
+	{
+		return bshift >= n ? uint8((raw & bmask) >> (bshift - n)) : uint8((raw & bmask) << (n - bshift));
+	}
+	constexpr uint8 grey(uint b = 8) const noexcept
+	{
+		return ishift >= b ? uint8((raw & imask) >> (ishift - b)) : uint8((raw & imask) << (b - ishift));
+	}
+
+	// helper to calculate raw bits from components with n bits:
+	static constexpr uRGB mkred(uint n, uint b = 8)
+	{
+		return (rshift >= b ? n << (rshift - b) : n >> (b - rshift)) & rmask;
+	}
+	static constexpr uRGB mkgreen(uint n, uint b = 8)
+	{
+		return (gshift >= b ? n << (gshift - b) : n >> (b - gshift)) & gmask;
+	}
+	static constexpr uRGB mkblue(uint n, uint b = 8)
+	{
+		return (bshift >= b ? n << (bshift - b) : n >> (b - bshift)) & bmask;
+	}
+	static constexpr uRGB mkgrey(uint n, uint b = 8)
+	{
+		return (ishift >= b ? n << (ishift - b) : n >> (b - ishift)) & imask;
+	}
 };
 
 static_assert(sizeof(Color) == sizeof(Color::uRGB));
@@ -145,136 +128,102 @@ static_assert(sizeof(Color) == sizeof(Color::uRGB));
 
 // =========================== Implementations ================================
 
-#if ORDER_RGB
-constexpr Color::Color(uint8 r, uint8 g, uint8 b) noexcept : red(r), green(g), blue(b) {}
-#elif ORDER_BGR
-constexpr Color::Color(uint8 r, uint8 g, uint8 b) noexcept : blue(b), green(g), red(r) {}
-#elif ORDER_RGBI
-constexpr Color::Color(uint8 r, uint8 g, uint8 b, uint8 i) noexcept : red(r), green(g), blue(b), grey(i) {}
-#endif
-
-constexpr Color Color::fromRGB8(uint8 r, uint8 g, uint8 b)
+constexpr Color Color::fromRGB8(uint8 r, uint8 g, uint8 b) noexcept
 {
 	if constexpr (ORDER_GREY) { return Color(r * 85 + g * 107 + b * 64) >> (16 - ibits); }
-	if constexpr (ORDER_RGB || ORDER_BGR) { return Color(r >> (8 - rbits), g >> (8 - gbits), b >> (8 - bbits)); }
+	if constexpr (ORDER_RGB) { return Color(mkred(r) + mkgreen(g) + mkblue(b)); }
 	if constexpr (ORDER_RGBI)
 	{
 		// faster: take the common low bits only from the green value
 		// better: average of all 3 components, weighted 4+5+3 (scaled to 256: 85+107+64 to avoid division)
 		constexpr bool faster = true;
 
-		uint8 grey = faster ?
-						 uint8(g << gbits) >> (8 - ibits) :
-						 (uint8(r << rbits) * 85 + uint8(g << gbits) * 107 + uint8(b << bbits) * 64) >> (16 - ibits);
+		uint8 grey = faster ? uint8(g << (gbits + 8)) :
+							  (uint8(r << rbits) * 85 + uint8(g << gbits) * 107 + uint8(b << bbits) * 64);
 
-		return Color(r >> (8 - rbits), g >> (8 - gbits), b >> (8 - bbits), grey);
+		return Color(mkred(r) + mkgreen(g) + mkblue(b) + mkgrey(grey, 16));
 	}
 }
 
-constexpr Color Color::fromRGB4(uint8 r, uint8 g, uint8 b)
+constexpr Color Color::fromRGB4(uint8 r, uint8 g, uint8 b) noexcept
 {
 	if constexpr (ORDER_GREY) { return Color(r * 85 + g * 107 + b * 64) >> (12 - ibits); }
-	if constexpr (ORDER_RGB || ORDER_BGR)
-	{
-		constexpr bool all_le4 = rbits <= 4 && gbits <= 4 && bbits <= 4;
-		if constexpr (all_le4) return Color(r >> (4 - rbits), g >> (4 - gbits), b >> (4 - bbits));
-		else return Color(uint8(r << (rbits - 4)), uint8(g << (gbits - 4)), uint8(b << (bbits - 4)));
-	}
+	if constexpr (ORDER_RGB) { return Color(mkred(r, 4) + mkgreen(g, 4) + mkblue(b, 4)); }
 	if constexpr (ORDER_RGBI)
 	{
 		// faster: take the common low bits only from the green value
 		// better: average of all 3 components, weighted 4+5+3 (scaled to 256: 85+107+64 to avoid division)
 		constexpr bool faster = true;
 
-		uint8 grey =
-			faster ? uint8(g << (gbits + 4)) >> (8 - ibits) :
-					 (uint8(r << (rbits + 4)) * 85 + uint8(g << (gbits + 4)) * 107 + uint8(b << (bbits + 4)) * 64) >>
-						 (16 - ibits);
-
-		return Color(r >> (4 - rbits), g >> (4 - gbits), b >> (4 - bbits), grey);
+		if constexpr (faster)
+		{
+			uint8 grey = uint8(g << gbits);
+			return Color(mkred(r, 4) + mkgreen(g, 4) + mkblue(b, 4) + mkgrey(grey, 8));
+		}
+		else
+		{
+			uint grey = uint8(r << rbits) * 85 + uint8(g << gbits) * 107 + uint8(b << bbits) * 64;
+			return Color(mkred(r, 4) + mkgreen(g, 4) + mkblue(b, 4) + mkgrey(grey, 12));
+		}
 	}
 }
 
-constexpr Color Color::fromRGB8(uint rgb) // e.g. rgb = 0x00ffffaa
+constexpr Color Color::fromRGB8(uint rgb) noexcept // e.g. rgb = 0x00ffffaa
 {
 	return fromRGB8(uint8(rgb >> 16), uint8(rgb >> 8), uint8(rgb));
 }
 
-constexpr Color Color::fromRGB4(uint rgb) // e.g. rgb = 0x0ffa
+constexpr Color Color::fromRGB4(uint rgb) noexcept // e.g. rgb = 0x0ffa
 {
-	if constexpr (ORDER_RGB || ORDER_BGR)
-	{
-		constexpr bool all_eq4 = rbits == 4 && gbits == 4 && bbits == 4;
-		if constexpr (all_eq4) return Color(rgb);
-	}
-
 	return fromRGB4((rgb >> 8) & 0xf, (rgb >> 4) & 0xf, rgb & 0xf);
 }
 
-constexpr Color Color::fromGrey8(uint8 grey)
+constexpr Color Color::fromGrey8(uint8 grey) noexcept
 {
 	if constexpr (ORDER_GREY) { return Color(grey >> (8 - ibits)); }
-	if constexpr (ORDER_RGB || ORDER_BGR)
-	{
-		return Color(grey >> (8 - rbits), grey >> (8 - gbits), grey >> (8 - bbits));
-	}
-	if constexpr (ORDER_RGBI)
-	{
-		return Color(grey >> (8 - rbits), grey >> (8 - gbits), grey >> (8 - bbits), grey >> (8 - gbits - ibits));
-	}
+	if constexpr (ORDER_RGB) { return Color(mkred(grey) + mkgreen(grey) + mkblue(grey)); }
+	if constexpr (ORDER_RGBI) { return Color(mkred(grey) + mkgreen(grey) + mkblue(grey) + mkgrey(grey, 8 - bbits)); }
 }
 
-constexpr void Color::blend_with(Color b) noexcept
+constexpr void Color::blend_with(const Color b) noexcept
 {
 	// this function must be *fast* because it is used to draw translucent sprites in the video compositor
 
-	if constexpr (ORDER_GREY) { rgb = (rgb + b.rgb) >> 1; }
-	if constexpr (ORDER_RGB)
+	if constexpr (ORDER_GREY) { raw = (raw + b.raw + 1) >> 1; }
+	else if constexpr (ORDER_RGB || ORDER_RGBI)
 	{
-		constexpr int lsb = (1 << rshift) | (1 << gshift) | (1 << bshift) | (1 << (bshift + bbits));
+		constexpr uint lsb = 1 << VIDEO_PIXEL_RSHIFT | 1 << VIDEO_PIXEL_GSHIFT | 1 << VIDEO_PIXEL_BSHIFT |
+							 (ORDER_RGBI << VIDEO_PIXEL_ISHIFT);
+		constexpr uint allbits = rmask + gmask + bmask + imask;
+		constexpr uint mask	   = allbits - lsb;
 
-		uRGB roundup = (rgb | b.rgb) & lsb;
-		rgb			 = (((rgb & ~lsb) + (b.rgb & ~lsb)) >> 1) + roundup;
-	}
-	if constexpr (ORDER_BGR)
-	{
-		constexpr int lsb = (1 << rshift) | (1 << gshift) | (1 << bshift) | (1 << (rshift + rbits));
-
-		uRGB roundup = (rgb | b.rgb) & lsb;
-		rgb			 = (((rgb & ~lsb) + (b.rgb & ~lsb)) >> 1) + roundup;
-	}
-	if constexpr (ORDER_RGBI)
-	{
-		constexpr int lsb = (1 << rshift) | (1 << gshift) | (1 << bshift) | (1 << ishift) | (1 << (ishift + ibits));
-
-		uRGB roundup = (rgb | b.rgb) & lsb;
-		rgb			 = (((rgb & ~lsb) + (b.rgb & ~lsb)) >> 1) + roundup;
+		uRGB cy = (raw | b.raw) & lsb;
+		raw		= (((raw & mask) + (b.raw & mask)) >> 1) + cy;
 	}
 }
 
-inline int Color::distance(const Color& b)
+inline constexpr int Color::distance(const Color& b) const noexcept
 {
 	// color components are weighted r=4, g=5, b=3
 
-#if (ORDER_GREY)
-	return abs(grey - b.grey);
-#elif (ORDER_RGB || ORDER_BGR)
-	return abs(red - b.red) * (4 << (gbits - rbits)) + abs(green - b.green) * 5 +
-		   abs(blue - b.blue) * (3 << (gbits - bbits));
-#elif (ORDER_RGBI)
-	int delta = abs(((red << ibits) + grey) - ((b.red << ibits) + b.grey)) * 3;
-	delta += abs(((green << ibits) + grey) - ((b.green << ibits) + b.grey)) * 3;
-	delta += abs(((blue << ibits) + grey) - ((b.blue << ibits) + b.grey)) * 3;
-	return delta;
-#endif
+	if constexpr (ORDER_GREY) { return abs(raw - b.raw); }
+	if constexpr (ORDER_RGB)
+	{
+		int delta = abs(red(rshift) - b.red(rshift)) * (4 << (16 - rshift));
+		delta += abs(green(gshift) - b.green(gshift)) * (5 << (16 - gshift));
+		delta += abs(blue(bshift) - b.blue(bshift)) * (3 << (16 - bshift));
+		return delta;
+	}
+	if constexpr (ORDER_RGBI)
+	{
+		const int deltagrey = grey(ibits) - b.grey(ibits);
+
+		int delta = abs(red(rbits + ibits) - b.red(rbits + ibits) + deltagrey) * 4;
+		delta += abs(green(gbits + ibits) - b.green(gbits + ibits) + deltagrey) * 5;
+		delta += abs(blue(bbits + ibits) - b.blue(bbits + ibits) + deltagrey) * 3;
+		return delta;
+	}
 }
-
-
-#if ORDER_RGB || ORDER_BGR
-static_assert(Color::fromRGB4(0xf2, 0xf3, 0xf4).red == 2 << Color::rbits >> 4);
-static_assert(Color::fromRGB4(0xf2, 0xf3, 0xf4).green == 3 << Color::gbits >> 4);
-static_assert(Color::fromRGB4(0xf2, 0xf3, 0xf4).blue == 4 << Color::bbits >> 4);
-#endif
 
 
 // =========================== Some Basic Colors ================================
@@ -304,7 +253,6 @@ namespace vga
 {
 constexpr Color black		   = Color::fromRGB8(0x00, 0x00, 0x00);
 constexpr Color dark_grey	   = Color::fromRGB8(0x55, 0x55, 0x55);
-constexpr Color grey		   = Color::fromRGB8(0xAA, 0xAA, 0xAA);
 constexpr Color blue		   = Color::fromRGB8(0x00, 0x00, 0xAA);
 constexpr Color red			   = Color::fromRGB8(0xAA, 0x00, 0x00);
 constexpr Color magenta		   = Color::fromRGB8(0xAA, 0x00, 0xAA);
@@ -326,16 +274,17 @@ constexpr Color bright_white   = Color::fromRGB8(0xFF, 0xFF, 0xFF);
 
 inline cstr tostr(kio::Video::Color c)
 {
-	char bu[16];
+	using namespace kio::Video;
+	char bu[20];
 
 #if (ORDER_GREY)
-	snprintf(bu, 16, "grey=%u", c.grey);
-#elif (ORDER_RGB || ORDER_BGR)
-	snprintf(bu, 16, "rgb=%u,%u,%u", c.red, c.green, c.blue);
+	snprintf(bu, 20, "grey=%02x", c.grey());
+#elif (ORDER_RGB)
+	snprintf(bu, 20, "rgb=%02x,%02x,%02x", c.red(), c.green(), c.blue());
 #elif (ORDER_RGBI)
 	snprintf(
-		bu, 16, "rgb=%u,%u,%u", (c.red << c.ibits) + c.grey, (c.green << c.ibits) + c.grey,
-		(c.blue << c.ibits) + c.grey);
+		bu, 20, "rgb=%02x,%02x,%02x", c.red() + c.grey(8u - Color::rbits), c.green() + c.grey(8u - Color::gbits),
+		c.blue() + c.grey(8u - Color::bbits));
 #endif
 
 	return kio::dupstr(bu);

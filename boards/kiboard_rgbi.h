@@ -24,11 +24,7 @@
 #define VIDEO_SYNC_PIN_BASE   14
 
 // note: RGBI is RGB with common low bits for all colors in I.
-// note: R, G and B must be the same
-//       and only order RGBI (not BGRI, IRGB etc.) are supported
-//		 There must not be unused bits between R, R and B,
-//		 but there may be some unused bits between B and I,
-//		 though this should be avoided.
+// note: R, G and B must be the same size
 #define VIDEO_PIXEL_RSHIFT 0
 #define VIDEO_PIXEL_GSHIFT 2
 #define VIDEO_PIXEL_BSHIFT 4

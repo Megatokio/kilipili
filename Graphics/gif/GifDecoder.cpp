@@ -484,7 +484,7 @@ static void merge_cmaps(Color* z, uint16& zcnt, uint zmax, const Color* q, uint 
 		{
 			if (zcnt < zmax) // append:
 			{
-				z[zcnt++].rgb = q[qi].rgb;
+				z[zcnt++].raw = q[qi].raw;
 			}
 			else // replace best match:
 			{	 // this should never be neccessary in a proper file!
