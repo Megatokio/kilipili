@@ -70,7 +70,7 @@ void TextVDU::reset() noexcept
 
 	row = col = 0;
 	dx = dy		  = 1;
-	attributes	  = 0;
+	attributes	  = NORMAL;
 	cursorVisible = false;
 }
 
@@ -80,7 +80,7 @@ void TextVDU::cls() noexcept
 
 	row = col = 0;
 	dx = dy		  = 1;
-	attributes	  = 0;
+	attributes	  = NORMAL;
 	cursorVisible = false;
 
 	pixmap->clear(bgcolor);
@@ -361,11 +361,11 @@ void TextVDU::validateCursorPosition() noexcept
 	}
 }
 
-void TextVDU::setPrintAttributes(uint8 attr) noexcept
+void TextVDU::setCharAttributes(uint add, uint remove) noexcept
 {
-	attributes = attr;
-	dx		   = attr & ATTR_DOUBLE_WIDTH ? 2 : 1;
-	dy		   = attr & ATTR_DOUBLE_HEIGHT ? 2 : 1;
+	attributes = Attributes((attributes & ~remove) | add);
+	dx		   = attributes & DOUBLE_WIDTH ? 2 : 1;
+	dy		   = attributes & DOUBLE_HEIGHT ? 2 : 1;
 }
 
 void TextVDU::applyAttributes(CharMatrix bmp) noexcept
@@ -380,17 +380,17 @@ void TextVDU::applyAttributes(CharMatrix bmp) noexcept
 
 	if (int8(a) > 0) // any attr except graphics_char_mode set?
 	{
-		if (a & ATTR_BOLD)
+		if (a & BOLD)
 		{
 			for (int i = 0; i < 12; i++) bmp[i] |= bmp[i] >> 1;
 		}
-		if (a & ATTR_UNDERLINE) { bmp[10] = 0xff; }
-		if (a & ATTR_ITALIC)
+		if (a & UNDERLINE) { bmp[10] = 0xff; }
+		if (a & ITALIC)
 		{
 			for (int i = 0; i < 4; i++) bmp[i] >>= 1;
 			for (int i = 8; i < 12; i++) bmp[i] <<= 1;
 		}
-		if (a & ATTR_INVERTED)
+		if (a & INVERTED)
 		{
 			uint8 i = 12;
 			while (i--) bmp[i] = ~bmp[i];
@@ -426,7 +426,7 @@ void TextVDU::writeBmp(CharMatrix bmp, uint8 attr) noexcept
 
 	hideCursor();
 
-	if (unlikely(attr & ATTR_DOUBLE_WIDTH))
+	if (unlikely(attr & DOUBLE_WIDTH))
 	{
 		CharMatrix bmp2;
 
@@ -435,28 +435,28 @@ void TextVDU::writeBmp(CharMatrix bmp, uint8 attr) noexcept
 		if (col == screen_width - 1)
 		{
 			memset(bmp2, 0, CHAR_HEIGHT);
-			uint8 attr2 = attr & ~ATTR_DOUBLE_WIDTH;
+			uint8 attr2 = attr & ~DOUBLE_WIDTH;
 
 			// if in top-right corner don't scroll screen down:
-			if (row == 0) attr2 &= ~ATTR_DOUBLE_HEIGHT;
+			if (row == 0) attr2 &= ~DOUBLE_HEIGHT;
 
 			// clear to eol and incr col:
 			writeBmp(bmp2, attr2);
 		}
 
 		for (int i = 0; i < CHAR_HEIGHT; i++) { bmp2[i] = dblw[bmp[i] >> 4]; }
-		writeBmp(bmp2, attr & ~ATTR_DOUBLE_WIDTH);
+		writeBmp(bmp2, attr & ~DOUBLE_WIDTH);
 
 		for (int i = 0; i < CHAR_HEIGHT; i++) { bmp[i] = dblw[bmp[i] & 15]; }
 	}
 
-	if (unlikely(attr & ATTR_DOUBLE_HEIGHT))
+	if (unlikely(attr & DOUBLE_HEIGHT))
 	{
 		CharMatrix bmp2;
 
 		for (int i = 0; i < CHAR_HEIGHT; i++) { bmp2[i] = bmp[i / 2]; }
 		row--;
-		writeBmp(bmp2, attr & ~ATTR_DOUBLE_HEIGHT);
+		writeBmp(bmp2, attr & ~DOUBLE_HEIGHT);
 		row++;
 		col--;
 
@@ -468,7 +468,7 @@ void TextVDU::writeBmp(CharMatrix bmp, uint8 attr) noexcept
 	int x = col++ * CHAR_WIDTH;
 	int y = row * CHAR_HEIGHT;
 
-	if (!(attr & ATTR_OVERPRINT)) pixmap->fillRect(x, y, CHAR_WIDTH, CHAR_HEIGHT, bgcolor, bg_ink);
+	if (!(attr & TRANSPARENT)) pixmap->fillRect(x, y, CHAR_WIDTH, CHAR_HEIGHT, bgcolor, bg_ink);
 	//pixmap->drawBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, fgcolor, fg_ink);
 	static_assert(CHAR_WIDTH == 8);
 	pixmap->drawChar(x, y, bmp, CHAR_HEIGHT, fgcolor, fg_ink);
@@ -487,7 +487,7 @@ void TextVDU::getCharMatrix(CharMatrix charmatrix, char cc) noexcept
 
 	uchar c = uchar(cc);
 
-	if (attributes & ATTR_GRAPHICS_CHARACTERS) { getGraphicsCharMatrix(charmatrix, c); }
+	if (attributes & GRAPHICS) { getGraphicsCharMatrix(charmatrix, c); }
 	else
 	{
 		uint o = 127 - 32; // default = pattern of 'delete'

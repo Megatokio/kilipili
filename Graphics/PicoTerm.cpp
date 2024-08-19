@@ -103,7 +103,7 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 		if (c == 127)
 		{
 			auto attr = attributes;
-			attributes &= ~ATTR_OVERPRINT;
+			attributes = Attributes(attributes & ~TRANSPARENT);
 			cursorLeft(repeat_cnt);
 			printChar(' ', repeat_cnt);
 			cursorLeft(repeat_cnt);
@@ -114,7 +114,7 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 
 		move_to_position: GETC(); hideCursor(); row = int8(c-0x40)+0x40; 
 		move_to_col: GETC(); hideCursor(); col = int8(c-0x40)+0x40; continue;
-		set_attributes: GETC(); setPrintAttributes(c); continue;
+		set_attributes: GETC(); setCharAttributes(c); continue;
 		repeat_next_char: GETC(); repeat_cnt = uchar(c); goto loop_repeat;
 		scroll_screen: // scroll screen u/d/l/r
 			GETC(); if (c == 'u') scrollScreenUp(repeat_cnt);

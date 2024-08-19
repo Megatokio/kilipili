@@ -17,21 +17,22 @@ public:
 	static constexpr int CHAR_WIDTH	 = 8;
 	static constexpr int CHAR_HEIGHT = 12;
 
-	static constexpr uint default_bgcolor = 0x0000ffff; // white paper (note: ic1 has inverted default colormap)
-	static constexpr uint default_fgcolor = 0;			// black ink   (      => black paper & green ink)
+	uint default_bgcolor = 0x0000ffff; // white paper (note: ic1 has inverted default colormap)
+	uint default_fgcolor = 0;		   // black ink   (      => black paper & green ink)
 
 	using CharMatrix = uint8[CHAR_HEIGHT];
 
 	// print attributes:
-	enum : uint8 {
-		ATTR_BOLD				 = 1 << 0,
-		ATTR_UNDERLINE			 = 1 << 1,
-		ATTR_INVERTED			 = 1 << 2,
-		ATTR_ITALIC				 = 1 << 3,
-		ATTR_OVERPRINT			 = 1 << 4,
-		ATTR_DOUBLE_WIDTH		 = 1 << 5,
-		ATTR_DOUBLE_HEIGHT		 = 1 << 6,
-		ATTR_GRAPHICS_CHARACTERS = 1 << 7
+	enum Attributes : uint8 {
+		NORMAL		  = 0,
+		BOLD		  = 1 << 0,
+		UNDERLINE	  = 1 << 1,
+		INVERTED	  = 1 << 2,
+		ITALIC		  = 1 << 3,
+		TRANSPARENT	  = 1 << 4,
+		DOUBLE_WIDTH  = 1 << 5,
+		DOUBLE_HEIGHT = 1 << 6,
+		GRAPHICS	  = 1 << 7
 	};
 
 	CanvasPtr pixmap;
@@ -56,9 +57,9 @@ public:
 	uint bg_ink;  // for attribute pixmaps
 
 	// current print position:
-	int	  row, col;
-	uint8 dx, dy; // 1 or 2, if double width & double height
-	uint8 attributes;
+	int		   row, col;
+	uint8	   dx, dy; // 1 or 2, if double width & double height
+	Attributes attributes;
 
 	// cursor blob:
 	bool   cursorVisible;  // currently visible?
@@ -72,7 +73,9 @@ public:
 	void moveTo(int row, int col) noexcept;
 	void moveToCol(int col) noexcept;
 	void moveToRow(int row) noexcept;
-	void setPrintAttributes(uint8 attr) noexcept;
+	void setCharAttributes(uint add, uint remove = 0xff) noexcept;
+	void addCharAttributes(uint a = 0xff) noexcept { setCharAttributes(a, 0); }
+	void removeCharAttributes(uint a = 0xff) noexcept { setCharAttributes(0, a); }
 	void printCharMatrix(CharMatrix, int count = 1) noexcept;
 	void printChar(char c, int count = 1) noexcept;			// no ctl
 	void print(cstr text) noexcept;							// supports \n and \t
