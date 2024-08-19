@@ -71,6 +71,7 @@ public:
 	void identify() noexcept;
 	void moveTo(int row, int col) noexcept;
 	void moveToCol(int col) noexcept;
+	void moveToRow(int row) noexcept;
 	void setPrintAttributes(uint8 attr) noexcept;
 	void printCharMatrix(CharMatrix, int count = 1) noexcept;
 	void printChar(char c, int count = 1) noexcept;			// no ctl

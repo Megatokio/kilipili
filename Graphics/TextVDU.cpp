@@ -136,6 +136,12 @@ void TextVDU::moveToCol(int col) noexcept
 	this->col = col;
 }
 
+void TextVDU::moveToRow(int row) noexcept
+{
+	hideCursor();
+	this->row = row;
+}
+
 void TextVDU::cursorLeft(int count) noexcept
 {
 	// scrolls
