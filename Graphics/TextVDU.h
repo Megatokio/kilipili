@@ -67,49 +67,92 @@ public:
 
 	TextVDU(CanvasPtr) noexcept;
 
-	void reset() noexcept;
-	void cls() noexcept;
-	void identify() noexcept;
-	void moveTo(int row, int col) noexcept;
-	void moveToCol(int col) noexcept;
-	void moveToRow(int row) noexcept;
-	void setCharAttributes(uint add, uint remove = 0xff) noexcept;
-	void addCharAttributes(uint a = 0xff) noexcept { setCharAttributes(a, 0); }
-	void removeCharAttributes(uint a = 0xff) noexcept { setCharAttributes(0, a); }
-	void printCharMatrix(CharMatrix, int count = 1) noexcept;
-	void printChar(char c, int count = 1) noexcept;			// no ctl
-	void print(cstr text) noexcept;							// supports \n and \t
-	void printf(cstr fmt, ...) noexcept __printflike(2, 3); // supports \n and \t
-	str	 inputLine(std::function<int()> getchar, str oldtext = nullptr, int epos = 0);
-	void cursorLeft(int count = 1) noexcept;
-	void cursorRight(int count = 1) noexcept;
-	void cursorUp(int count = 1) noexcept;
-	void cursorDown(int count = 1) noexcept;
-	void cursorTab(int count = 1) noexcept;
-	void cursorReturn() noexcept;
-	void newLine() noexcept;
+	void  reset() noexcept;
+	void  cls() noexcept;
+	void  identify() noexcept;
+	void  moveTo(int row, int col) noexcept;
+	void  moveToCol(int col) noexcept;
+	void  moveToRow(int row) noexcept;
+	void  setCharAttributes(uint add, uint remove = 0xff) noexcept;
+	void  addCharAttributes(uint a = 0xff) noexcept { setCharAttributes(a, 0); }
+	void  removeCharAttributes(uint a = 0xff) noexcept { setCharAttributes(0, a); }
+	void  printCharMatrix(CharMatrix, int count = 1) noexcept;
+	void  printChar(char c, int count = 1) noexcept;		 // no ctl
+	void  print(cstr text) noexcept;						 // supports \n and \t
+	void  printf(cstr fmt, ...) noexcept __printflike(2, 3); // supports \n and \t
+	str	  inputLine(std::function<int()> getchar, str oldtext = nullptr, int epos = 0);
+	void  cursorLeft(int count = 1) noexcept;
+	void  cursorRight(int count = 1) noexcept;
+	void  cursorUp(int count = 1) noexcept;
+	void  cursorDown(int count = 1) noexcept;
+	void  cursorTab(int count = 1) noexcept;
+	void  cursorReturn() noexcept;
+	void  newLine() noexcept;
+	void  showCursor(bool on = true) noexcept;
+	void  hideCursor() noexcept;
+	void  validateCursorPosition(bool col80ok = false) noexcept;
+	void  readBmp(CharMatrix, bool use_fgcolor) noexcept;
+	void  writeBmp(CharMatrix, uint8 attr) noexcept;
+	void  getCharMatrix(CharMatrix, char c) noexcept;
+	void  getGraphicsCharMatrix(CharMatrix, char c) noexcept;
+	void  applyAttributes(CharMatrix) noexcept;
+	void  pushCursor(uint8 user_data = 0) noexcept;
+	uint8 popCursor() noexcept;
+
+	void clearRect(int row, int col, int rows, int cols) noexcept;
 	void clearToStartOfLine(bool incl_cursorpos = 0) noexcept;
 	void clearToStartOfScreen(bool incl_cursorpos = 0) noexcept;
 	void clearToEndOfLine() noexcept;
 	void clearToEndOfScreen() noexcept;
+
 	void copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols) noexcept;
-	void showCursor(bool on = true) noexcept;
-	void hideCursor() noexcept;
-	void validateCursorPosition() noexcept;
-	void scrollScreen(coord dx, coord dy) noexcept;
-	void scrollScreenUp(int rows /*char*/) noexcept;
-	void scrollScreenDown(int rows /*char*/) noexcept;
-	void scrollScreenLeft(int cols /*char*/) noexcept;
-	void scrollScreenRight(int cols /*char*/) noexcept;
-	void readBmp(CharMatrix, bool use_fgcolor) noexcept;
-	void writeBmp(CharMatrix, uint8 attr) noexcept;
-	void getCharMatrix(CharMatrix, char c) noexcept;
-	void getGraphicsCharMatrix(CharMatrix, char c) noexcept;
-	void applyAttributes(CharMatrix) noexcept;
-	void eraseRect(int row, int col, int rows, int cols) noexcept;
+
+	void scrollScreen(int dx, int dy) noexcept;
+	void scrollScreenUp(int rows) noexcept;
+	void scrollScreenDown(int rows) noexcept;
+	void scrollScreenLeft(int cols) noexcept;
+	void scrollScreenRight(int cols) noexcept;
+
+	void scrollRectLeft(int row, int col, int rows, int cols, int dist = 1) noexcept;
+	void scrollRectRight(int row, int col, int rows, int cols, int dist = 1) noexcept;
+	void scrollRectUp(int row, int col, int rows, int cols, int dist = 1) noexcept;
+	void scrollRectDown(int row, int col, int rows, int cols, int dist = 1) noexcept;
+
+	void insertChars(int count = 1) noexcept;
+	void deleteChars(int count = 1) noexcept;
+	void insertRows(int count = 1) noexcept;
+	void deleteRows(int count = 1) noexcept;
+	void insertColumns(int count = 1) noexcept;
+	void deleteColumns(int count = 1) noexcept;
+	void insertRowsAbove(int count = 1) noexcept;	  // above cursor
+	void deleteRowsAbove(int count = 1) noexcept;	  // above cursor
+	void insertColumnsBefore(int count = 1) noexcept; // before (left of) cursor
+	void deleteColumnsBefore(int count = 1) noexcept; // before (left of) cursor
 
 private:
 	void show_cursor(bool f) noexcept;
 };
 
+
 } // namespace kio::Graphics
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

@@ -224,7 +224,7 @@ void TextVDU::newLine() noexcept
 	row += dy;
 }
 
-void TextVDU::eraseRect(int row, int col, int rows, int cols) noexcept
+void TextVDU::clearRect(int row, int col, int rows, int cols) noexcept
 {
 	// erase a rectangular area on the screen
 
@@ -238,30 +238,143 @@ void TextVDU::eraseRect(int row, int col, int rows, int cols) noexcept
 	}
 }
 
+void TextVDU::scrollRectLeft(int row, int col, int rows, int cols, int dist) noexcept
+{
+	// copy rect and clear new columns
+	// does nothing if dist < 0
+
+	if (dist <= 0) return;
+	if (dist < cols) copyRect(row, col + dist, row, col, rows, cols - dist);
+	else dist = cols;
+	clearRect(row, col + cols - dist, rows, dist);
+}
+
+void TextVDU::scrollRectRight(int row, int col, int rows, int cols, int dist) noexcept
+{
+	// copy rect and clear new columns
+	// does nothing if dist < 0
+
+	if (dist <= 0) return;
+	if (dist < cols) copyRect(row, col, row, col + dist, rows, cols - dist);
+	else dist = cols;
+	clearRect(row, col, rows, dist);
+}
+
+void TextVDU::scrollRectUp(int row, int col, int rows, int cols, int dist) noexcept
+{
+	// copy rect and clear new rows
+	// does nothing if dist < 0
+
+	if (dist <= 0) return;
+	if (dist < rows) copyRect(row + dist, col, row, col, rows - dist, cols);
+	else dist = rows;
+	clearRect(row + rows - dist, col, dist, cols);
+}
+
+void TextVDU::scrollRectDown(int row, int col, int rows, int cols, int dist) noexcept
+{
+	// copy rect and clear new rows
+	// does nothing if dist < 0
+
+	if (dist <= 0) return;
+	if (dist < rows) copyRect(row, col, row + dist, col, rows - dist, cols);
+	else dist = rows;
+	clearRect(row, col, dist, cols);
+}
+
+void TextVDU::insertRows(int n) noexcept
+{
+	validateCursorPosition();
+	scrollRectDown(row, 0, screen_height - row - n, screen_width, n);
+}
+
+void TextVDU::deleteRows(int n) noexcept
+{
+	validateCursorPosition();
+	scrollRectUp(row, 0, screen_height - row, screen_width, n);
+}
+
+void TextVDU::insertColumns(int n) noexcept
+{
+	validateCursorPosition();
+	scrollRectRight(0, col, screen_height, screen_width - col, n);
+}
+
+void TextVDU::deleteColumns(int n) noexcept
+{
+	validateCursorPosition();
+	scrollRectLeft(0, col, screen_height, screen_width - col, n);
+}
+
+void TextVDU::insertRowsAbove(int n) noexcept
+{
+	validateCursorPosition();
+	scrollRectUp(0, 0, row - n, screen_width, n);
+}
+
+void TextVDU::deleteRowsAbove(int n) noexcept
+{
+	validateCursorPosition();
+	scrollRectDown(0, 0, row, screen_width, n);
+}
+
+void TextVDU::insertColumnsBefore(int n) noexcept
+{
+	validateCursorPosition();
+	scrollRectLeft(0, 0, screen_height, col, n);
+}
+
+void TextVDU::deleteColumnsBefore(int n) noexcept
+{
+	validateCursorPosition();
+	scrollRectRight(0, 0, screen_height, col, n);
+}
+
+void TextVDU::insertChars(int n) noexcept
+{
+	validateCursorPosition();
+	scrollRectRight(row, col, 1, screen_width - col, n);
+}
+
+void TextVDU::deleteChars(int n) noexcept
+{
+	validateCursorPosition();
+	scrollRectLeft(row, col, 1, screen_width - col, n);
+}
+
 void TextVDU::clearToStartOfLine(bool incl_cpos) noexcept
 {
-	hideCursor();
-	if (col + incl_cpos > 0 && uint(row) < uint(screen_height))
-		eraseRect(row, 0 /*col*/, 1 /*rows*/, col + incl_cpos /*cols*/);
+	// allow col == screen_width
+
+	validateCursorPosition(incl_cpos == false /*col80ok*/);
+	clearRect(row, 0, 1, col + incl_cpos);
 }
 
 void TextVDU::clearToStartOfScreen(bool incl_cpos) noexcept
 {
+	// allow col == screen_width
+
 	clearToStartOfLine(incl_cpos);
-	if (row > 0) eraseRect(0, 0, row, screen_width);
+	clearRect(0, 0, row, screen_width);
 }
 
 void TextVDU::clearToEndOfLine() noexcept
 {
-	hideCursor();
-	if (col < screen_width && uint(row) < uint(screen_height))
-		eraseRect(row, col, 1 /*rows*/, screen_width - col /*cols*/);
+	// allow col == screen_width.
+	// this allows to print an arbitrary string up to the last char and clear to eol.
+
+	validateCursorPosition(true /*col80ok*/);
+	clearRect(row, col, 1, screen_width - col);
 }
 
 void TextVDU::clearToEndOfScreen() noexcept
 {
+	// allow col == screen_width.
+	// this allows to print an arbitrary string up to the last char and clear to end of screen
+	// without scrolling and inserting a new empty line.
+
 	clearToEndOfLine();
-	if (row + 1 < screen_height) eraseRect(row + 1, 0, screen_height - (row + 1), screen_width);
+	clearRect(row + 1, 0, screen_height - (row + 1), screen_width);
 }
 
 void TextVDU::copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols) noexcept
@@ -276,7 +389,7 @@ void TextVDU::copyRect(int src_row, int src_col, int dest_row, int dest_col, int
 	}
 }
 
-void TextVDU::scrollScreen(coord dx /*chars*/, coord dy /*chars*/) noexcept
+void TextVDU::scrollScreen(int dx /*chars*/, int dy /*chars*/) noexcept
 {
 	hideCursor();
 
@@ -322,15 +435,18 @@ void TextVDU::scrollScreenRight(int cols) noexcept
 	if (cols > 0) scrollScreen(+cols, 0);
 }
 
-void TextVDU::validateCursorPosition() noexcept
+void TextVDU::validateCursorPosition(bool col80ok) noexcept
 {
 	// validate cursor position
 	// moves cursor into previous/next line if the column is out of screen
 	// scrolls the screen up or down if the row is out of screen
 	// afterwards, the cursor is inside the screen
+	// except if col80ok then allow the cursor in col = screen_width
 
 	// col := in range [0 .. [screen_width
 	// row := in range [0 .. [screen_height
+
+	if (cursorVisible) return;
 
 	if unlikely (uint(col) >= uint(screen_width))
 	{
@@ -339,7 +455,7 @@ void TextVDU::validateCursorPosition() noexcept
 			col += screen_width;
 			row -= dy;
 		}
-		while (col >= screen_width)
+		while (col >= screen_width + col80ok)
 		{
 			col -= screen_width;
 			row += dy;
