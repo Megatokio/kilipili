@@ -91,6 +91,9 @@ public:
 	template<ColorMode QCM>
 	Pixmap(typename std::enable_if_t<CM == colormode_i1, const Pixmap<QCM>>& q, uint color, bool set) noexcept;
 
+	// window into this pixmap:
+	virtual Pixmap<CM>* cloneWindow(coord x, coord y, coord w, coord h) throws override;
+
 	virtual ~Pixmap() noexcept override;
 
 	// -----------------------------------------------
@@ -149,6 +152,12 @@ protected:
 
 // __________________________________________________________________
 // IMPLEMENTATIONS: ctor, dtor
+
+template<ColorMode CM>
+Pixmap<CM>* DirectColorPixmap::cloneWindow(coord x, coord y, coord w, coord h) throws
+{
+	return new Pixmap<CM>(*this, x, y, w, h);
+}
 
 // allocating, throws. for use by subclass:
 template<ColorMode CM>

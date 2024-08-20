@@ -71,6 +71,12 @@ public:
 
 
 	/* _______________________________________________________________________________________
+	   create shared, dependent instance of the entire pixmap or a window:
+		x and w must result in multiples of full byte, e.g. for bitmaps 8*N.
+	*/
+	virtual Canvas* cloneWindow(coord x, coord y, coord w, coord h) throws = 0;
+
+	/* _______________________________________________________________________________________
 	   set and get single pixels:
 		In attribute modes the color is stored in attributes[] and the ink in pixels[].
 		In direct color modes the color is stored in pixels[] and there are no attributes[]. 

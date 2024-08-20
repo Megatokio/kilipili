@@ -72,6 +72,9 @@ public:
 	Pixmap(Pixmap& q, const Point& p, const Size& size) noexcept;
 	Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept;
 
+	// window into this pixmap:
+	virtual Pixmap<CM>* cloneWindow(coord x, coord y, coord w, coord h) throws override;
+
 	virtual ~Pixmap() noexcept override = default;
 
 	bool operator==(const Pixmap& other) const noexcept;
@@ -134,6 +137,12 @@ public:
 
 // __________________________________________________________________
 // IMPLEMENTATIONS: ctor, dtor
+
+template<ColorMode CM>
+Pixmap<CM>* AttrModePixmap::cloneWindow(coord x, coord y, coord w, coord h) throws
+{
+	return new Pixmap<CM>(*this, x, y, w, h);
+}
 
 // allocating, throws:
 template<ColorMode CM>
