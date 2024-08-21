@@ -49,7 +49,9 @@ TextVDU::TextVDU(CanvasPtr pixmap) noexcept :
 	attrmode(get_attrmode(colormode)),		// 0 .. 2  log2 of bits per color in pixmap[]
 	attrwidth(get_attrwidth(colormode)),	// 0 .. 3  log2 of width of tiles
 	bits_per_color(uint8(1 << colordepth)), // bits per color in pixmap[] or attributes[]
-	bits_per_pixel(is_attribute_mode(colormode) ? uint8(1 << attrmode) : bits_per_color) // bpp in pixmap[]
+	bits_per_pixel(is_attribute_mode(colormode) ? uint8(1 << attrmode) : bits_per_color), // bpp in pixmap[]
+	screen_width(pixmap->width / CHAR_WIDTH),
+	screen_height(pixmap->height / CHAR_HEIGHT)
 {
 	reset();
 }
@@ -59,9 +61,6 @@ void TextVDU::reset() noexcept
 {
 	// all settings = default, home cursor
 	// does not clear screen
-
-	screen_width  = pixmap->width / CHAR_WIDTH;
-	screen_height = pixmap->height / CHAR_HEIGHT;
 
 	bgcolor = default_bgcolor; // white / light
 	fgcolor = default_fgcolor; // black / dark
