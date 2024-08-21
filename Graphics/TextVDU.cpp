@@ -53,14 +53,16 @@ TextVDU::TextVDU(CanvasPtr pixmap) noexcept :
 	screen_width(pixmap->width / CHAR_WIDTH),
 	screen_height(pixmap->height / CHAR_HEIGHT)
 {
+	cursorVisible = false;
 	reset();
 }
-
 
 void TextVDU::reset() noexcept
 {
 	// all settings = default, home cursor
 	// does not clear screen
+
+	hideCursor();
 
 	bgcolor = default_bgcolor; // white / light
 	fgcolor = default_fgcolor; // black / dark
@@ -68,9 +70,8 @@ void TextVDU::reset() noexcept
 	fg_ink	= 1;
 
 	row = col = 0;
-	dx = dy		  = 1;
-	attributes	  = NORMAL;
-	cursorVisible = false;
+	dx = dy	   = 1;
+	attributes = NORMAL;
 }
 
 void TextVDU::cls() noexcept
