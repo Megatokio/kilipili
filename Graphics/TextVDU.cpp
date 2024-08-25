@@ -46,12 +46,12 @@ TextVDU::TextVDU(CanvasPtr pixmap) noexcept :
 	colormode(pixmap->colormode),
 	attrheight(pixmap->attrheight),
 	colordepth(get_colordepth(colormode)),	// 0 .. 4  log2 of bits per color in attributes[]
-	attrmode(get_attrmode(colormode)),		// 0 .. 2  log2 of bits per color in pixmap[]
+	attrmode(get_attrmode(colormode)),		// -1 .. 1 log2 of bits per color in pixmap[]
 	attrwidth(get_attrwidth(colormode)),	// 0 .. 3  log2 of width of tiles
 	bits_per_color(uint8(1 << colordepth)), // bits per color in pixmap[] or attributes[]
 	bits_per_pixel(is_attribute_mode(colormode) ? uint8(1 << attrmode) : bits_per_color), // bpp in pixmap[]
-	screen_width(pixmap->width / CHAR_WIDTH),
-	screen_height(pixmap->height / CHAR_HEIGHT)
+	cols(pixmap->width / CHAR_WIDTH),
+	rows(pixmap->height / CHAR_HEIGHT)
 {
 	cursorVisible = false;
 	reset();
@@ -90,8 +90,8 @@ void TextVDU::identify() noexcept
 {
 	// size=400*300, text=50*25, char=8*12, colors=rgb
 	// size=400*300, text=50*25, char=8*12, colors=i8, attr=8*12
-
-	printf("size=%u*%u, text=%u*%u, ", pixmap->width, pixmap->height, screen_width, screen_height);
+	
+	printf("size=%u*%u, text=%u*%u, ", pixmap->width, pixmap->height, cols, rows);
 	printf("char=%u*%u, colors=%s", CHAR_WIDTH, CHAR_HEIGHT, tostr(colordepth));
 	if (attrmode != attrmode_none) printf(", attr=%u*%u", 1 << attrwidth, attrheight);
 	newLine();
@@ -153,7 +153,7 @@ void TextVDU::cursorLeft(int count) noexcept
 			col -= dx;
 			if (int(col) < 0)
 			{
-				col += screen_width;
+				col += cols;
 				row -= dy;
 			}
 		}
@@ -168,9 +168,9 @@ void TextVDU::cursorRight(int count) noexcept
 		while (count--)
 		{
 			col += dx;
-			if (col > screen_width)
+			if (col > cols)
 			{
-				col -= screen_width;
+				col -= cols;
 				row += dy;
 			}
 		}
@@ -201,9 +201,9 @@ void TextVDU::cursorTab(int count) noexcept
 		while (count--)
 		{
 			col = (col / 8 + 1) * 8;
-			if (col > screen_width)
+			if (col > cols)
 			{
-				col -= screen_width;
+				col -= cols;
 				row += dy;
 			}
 		}
@@ -285,61 +285,61 @@ void TextVDU::scrollRectDown(int row, int col, int rows, int cols, int dist) noe
 void TextVDU::insertRows(int n) noexcept
 {
 	validateCursorPosition();
-	scrollRectDown(row, 0, screen_height - row - n, screen_width, n);
+	scrollRectDown(row, 0, rows - row - n, cols, n);
 }
 
 void TextVDU::deleteRows(int n) noexcept
 {
 	validateCursorPosition();
-	scrollRectUp(row, 0, screen_height - row, screen_width, n);
+	scrollRectUp(row, 0, rows - row, cols, n);
 }
 
 void TextVDU::insertColumns(int n) noexcept
 {
 	validateCursorPosition();
-	scrollRectRight(0, col, screen_height, screen_width - col, n);
+	scrollRectRight(0, col, rows, cols - col, n);
 }
 
 void TextVDU::deleteColumns(int n) noexcept
 {
 	validateCursorPosition();
-	scrollRectLeft(0, col, screen_height, screen_width - col, n);
+	scrollRectLeft(0, col, rows, cols - col, n);
 }
 
 void TextVDU::insertRowsAbove(int n) noexcept
 {
 	validateCursorPosition();
-	scrollRectUp(0, 0, row - n, screen_width, n);
+	scrollRectUp(0, 0, row - n, cols, n);
 }
 
 void TextVDU::deleteRowsAbove(int n) noexcept
 {
 	validateCursorPosition();
-	scrollRectDown(0, 0, row, screen_width, n);
+	scrollRectDown(0, 0, row, cols, n);
 }
 
 void TextVDU::insertColumnsBefore(int n) noexcept
 {
 	validateCursorPosition();
-	scrollRectLeft(0, 0, screen_height, col, n);
+	scrollRectLeft(0, 0, rows, col, n);
 }
 
 void TextVDU::deleteColumnsBefore(int n) noexcept
 {
 	validateCursorPosition();
-	scrollRectRight(0, 0, screen_height, col, n);
+	scrollRectRight(0, 0, rows, col, n);
 }
 
 void TextVDU::insertChars(int n) noexcept
 {
 	validateCursorPosition();
-	scrollRectRight(row, col, 1, screen_width - col, n);
+	scrollRectRight(row, col, 1, cols - col, n);
 }
 
 void TextVDU::deleteChars(int n) noexcept
 {
 	validateCursorPosition();
-	scrollRectLeft(row, col, 1, screen_width - col, n);
+	scrollRectLeft(row, col, 1, cols - col, n);
 }
 
 void TextVDU::clearToStartOfLine(bool incl_cpos) noexcept
@@ -355,7 +355,7 @@ void TextVDU::clearToStartOfScreen(bool incl_cpos) noexcept
 	// allow col == screen_width
 
 	clearToStartOfLine(incl_cpos);
-	clearRect(0, 0, row, screen_width);
+	clearRect(0, 0, row, cols);
 }
 
 void TextVDU::clearToEndOfLine() noexcept
@@ -364,7 +364,7 @@ void TextVDU::clearToEndOfLine() noexcept
 	// this allows to print an arbitrary string up to the last char and clear to eol.
 
 	validateCursorPosition(true /*col80ok*/);
-	clearRect(row, col, 1, screen_width - col);
+	clearRect(row, col, 1, cols - col);
 }
 
 void TextVDU::clearToEndOfScreen() noexcept
@@ -374,7 +374,7 @@ void TextVDU::clearToEndOfScreen() noexcept
 	// without scrolling and inserting a new empty line.
 
 	clearToEndOfLine();
-	clearRect(row + 1, 0, screen_height - (row + 1), screen_width);
+	clearRect(row + 1, 0, rows - (row + 1), cols);
 }
 
 void TextVDU::copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols) noexcept
@@ -392,9 +392,9 @@ void TextVDU::copyRect(int src_row, int src_col, int dest_row, int dest_col, int
 void TextVDU::scrollScreen(int dx /*chars*/, int dy /*chars*/) noexcept
 {
 	hideCursor();
-
-	int w = (screen_width - abs(dx)) * CHAR_WIDTH;
-	int h = (screen_height - abs(dy)) * CHAR_HEIGHT;
+	
+	int w = (cols - abs(dx)) * CHAR_WIDTH;
+	int h = (rows - abs(dy)) * CHAR_HEIGHT;
 
 	if (w <= 0 || h <= 0) return pixmap->clear(bgcolor);
 
@@ -407,12 +407,12 @@ void TextVDU::scrollScreen(int dx /*chars*/, int dy /*chars*/) noexcept
 	coord zy = dy >= 0 ? +dy : 0;
 
 	pixmap->copyRect(zx, zy, qx, qy, w, h);
-
-	if (dx > 0) pixmap->fillRect(0, 0, +dx, screen_height * CHAR_HEIGHT, bgcolor, bg_ink);
-	if (dx < 0) pixmap->fillRect(w, 0, -dx, screen_height * CHAR_HEIGHT, bgcolor, bg_ink);
-
-	if (dy > 0) pixmap->fillRect(0, 0, screen_width * CHAR_WIDTH, +dy, bgcolor, bg_ink);
-	if (dy < 0) pixmap->fillRect(0, h, screen_width * CHAR_WIDTH, -dy, bgcolor, bg_ink);
+	
+	if (dx > 0) pixmap->fillRect(0, 0, +dx, rows * CHAR_HEIGHT, bgcolor, bg_ink);
+	if (dx < 0) pixmap->fillRect(w, 0, -dx, rows * CHAR_HEIGHT, bgcolor, bg_ink);
+	
+	if (dy > 0) pixmap->fillRect(0, 0, cols * CHAR_WIDTH, +dy, bgcolor, bg_ink);
+	if (dy < 0) pixmap->fillRect(0, h, cols * CHAR_WIDTH, -dy, bgcolor, bg_ink);
 }
 
 void TextVDU::scrollScreenUp(int rows /*char*/) noexcept
@@ -437,8 +437,8 @@ void TextVDU::scrollScreenRight(int cols) noexcept
 
 void TextVDU::limitCursorPosition(bool col80ok) noexcept
 {
-	limit(0, col, screen_width - !col80ok);
-	limit(0, row, screen_height - 1);
+	limit(0, col, cols - !col80ok);
+	limit(0, row, rows - 1);
 }
 
 void TextVDU::validateCursorPosition(bool col80ok) noexcept
@@ -453,22 +453,22 @@ void TextVDU::validateCursorPosition(bool col80ok) noexcept
 	// row := in range [0 .. [screen_height
 
 	if (cursorVisible) return;
-
-	if unlikely (uint(col) >= uint(screen_width))
+	
+	if unlikely (uint(col) >= uint(cols))
 	{
 		while (col < 0)
 		{
-			col += screen_width;
+			col += cols;
 			row -= dy;
 		}
-		while (col >= screen_width + col80ok)
+		while (col >= cols + col80ok)
 		{
-			col -= screen_width;
+			col -= cols;
 			row += dy;
 		}
 	}
-
-	if unlikely (uint(row) >= uint(screen_height))
+	
+	if unlikely (uint(row) >= uint(rows))
 	{
 		if (row < 0)
 		{
@@ -477,8 +477,8 @@ void TextVDU::validateCursorPosition(bool col80ok) noexcept
 		}
 		else
 		{
-			scrollScreenUp(row - (screen_height - 1));
-			row = screen_height - 1;
+			scrollScreenUp(row - (rows - 1));
+			row = rows - 1;
 		}
 	}
 }
@@ -554,7 +554,7 @@ void TextVDU::writeBmp(CharMatrix bmp, uint8 attr) noexcept
 
 		// if in last column, don't print 2 half characters:
 		validateCursorPosition();
-		if (col == screen_width - 1)
+		if (col == cols - 1)
 		{
 			memset(bmp2, 0, CHAR_HEIGHT);
 			uint8 attr2 = attr & ~DOUBLE_WIDTH;
@@ -908,8 +908,8 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 		case USB::KEY_ARROW_RIGHT:
 			if (oldtext[epos] != 0) printChar(oldtext[epos++]);
 			break;
-		case USB::KEY_ARROW_UP: epos = max(epos - screen_width, 0); break;
-		case USB::KEY_ARROW_DOWN: epos = min(epos + screen_width, int(strlen(oldtext))); break;
+		case USB::KEY_ARROW_UP: epos = max(epos - cols, 0); break;
+		case USB::KEY_ARROW_DOWN: epos = min(epos + cols, int(strlen(oldtext))); break;
 		default: printf("{%s}", tostr(USB::HIDKey(c & 0xff)));
 		}
 	}

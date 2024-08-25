@@ -47,8 +47,8 @@ public:
 	char			 _padding = 0;
 
 	// Screen size:
-	const int screen_width;	 // [characters]
-	const int screen_height; // [characters]
+	const int cols;	 // [characters]
+	const int rows; // [characters]
 
 	// foreground and background color:
 	uint bgcolor; // paper color

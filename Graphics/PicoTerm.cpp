@@ -129,10 +129,10 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 				while (is_decimal_digit(c)) { repeat_cnt = repeat_cnt * 10 + c - '0'; GETC(); }
 				switch (c)
 				{
-				case 'A': cursorUp(min(row, repeat_cnt)); continue;						  // VT100
-				case 'B': cursorDown(min(screen_height - 1 - row, repeat_cnt)); continue; // VT100
-				case 'C': cursorRight(min(screen_width - 1 - col, repeat_cnt)); continue; // VT100
-				case 'D': cursorLeft(min(col, repeat_cnt)); continue;					  // VT100
+				case 'A': cursorUp(min(row, repeat_cnt)); continue;				  // VT100
+				case 'B': cursorDown(min(rows - 1 - row, repeat_cnt)); continue;  // VT100
+				case 'C': cursorRight(min(cols - 1 - col, repeat_cnt)); continue; // VT100
+				case 'D': cursorLeft(min(col, repeat_cnt)); continue;			  // VT100
 				}
 			}
 			puts("{ESC}");
@@ -150,8 +150,8 @@ char* PicoTerm::identify()
 	cstr amstr = attrmode == attrmode_none ? "" : usingstr(" attr=%u*%u", 1 << attrwidth, attrheight);
 
 	return usingstr(
-		"PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s%s", pixmap->width, pixmap->height, screen_width, screen_height,
-		CHAR_WIDTH, CHAR_HEIGHT, tostr(colordepth), amstr);
+		"PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s%s", pixmap->width, pixmap->height, cols, rows, CHAR_WIDTH,
+		CHAR_HEIGHT, tostr(colordepth), amstr);
 }
 
 int PicoTerm::getc(void (*run_statemachines)(), int timeout_us)
@@ -268,8 +268,8 @@ str PicoTerm::input_line(void (*run_statemachines)(), str oldtext, int epos)
 		case USB::KEY_ARROW_RIGHT:
 			if (oldtext[epos] != 0) printChar(oldtext[epos++]);
 			break;
-		case USB::KEY_ARROW_UP: epos = max(epos - screen_width, 0); break;
-		case USB::KEY_ARROW_DOWN: epos = min(epos + screen_width, int(strlen(oldtext))); break;
+		case USB::KEY_ARROW_UP: epos = max(epos - cols, 0); break;
+		case USB::KEY_ARROW_DOWN: epos = min(epos + cols, int(strlen(oldtext))); break;
 		default: printf("{%s}", tostr(USB::HIDKey(c & 0xff)));
 		}
 	}
