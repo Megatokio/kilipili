@@ -91,6 +91,7 @@ public:
 	void  showCursor(bool on = true) noexcept;
 	void  hideCursor() noexcept;
 	void  validateCursorPosition(bool col80ok = false) noexcept;
+	void  limitCursorPosition(bool col80ok = false) noexcept;
 	void  readBmp(CharMatrix, bool use_fgcolor) noexcept;
 	void  writeBmp(CharMatrix, uint8 attr) noexcept;
 	void  getCharMatrix(CharMatrix, char c) noexcept;

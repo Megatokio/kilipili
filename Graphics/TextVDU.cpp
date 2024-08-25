@@ -435,6 +435,12 @@ void TextVDU::scrollScreenRight(int cols) noexcept
 	if (cols > 0) scrollScreen(+cols, 0);
 }
 
+void TextVDU::limitCursorPosition(bool col80ok) noexcept
+{
+	limit(0, col, screen_width - !col80ok);
+	limit(0, row, screen_height - 1);
+}
+
 void TextVDU::validateCursorPosition(bool col80ok) noexcept
 {
 	// validate cursor position
