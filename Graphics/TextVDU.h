@@ -35,6 +35,8 @@ public:
 		GRAPHICS	  = 1 << 7
 	};
 
+	enum AutoWrap : bool { nowrap, wrap };
+
 	CanvasPtr pixmap;
 
 	const ColorMode	 colormode;
@@ -70,9 +72,9 @@ public:
 	void reset() noexcept;
 	void cls() noexcept;
 	void identify() noexcept;
-	void moveTo(int row, int col, bool auto_wrap) noexcept;
-	void moveToCol(int col, bool auto_wrap) noexcept;
-	void moveToRow(int row, bool auto_wrap) noexcept;
+	void moveTo(int row, int col, AutoWrap = nowrap) noexcept;
+	void moveToCol(int col, AutoWrap = nowrap) noexcept;
+	void moveToRow(int row, AutoWrap = nowrap) noexcept;
 	void setCharAttributes(uint add, uint remove = 0xff) noexcept;
 	void addCharAttributes(uint a = 0xff) noexcept { setCharAttributes(a, 0); }
 	void removeCharAttributes(uint a = 0xff) noexcept { setCharAttributes(0, a); }
@@ -81,10 +83,10 @@ public:
 	void print(cstr text) noexcept;							// supports \n and \t
 	void printf(cstr fmt, ...) noexcept __printflike(2, 3); // supports \n and \t
 	str	 inputLine(std::function<int()> getchar, str oldtext = nullptr, int epos = 0);
-	void cursorLeft(int count = 1, bool auto_wrap = true) noexcept;
-	void cursorRight(int count = 1, bool auto_wrap = true) noexcept;
-	void cursorUp(int count = 1, bool auto_wrap = true) noexcept;
-	void cursorDown(int count = 1, bool auto_wrap = true) noexcept;
+	void cursorLeft(int count = 1, AutoWrap = wrap) noexcept;
+	void cursorRight(int count = 1, AutoWrap = wrap) noexcept;
+	void cursorUp(int count = 1, AutoWrap = wrap) noexcept;
+	void cursorDown(int count = 1, AutoWrap = wrap) noexcept;
 	void cursorTab(int count = 1) noexcept;
 	void cursorReturn() noexcept;
 	void newLine() noexcept;

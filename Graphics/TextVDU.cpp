@@ -189,7 +189,7 @@ void TextVDU::limitCursorPosition() noexcept
 	limit(0, row, rows - 1);
 }
 
-void TextVDU::moveTo(int row, int col, bool auto_wrap) noexcept
+void TextVDU::moveTo(int row, int col, AutoWrap auto_wrap) noexcept
 {
 	// auto_wrap=0: stop at border.
 	// auto_wrap=1: wrap & scroll, col80ok.
@@ -201,7 +201,7 @@ void TextVDU::moveTo(int row, int col, bool auto_wrap) noexcept
 	else limitCursorPosition();
 }
 
-void TextVDU::moveToCol(int col, bool auto_wrap) noexcept
+void TextVDU::moveToCol(int col, AutoWrap auto_wrap) noexcept
 {
 	// auto_wrap=0: stop at border.
 	// auto_wrap=1: wrap & scroll, col80ok.
@@ -212,7 +212,7 @@ void TextVDU::moveToCol(int col, bool auto_wrap) noexcept
 	else limit(0, this->col, cols - 1);
 }
 
-void TextVDU::moveToRow(int row, bool auto_wrap) noexcept
+void TextVDU::moveToRow(int row, AutoWrap auto_wrap) noexcept
 {
 	// auto_wrap=0: stop at border.
 	// auto_wrap=1: wrap & scroll.
@@ -223,24 +223,24 @@ void TextVDU::moveToRow(int row, bool auto_wrap) noexcept
 	else limit(0, this->row, rows - 1);
 }
 
-void TextVDU::cursorLeft(int count, bool auto_wrap) noexcept
+void TextVDU::cursorLeft(int count, AutoWrap auto_wrap) noexcept
 {
 	moveToCol(col - max(count * dx, 0), auto_wrap); //
 }
 
-void TextVDU::cursorRight(int count, bool auto_wrap) noexcept
+void TextVDU::cursorRight(int count, AutoWrap auto_wrap) noexcept
 {
 	// if auto_wrap then col80ok
 
 	moveToCol(col + max(count * dx, 0), auto_wrap);
 }
 
-void TextVDU::cursorUp(int count, bool auto_wrap) noexcept
+void TextVDU::cursorUp(int count, AutoWrap auto_wrap) noexcept
 {
 	moveToRow(row - max(count * dx, 0), auto_wrap); //
 }
 
-void TextVDU::cursorDown(int count, bool auto_wrap) noexcept
+void TextVDU::cursorDown(int count, AutoWrap auto_wrap) noexcept
 {
 	moveToRow(row + max(count * dx, 0), auto_wrap); //
 }
@@ -860,7 +860,7 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 
 	for (;;)
 	{
-		moveTo(row0, col0 + epos, true);
+		moveTo(row0, col0 + epos, wrap);
 		int c = getc();
 
 		if (c < 32)
