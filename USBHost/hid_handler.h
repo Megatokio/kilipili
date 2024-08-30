@@ -4,10 +4,21 @@
 
 #pragma once
 #include "HidKeys.h"
-#include <class/hid/hid.h>
 
 namespace kio::USB
 {
+
+/*
+	initialize tinyUSB host interface.
+	poll USB events and call registered handlers.
+	simple forwarder functions. 
+*/
+extern bool initUSBHost() noexcept; // returns true on success
+extern void pollUSB() noexcept;
+
+extern bool keyboardPresent() noexcept;
+extern bool mousePresent() noexcept;
+
 
 // USB keyboard report in "boot" mode
 struct HidKeyboardReport

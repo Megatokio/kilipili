@@ -36,8 +36,9 @@
 
   #include "hid_handler.h"
   #include "standard_types.h"
-  #include <class/hid/hid_host.h>
+  #include <hardware/timer.h>
   #include <tusb.h>
+
 
 // Each HID instance can have multiple reports
 static constexpr uint MAX_REPORT = 4;
@@ -49,9 +50,24 @@ static struct
 	tuh_hid_report_info_t report_info[MAX_REPORT];
 } hid_info[CFG_TUH_HID];
 
+static uint8 mouses	   = 0;
+static uint8 keyboards = 0;
 
 namespace kio::USB
 {
+bool initUSBHost() noexcept { return tusb_init(); }
+void pollUSB() noexcept
+{
+	// limit actual calls to tuh_task() to 4000/sec:
+	static uint16 last = 0;
+	uint16		  now  = uint16(time_us_32());
+	if (now - last < 250) return;
+	last = now;
+	tuh_task();
+}
+bool keyboardPresent() noexcept { return keyboards; }
+bool mousePresent() noexcept { return mouses; }
+
 static HidMouseEventHandler*	mouse_event_handler	   = defaultHidMouseEventHandler;
 static HidKeyboardEventHandler* keyboard_event_handler = defaultHidKeyboardEventHandler;
 
@@ -68,6 +84,7 @@ void setHidKeyboardEventHandler(HidKeyboardEventHandler* handler) noexcept
 static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* report, uint16 len)
 {
 	(void)dev_addr;
+	(void)len;
 
 	const uint8			   rpt_count	= hid_info[instance].report_count;
 	tuh_hid_report_info_t* rpt_info_arr = hid_info[instance].report_info;
@@ -158,6 +175,8 @@ extern "C" void tuh_hid_mount_cb(uint8 dev_addr, uint8 instance, const uint8* de
 	const uint8	   itf_protocol		  = tuh_hid_interface_protocol(dev_addr, instance);
 
 	printf("HID Interface Protocol = %s\n", protocol_str[itf_protocol]);
+	if (itf_protocol == HID_ITF_PROTOCOL_KEYBOARD) keyboards++;
+	if (itf_protocol == HID_ITF_PROTOCOL_MOUSE) mouses++;
 
 	// By default host stack will activate boot protocol on supported interface.
 	// Therefore for this simple example, we only need to parse generic report descriptor (with built-in parser)
@@ -178,6 +197,9 @@ extern "C" void tuh_hid_umount_cb(uint8_t dev_addr, uint8_t instance)
 	// Device with hid interface is unmounted
 
 	printf("HID device address = %d, instance = %d is unmounted\n", dev_addr, instance);
+	const uint8 itf_protocol = tuh_hid_interface_protocol(dev_addr, instance);
+	if (itf_protocol == HID_ITF_PROTOCOL_KEYBOARD && keyboards) keyboards--;
+	if (itf_protocol == HID_ITF_PROTOCOL_MOUSE && mouses) mouses--;
 }
 
 extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const uint8* report, uint16 len)
