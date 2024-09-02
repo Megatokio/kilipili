@@ -96,18 +96,27 @@ struct Rect
 	bool is_normalized() const noexcept { return p1.x <= p2.x && p1.y <= p2.y; }
 	bool is_empty() const noexcept { return p1.x == p2.x || p1.y == p2.y; }
 
-	coord left() const noexcept { return p1.x; }
-	coord right() const noexcept { return p2.x; }
-	coord top() const noexcept { return p1.y; }
-	coord bottom() const noexcept { return p2.y; }
-	coord width() const noexcept { return p2.x - p1.x; }
-	coord height() const noexcept { return p2.y - p1.y; }
-	Size  size() const noexcept { return p2 - p1; }
+	coord  left() const noexcept { return p1.x; }
+	coord  right() const noexcept { return p2.x; }
+	coord  top() const noexcept { return p1.y; }
+	coord  bottom() const noexcept { return p2.y; }
+	coord& left() noexcept { return p1.x; }
+	coord& right() noexcept { return p2.x; }
+	coord& top() noexcept { return p1.y; }
+	coord& bottom() noexcept { return p2.y; }
+	coord  width() const noexcept { return p2.x - p1.x; }
+	coord  height() const noexcept { return p2.y - p1.y; }
+	Size   size() const noexcept { return p2 - p1; }
 
 	Point top_left() const noexcept { return p1; }
 	Point bottom_right() const noexcept { return p2; }
 	Point bottom_left() const noexcept { return p3(); }
 	Point top_right() const noexcept { return p4(); }
+
+	constexpr bool contains(const Point& p) const noexcept
+	{
+		return p.x >= p1.x && p.y >= p1.y && p.x < p2.x && p.y < p2.y;
+	}
 
 	Rect& unite_with(const Rect& b) noexcept
 	{
@@ -150,3 +159,42 @@ struct Rect
 
 
 } // namespace kio
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
