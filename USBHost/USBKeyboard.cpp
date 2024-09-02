@@ -49,6 +49,11 @@ char KeyEvent::getchar() const noexcept
 static Queue<KeyEvent, 8, uint8> key_event_queue;
 static_assert(sizeof(key_event_queue) == 2 + 3 * 8);
 
+bool keyEventAvailable() noexcept
+{
+	return key_event_queue.avail(); //
+}
+
 KeyEvent getKeyEvent()
 {
 	// get next KeyEvent

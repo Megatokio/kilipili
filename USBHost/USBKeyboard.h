@@ -66,6 +66,6 @@ using KeyEventHandler = void(const KeyEvent&);
 extern void		setKeyEventHandler(KeyEventHandler*); // set a callback, or ...
 extern KeyEvent getKeyEvent();						  // ... get next key up/down event
 extern int		getChar();							  // ... get next char
-
+extern bool		keyEventAvailable() noexcept;
 
 } // namespace kio::USB
