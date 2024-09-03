@@ -5,8 +5,7 @@
 #include "PicoTerm.h"
 #include "USBHost/USBKeyboard.h"
 #include "cstrings.h"
-//#include "glue.h"
-//#include "string.h"
+#include "glue.h"
 #include "utilities/Trace.h"
 
 namespace kio::Graphics

@@ -3,6 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#ifdef UNIT_TEST
+  #include "glue.h"
+#else
+  
 #include "LoadSensor.h"
 #include "basic_math.h"
 #include "standard_types.h"
@@ -156,6 +160,8 @@ constexpr sysclock_params calc_sysclock_params(uint32 f) noexcept
 
 
 } // namespace kio
+
+#endif
 
 /*
 

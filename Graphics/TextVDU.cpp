@@ -6,7 +6,6 @@
 #include "USBHost/USBKeyboard.h"
 #include "cstrings.h"
 #include <memory>
-#include <pico/stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 

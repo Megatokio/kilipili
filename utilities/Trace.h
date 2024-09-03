@@ -4,19 +4,19 @@
 
 #pragma once
 #include "standard_types.h"
-#include <pico/platform.h>
-#include <pico/sync.h>
+
+#if defined DEBUG && !defined UNIT_TEST
+  #include <pico/platform.h>
+  #include <pico/sync.h>
 
 namespace kio
 {
-
-#ifdef DEBUG
 
 class Trace
 {
 public:
 	static constexpr uint maxdepth = 8;
-	
+
 	struct Path
 	{
 		cstr procs[maxdepth];
@@ -30,9 +30,9 @@ public:
 		}
 		void pop() noexcept { depth -= 1; }
 	};
-	
+
 	static Path path[2];
-	
+
 	Trace(cstr func) noexcept { path[get_core_num()].push(func); }
 	~Trace() noexcept { path[get_core_num()].pop(); }
 
@@ -41,11 +41,16 @@ public:
 
   #define trace(func) Trace _trace(func)
 
-#else
-  #define trace(func) (void)0
-#endif
-
 extern int sm_print_trace() noexcept;
 
-
 } // namespace kio
+
+#else
+
+namespace kio
+{
+inline void trace(cstr) {}
+inline int	sm_print_trace() noexcept { return 0; }
+} // namespace kio
+
+#endif

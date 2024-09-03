@@ -3,6 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#ifdef UNIT_TEST
+  #include "glue.h"
+#else
+  
 #include <hardware/pwm.h>
 #include <pico/stdlib.h>
 
@@ -30,3 +34,5 @@ inline void idle_start() noexcept { pwm_set_enabled(PWM_LOAD_SENSOR_SLICE_NUM_BA
 inline void idle_end() noexcept { pwm_set_enabled(PWM_LOAD_SENSOR_SLICE_NUM_BASE + get_core_num(), false); }
 
 } // namespace kio
+  
+#endif

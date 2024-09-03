@@ -2,6 +2,9 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
+#undef stackinfo
+#if defined DEBUG && !defined UNIT_TEST
+  
 #include "Trace.h"
 #include "basic_math.h"
 #include "sm_utilities.h"
@@ -10,8 +13,6 @@
 namespace kio
 {
 
-#undef stackinfo
-#ifdef DEBUG
 
 Trace::Path Trace::path[2];
 
@@ -39,9 +40,7 @@ int sm_print_trace() noexcept
 	FINISH
 }
 
-#else
-int sm_print_stackinfo() noexcept { return 0; }
-#endif
-
 
 } // namespace kio
+
+#endif

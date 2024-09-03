@@ -11,9 +11,6 @@
 #include "GifDecoder.h"
 #include "Video/Color.h"
 #include "basic_math.h"
-#include "hardware/sync.h"
-#include "pico/stdio.h"
-//#include "utilities/utilities.h"
 #include <cstrings.h>
 #include <fcntl.h>
 #include <string.h>
