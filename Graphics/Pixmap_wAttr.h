@@ -333,7 +333,7 @@ uint AttrModePixmap::get_ink(coord x, coord y) const noexcept
 {
 	// get ink from pixels[]
 	// same as in Pixmap.getInk()
-	return super::get_ink(y, x);
+	return super::get_ink(x, y);
 }
 
 template<ColorMode CM>
