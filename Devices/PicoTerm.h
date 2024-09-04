@@ -4,18 +4,18 @@
 
 #pragma once
 #include "Devices/SerialDevice.h"
-#include "Canvas.h"
-#include "TextVDU.h"
+#include "Graphics/Canvas.h"
+#include "Graphics/TextVDU.h"
 
-namespace kio::Graphics
+namespace kio::Devices
 {
 
-class PicoTerm : public Devices::SerialDevice
+class PicoTerm : public SerialDevice
 {
 public:
-	using super = Devices::SerialDevice;
-	using SIZE	= Devices::SIZE;
-	using IoCtl = Devices::IoCtl;
+	using super		= SerialDevice;
+	using TextVDU	= Graphics::TextVDU;
+	using CanvasPtr = Graphics::CanvasPtr;
 
 	// Control Characters:
 	enum : uchar {
@@ -76,7 +76,7 @@ protected:
 };
 
 
-} // namespace kio::Graphics
+} // namespace kio::Devices
 
 
 /*

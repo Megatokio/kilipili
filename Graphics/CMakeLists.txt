@@ -31,8 +31,6 @@ add_library(kilipili_graphics STATIC
 	BitBlit.h
 	BitBlit.cpp
 	rsrc/font_12x8.h
-	PicoTerm.h
-	PicoTerm.cpp
 	gif/Colormap.cpp
 	gif/Colormap.h
 	gif/GifArray.h

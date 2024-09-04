@@ -28,6 +28,8 @@ add_library(kilipili_devices STATIC
 	crc.cpp
 	Stdio.cpp
 	Stdio.h
+	PicoTerm.h
+	PicoTerm.cpp
 	BlockDeviceFile.cpp
 	BlockDeviceFile.h
 	ff15/source/ff.h

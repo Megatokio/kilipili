@@ -5,13 +5,11 @@
 #include "PicoTerm.h"
 #include "USBHost/USBKeyboard.h"
 #include "common/cstrings.h"
-#include "glue.h"
-#include "utilities/Trace.h"
 
-namespace kio::Graphics
+namespace kio::Devices
 {
 
-using namespace Devices;
+using namespace Graphics;
 
 // =============================================================================
 //							F U N C T I O N S
@@ -179,8 +177,6 @@ int PicoTerm::getc(void (*run_statemachines)(), int timeout_us)
 
 str PicoTerm::input_line(void (*run_statemachines)(), str oldtext, int epos)
 {
-	trace(__func__);
-
 	if (oldtext == nullptr) oldtext = emptystr;
 	assert(epos <= int(strlen(oldtext)));
 
