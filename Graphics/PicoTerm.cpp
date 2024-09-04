@@ -4,7 +4,7 @@
 
 #include "PicoTerm.h"
 #include "USBHost/USBKeyboard.h"
-#include "cstrings.h"
+#include "common/cstrings.h"
 #include "glue.h"
 #include "utilities/Trace.h"
 
@@ -19,13 +19,17 @@ using namespace Devices;
 
 
 PicoTerm::PicoTerm(CanvasPtr pixmap) : //
+	PicoTerm(new TextVDU(pixmap))
+{}
+
+PicoTerm::PicoTerm(RCPtr<TextVDU> text) noexcept : //
 	SerialDevice(writable),
-	TextVDU(pixmap)
+	text(std::move(text))
 {
 	reset();
 }
 
-void PicoTerm::reset()
+void PicoTerm::reset() noexcept
 {
 	// all settings = default, home cursor
 	// does not clear screen
@@ -33,7 +37,7 @@ void PicoTerm::reset()
 	auto_crlf = true;
 	sm_state  = 0;
 
-	TextVDU::reset();
+	text->reset();
 }
 
 uint32 PicoTerm::ioctl(IoCtl cmd, void*, void*)
@@ -76,23 +80,23 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 
 	loop_repeat:
 		GETC();
-		if (is_printable(c)) { printChar(c, repeat_cnt); continue; }
+		if (is_printable(c)) { text->printChar(c, repeat_cnt); continue; }
 
 		switch (c) 
 		{
 		case RESET:			   reset(); continue;
-		case CLS:			   cls(); continue;
+		case CLS:			   text->cls(); continue;
 		case MOVE_TO_POSITION: goto move_to_position;
 		case MOVE_TO_COL:      goto move_to_col;
-		case SHOW_CURSOR:	   showCursor(); continue;
-		case CURSOR_LEFT:	   cursorLeft(repeat_cnt); continue;  // scrolls
-		case TAB:			   cursorTab(repeat_cnt); continue;	  // scrolls
-		case CURSOR_DOWN:	   cursorDown(repeat_cnt); if (auto_crlf) cursorReturn(); continue;  // scrolls
-		case CURSOR_UP:		   cursorUp(repeat_cnt); continue;	  // scrolls
-		case CURSOR_RIGHT:	   cursorRight(repeat_cnt); continue; // scrolls
-		case RETURN:		   cursorReturn(); continue;
-		case CLEAR_TO_END_OF_LINE:   clearToEndOfLine(); continue;
-		case CLEAR_TO_END_OF_SCREEN: clearToEndOfScreen(); continue;
+		case SHOW_CURSOR:	   text->showCursor(); continue;
+		case CURSOR_LEFT:	   text->cursorLeft(repeat_cnt); continue;  // scrolls
+		case TAB:			   text->cursorTab(repeat_cnt); continue;	  // scrolls
+		case CURSOR_DOWN:	   text->cursorDown(repeat_cnt); if (auto_crlf) text->cursorReturn(); continue;  // scrolls
+		case CURSOR_UP:		   text->cursorUp(repeat_cnt); continue;	  // scrolls
+		case CURSOR_RIGHT:	   text->cursorRight(repeat_cnt); continue; // scrolls
+		case RETURN:		   text->cursorReturn(); continue;
+		case CLEAR_TO_END_OF_LINE:   text->clearToEndOfLine(); continue;
+		case CLEAR_TO_END_OF_SCREEN: text->clearToEndOfScreen(); continue;
 		case SET_ATTRIBUTES:   goto set_attributes;
 		case REPEAT_NEXT_CHAR: goto repeat_next_char;
 		case SCROLL_SCREEN:    goto scroll_screen;
@@ -101,25 +105,25 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 
 		if (c == 127)
 		{
-			auto attr = attributes;
-			attributes = Attributes(attributes & ~TRANSPARENT);
-			cursorLeft(repeat_cnt);
-			printChar(' ', repeat_cnt);
-			cursorLeft(repeat_cnt);
-			attributes = attr;
+			auto attr = text->attributes;
+			text->removeCharAttributes(text->TRANSPARENT);
+			text->cursorLeft(repeat_cnt);
+			text->printChar(' ', repeat_cnt);
+			text->cursorLeft(repeat_cnt);
+			text->setCharAttributes(attr);
 		}
 		else printf("{$%02X}", c);
 		continue;
 
-		move_to_position: GETC(); moveToRow(int8(c-0x40)+0x40);
-		move_to_col: GETC(); moveToCol(int8(c-0x40)+0x40); continue;
-		set_attributes: GETC(); setCharAttributes(c); continue;
+		move_to_position: GETC(); text->moveToRow(int8(c-0x40)+0x40);
+		move_to_col: GETC(); text->moveToCol(int8(c-0x40)+0x40); continue;
+		set_attributes: GETC(); text->setCharAttributes(c); continue;
 		repeat_next_char: GETC(); repeat_cnt = uchar(c); goto loop_repeat;
 		scroll_screen: // scroll screen u/d/l/r
-			GETC(); if (c == 'u') scrollScreenUp(repeat_cnt);
-			else if (c == 'd') scrollScreenDown(repeat_cnt);
-			else if (c == 'l') scrollScreenLeft(repeat_cnt);
-			else if (c == 'r') scrollScreenRight(repeat_cnt);
+			GETC(); if (c == 'u') text->scrollScreenUp(repeat_cnt);
+			else if (c == 'd') text->scrollScreenDown(repeat_cnt);
+			else if (c == 'l') text->scrollScreenLeft(repeat_cnt);
+			else if (c == 'r') text->scrollScreenRight(repeat_cnt);
 			continue;
 		esc:
 			GETC(); if (c == '[')
@@ -128,10 +132,10 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 				while (is_decimal_digit(c)) { repeat_cnt = repeat_cnt * 10 + c - '0'; GETC(); }
 				switch (c)
 				{
-				case 'A': cursorUp(min(row, repeat_cnt)); continue;				  // VT100
-				case 'B': cursorDown(min(rows - 1 - row, repeat_cnt)); continue;  // VT100
-				case 'C': cursorRight(min(cols - 1 - col, repeat_cnt)); continue; // VT100
-				case 'D': cursorLeft(min(col, repeat_cnt)); continue;			  // VT100
+				case 'A': text->cursorUp(min(text->row, repeat_cnt)); continue;				  // VT100
+				case 'B': text->cursorDown(min(text->rows - 1 - text->row, repeat_cnt)); continue;  // VT100
+				case 'C': text->cursorRight(min(text->cols - 1 - text->col, repeat_cnt)); continue; // VT100
+				case 'D': text->cursorLeft(min(text->col, repeat_cnt)); continue;			  // VT100
 				}
 			}
 			puts("{ESC}");
@@ -146,11 +150,11 @@ char* PicoTerm::identify()
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=rgb
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=i8 attr=8*12
 
-	cstr amstr = attrmode == attrmode_none ? "" : usingstr(" attr=%u*%u", 1 << attrwidth, attrheight);
+	cstr amstr = text->attrmode == attrmode_none ? "" : usingstr(" attr=%u*%u", 1 << text->attrwidth, text->attrheight);
 
 	return usingstr(
-		"PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s%s", pixmap->width, pixmap->height, cols, rows, CHAR_WIDTH,
-		CHAR_HEIGHT, tostr(colordepth), amstr);
+		"PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s%s", text->pixmap->width, text->pixmap->height, text->cols,
+		text->rows, text->CHAR_WIDTH, text->CHAR_HEIGHT, tostr(text->colordepth), amstr);
 }
 
 int PicoTerm::getc(void (*run_statemachines)(), int timeout_us)
@@ -164,7 +168,7 @@ int PicoTerm::getc(void (*run_statemachines)(), int timeout_us)
 	while (inchar == -1 && (timeout_us == 0 || (now = int32(time_us_32())) - end < 0))
 	{
 		if (now - (crsr_start + crsr_phase) >= 0) crsr_start += crsr_phase;
-		showCursor(now - (crsr_start + crsr_phase / 2) < 0);
+		text->showCursor(now - (crsr_start + crsr_phase / 2) < 0);
 
 		run_statemachines();
 		inchar = USB::getChar();
@@ -180,14 +184,14 @@ str PicoTerm::input_line(void (*run_statemachines)(), str oldtext, int epos)
 	if (oldtext == nullptr) oldtext = emptystr;
 	assert(epos <= int(strlen(oldtext)));
 
-	int col0 = col;
-	int row0 = row;
+	int col0 = text->col;
+	int row0 = text->row;
 
-	print(oldtext);
+	text->print(oldtext);
 
 	for (;;)
 	{
-		moveTo(row0, col0 + epos);
+		text->moveTo(row0, col0 + epos);
 		int c = getc(run_statemachines);
 
 		if (c < 32)
@@ -195,8 +199,8 @@ str PicoTerm::input_line(void (*run_statemachines)(), str oldtext, int epos)
 			switch (c)
 			{
 			case RETURN:
-				print(oldtext + epos);
-				moveTo(row + 1, 0);
+				text->print(oldtext + epos);
+				text->moveTo(text->row + 1, 0);
 				return oldtext;
 			case CURSOR_LEFT: c = USB::KEY_ARROW_LEFT; break;
 			case CURSOR_RIGHT: c = USB::KEY_ARROW_RIGHT; break;
@@ -231,7 +235,7 @@ str PicoTerm::input_line(void (*run_statemachines)(), str oldtext, int epos)
 		else if (c <= 255)
 		{
 			oldtext = catstr(leftstr(oldtext, epos), charstr(char(c)), oldtext + epos);
-			print(oldtext + epos++);
+			text->print(oldtext + epos++);
 			continue;
 		}
 
@@ -255,26 +259,26 @@ str PicoTerm::input_line(void (*run_statemachines)(), str oldtext, int epos)
 		case USB::KEY_BACKSPACE:
 			if (epos == 0) break;
 			epos--;
-			cursorLeft();
+			text->cursorLeft();
 			[[fallthrough]];
 		case USB::KEY_DELETE:
 			if (oldtext[epos] == 0) break;
 			oldtext = catstr(leftstr(oldtext, epos), oldtext + epos + 1);
-			print(oldtext + epos);
-			printChar(' ');
+			text->print(oldtext + epos);
+			text->printChar(' ');
 			break;
 		case USB::KEY_ARROW_LEFT: epos = max(epos - 1, 0); break;
 		case USB::KEY_ARROW_RIGHT:
-			if (oldtext[epos] != 0) printChar(oldtext[epos++]);
+			if (oldtext[epos] != 0) text->printChar(oldtext[epos++]);
 			break;
-		case USB::KEY_ARROW_UP: epos = max(epos - cols, 0); break;
-		case USB::KEY_ARROW_DOWN: epos = min(epos + cols, int(strlen(oldtext))); break;
+		case USB::KEY_ARROW_UP: epos = max(epos - text->cols, 0); break;
+		case USB::KEY_ARROW_DOWN: epos = min(epos + text->cols, int(strlen(oldtext))); break;
 		default: printf("{%s}", tostr(USB::HIDKey(c & 0xff)));
 		}
 	}
 }
 
-} // namespace kio::Graphics
+} // namespace kio::Devices
 
 /*
 

@@ -3,15 +3,14 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "Devices/SerialDevice.h"
 #include "Canvas.h"
 #include "TextVDU.h"
-#undef CHAR_WIDTH
-#include "Devices/SerialDevice.h"
 
 namespace kio::Graphics
 {
 
-class PicoTerm : public Devices::SerialDevice, public TextVDU
+class PicoTerm : public Devices::SerialDevice
 {
 public:
 	using super = Devices::SerialDevice;
@@ -41,12 +40,15 @@ public:
 		ESC					   = 27,
 	};
 
+	RCPtr<TextVDU> text;
+
 	// write() state machine:
 	uint8  repeat_cnt;
 	bool   auto_crlf = true;
 	uint16 sm_state	 = 0;
 
 	PicoTerm(CanvasPtr);
+	PicoTerm(RCPtr<TextVDU>) noexcept;
 
 	/* SerialDevice Interface:
 	*/
@@ -60,7 +62,7 @@ public:
 	int getc(void (*sm)(), int timeout_us = 0);
 	str input_line(void (*sm)(), str oldtext = nullptr, int epos = 0);
 
-	void reset();
+	void reset() noexcept;
 	using SerialDevice::printf;
 	char* identify();
 
