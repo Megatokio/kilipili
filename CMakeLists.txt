@@ -24,6 +24,8 @@ if(${UNIT_TEST})
 		Graphics/Pixmap_unit_test.cpp
 		Graphics/Canvas_unit_test.cpp
 		Graphics/BitBlit_unit_test.cpp
+		Graphics/PixmapMockup.h 
+		Graphics/PixmapMockup.cpp
 		common/tempmem.test.cpp
 		common/cstrings.test.cpp
 		common/relational_operators.test.cpp
