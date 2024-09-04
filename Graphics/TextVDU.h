@@ -4,6 +4,7 @@
 
 #pragma once
 #include "Canvas.h"
+#include "RCPtr.h"
 #include <functional>
 #undef CHAR_WIDTH
 
@@ -11,7 +12,7 @@ namespace kio::Graphics
 {
 
 
-class TextVDU
+class TextVDU : public RCObject
 {
 public:
 	static constexpr int CHAR_WIDTH	 = 8;

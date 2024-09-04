@@ -40,8 +40,8 @@ static constexpr const uint8 dblw[16] = {
 // =============================================================================
 
 
-TextVDU::TextVDU(CanvasPtr pixmap) noexcept :
-	pixmap(pixmap),
+TextVDU::TextVDU(CanvasPtr _pixmap) noexcept :
+	pixmap(std::move(_pixmap)),
 	colormode(pixmap->colormode),
 	attrheight(pixmap->attrheight),
 	colordepth(get_colordepth(colormode)),	// 0 .. 4  log2 of bits per color in attributes[]
@@ -872,7 +872,7 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 			case CURSOR_DOWN: c = USB::KEY_ARROW_DOWN; break;
 			case RETURN:
 				print(oldtext + epos);
-				cursorReturn();
+				newLine();
 				return oldtext;
 			default: printf("{0x%02x}", c); continue;
 			case ESC:
