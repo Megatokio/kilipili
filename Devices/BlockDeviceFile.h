@@ -15,15 +15,15 @@ namespace kio::Devices
 	It wraps a BlockDevice in order to support sequential reading and writing on that device.
 */
 
-class BlockDeviceFile : public File, public BlockDevice
+class BlockDeviceFile : public File
 {
-	BlockDevice& bdev;
+	RCPtr<BlockDevice> bdev;
 	const ADDR	 fsize;
 	ADDR		 fpos = 0;
 
 
 public:
-	BlockDeviceFile(BlockDevice&) noexcept;
+	BlockDeviceFile(RCPtr<BlockDevice>) noexcept;
 	virtual ~BlockDeviceFile() override				   = default;
 	BlockDeviceFile(const BlockDeviceFile&) noexcept   = default;
 	BlockDeviceFile(BlockDeviceFile&&) noexcept		   = default;
@@ -33,13 +33,6 @@ public:
 	// *** Interface: ***
 
 	virtual uint32 ioctl(IoCtl ctl, void* arg1 = nullptr, void* arg2 = nullptr) override;
-
-	// BlockDevice:
-
-	virtual void readSectors(LBA, char*, SIZE count) override;
-	virtual void writeSectors(LBA, const char*, SIZE count) override;
-	virtual void readPartialSector(LBA, char*, SIZE offs, SIZE count) override;
-	virtual void writePartialSector(LBA, const char*, SIZE offs, SIZE count) override;
 
 	// SerialDevice:
 

@@ -4,16 +4,14 @@
 
 #include "BlockDeviceFile.h"
 #include "cdefs.h"
-#include <memory>
 
 namespace kio::Devices
 {
 
-BlockDeviceFile::BlockDeviceFile(BlockDevice& bdev) noexcept :
-	File(bdev.flags),
-	BlockDevice(bdev),
-	bdev(bdev),
-	fsize(bdev.getSize())
+BlockDeviceFile::BlockDeviceFile(RCPtr<BlockDevice> bdev) noexcept :
+	File(bdev->flags),
+	bdev(std::move(bdev)),
+	fsize(bdev->getSize())
 {}
 
 
@@ -26,8 +24,8 @@ SIZE BlockDeviceFile::read(void* _data, SIZE count, bool partial)
 		count = SIZE(fsize - fpos);
 		if (!partial) throw END_OF_FILE;
 	}
-
-	int	 ss	   = ss_write;
+	
+	int	 ss	   = bdev->ss_write;
 	SIZE ssize = 1 << ss;
 	SIZE smask = ssize - 1;
 	SIZE rem   = count;
@@ -35,7 +33,7 @@ SIZE BlockDeviceFile::read(void* _data, SIZE count, bool partial)
 	if (fpos & smask)
 	{
 		SIZE cnt = min(rem, ssize - (SIZE(fpos) & smask));
-		readPartialSector(LBA(fpos >> ss), data, fpos & smask, cnt);
+		bdev->readPartialSector(LBA(fpos >> ss), data, fpos & smask, cnt);
 		fpos += cnt;
 		data += cnt;
 		rem -= cnt;
@@ -43,7 +41,7 @@ SIZE BlockDeviceFile::read(void* _data, SIZE count, bool partial)
 
 	if (rem > ssize)
 	{
-		bdev.readSectors(LBA(fpos >> ss), data, rem >> ss);
+		bdev->readSectors(LBA(fpos >> ss), data, rem >> ss);
 		fpos += rem - (rem & smask);
 		data += rem - (rem & smask);
 		rem &= smask;
@@ -51,7 +49,7 @@ SIZE BlockDeviceFile::read(void* _data, SIZE count, bool partial)
 
 	if (rem)
 	{
-		readPartialSector(LBA(fpos >> ss), data, 0, rem);
+		bdev->readPartialSector(LBA(fpos >> ss), data, 0, rem);
 		fpos += rem;
 	}
 
@@ -68,7 +66,7 @@ SIZE BlockDeviceFile::write(const void* _data, SIZE count, bool partial)
 		if (!partial) throw END_OF_FILE;
 	}
 
-	int	 ss	   = ss_write;
+	int	 ss	   = bdev->ss_write;
 	SIZE ssize = 1 << ss;
 	SIZE smask = ssize - 1;
 	SIZE rem   = count;
@@ -76,7 +74,7 @@ SIZE BlockDeviceFile::write(const void* _data, SIZE count, bool partial)
 	if (fpos & smask)
 	{
 		SIZE cnt = min(rem, ssize - (SIZE(fpos) & smask));
-		writePartialSector(LBA(fpos >> ss), data, fpos & smask, cnt);
+		bdev->writePartialSector(LBA(fpos >> ss), data, fpos & smask, cnt);
 		fpos += cnt;
 		data += cnt;
 		rem -= cnt;
@@ -84,7 +82,7 @@ SIZE BlockDeviceFile::write(const void* _data, SIZE count, bool partial)
 
 	if (rem > ssize)
 	{
-		bdev.writeSectors(LBA(fpos >> ss), data, rem >> ss);
+		bdev->writeSectors(LBA(fpos >> ss), data, rem >> ss);
 		fpos += rem - (rem & smask);
 		data += rem - (rem & smask);
 		rem &= smask;
@@ -92,7 +90,7 @@ SIZE BlockDeviceFile::write(const void* _data, SIZE count, bool partial)
 
 	if (rem)
 	{
-		writePartialSector(LBA(fpos >> ss), data, 0, rem);
+		bdev->writePartialSector(LBA(fpos >> ss), data, 0, rem);
 		fpos += rem;
 	}
 
@@ -105,27 +103,7 @@ uint32 BlockDeviceFile::ioctl(IoCtl ctl, void* arg1, void* arg2)
 	(void)0; // currently none
 
 	// send the rest to the block device:
-	return bdev.ioctl(ctl, arg1, arg2);
-}
-
-void BlockDeviceFile::readSectors(LBA lba, char* data, SIZE count)
-{
-	bdev.readSectors(lba, data, count); //
-}
-
-void BlockDeviceFile::writeSectors(LBA lba, const char* data, SIZE count)
-{
-	bdev.writeSectors(lba, data, count); //
-}
-
-void BlockDeviceFile::readPartialSector(LBA lba, char* data, SIZE offs, SIZE count)
-{
-	bdev.readPartialSector(lba, data, offs, count);
-}
-
-void BlockDeviceFile::writePartialSector(LBA lba, const char* data, SIZE offs, SIZE count)
-{
-	bdev.writePartialSector(lba, data, offs, count);
+	return bdev->ioctl(ctl, arg1, arg2);
 }
 
 int BlockDeviceFile::getc(uint /*timeout_us*/)
@@ -153,7 +131,7 @@ SIZE BlockDeviceFile::putc(char c)
 
 void BlockDeviceFile::close(bool)
 {
-	bdev.sync(); //
+	bdev->sync(); //
 }
 
 } // namespace kio::Devices
