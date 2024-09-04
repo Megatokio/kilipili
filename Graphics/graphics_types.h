@@ -228,10 +228,10 @@ inline cstr tostr(kio::Graphics::ColorMode cm)
 	// clang-format off
 	static constexpr char id[kio::Graphics::num_colormodes][9] = {
 		"i1", "i2", "i4", "i8", "rgb",		
-		"aw1_i4",	"aw1_i8",  "aw1_rgb", 
-		"aw2_i4",	"aw2_i8",  "aw2_rgb", 		
-		"aw4_i4",	"aw4_i8",  "aw4_rgb", 
-		"aw8_i4",	"aw8_i8",  "aw8_rgb", 
+		"a1w1_i4",	"a1w1_i8",  "a1w1_rgb", 
+		"a1w2_i4",	"a1w2_i8",  "a1w2_rgb", 		
+		"a1w4_i4",	"a1w4_i8",  "a1w4_rgb", 
+		"a1w8_i4",	"a1w8_i8",  "a1w8_rgb", 
 		"a2w1_i4",	"a2w1_i8",  "a2w1_rgb", 
 		"a2w2_i4",	"a2w2_i8",  "a2w2_rgb", 		
 		"a2w4_i4",	"a2w4_i8",  "a2w4_rgb", 
