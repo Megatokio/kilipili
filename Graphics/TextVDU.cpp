@@ -361,51 +361,52 @@ void TextVDU::clearRect(int row, int col, int rows, int cols) noexcept
 	}
 }
 
+void TextVDU::scrollRect(int row, int col, int rows, int cols, int dy, int dx) noexcept
+{
+	if unlikely (row < 0) { rows += row, row = 0; }
+	if unlikely (row + rows > this->rows) rows = this->rows - row;
+	if unlikely (col < 0) { cols += col, col = 0; }
+	if unlikely (col + cols > this->cols) cols = this->cols - col;
+
+	int h = rows - abs(dy);
+	int w = cols - abs(dx);
+
+	if (w <= 0 || h <= 0) return clearRect(row, col, rows, cols);
+
+	coord qx = dx >= 0 ? 0 : -dx;
+	coord zx = dx >= 0 ? +dx : 0;
+	coord qy = dy >= 0 ? 0 : -dy;
+	coord zy = dy >= 0 ? +dy : 0;
+
+	copyRect(row + zy, col + zx, row + qy, col + qx, h, w);
+
+	if (dx > 0) clearRect(row, col, rows, +dx);
+	if (dx < 0) clearRect(row, col + w, rows, -dx);
+	if (dy > 0) clearRect(row, col, +dy, cols);
+	if (dy < 0) clearRect(row + h, col, -dy, cols);
+}
+
 void TextVDU::scrollRectLeft(int row, int col, int rows, int cols, int dist) noexcept
 {
-	// copy rect and clear new columns
-	// does nothing if dist < 0
-
-	if (dist <= 0) return;
-	if (dist < cols) copyRect(row, col + dist, row, col, rows, cols - dist);
-	else dist = cols;
-	clearRect(row, col + cols - dist, rows, dist);
+	if (dist > 0) scrollRect(row, col, rows, cols, 0, -dist);
 }
 
 void TextVDU::scrollRectRight(int row, int col, int rows, int cols, int dist) noexcept
 {
-	// copy rect and clear new columns
-	// does nothing if dist < 0
-
-	if (dist <= 0) return;
-	if (dist < cols) copyRect(row, col, row, col + dist, rows, cols - dist);
-	else dist = cols;
-	clearRect(row, col, rows, dist);
+	if (dist > 0) scrollRect(row, col, rows, cols, 0, +dist);
 }
 
 void TextVDU::scrollRectUp(int row, int col, int rows, int cols, int dist) noexcept
 {
-	// copy rect and clear new rows
-	// does nothing if dist < 0
-
-	if (dist <= 0) return;
-	if (dist < rows) copyRect(row + dist, col, row, col, rows - dist, cols);
-	else dist = rows;
-	clearRect(row + rows - dist, col, dist, cols);
+	if (dist > 0) scrollRect(row, col, rows, cols, -dist, 0);
 }
 
 void TextVDU::scrollRectDown(int row, int col, int rows, int cols, int dist) noexcept
 {
-	// copy rect and clear new rows
-	// does nothing if dist < 0
-
-	if (dist <= 0) return;
-	if (dist < rows) copyRect(row, col, row + dist, col, rows - dist, cols);
-	else dist = rows;
-	clearRect(row, col, dist, cols);
+	if (dist > 0) scrollRect(row, col, rows, cols, +dist, 0);
 }
 
-void TextVDU::insertRows(int n) noexcept { scrollRectDown(row, 0, rows - row - n, cols, n); }
+void TextVDU::insertRows(int n) noexcept { scrollRectDown(row, 0, rows - row, cols, n); }
 
 void TextVDU::deleteRows(int n) noexcept { scrollRectUp(row, 0, rows - row, cols, n); }
 
@@ -421,7 +422,7 @@ void TextVDU::clearToStartOfLine(bool incl_cpos) noexcept
 {
 	// allow col80
 
-	validateCursorPosition(!incl_cpos);
+	if (col >= cols) validate_hpos(!incl_cpos);
 	clearRect(row, 0, 1, col + incl_cpos);
 }
 
@@ -451,62 +452,36 @@ void TextVDU::clearToEndOfScreen() noexcept
 	clearRect(row + 1, 0, rows - (row + 1), cols);
 }
 
-void TextVDU::copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols) noexcept
+void TextVDU::copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept
 {
 	hideCursor();
 
 	if (rows > 0 && cols > 0)
 	{
 		pixmap->copyRect(
-			src_col * CHAR_WIDTH, src_row * CHAR_HEIGHT, dest_col * CHAR_WIDTH, dest_row * CHAR_HEIGHT,
+			dest_col * CHAR_WIDTH, dest_row * CHAR_HEIGHT, src_col * CHAR_WIDTH, src_row * CHAR_HEIGHT,
 			cols * CHAR_WIDTH, rows * CHAR_HEIGHT);
 	}
 }
 
-void TextVDU::scrollScreen(int dx /*chars*/, int dy /*chars*/) noexcept
+void TextVDU::scrollScreen(int dy /*chars*/, int dx /*chars*/) noexcept
 {
-	hideCursor();
+	int w = (cols - abs(dx));
+	int h = (rows - abs(dy));
 
-	int w = (cols - abs(dx)) * CHAR_WIDTH;
-	int h = (rows - abs(dy)) * CHAR_HEIGHT;
-
-	if (w <= 0 || h <= 0) return pixmap->clear(bgcolor);
-
-	dx *= CHAR_WIDTH;
-	dy *= CHAR_HEIGHT;
+	if (w <= 0 || h <= 0) return clearRect(0, 0, rows, cols);
 
 	coord qx = dx >= 0 ? 0 : -dx;
 	coord zx = dx >= 0 ? +dx : 0;
 	coord qy = dy >= 0 ? 0 : -dy;
 	coord zy = dy >= 0 ? +dy : 0;
 
-	pixmap->copyRect(zx, zy, qx, qy, w, h);
+	copyRect(zy, zx, qy, qx, h, w);
 
-	if (dx > 0) pixmap->fillRect(0, 0, +dx, rows * CHAR_HEIGHT, bgcolor, bg_ink);
-	if (dx < 0) pixmap->fillRect(w, 0, -dx, rows * CHAR_HEIGHT, bgcolor, bg_ink);
-
-	if (dy > 0) pixmap->fillRect(0, 0, cols * CHAR_WIDTH, +dy, bgcolor, bg_ink);
-	if (dy < 0) pixmap->fillRect(0, h, cols * CHAR_WIDTH, -dy, bgcolor, bg_ink);
-}
-
-void TextVDU::scrollScreenUp(int rows /*char*/) noexcept
-{
-	if (rows > 0) scrollScreen(0, -rows);
-}
-
-void TextVDU::scrollScreenDown(int rows /*char*/) noexcept
-{
-	if (rows > 0) scrollScreen(0, +rows);
-}
-
-void TextVDU::scrollScreenLeft(int cols) noexcept
-{
-	if (cols > 0) scrollScreen(-cols, 0);
-}
-
-void TextVDU::scrollScreenRight(int cols) noexcept
-{
-	if (cols > 0) scrollScreen(+cols, 0);
+	if (dx > 0) clearRect(0, 0, rows, +dx);
+	if (dx < 0) clearRect(0, w, rows, -dx);
+	if (dy > 0) clearRect(0, 0, +dy, cols);
+	if (dy < 0) clearRect(h, 0, -dy, cols);
 }
 
 void TextVDU::setCharAttributes(uint add, uint remove) noexcept
@@ -596,7 +571,7 @@ void TextVDU::writeBmp(CharMatrix bmp, uint8 attr) noexcept
 		}
 
 		for (int i = 0; i < CHAR_HEIGHT; i++) { bmp2[i] = dblw[bmp[i] >> 4]; }
-		writeBmp(bmp2, attr & ~DOUBLE_WIDTH);
+		writeBmp(bmp2, attr &= ~DOUBLE_WIDTH);
 
 		for (int i = 0; i < CHAR_HEIGHT; i++) { bmp[i] = dblw[bmp[i] & 15]; }
 	}

@@ -108,14 +108,15 @@ public:
 	void clearToEndOfLine() noexcept;
 	void clearToEndOfScreen() noexcept;
 
-	void copyRect(int src_row, int src_col, int dest_row, int dest_col, int rows, int cols) noexcept;
+	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept;
 
-	void scrollScreen(int dx, int dy) noexcept;
+	void scrollScreen(int dy, int dx) noexcept;
 	void scrollScreenUp(int rows = 1) noexcept;
 	void scrollScreenDown(int rows = 1) noexcept;
 	void scrollScreenLeft(int cols = 1) noexcept;
 	void scrollScreenRight(int cols = 1) noexcept;
 
+	void scrollRect(int row, int col, int rows, int cols, int dy, int dx) noexcept;
 	void scrollRectLeft(int row, int col, int rows, int cols, int dist = 1) noexcept;
 	void scrollRectRight(int row, int col, int rows, int cols, int dist = 1) noexcept;
 	void scrollRectUp(int row, int col, int rows, int cols, int dist = 1) noexcept;
@@ -133,6 +134,31 @@ private:
 	void validate_hpos(bool col80ok) noexcept;
 	void validate_vpos() noexcept;
 };
+
+
+//
+// ####################### Implementations #############################
+//
+
+inline void TextVDU::scrollScreenUp(int rows) noexcept
+{
+	if (rows > 0) scrollScreen(-rows, 0);
+}
+
+inline void TextVDU::scrollScreenDown(int rows) noexcept
+{
+	if (rows > 0) scrollScreen(+rows, 0);
+}
+
+inline void TextVDU::scrollScreenLeft(int cols) noexcept
+{
+	if (cols > 0) scrollScreen(0, -cols);
+}
+
+inline void TextVDU::scrollScreenRight(int cols) noexcept
+{
+	if (cols > 0) scrollScreen(0, +cols);
+}
 
 
 } // namespace kio::Graphics
