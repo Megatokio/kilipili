@@ -61,6 +61,7 @@ public:
 
 	// current print position:
 	int		   row, col;
+	int		   scroll_count;
 	uint8	   dx, dy; // 1 or 2, if double width & double height
 	Attributes attributes;
 
@@ -77,7 +78,7 @@ public:
 	void moveToCol(int col, AutoWrap = nowrap) noexcept;
 	void moveToRow(int row, AutoWrap = nowrap) noexcept;
 	void setCharAttributes(uint add, uint remove = 0xff) noexcept;
-	void addCharAttributes(uint a = 0xff) noexcept { setCharAttributes(a, 0); }
+	void addCharAttributes(uint a) noexcept { setCharAttributes(a, 0); }
 	void removeCharAttributes(uint a = 0xff) noexcept { setCharAttributes(0, a); }
 	void printCharMatrix(CharMatrix, int count = 1) noexcept;
 	void printChar(char c, int count = 1) noexcept;			// no ctl

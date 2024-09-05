@@ -68,7 +68,8 @@ void TextVDU::reset() noexcept
 	bg_ink	= 0;
 	fg_ink	= 1;
 
-	row = col = 0;
+	row = col	 = 0;
+	scroll_count = 0;
 	dx = dy	   = 1;
 	attributes = NORMAL;
 }
@@ -77,7 +78,8 @@ void TextVDU::cls() noexcept
 {
 	// CLS, HOME CURSOR, RESET ATTR
 
-	row = col = 0;
+	row = col	 = 0;
+	scroll_count = 0;
 	dx = dy		  = 1;
 	attributes	  = NORMAL;
 	cursorVisible = false;
@@ -152,11 +154,13 @@ void TextVDU::validate_vpos() noexcept
 	{
 		if (row < 0)
 		{
+			scroll_count += row;
 			scrollScreenDown(-row);
 			row = 0;
 		}
 		else
 		{
+			scroll_count += row - (rows - 1);
 			scrollScreenUp(row - (rows - 1));
 			row = rows - 1;
 		}
