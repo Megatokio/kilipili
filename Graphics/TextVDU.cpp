@@ -248,64 +248,11 @@ void TextVDU::cursorDown(int count, AutoWrap auto_wrap) noexcept
 	moveToRow(row + max(count * dx, 0), auto_wrap); //
 }
 
-// Test:
-static constexpr int tab(int cols, int col, int count)
-{
-	if (col >= cols)
-	{
-		col = 0;
-		//row++;
-	}
-	col		  = ((col >> 3) + count) << 3;
-	int xcols = (cols + 7) & ~7;
-	while (col > xcols)
-	{
-		//row++;
-		col -= xcols;
-	}
-	if (col > cols) col = cols;
-	return col;
-}
-
-static_assert(tab(80, 0, 1) == 8);
-static_assert(tab(80, 7, 1) == 8);
-static_assert(tab(80, 79, 1) == 80);
-static_assert(tab(80, 80, 1) == 8);
-
-static_assert(tab(80, 0, 2) == 16);
-static_assert(tab(80, 7, 2) == 16);
-static_assert(tab(80, 79, 2) == 8);
-static_assert(tab(80, 80, 2) == 16);
-
-static_assert(tab(80, 0, 10) == 80);
-static_assert(tab(80, 7, 10) == 80);
-static_assert(tab(80, 79, 10) == 72);
-static_assert(tab(80, 80, 10) == 80);
-
-static_assert(tab(82, 0, 1) == 8);
-static_assert(tab(82, 7, 1) == 8);
-static_assert(tab(82, 79, 1) == 80);
-static_assert(tab(82, 80, 1) == 82);
-static_assert(tab(82, 81, 1) == 82);
-static_assert(tab(82, 82, 1) == 8);
-
-static_assert(tab(82, 0, 2) == 16);
-static_assert(tab(82, 7, 2) == 16);
-static_assert(tab(82, 79, 2) == 82);
-static_assert(tab(82, 80, 2) == 8);
-static_assert(tab(82, 81, 2) == 8);
-static_assert(tab(82, 82, 2) == 16);
-
-static_assert(tab(82, 0, 10) == 80);
-static_assert(tab(82, 7, 10) == 80);
-static_assert(tab(82, 79, 10) == 64);
-static_assert(tab(82, 80, 10) == 72);
-static_assert(tab(82, 81, 10) == 72);
-static_assert(tab(82, 82, 10) == 80);
-
 void TextVDU::cursorTab(int count) noexcept
 {
-	// scrolls, allow col80
+	// scrolls, allows col = cols
+	// note: if cols%8 != 0 then there is a last tab stop at cols
+	// TODO: auto_wrap flag
 
 	hideCursor();
 	if (count > 0)
