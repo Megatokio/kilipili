@@ -413,14 +413,6 @@ void TextVDU::insertColumns(int n) noexcept { scrollRectRight(0, col, rows, cols
 
 void TextVDU::deleteColumns(int n) noexcept { scrollRectLeft(0, col, rows, cols - col, n); }
 
-void TextVDU::insertRowsAbove(int n) noexcept { scrollRectUp(0, 0, row - n, cols, n); }
-
-void TextVDU::deleteRowsAbove(int n) noexcept { scrollRectDown(0, 0, row, cols, n); }
-
-void TextVDU::insertColumnsBefore(int n) noexcept { scrollRectLeft(0, 0, rows, col, n); }
-
-void TextVDU::deleteColumnsBefore(int n) noexcept { scrollRectRight(0, 0, rows, col, n); }
-
 void TextVDU::insertChars(int n) noexcept { scrollRectRight(row, col, 1, cols - col, n); }
 
 void TextVDU::deleteChars(int n) noexcept { scrollRectLeft(row, col, 1, cols - col, n); }

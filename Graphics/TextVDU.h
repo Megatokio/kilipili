@@ -127,10 +127,6 @@ public:
 	void deleteRows(int count = 1) noexcept;
 	void insertColumns(int count = 1) noexcept;
 	void deleteColumns(int count = 1) noexcept;
-	void insertRowsAbove(int count = 1) noexcept;	  // above cursor
-	void deleteRowsAbove(int count = 1) noexcept;	  // above cursor
-	void insertColumnsBefore(int count = 1) noexcept; // before (left of) cursor
-	void deleteColumnsBefore(int count = 1) noexcept; // before (left of) cursor
 
 private:
 	void show_cursor(bool f) noexcept;
