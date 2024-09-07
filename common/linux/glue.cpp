@@ -16,9 +16,26 @@ uint32 time_us_32()
 	return uint32(tv.tv_sec * 1000000 + tv.tv_nsec / 1000);
 }
 
+uint64 time_us_64()
+{
+	struct timespec tv;
+	clock_gettime(_POSIX_MONOTONIC_CLOCK, &tv);
+	return uint64(tv.tv_sec * 1000000 + tv.tv_nsec / 1000);
+}
+
+uint64 make_timeout_time_us(uint32 timeout_us)
+{
+	return time_us_64() + timeout_us; //
+}
+
 #endif
 
-int getchar_timeout_us(uint32 timeout_us)
+bool best_effort_wfe_or_timeout(uint64)
 {
-	return -1;
+	return true; // timeout
+}
+
+int getchar_timeout_us(uint32)
+{
+	return -1; // no char
 }

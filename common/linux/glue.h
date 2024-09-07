@@ -8,10 +8,14 @@
 /* get 32 bit microsecond timestamp. overflows every ~71 minutes
 */
 extern uint32 time_us_32();
+extern uint64 time_us_64();
 
 /* get char from stdin  
 */
 extern int getchar_timeout_us(uint32 timeout_us);
+
+extern uint64 make_timeout_time_us(uint32 timeout_us);
+extern bool	  best_effort_wfe_or_timeout(uint64);
 
 
 // #######################################################################
@@ -20,5 +24,6 @@ namespace kio
 {
 
 inline void sleep_us(int usec) noexcept { (void)usec; }
+inline void wfe() noexcept {}
 
 } // namespace kio
