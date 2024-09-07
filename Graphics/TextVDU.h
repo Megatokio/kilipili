@@ -5,6 +5,7 @@
 #pragma once
 #include "Canvas.h"
 #include "RCPtr.h"
+#include <cstdarg>
 #include <functional>
 #undef CHAR_WIDTH
 
@@ -81,9 +82,10 @@ public:
 	void addCharAttributes(uint a) noexcept { setCharAttributes(a, 0); }
 	void removeCharAttributes(uint a = 0xff) noexcept { setCharAttributes(0, a); }
 	void printCharMatrix(CharMatrix, int count = 1) noexcept;
-	void printChar(char c, int count = 1) noexcept;			// no ctl
-	void print(cstr text) noexcept;							// supports \n and \t
-	void printf(cstr fmt, ...) noexcept __printflike(2, 3); // supports \n and \t
+	void printChar(char c, int count = 1) noexcept;				// no ctl
+	void print(cstr text) noexcept;								// supports \n and \t
+	void printf(cstr fmt, ...) noexcept __printflike(2, 3);		// supports \n and \t
+	void printf(cstr fmt, va_list) noexcept __printflike(2, 0); // supports \n and \t
 	str	 inputLine(std::function<int()> getchar, str oldtext = nullptr, int epos = 0);
 	void cursorLeft(int count = 1, AutoWrap = wrap) noexcept;
 	void cursorRight(int count = 1, AutoWrap = wrap) noexcept;

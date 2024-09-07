@@ -718,15 +718,17 @@ void TextVDU::print(cstr s) noexcept
 	}
 }
 
-void TextVDU::printf(cstr fmt, ...) noexcept
+void TextVDU::printf(cstr fmt, va_list va) noexcept
 {
-	constexpr uint bsz = 256 + 4;
+	// note: caller must call va_start() before and va_end() afterwards.
+
+	constexpr uint bsz = 200;
 	char		   bu[bsz];
 
-	va_list va;
-	va_start(va, fmt);
-	uint size = uint(vsnprintf(bu, sizeof(bu), fmt, va));
-	va_end(va);
+	va_list va2;
+	va_copy(va2, va);
+	uint size = uint(vsnprintf(bu, sizeof(bu), fmt, va2));
+	va_end(va2);
 
 	if (size < bsz) return print(bu);			   // success
 	if (int(size) < 0) return print("{format?!}"); // format error
@@ -736,10 +738,7 @@ void TextVDU::printf(cstr fmt, ...) noexcept
 	std::unique_ptr<char[]> bp {new (std::nothrow) char[size + 1]};
 	if (bp)
 	{
-		va_start(va, fmt);
 		vsnprintf(bp.get(), size + 1, fmt, va);
-		va_end(va);
-
 		print(bp.get());
 	}
 	else // out of memory! print what we have:
@@ -747,6 +746,14 @@ void TextVDU::printf(cstr fmt, ...) noexcept
 		bu[bsz - 1] = 0;
 		print(bu);
 	}
+}
+
+void TextVDU::printf(cstr fmt, ...) noexcept
+{
+	va_list va;
+	va_start(va, fmt);
+	printf(fmt, va);
+	va_end(va);
 }
 
 str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
