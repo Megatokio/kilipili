@@ -27,6 +27,8 @@ if(${UNIT_TEST})
 		Graphics/TextVDU_unit_test.cpp
 		Graphics/Mock/Pixmap.h 
 		Graphics/Mock/Pixmap.cpp
+		Graphics/Mock/TextVDU.h 
+		Graphics/Mock/TextVDU.cpp
 		common/tempmem.test.cpp
 		common/cstrings.test.cpp
 		common/relational_operators.test.cpp
