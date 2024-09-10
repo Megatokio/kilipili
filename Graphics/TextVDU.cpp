@@ -367,15 +367,14 @@ void TextVDU::deleteChars(int n) noexcept { scrollRectLeft(row, col, 1, cols - c
 
 void TextVDU::clearToStartOfLine(bool incl_cpos) noexcept
 {
-	// allow col80
+	// allow col80, even if incl_cpos = true
 
-	if (col >= cols) validate_hpos(!incl_cpos);
 	clearRect(row, 0, 1, col + incl_cpos);
 }
 
 void TextVDU::clearToStartOfScreen(bool incl_cpos) noexcept
 {
-	// allow col80
+	// allow col80, even if incl_cpos = true
 
 	clearToStartOfLine(incl_cpos);
 	clearRect(0, 0, row, cols);

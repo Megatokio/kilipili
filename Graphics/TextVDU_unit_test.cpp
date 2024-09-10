@@ -965,17 +965,19 @@ TEST_CASE("TextVDU: clearToStartOfLine()")
 	tv.clearToStartOfLine(true);
 	ref << "fillRect(0,48,80,12,1234,0)";
 	CHECK_EQ(pm->log, ref);
+	CHECK_EQ(tv.col, 9);
+	CHECK_EQ(tv.row, 4);
 
 	tv.col = 10;
 	tv.clearToStartOfLine(false); // stays in line
 	ref << "fillRect(0,48,80,12,1234,0)";
 	CHECK_EQ(pm->log, ref);
-	tv.clearToStartOfLine(true);		  // scrolls screen
-	ref << "copyRect(0,0,0,12,80,48)";	  // scroll
-	ref << "fillRect(0,48,80,12,1234,0)"; // scroll
-	ref << "fillRect(0,48,8,12,1234,0)";  // clear to start of line incl. cursor position
+	tv.clearToStartOfLine(true);		  // stays in line
+	ref << "fillRect(0,48,88,12,1234,0)"; // clear to start of line incl. cursor position
 	CHECK_EQ(pm->log, ref);
-	CHECK_EQ(tv.scroll_count, 1);
+	CHECK_EQ(tv.col, 10);
+	CHECK_EQ(tv.row, 4);
+	CHECK_EQ(tv.scroll_count, 0);
 }
 
 TEST_CASE("TextVDU: clearToStartOfScreen()")
@@ -1007,16 +1009,16 @@ TEST_CASE("TextVDU: clearToStartOfScreen()")
 	ref << "fillRect(0,48,80,12,1234,0)";
 	ref << "fillRect(0,0,80,48,1234,0)";
 	CHECK_EQ(pm->log, ref);
+	CHECK_EQ(tv.col, 10);
+	CHECK_EQ(tv.row, 4);
 
-	tv.clearToStartOfScreen(true);		  // scrolls screen before
-	ref << "copyRect(0,0,0,12,80,48)";	  // scroll
-	ref << "fillRect(0,48,80,12,1234,0)"; // scroll
-	ref << "fillRect(0,48,8,12,1234,0)";  // clear to start of line incl. cursor position
+	tv.clearToStartOfScreen(true);		  // stay in line
+	ref << "fillRect(0,48,88,12,1234,0)"; // clear to start of line incl. cursor position
 	ref << "fillRect(0,0,80,48,1234,0)";  // clear to start of screen
 	CHECK_EQ(pm->log, ref);
-	CHECK_EQ(tv.col, 0);
+	CHECK_EQ(tv.col, 10);
 	CHECK_EQ(tv.row, 4);
-	CHECK_EQ(tv.scroll_count, 1);
+	CHECK_EQ(tv.scroll_count, 0);
 }
 
 TEST_CASE("TextVDU: clearToEndOfLine()")
