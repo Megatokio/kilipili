@@ -251,15 +251,16 @@ constexpr Color bright_white   = Color::fromRGB8(0xFF, 0xFF, 0xFF);
 // --> https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit
 namespace vga
 {
-constexpr Color black		   = Color::fromRGB8(0x00, 0x00, 0x00);
-constexpr Color dark_grey	   = Color::fromRGB8(0x55, 0x55, 0x55);
-constexpr Color blue		   = Color::fromRGB8(0x00, 0x00, 0xAA);
-constexpr Color red			   = Color::fromRGB8(0xAA, 0x00, 0x00);
-constexpr Color magenta		   = Color::fromRGB8(0xAA, 0x00, 0xAA);
-constexpr Color green		   = Color::fromRGB8(0x00, 0xAA, 0x00);
-constexpr Color cyan		   = Color::fromRGB8(0x00, 0xAA, 0xAA);
-constexpr Color yellow		   = Color::fromRGB8(0xAA, 0xAA, 0x00);
-constexpr Color light_grey	   = Color::fromRGB8(0xAA, 0xAA, 0xAA);
+constexpr Color black	= Color::fromRGB8(0x00, 0x00, 0x00);
+constexpr Color blue	= Color::fromRGB8(0x00, 0x00, 0xAA);
+constexpr Color red		= Color::fromRGB8(0xAA, 0x00, 0x00);
+constexpr Color magenta = Color::fromRGB8(0xAA, 0x00, 0xAA);
+constexpr Color green	= Color::fromRGB8(0x00, 0xAA, 0x00);
+constexpr Color cyan	= Color::fromRGB8(0x00, 0xAA, 0xAA);
+constexpr Color yellow	= Color::fromRGB8(0xAA, 0xAA, 0x00);
+constexpr Color white	= Color::fromRGB8(0xAA, 0xAA, 0xAA);
+
+constexpr Color bright_black   = Color::fromRGB8(0x55, 0x55, 0x55);
 constexpr Color bright_blue	   = Color::fromRGB8(0x55, 0x55, 0xFF);
 constexpr Color bright_red	   = Color::fromRGB8(0xFF, 0x55, 0x55);
 constexpr Color bright_magenta = Color::fromRGB8(0xFF, 0x55, 0xFF);
@@ -267,6 +268,9 @@ constexpr Color bright_green   = Color::fromRGB8(0x55, 0xFF, 0x55);
 constexpr Color bright_cyan	   = Color::fromRGB8(0x55, 0xFF, 0xFF);
 constexpr Color bright_yellow  = Color::fromRGB8(0xFF, 0xFF, 0x55);
 constexpr Color bright_white   = Color::fromRGB8(0xFF, 0xFF, 0xFF);
+
+constexpr Color light_grey = white;
+constexpr Color dark_grey  = bright_black;
 } // namespace vga
 
 } // namespace kio::Video
