@@ -7,14 +7,14 @@
 #include "Video/video_types.h"
 #include "common/Array.h"
 
-namespace kio::Graphics
+namespace kio::Graphics::Mock
 {
 
-class PixmapMockup : public Canvas
+class Pixmap : public Canvas
 {
 public:
-	PixmapMockup(coord w, coord h, ColorMode CM = colormode_a1w8_rgb, AttrHeight AH = attrheight_12px);
-	~PixmapMockup() override = default;
+	Pixmap(coord w, coord h, ColorMode CM = colormode_a1w8_rgb, AttrHeight AH = attrheight_12px);
+	~Pixmap() override = default;
 
 	Canvas* cloneWindow(coord x, coord y, coord w, coord h) throws override;
 	void	set_pixel(coord x, coord y, uint color, uint ink = 0) noexcept override;
@@ -35,4 +35,4 @@ public:
 	mutable Array<cstr> log; // tempstr
 };
 
-} // namespace kio::Graphics
+} // namespace kio::Graphics::Mock

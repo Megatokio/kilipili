@@ -2,7 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "PixmapMockup.h"
+#include "Mock/Pixmap.h"
 #include "Pixmap_wAttr.h"
 #include "TextVDU.h"
 #include "Video/Color.h"
@@ -35,12 +35,18 @@ doctest::String toString(ColorMode cm)
 } // namespace kio::Graphics
 
 
+namespace kio::Test
+{
+
+using Pixmap	 = kio::Graphics::Mock::Pixmap;
+using RealPixmap = kio::Graphics::Pixmap<colormode_a1w8_rgb>;
+
 TEST_CASE("TextVDU: constructor")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60, colormode_a1w8_i16);
-	TextVDU				tv(pm);
-	Array<cstr>			ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)";
+	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8_i16);
+	TextVDU		  tv(pm);
+	Array<cstr>	  ref;
+	ref << "Pixmap(80,60,a1w8_rgb,12)";
 	CHECK_EQ(pm->log, ref);
 
 	CHECK_EQ(Color(tv.default_bgcolor).raw, 0xffffu); // white
@@ -69,8 +75,8 @@ TEST_CASE("TextVDU: constructor")
 
 TEST_CASE("TextVDU: showCursor(), hideCursor()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60, colormode_a1w8_i16);
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8_i16);
+	TextVDU		  tv(pm);
 	{
 		tv.cls();
 		CHECK_EQ(tv.cursorVisible, false);
@@ -80,10 +86,10 @@ TEST_CASE("TextVDU: showCursor(), hideCursor()")
 		CHECK_EQ(tv.cursorVisible, false);
 
 		Array<cstr> ref;
-		ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
-		ref << "clear(65535)";					  // cls
-		ref << "xorRect(0,0,8,12,65535)";		  // show cursor
-		ref << "xorRect(0,0,8,12,65535)";		  // hide cursor
+		ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+		ref << "clear(65535)";				// cls
+		ref << "xorRect(0,0,8,12,65535)";	// show cursor
+		ref << "xorRect(0,0,8,12,65535)";	// hide cursor
 		CHECK_EQ(pm->log, ref);
 	}
 	{
@@ -101,8 +107,8 @@ TEST_CASE("TextVDU: showCursor(), hideCursor()")
 
 TEST_CASE("TextVDU: reset()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60, colormode_a1w8_i16);
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8_i16);
+	TextVDU		  tv(pm);
 
 	tv.setCharAttributes(tv.BOLD | tv.INVERTED | tv.DOUBLE_WIDTH | tv.DOUBLE_HEIGHT);
 	tv.bgcolor = 1234;
@@ -111,7 +117,7 @@ TEST_CASE("TextVDU: reset()")
 	tv.reset();
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)";
+	ref << "Pixmap(80,60,a1w8_rgb,12)";
 	CHECK_EQ(pm->log, ref);
 
 	CHECK_EQ(tv.bgcolor, tv.default_bgcolor);
@@ -126,8 +132,8 @@ TEST_CASE("TextVDU: reset()")
 
 TEST_CASE("TextVDU: cls()")
 {
-	RCPtr<Pixmap<colormode_a1w8_i16>> pm = new Pixmap<colormode_a1w8_i16>(80, 60, attrheight_12px);
-	TextVDU							  tv(pm);
+	RCPtr<RealPixmap> pm = new RealPixmap(80, 60, attrheight_12px);
+	TextVDU			  tv(pm);
 	tv.bgcolor = 1234;
 	tv.fgcolor = 2345;
 	tv.printChar('E', 80 / 8 * 60 / 12);
@@ -146,8 +152,8 @@ TEST_CASE("TextVDU: cls()")
 
 TEST_CASE("TextVDU: identify()")
 {
-	RCPtr<Pixmap<colormode_a1w8_rgb>> pm1 = new Pixmap<colormode_a1w8_rgb>(800, 60, attrheight_12px);
-	RCPtr<Pixmap<colormode_a1w8_rgb>> pm2 = new Pixmap<colormode_a1w8_rgb>(800, 60, attrheight_12px);
+	RCPtr<RealPixmap> pm1 = new RealPixmap(800, 60, attrheight_12px);
+	RCPtr<RealPixmap> pm2 = new RealPixmap(800, 60, attrheight_12px);
 
 	TextVDU tv1(pm1);
 	tv1.cls();
@@ -175,8 +181,8 @@ TEST_CASE("TextVDU: identify()")
 
 TEST_CASE("TextVDU: moveTo()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	CHECK_EQ(tv.row, 0);
 	CHECK_EQ(tv.col, 0);
@@ -216,7 +222,7 @@ TEST_CASE("TextVDU: moveTo()")
 	CHECK_EQ(tv.col, 9);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.moveTo(10, 0, tv.wrap);
@@ -242,8 +248,8 @@ TEST_CASE("TextVDU: moveTo()")
 
 TEST_CASE("TextVDU: moveToCol()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	CHECK_EQ(tv.col, 0);
 	tv.moveToCol(5);
@@ -256,7 +262,7 @@ TEST_CASE("TextVDU: moveToCol()")
 	CHECK_EQ(tv.row, 0);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.moveToCol(10, tv.wrap);
@@ -300,8 +306,8 @@ TEST_CASE("TextVDU: moveToCol()")
 
 TEST_CASE("TextVDU: moveToRow()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	tv.moveTo(2, 2);
 	CHECK_EQ(tv.row, 2);
@@ -318,7 +324,7 @@ TEST_CASE("TextVDU: moveToRow()")
 	CHECK_EQ(tv.col, 2);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.moveToRow(8, tv.wrap); // scrolls 4 lines
@@ -338,8 +344,8 @@ TEST_CASE("TextVDU: moveToRow()")
 
 TEST_CASE("TextVDU: setCharAttributes()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	CHECK_EQ(tv.attributes, 0);
 	CHECK_EQ(tv.dx, 1);
@@ -361,7 +367,7 @@ TEST_CASE("TextVDU: setCharAttributes()")
 	CHECK_EQ(tv.dy, 1);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.moveTo(0, 9);
@@ -413,8 +419,8 @@ TEST_CASE("TextVDU: addCharAttributes()")
 {
 	// this calls setCharAttributes()
 
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	tv.setCharAttributes(tv.BOLD);
 	tv.addCharAttributes(tv.INVERTED);
@@ -425,8 +431,8 @@ TEST_CASE("TextVDU: removeCharAttributes()")
 {
 	// this calls setCharAttributes()
 
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	tv.setCharAttributes(tv.BOLD + tv.INVERTED);
 	tv.removeCharAttributes(tv.INVERTED);
@@ -439,8 +445,8 @@ TEST_CASE("TextVDU: removeCharAttributes()")
 
 TEST_CASE("TextVDU: limitCursorPosition()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	tv.col = 99;
 	tv.row = 99;
@@ -455,17 +461,17 @@ TEST_CASE("TextVDU: limitCursorPosition()")
 	CHECK_EQ(tv.row, 0);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 }
 
 TEST_CASE("TextVDU: validateCursorPosition()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 
 	tv.validateCursorPosition(false);
 	CHECK_EQ(tv.col, 0);
@@ -559,8 +565,8 @@ TEST_CASE("TextVDU: validateCursorPosition()")
 
 TEST_CASE("TextVDU: cursorLeft()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	CHECK_EQ(tv.col, 0);
 	CHECK_EQ(tv.row, 0);
@@ -592,8 +598,8 @@ TEST_CASE("TextVDU: cursorLeft()")
 
 TEST_CASE("TextVDU: cursorRight()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	CHECK_EQ(tv.col, 0);
 	CHECK_EQ(tv.row, 0);
@@ -642,8 +648,8 @@ TEST_CASE("TextVDU: cursorRight()")
 
 TEST_CASE("TextVDU: cursorUp()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	tv.col = 4;
 	tv.row = 4;
@@ -690,8 +696,8 @@ TEST_CASE("TextVDU: cursorUp()")
 
 TEST_CASE("TextVDU: cursorDown()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	tv.cursorDown();
 	CHECK_EQ(tv.col, 0);
@@ -740,8 +746,8 @@ TEST_CASE("TextVDU: cursorDown()")
 TEST_CASE("TextVDU: cursorTab()")
 {
 	{
-		RCPtr<PixmapMockup> pm = new PixmapMockup(80 * 8, 40 * 12); // 80*40
-		TextVDU				tv(pm);
+		RCPtr<Pixmap> pm = new Pixmap(80 * 8, 40 * 12); // 80*40
+		TextVDU		  tv(pm);
 
 		CHECK_EQ(tv.col, 0);
 		CHECK_EQ(tv.row, 0);
@@ -807,8 +813,8 @@ TEST_CASE("TextVDU: cursorTab()")
 		check(80, 10, 80, 1);
 	}
 	{
-		RCPtr<PixmapMockup> pm = new PixmapMockup(82 * 8, 40 * 12); // 82*40
-		TextVDU				tv(pm);
+		RCPtr<Pixmap> pm = new Pixmap(82 * 8, 40 * 12); // 82*40
+		TextVDU		  tv(pm);
 
 		auto check = [&](int oldcol, int count, int newcol, int dy) {
 			tv.col = oldcol;
@@ -841,8 +847,8 @@ TEST_CASE("TextVDU: cursorTab()")
 
 TEST_CASE("TextVDU: cursorReturn()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	CHECK_EQ(tv.col, 0);
 	CHECK_EQ(tv.row, 0);
@@ -866,8 +872,8 @@ TEST_CASE("TextVDU: cursorReturn()")
 
 TEST_CASE("TextVDU: newLine()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	CHECK_EQ(tv.col, 0);
 	CHECK_EQ(tv.row, 0);
@@ -899,11 +905,11 @@ TEST_CASE("TextVDU: newLine()")
 
 TEST_CASE("TextVDU: clearRect()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 1;
@@ -931,11 +937,11 @@ TEST_CASE("TextVDU: clearRect()")
 
 TEST_CASE("TextVDU: clearToStartOfLine()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 1;
@@ -982,11 +988,11 @@ TEST_CASE("TextVDU: clearToStartOfLine()")
 
 TEST_CASE("TextVDU: clearToStartOfScreen()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 0;
@@ -1023,11 +1029,11 @@ TEST_CASE("TextVDU: clearToStartOfScreen()")
 
 TEST_CASE("TextVDU: clearToEndOfLine()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 0;
@@ -1055,11 +1061,11 @@ TEST_CASE("TextVDU: clearToEndOfLine()")
 
 TEST_CASE("TextVDU: clearToEndOfScreen()") //
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 0;
@@ -1091,11 +1097,11 @@ TEST_CASE("TextVDU: clearToEndOfScreen()") //
 
 TEST_CASE("TextVDU: copyRect()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row = 1;
@@ -1122,11 +1128,11 @@ TEST_CASE("TextVDU: copyRect()")
 
 TEST_CASE("TextVDU: scrollScreen()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 1;
@@ -1188,11 +1194,11 @@ TEST_CASE("TextVDU: scrollScreen()")
 
 TEST_CASE("TextVDU: scrollScreenUp()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1208,11 +1214,11 @@ TEST_CASE("TextVDU: scrollScreenUp()")
 
 TEST_CASE("TextVDU: scrollScreenDown()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1228,11 +1234,11 @@ TEST_CASE("TextVDU: scrollScreenDown()")
 
 TEST_CASE("TextVDU: scrollScreenLeft()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1248,11 +1254,11 @@ TEST_CASE("TextVDU: scrollScreenLeft()")
 
 TEST_CASE("TextVDU: scrollScreenRight()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1268,11 +1274,11 @@ TEST_CASE("TextVDU: scrollScreenRight()")
 
 TEST_CASE("TextVDU: scrollRect()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 1;
@@ -1356,11 +1362,11 @@ TEST_CASE("TextVDU: scrollRect()")
 
 TEST_CASE("TextVDU: scrollRectLeft()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1376,11 +1382,11 @@ TEST_CASE("TextVDU: scrollRectLeft()")
 
 TEST_CASE("TextVDU: scrollRectRight()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1396,11 +1402,11 @@ TEST_CASE("TextVDU: scrollRectRight()")
 
 TEST_CASE("TextVDU: scrollRectUp()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1416,11 +1422,11 @@ TEST_CASE("TextVDU: scrollRectUp()")
 
 TEST_CASE("TextVDU: scrollRectDown()")
 {
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1438,11 +1444,11 @@ TEST_CASE("TextVDU: insertChars()")
 {
 	// implemented as scrollRectRight()
 
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1463,11 +1469,11 @@ TEST_CASE("TextVDU: deleteChars()")
 {
 	// implemented as scrollRectLeft()
 
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1488,11 +1494,11 @@ TEST_CASE("TextVDU: insertRows()")
 {
 	// implemented as scrollRectUp()
 
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 120); // 10*10
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 120); // 10*10
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,120,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,120,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1510,11 +1516,11 @@ TEST_CASE("TextVDU: deleteRows()")
 {
 	// implemented as scrollRectDown()
 
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 120); // 10*10
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 120); // 10*10
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,120,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,120,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1532,11 +1538,11 @@ TEST_CASE("TextVDU: insertColumns()")
 {
 	// implemented as scrollRectRight()
 
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1554,11 +1560,11 @@ TEST_CASE("TextVDU: deleteColumns()")
 {
 	// implemented as scrollRectLeft()
 
-	RCPtr<PixmapMockup> pm = new PixmapMockup(80, 60); // 10*5
-	TextVDU				tv(pm);
+	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
+	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "PixmapMockup(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1616,6 +1622,9 @@ TEST_CASE("TextVDU: applyAttributes()") //
 {
 	CHECK(1 == 1);
 }
+
+
+} // namespace kio::Test
 
 
 /*
