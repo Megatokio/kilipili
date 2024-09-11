@@ -18,10 +18,10 @@ struct HidKeyTable
 	const uchar* with_alt;
 	const uchar* with_shift_alt;
 
-	uchar get_key(uint key, bool shift, bool alt) const noexcept
+	char get_key(uint key, bool shift, bool alt) const noexcept
 	{
 		const uchar* table = (&solo)[(shift) + (2 * alt)];
-		return key < table_size ? table[key] : 0;
+		return key < table_size ? char(table[key]) : 0;
 	}
 };
 

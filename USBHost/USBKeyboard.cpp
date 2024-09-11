@@ -5,9 +5,8 @@
 #include "USBKeyboard.h"
 #include "common/Queue.h"
 #include "hid_handler.h"
-#include <class/hid/hid_host.h>
-#include <functional>
-#include <pico/stdlib.h>
+#include <cstring>
+#include <glue.h>
 
 #ifndef USB_KEY_DELAY1
   #define USB_KEY_DELAY1 600
@@ -17,12 +16,6 @@
 #endif
 #ifndef USB_DEFAULT_KEYTABLE
   #define USB_DEFAULT_KEYTABLE key_table_us
-#endif
-#ifndef USB_GETCHAR_MERGE_STDIN
-  #define USB_GETCHAR_MERGE_STDIN false
-#endif
-#ifndef STDIO_USE_UTF8
-  #define STDIO_USE_UTF8 false
 #endif
 
 
@@ -99,48 +92,6 @@ int getChar()
 	{
 		getchar_repeat_next = int(time_us_32()) + USB_KEY_DELAY * 1000;
 		return getchar_repeat_char;
-	}
-
-	if constexpr (USB_GETCHAR_MERGE_STDIN)
-	{
-		if constexpr (STDIO_USE_UTF8)
-		{
-			// ucs2
-			// silently drops broken chars and unexpected fups
-		a:
-			static char c1 = 0, c2 = 0;
-			int			c = getchar_timeout_us(0);
-
-			if unlikely (c >= 0x80) // non-ascii
-			{
-				if (c >= 0xC0) // starter for multi-byte code
-				{
-					c1 = char(c);
-					c2 = 0;
-					goto a;
-				}
-				else if (c1 < 0xE0) // fup: 2 byte code pending
-				{
-					c = ((c1 & 0x1F) << 6) + (c & 0x3F);
-				}
-				else if (c1 < 0xF0) // fup: 3 byte code pending
-				{
-					if (c2 == 0)
-					{
-						c2 = char(c);
-						goto a;
-					}
-					c = ((c1 & 0x0F) << 12) + ((c2 & 0x3F) << 6) + (c & 0x3F);
-				}
-				else c = '_'; // fup: 4 byte code: too large for UCS2
-			}
-			c1 = 0;
-			return c;
-		}
-		else // 1-byte characters, expect Latin-1
-		{
-			return getchar_timeout_us(0);
-		}
 	}
 
 	return -1;

@@ -45,7 +45,6 @@ else()
 	option(USB_ENABLE_HOST         "Enable USB host mode" ON)
 	option(USB_ENABLE_KEYBOARD     "Enable USB keyboard in USB host mode" ON)
 	option(USB_ENABLE_MOUSE		   "Enable USB mouse in USB host mode" ON)	
-	option(USB_GETCHAR_MERGE_STDIN "USB getChar: Merge with input from stdin" ON)
 
 	set(USB_KEY_DELAY1		 "600"  CACHE STRING "USB keyboard: auto repeat delay for first repeat [msec]")
 	set(USB_KEY_DELAY		 "60"   CACHE STRING "USB keyboard: auto repeat delay for following repeats [msec]")
@@ -62,7 +61,6 @@ else()
 		USB_KEY_DELAY1=${USB_KEY_DELAY1}
 		USB_KEY_DELAY=${USB_KEY_DELAY}
 		USB_DEFAULT_KEYTABLE=${USB_DEFAULT_KEYTABLE}
-		USB_GETCHAR_MERGE_STDIN=${USB_GETCHAR_MERGE_STDIN}
 		)
 
 	# Make sure TinyUSB can find tusb_config.h
