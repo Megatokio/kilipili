@@ -35,6 +35,14 @@
   #define __unused __attribute__((__unused__))
 #endif
 
+#ifndef __weak_symbol
+  #define __weak_symbol __attribute__((__weak__))
+#endif
+
+#ifndef __aligned
+  #define __aligned(x) __attribute__((__aligned__(x)))
+#endif
+
 #ifndef __printflike
   #define __printflike(A, B) __attribute__((format(printf, A, B)))
 #endif
