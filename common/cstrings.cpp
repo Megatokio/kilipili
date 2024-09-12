@@ -588,7 +588,8 @@ str escapedstr(cstr s0)
 
 	while ((c = *z))
 	{
-		if (uchar(c) >= ' ' && c != 0x7F && c != '\\' && c != '\"')
+		if (uchar(c - 0x20) <= 0x7E - 0x20 && c != '\\' && c != '\"')
+		//if (uchar(c) >= ' ' && c != 0x7F && c != '\\' && c != '\"')
 		{
 			z++;
 			continue;
@@ -606,11 +607,11 @@ str escapedstr(cstr s0)
 		}
 
 		char oc[] = "\\000";
-		oc[1]	  = '0' + (c >> 6);
+		oc[1]	  = '0' + (uchar(c) >> 6);
 		c &= (1 << 6) - 1;
-		oc[2] = '0' + (c >> 3);
+		oc[2] = '0' + (uchar(c) >> 3);
 		c &= (1 << 3) - 1;
-		oc[3] = '0' + (c >> 0);
+		oc[3] = '0' + (uchar(c) >> 0);
 		q	  = s;
 		s	  = catstr(substr(s, z), oc, z + 1);
 		z += 4 + (s - q);
