@@ -1,0 +1,525 @@
+
+ANSITerm
+========
+
+References to ECMA-48 are ECMA-48 rev.5
+
+
+class AnsiTerm - Overview
+=========================
+
+- tries to be compliant with ECMA-48
+- unidirectional ANSI terminal without separate data buffer
+- utf-8 support
+- Color
+- Mouse support
+- vertical and horizontal scroll region
+-
+- Input:  USB keyboard and mouse
+- Output: Pixmap Canvas (for use in VGA VideoPlane)
+-         8x12 character cell
+-
+- can use Pixmap of any size and color mode
+- can be used with any physical color mode: b&w, grey, rgb, rgbi
+-
+- currently supports German and US keyboard
+- currently primary   character set = latin-1
+- currently secondary character set = graphics
+- prepared support for custom/local 8-bit font
+- prepared support for custom keyboard map
+
+
+C0 control codes [0x00…0x1f]
+============================
+
+-   0x07  BELL  TODO                                                            ECMA-48
+*   0x08  BS    move the cursor left, may wrap                                  ECMA-48
+*   0x09  TAB   move cursor to next programmed tab position (default = N*8)     ECMA-48
+*   0x0A  LF    line feed, scrolls                                              ECMA-48
+*   0x0B  VT    same as LF                                                      VT100
+*   0x0C  FF    same as LF                                                      VT100
+*   0x0D  CR    carriage return                                                 ECMA-48
+*   0x0E  LS1   LS1 or S1: use G1 character set for GL, locking: latin-1 ²      ECMA-35
+*   0x0F  LS0   LS0 or S0: use G0 character set for GL, locking: graphics ²     ECMA-35
+-   0x11  XON   ¹                                                               ANSI
+-   0x13  XOFF  ¹                                                               ANSI
+*   0x1B  ESC   CSI: control sequence introducer                                ECMA-48
+
+    ¹) XON and XOFF must be handled by the serial port handler.
+    ²) NON-STANDARD: LS1 and LS0 switch the entire character set GL+GR, not only GL.
+
+
+C1 control codes [0x80…0xff]
+============================
+
+!! in 7bit control codes mode 0x80…0x9F can be used for printable characters.
+C1 codes 0x80+N are equivalent to ESC codes 0x40+N.
+
+
+ESC control codes (after 0x1b)
+==============================
+
+If the ESC is followed by a byte in the range 0x60—0x7E, the escape sequence is of type Fs.
+This type is used for control functions individually registered with the ISO-IR registry.
+A table of these is listed under ISO/IEC 2022.
+If the ESC is followed by a byte in the range 0x30—0x3F, the escape sequence is of type Fp,
+which is set apart for up to sixteen private-use control functions.
+
+misc. official(?) ESC codes [0x20…0x2f]:
+
+*   ESC SPC F   S7C1T   send C1 as 2-byte ESC codes                     VT220
+*   ESC SPC G   S8C1T   send C1 as 1-byte 8-bit codes                   VT220
+*   ESC # 8     DECALN  DEC video alignment test: fill screen with 'E'  VT100
+*   ESC % @             Select 8-bit characters for communication       ISO2022
+*   ESC % G             Select utf-8 encoding for communication         ISO2022
+
+DEC private control codes:
+
+*   ESC 6       DECBI       back index: cursor left else scroll screen right
+*   ESC 7       DECSC       DEC save cursor
+*   ESC 8       DECRC       DEC restore cursor
+*   ESC 9       DECFI       forward index: cursor right else scroll screen left
+*   ESC =       DECKPAM     application keypad mode
+*   ESC >       DECKPNM     normal keypad mode
+
+Official ESC codes [0x40…0x5f] with C1 counterparts:
+ISO registered ESC codes [0x60…0x7f]:
+
+*   ESC D       IND     index (cursor down) scrolls                     VT100
+*   ESC E       NEL     next line                                       ECMA-48
+*   ESC H       HTS     horizontal tab set at cursor position           ECMA-48
+*   ESC M       RI      reverse line feed, scrolls                      ECMA-48
+*   ESC Z       DECID   request to identify terminal. same as CSI c     DEC
+*   ESC [ …     CSI     Control sequence introducer                     ECMA-48
+*   ESC \       ST      String terminator                               ECMA-48
+*   ESC c       RIS     reset to initial state, "hard" reset            ECMA-48
+
+
+CSI control codes (after "\x1b[" or 0x9b)
+=========================================
+
+Sequences containing the parameter bytes <=>? or the final bytes 0x70–0x7E (p–z{|}~) are private.
+
+*   CSI n @     ICH     insert blank characters                         ECMA-48
+*   CSI n SPC @ SL      scroll left n columns                           ECMA-48
+*   CSI n A     CUU     cursor up, don't scroll                         ECMA-48
+*   CSI n SPC A SR      scroll right n columns                          ECMA-48
+*   CSI n B     CUD     cursor down, don't scroll                       ECMA-48
+*   CSI n C     CUF     cursor forward (right), don't wrap              ECMA-48
+*   CSI n D     CUB     cursor backward (left), don't wrap              ECMA-48
+*   CSI n E     CNL     cursor next line                                ECMA-48
+*   CSI n F     CPL     cursor previous line                            ECMA-48
+*   CSI n G     CHA     cursor horizontal absolute                      ECMA-48
+*   CSI l,c H   CUP     cursor position                                 ECMA-48
+*   CSI n I     CHT     Cursor Forward Tabulation n tabs                ECMA-48
+*   CSI n J     ED      Erase in display                                ECMA-48
+*   CSI n K     EL      erase in line                                   ECMA-48
+*   CSI n L     IL      insert lines                                    ECMA-48
+*   CSI n M     DL      delete lines                                    ECMA-48
+*   CSI n P     DCH     delete characters                               ECMA-48
+*   CSI n S     SU      scroll up n lines                               ECMA-48
+*   CSI n T     SD      scroll down n lines                             ECMA-48
+*   CSI ? 5 W   DECST8C reset tab stops to every 8 columns              VT510
+*   CSI n X     ECH     erase characters                                ECMA-48
+*   CSI n Z     CBT     cursor backward tabulation  n tabs              ECMA-48
+*   CSI n ^     SD      scroll down n lines, same as CSI T              ECMA-48 (erronously)
+*   CSI n `     HPA     horizontal position absolute (data)             ECMA-48
+*   CSI n a     HPR     character position forward                      ECMA-48
+*   CSI n c     DA      send device attributes                          ECMA-48
+*   CSI n d     VPA     vertical position absolute                      ECMA-48
+*   CSI n e     VPR     vertical position forward                       ECMA-48
+*   CSI l,c f   HVP     cursor position (data)                          ECMA-48
+*   CSI 0 g     TBC     clear tab at current col                        ECMA-48
+*   CSI 3 g     TBC     clear all tabs                                  ECMA-48
+*   CSI n… h    SM      set modes, see below                            ECMA-48
+*   CSI ? n… h  DECSET  DEC set modes, see below                        DEC
+*   CSI n j     HPB     character position backward                     ECMA-48
+*   CSI n k     VPB     line position backward                          ECMA-48
+*   CSI n… l    RM      reset modes. see 'h'                            ECMA-48
+*   CSI ? n… l  DECRST  DEC reset modes. see 'h'                        DEC
+*   CSI n… m    SGR     set character attributes. see below             ECMA-48
+*   CSI 5 n     DSR     device status report                            ECMA-48
+*   CSI 6 n     CPR     report cursor position -> CSI r ; c R           ECMA-48
+*   CSI ! p     DECSTR  DEC soft terminal reset                         DEC
+*   CSI n ; m r DECSTBM DEC set top and bottom margin of scroll region  VT100
+*   CSI n;n;n;n r DECSTBM DEC set top, bottom, left and right margins   NON-STANDARD ¹
+*   CSI n ; m s DECSLRM DEC set left and right margins                  VT420
+*   CSI s       SCOSC   SCO save cursor                                 SCO ²
+*   CSI u       SCORC   SCO restore cursor                              SCO
+*   CSI n… ' w  DECEFR  DEC enable filter rectangle (mouse fence)       xterm  VT420
+*   CSI n;m ' z DECELR  DEC enable locator (mouse) reports              xterm
+*   CSI n… ' {  DECSLE  Select Locator Events                           xterm
+*   CSI n ' |   DECRQLP DEC request locator (mouse) position & state    xterm
+*   CSI n ' }   DECIC   DEC insert columns                              VT420
+*   CSI n ' ~   DECDC   DEC delete columns                              VT420
+
+    ¹) AnsiTerm supports setting all 4 borders with one command.
+    ²) AnsiTerm interprets "CSI s" as "reset L+R border" instead if they were set with "CSI n;m s".
+
+
+CSI n… m    SGR     set character attributes
+============================================
+
+*           0   Normal (default)
+*           1   Bold
+*           3   Italic                              ECMA-48
+*           4   Underlined
+*           7   Inverse.
+*           21  Doubly-underlined                   ECMA-48   !!single underline
+*           22  Normal: bold and faint OFF          ECMA-48
+*           23  italic & gothic OFF                 ECMA-48
+*           24  underlined OFF                      ECMA-48
+*           25  blinking OFF                        ECMA-48
+*           27  inverse OFF                         ECMA-48
+*           28  hidden OFF                          ECMA-48
+*           29  crossed OFF                         ECMA-48
+*           30  Set foreground color to Black ...
+*           37  Set foreground color to White
+*           38  Set foreground color to RGB
+*                       38;5;n      ⇒ VGA8 color
+*                       38;2;r;g;b  ⇒ RGB888 color
+*           39  Set foreground color to default     ECMA-48
+*           40  Set background color to Black ...
+*           47  Set background color to White
+*           48  Set background color to RGB
+*                       48;5;n      ⇒ VGA8 color
+*                       48;2;r;g;b  ⇒ RGB888 color
+*           49  Set background color to default     ECMA-48
+*           66  double height characters            private extension ¹
+*           67  double width characters             private extension ¹
+*           68  double width & height characters    private extension ¹
+*           69  double width & height OFF           private extension ¹
+*           70  transparent background              private extension
+*           71  transparent background OFF          private extension
+*           90  Set foreground color to Black ...
+*           97  Set foreground color to White.
+*           100 Set background color to Black ...
+*           107 Set background color to White.
+
+   ¹) AnsiTerm supprts printing of double height and double width characters.
+      The private DEC codes are not used because they applied to whole lines.
+
+
+    CSI n… h    SM      set modes
+    =============================
+
+-   CSI 2  h    KAM keyboard action mode:   h = 1 = lock keyboard       ECMA-48
+*   CSI 4  h    IRM insert mode:            h = 1 = insert              ECMA-48
+*   CSI 12 h    SRM send/receive:           h = 1 = no local echo       ECMA-48
+*   CSI 20 h    LNM newline mode:           h = 1 = automatic newline   VT100
+
+
+    CSI ? n… h  DECSET  private DEC set modes
+    =========================================
+
+*   CSI ? 1 h    DECCKM  cursor keys and keypad in application mode VT100
+*   CSI ? 1 l    DECCKM  cursor keys and keypad in normal mode      VT100
+*   CSI ? 5 h    DECSCNM  black characters on white screen mode     VT100
+*   CSI ? 5 l    DECSCNM  white characters on black screen mode     VT100
+*   CSI ? 6 h    DECOM   turn on region: origin mode  (set region with ESC[r)   VT100
+*   CSI ? 6 l    DECOM   turn off region: full screen mode.                     VT100
+*   CSI ? 7 h    DECAWM  auto wrap to new line                      VT100
+*   CSI ? 7 l    DECAWM  auto wrap off                              VT100
+*   CSI ? 25 h   DECTCEM text cursor enable = show cursor           VT220
+*   CSI ? 25 l   DECTCEM text cursor disable = hide cursor          VT220
+*   CSI ? 69 h   DECLRMM left and right margin mode enable          VT420
+*   CSI ? 69 l   DECLRMM left and right margin mode disable         VT420
+
+
+Special Keyboard Keys
+=====================
+
+returned character sequences for some special keys on the keyboard:
+
+    CSI = ESC [  or  0x9b
+    SS3 = ESC O  or  0x8f
+
+    keypad  numeric application
+    ------- ------- ----------- -----
+*   *       *       SS3 j       xterm
+*   +       +       SS3 k       xterm
+*   ,       ,       SS3 l       VT220
+*   -       -       SS3 m       VT220
+*   .       .       SS3 n       VT220
+*   /       /       SS3 o       xterm
+*   0       0       SS3 p       VT220
+*   1       1       SS3 q       VT220
+*   2       2       SS3 r       VT220
+*   3       3       SS3 s       VT220
+*   4       4       SS3 t       VT220
+*   5       5       SS3 u       VT220
+*   6       6       SS3 v       VT220
+*   7       7       SS3 w       VT220
+*   8       8       SS3 x       VT220
+*   9       9       SS3 y       VT220
+*   enter   CR      SS3 M       VT220
+*   =       =       SS3 X       xterm
+
+*   up      CSI A   SS3 A       VT220
+*   down    CSI B   SS3 B       VT220
+*   right   CSI C   SS3 C       VT220
+*   left    CSI D   SS3 D       VT220
+
+            always
+*   home    CSI 1 ~             VT220
+*   ins     CSI 2 ~             VT220
+*   del     CSI 3 ~             VT220
+*   end     CSI 4 ~             VT220
+*   pg up   CSI 5 ~             VT220
+*   pg dn   CSI 6 ~             VT220
+
+*   F1      SS3 P               VT220
+*   F2      SS3 Q               VT220
+*   F3      SS3 R               VT220
+*   F4      SS3 S               VT220
+*   F5      CSI 15 ~            xterm
+*   F6      CSI 17 ~            VT220
+*   F7      CSI 18 ~            VT220
+*   F8      CSI 19 ~            VT220
+*   F9      CSI 20 ~            VT220
+*   F10     CSI 21 ~            VT220
+*   F11     CSI 23 ~            VT220
+*   F12     CSI 24 ~            VT220
+
+
+Effect of cursor dependent / moving codes on line wrap and positioning in column 81
+===================================================================================
+
+If the cursor is switched off (as it normally should be, unless you expect input from the user)
+and auto_wrap is enabled, then the cursor can remain in the current line at column 81 (on a 80 column display).
+This allows you to print lines of any length without worrying that you must not send a LF if you printed
+full 80 characters in order to create no additional empty line.
+The same is true if auto_wrap is not enabled, then the cursor stays in column 80 and does never wrap.
+
+
+
+CODE        NAME    DESCRIPTION                                         SOURCE  TARGET          WRAP & SCROLL
+-------------------------------------------------------------------------------------------------------------
+0x20 …      LETTER  printable character                                 ASCII   data            auto_wrap ¹
+0x08        BS      cursor left, may wrap                               ECMA-48 data            auto_wrap ¹
+
+0x09        TAB     cursor to next programmed tab position              ECMA-48 display         never
+CSI n A     CUU     cursor up, don't scroll                             ECMA-48 display         never
+CSI n B     CUD     cursor down, don't scroll                           ECMA-48 display         never
+CSI n C     CUF     cursor forward (right), don't wrap                  ECMA-48 display         never
+CSI n D     CUB     cursor backward (left), don't wrap                  ECMA-48 display         never
+CSI n E     CNL     cursor next line                                    ECMA-48 display         never
+CSI n F     CPL     cursor previous line                                ECMA-48 display         never
+CSI n G     CHA     cursor horizontal absolute                          ECMA-48 display         never
+CSI l,c H   CUP     cursor position                                     ECMA-48 display         never
+CSI n I     CHT     Cursor forward tabulation n tabs                    ECMA-48 display         never
+CSI n Z     CBT     cursor backward tabulation  n tabs                  ECMA-48 display         never
+
+0x0A        LF      line feed, scrolls                                  ECMA-48 data,display    always
+ESC D       IND     index (cursor down) scrolls                         VT100   data,display    always
+ESC E       NEL     next line                                           ECMA-48 data,display    always
+ESC M       RI      reverse index (cursor up), scrolls                  ECMA-48 data,display    always
+0x0C        FF      same as LF                                          VT100   data,display    always
+0x0B        VT      same as LF                                          VT100   data,display    always
+
+0x0D        CR      carriage return                                     ECMA-48 data,display    -
+CSI l,c f   HVP     cursor position absolute                            ECMA-48 data            never   same as H
+CSI n `     HPA     horizontal position absolute                        ECMA-48 data            never   same as G
+CSI n d     VPA     vertical position absolute                          ECMA-48 data            never
+CSI n a     HPR     character position forward                          ECMA-48 data            never   same as C
+CSI n j     HPB     character position backward                         ECMA-48 data            never   same as D
+CSI n e     VPR     vertical position forward                           ECMA-48 data            never   same as B
+CSI n k     VPB     vertical position backward                          ECMA-48 data            never   same as A
+
+CSI n @     ICH     insert characters                                   ECMA-48 data,display    col81 ²
+CSI n P     DCH     delete characters                                   ECMA-48 data,display    col81 ²
+CSI n X     ECH     erase characters                                    ECMA-48 data,display    col81 ²
+CSI 0 J     ED      clear to end of screen                              ECMA-48 data,display    col81 ²
+CSI 1 J     ED      clear to start of screen                            ECMA-48 data,display    col81 ²
+CSI 2 J     ED      clear whole screen                                  ECMA-48 data,display    col81 ²
+CSI 0 K     EL      clear to end of line                                ECMA-48 data,display    col81 ²
+CSI 1 K     EL      clear to start of line                              ECMA-48 data,display    col81 ²
+CSI 2 K     EL      clear whole line                                    ECMA-48 data,display    col81 ²
+
+CSI n L     IL      insert lines                                        ECMA-48 data,display    col81 ²
+CSI n M     DL      delete lines                                        ECMA-48 data,display    col81 ²
+CSI n ' }   DECIC   insert columns                                      DEC     -               col81 ²
+CSI n ' ~   DECDC   delete columns                                      DEC     -               col81 ²
+ESC 6       DECBI   back index: cursor left else scroll screen right    DEC     -               col81 ²
+ESC 9       DECFI   fwd index: cursor right else scroll screen left     DEC     -               col81 ²
+
+   ¹) printing a letter or stepping back with BS wraps to the next/previous line if auto_wrap is set.
+      auto_wrap affects only these two cases.
+   ²) these control codes never move the cursor. So if the cursor is in column 81 then it is not forcefully wrapped
+      to the next line before executing this code. Note that the result of these codes differes in these cases depending
+      on whether the cursor is visible (which forces the cursor into the screen thus wrapping it to the next line) or not.
+
+
+NOT SUPPORTED:
+==============
+
+-   0x18  CAN   cancel
+-   0x1A  SUB   substitute                                                      ECMA-48
+
+-   ESC # 3         DECDHL  VT100    DEC Double-Height Letters, also double width, whole line, Top Half ¹
+-   ESC # 4         DECDHL  VT100    DEC Double-Height Letters, also double width, whole line, Bottom Half ¹
+-   ESC # 5         DECSWL  VT100    DEC Single-Width Line ¹
+-   ESC # 6         DECDWL  VT100    DEC Double-Width line ¹
+-   ESC ( c1 c2     SCS     ISO2022  Designate G0 character set with national character set ²
+-   ESC ) c1 c2     SCS     ISO2022  Designate G1 character set with national character set ²
+-   ESC * c1 c2     SCS     ISO2022  Designate G2 character set with national character set ²
+-   ESC + c1 c2     SCS     ISO2022  Designate G3 character set with national character set ²
+-   ESC - c1 c2     SCS     VT300    Designate G1 character set with national character set, 96 char sets ²
+-   ESC . c1 c2     SCS     VT300    Designate G2 character set with national character set, 96 char sets ²
+-   ESC / c1 c2     SCS     VT300    Designate G3 character set with national character set, 96 char sets ²
+
+    ¹) These codes worked on the whole line. AnsiTerm supports double width and double height characters
+       using private codes 66 to 69 in SGR command.
+    ²) AnsiTerm supports only one normal character set (latin-1) and one graphics character set.
+       These are selected with control codes LS0 and LS1, see above.
+
+-   ESC C       NBH     no break here (when formatting…)                ECMA-48
+-   ESC F       SSA     start selected area                             ECMA-48
+-   ESC G       ESA     end of selected area                            ECMA-48
+-   ESC I       HTJ     Character tabulation with justification         ECMA-48
+-   ESC J       VTS     line tabulation set                             ECMA-48
+-   ESC K       PLD     Partial line down (1/2 LF)                      ECMA-48
+-   ESC L       PLU     Partial line up (1/2 line)                      ECMA-48
+-   ESC N       SS2     print next char from G2 charset                 ECMA-35
+-   ESC O       SS3     print next char from G3 charset                 ECMA-35
+-   ESC P       DCS     Device Control String. terminated by ST         ECMA-48
+-   ESC Q       PU1     may be used for private meaning                 ECMA-48
+-   ESC R       PU2     may be used for private meaning                 ECMA-48
+-   ESC S       STS     set transmit state                              ECMA-48
+-   ESC T       CCH     Cancel character                                ECMA-48
+-   ESC U       MW      message waiting                                 ECMA-48
+-   ESC V       SPA     Start of guarded area                           ECMA-48
+-   ESC W       EPA     End of guarded area                             ECMA-48
+-   ESC Z       SCI     single character introducer                     ECMA-48
+-   ESC ]       OSC     Operating system command. terminated by ST      ECMA-48
+-   ESC ^       PM      Privacy message. terminated by ST               ECMA-48
+-   ESC _       APC     Application program command. Terminated by ST   ECMA-48
+-   ESC `       DMI     disable manual input                            ECMA-48
+-   ESC a       INT     Interrupt                                       ECMA-48
+-   ESC b       EMI     enable manual input                             ECMA-48
+-   ESC d       CMD     Coding method delimiter                         ECMA-35
+-   ESC n       LS2     Invoke the G2 Character Set as GL               ECMA-35
+-   ESC o       LS3     Invoke the G3 Character Set as GL               ECMA-35
+-   ESC |       LS3R    Invoke the G3 Character Set as GR               ECMA-35
+-   ESC }       LS2R    Invoke the G2 Character Set as GR               ECMA-35
+-   ESC ~       LS1R    Invoke the G1 Character Set as GR               ECMA-35
+
+-   CSI n;m SPC B GSM   graphic size modification           ECMA-48
+-   CSI n SPC C GSS     graphic size selection              ECMA-48
+-   CSI n;m SPC D FNT   select font                         ECMA-48
+-   CSI n SPC E TSS     thin space specification            ECMA-48
+-   CSI n… SPC F JFY    justify                             ECMA-48
+-   CSI n;m SPC G SPI   spacing increment                   ECMA-48
+-   CSI n… SPC H QUAD   position preceding string           ECMA-48
+-   CSI n SPC I SSU     select size unit                    ECMA-48
+-   CSI n SPC J PFS     page format selection (printer)     ECMA-48
+-   CSI ? n J   DECSED  DEC selective erase                 DEC
+-   CSI ? n K   DECSEL  DEC selective erase                 DEC
+-   CSI n SPC K SHS     select character spacing            ECMA-48
+-   CSI n SPC L SVS     select line spacing                 ECMA-48
+-   CSI n SPC M IGS     identify graphic subrepertoire      ECMA-48
+-   CSI n N     EF      erase in field                      ECMA-48
+-   CSI n O     EA      erase in area                       ECMA-48
+-   CSI n SPC O IDCS    identify device control string DCS  ECMA-48
+-   CSI n SPC P PPA     page position absolute              ECMA-48
+-   CSI n Q     SEE     select editing extent               ECMA-48
+-   CSI n SPC Q PPR     page position forward               ECMA-48
+-   CSI n SPC R PPB     page position backward              ECMA-48
+-   CSI n;m SPC S SPD   select presentation direction       ECMA-48
+-   CSI n SPC T DTA     dimension text area                 ECMA-48
+-   CSI n U     NP      next page                           ECMA-48
+-   CSI n SPC U SLH     set line home column                ECMA-48
+-   CSI n V     PP      prev page                           ECMA-48
+-   CSI n SPC V SLL     set line limit column               ECMA-48
+-   CSI n W     CTC     cursor tabulation control           ECMA-48
+-   CSI n SPC X SPQR    set print quality and rapidity      ECMA-48
+-   CSI n Y     CVT     cursor vertical tabulation          ECMA-48
+-   CSI n;m SPC Y SEF   sheet eject and feed                ECMA-48
+-   CSI n SPC Z PEC     presentation expand or contract     ECMA-48
+-   CSI n \     PTX     parallel texts                      ECMA-48
+-   CSI n SPC \ SACS    set additional character separation ECMA-48
+-   CSI n [     SRS     start reversed string               ECMA-48
+-   CSI n SPC [ SSW     set space width                     ECMA-48
+-   CSI n ]     SDS     start directed string               ECMA-48
+-   CSI n SPC ] SAPV    select alternative presentation variants    ECMA-48
+-   CSI n ^     SIMD    select implicit movement direction  ECMA-48
+-   CSI n… SPC ^ STAB   selective tabulation                ISO8613-6
+-   CSI n SPC _ GCC     graphic character combination       ECMA-48
+-   CSI n SPC ` TATE    tabulation aligned trailing edge    ECMA-48
+-   CSI n SPC a TALE    tabulation aligned leading edge     ECMA-48
+-   CSI n b     REP     repeat preceding char n times       ECMA-48
+-   CSI n SPC b TAC     tabulation aligned centered         ECMA-48
+-   CSI n;m SPC c TCC   tabulation centered on character    ECMA-48
+-   CSI n SPC d TSR     tabulation stop remove              ECMA-48
+-   CSI n SPC e SCO     select character orientation        ECMA-48
+-   CSI n SPC f SRCS    set reduced character separation    ECMA-48
+-   CSI n SPC g SCS     set character spacing               ECMA-48
+-   CSI n SPC h SLS     set line spacing                    ECMA-48
+-   CSI n i     MC      media copy to printer               ECMA-48
+-   CSI n SPC i SPH     set page home                       ECMA-48
+-   CSI ? n i   MC      printer
+-   CSI n SPC j SPL     set page limit                      ECMA-48
+-   CSI n;m SPC k SCP   select character path               ECMA-48
+-   CSI n o     DAQ     Define area qualification                       ECMA-48
+-   CSI n;m p   DECSCL  DEC set conformance level and 7/8bit control mode
+-   CSI n q     DECLL   DEC set or clear keyboard LEDs num/caps/scroll lock
+?   CSI n SPC q DECSCUSR DEC set cursor style
+-   CSI n " q   DECSCA  DEC select character protection attribute
+
+NOT SUPPORTED in SGR:
+-           2   Faint, decreased intensity                  ECMA-48
+-           5   Blink. This appears as Bold in X11R6 xterm.
+-           6   rapid blink
+-           8   hidden (invisible)                          ECMA-48
+-           9   Crossed-out characters                      ECMA-48
+-           10  select default font ...
+-           19  select alternative font #9
+-           20  Gothic (fraktur)
+-           26  proportional spacing
+-           50  proportional spacing OFF
+-           51  framed
+-           52  encircled
+-           53  overlined
+-           54  framed and encircled OFF
+-           55  overlined OFF
+-           58  set underline color                         not in standard
+-               58;5;n or 58;2;r;g;b
+-           59  default underline color
+-           60  ideogram ...
+-           65  ideogram OFF
+-           73  superscript
+-           74  subscript
+-           75  superscript and subscript OFF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -44,6 +44,7 @@ add_library(kilipili_graphics STATIC
 	gif/Pixelmap.h
 	${distinct_sources}
 	TextVDU.h TextVDU.cpp
+	AnsiTerm.cpp AnsiTerm.h
 	)
 
 target_compile_definitions(kilipili_graphics PUBLIC
@@ -57,6 +58,7 @@ target_include_directories(kilipili_graphics PUBLIC
 # dependencies:
 target_link_libraries(kilipili_graphics PUBLIC
 	kilipili_common
+	kilipili_usb_host 	
 	${distinct_libraries}
 	)
 
