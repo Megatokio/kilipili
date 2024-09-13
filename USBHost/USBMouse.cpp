@@ -4,10 +4,9 @@
 
 
 #include "USBMouse.h"
-#include "USBHost/hid_handler.h"
 #include "basic_math.h"
 #include "common/Queue.h"
-#include <memory>
+#include "hid_handler.h"
 
 // all hot video code should go into ram to allow video while flashing.
 // also, there should be no const data accessed in hot video code for the same reason.

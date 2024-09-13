@@ -132,21 +132,17 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 	{
 		switch (rpt_info->usage)
 		{
-  #if USB_ENABLE_KEYBOARD
 		case HID_USAGE_DESKTOP_KEYBOARD:
 			//printf("HID receive keyboard report\n");
 			// Assume keyboard follow boot report layout
 			keyboard_event_handler(reinterpret_cast<const HidKeyboardReport&>(*report));
 			break;
-  #endif
 
-  #if USB_ENABLE_MOUSE
 		case HID_USAGE_DESKTOP_MOUSE:
 			//printf("HID receive mouse report\n");
 			// Assume mouse follow boot report layout
 			mouse_event_handler(reinterpret_cast<const HidMouseReport&>(*report));
 			break;
-  #endif
 
 		default: break;
 		}
@@ -210,19 +206,15 @@ extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const
 
 	switch (tuh_hid_interface_protocol(dev_addr, instance))
 	{
-  #if USB_ENABLE_KEYBOARD
 	case HID_ITF_PROTOCOL_KEYBOARD:
 		//printf("HID receive boot keyboard report\n");
 		keyboard_event_handler(reinterpret_cast<const HidKeyboardReport&>(*report));
 		break;
-  #endif
 
-  #if USB_ENABLE_MOUSE
 	case HID_ITF_PROTOCOL_MOUSE:
 		//printf("HID receive boot mouse report\n");
 		mouse_event_handler(reinterpret_cast<const HidMouseReport&>(*report));
 		break;
-  #endif
 
 	default:
 		// Generic report requires matching ReportID and contents with previous parsed report info

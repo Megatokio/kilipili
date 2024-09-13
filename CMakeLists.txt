@@ -18,6 +18,7 @@ if(${UNIT_TEST})
 		 
 	add_subdirectory(common)
 	add_subdirectory(Graphics)
+	add_subdirectory(USBHost)
 	
 	add_executable(unit_tests
 		main_unit_tests.cpp
@@ -44,6 +45,7 @@ if(${UNIT_TEST})
 	target_link_libraries(unit_tests PUBLIC
 		kilipili_common 
 		kilipili_graphics 
+		kilipili_usb_host
 		)
 	
 endif()

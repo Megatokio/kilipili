@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "USBHost/hid_handler.h"
 #include "geometry.h"
+#include "hid_handler.h"
 
 namespace kio::USB
 {
