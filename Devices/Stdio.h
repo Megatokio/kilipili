@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "File.h"
+#include "SerialDevice.h"
 
 namespace kio::Devices
 {

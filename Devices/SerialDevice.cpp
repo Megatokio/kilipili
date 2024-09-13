@@ -4,9 +4,8 @@
 
 #include "SerialDevice.h"
 #include "tempmem.h"
-#include "utilities.h"
+#include "utilities/utilities.h"
 #include <memory>
-#include <pico/stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 
