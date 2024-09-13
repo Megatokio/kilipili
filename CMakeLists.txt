@@ -26,6 +26,7 @@ if(${UNIT_TEST})
 		Graphics/Canvas_unit_test.cpp
 		Graphics/BitBlit_unit_test.cpp
 		Graphics/TextVDU_unit_test.cpp
+		Graphics/AnsiTerm_unit_test.cpp
 		Graphics/Mock/Pixmap.h 
 		Graphics/Mock/Pixmap.cpp
 		Graphics/Mock/TextVDU.h 
@@ -34,8 +35,14 @@ if(${UNIT_TEST})
 		common/cstrings.test.cpp
 		common/relational_operators.test.cpp
 		common/Array.test.cpp 		
+		Video/ColorMap.cpp
+		Video/ColorMap.h
+		Video/Color.h
 		)
 	
+	target_compile_definitions(unit_tests PUBLIC
+		)
+
 	# add current dir to 'include search path':
 	target_include_directories(unit_tests PUBLIC
 		${CMAKE_CURRENT_LIST_DIR}
