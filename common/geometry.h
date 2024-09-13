@@ -60,6 +60,7 @@ inline Point& Point::operator-=(const struct Dist& d) noexcept
 	y -= d.dy;
 	return *this;
 }
+inline constexpr bool operator==(const Point& a, const Point& b) noexcept { return a.x == b.x && a.y == b.y; }
 
 struct Size
 {
