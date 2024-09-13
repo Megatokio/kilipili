@@ -104,18 +104,18 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 		if (c == 127)
 		{
 			auto attr = text->attributes;
-			text->removeCharAttributes(text->TRANSPARENT);
+			text->removeAttributes(text->TRANSPARENT);
 			text->cursorLeft(repeat_cnt);
 			text->printChar(' ', repeat_cnt);
 			text->cursorLeft(repeat_cnt);
-			text->setCharAttributes(attr);
+			text->setAttributes(attr);
 		}
 		else printf("{$%02X}", c);
 		continue;
 
 		move_to_position: GETC(); text->moveToRow(int8(c-0x40)+0x40);
 		move_to_col: GETC(); text->moveToCol(int8(c-0x40)+0x40); continue;
-		set_attributes: GETC(); text->setCharAttributes(c); continue;
+		set_attributes: GETC(); text->setAttributes(c); continue;
 		repeat_next_char: GETC(); repeat_cnt = uchar(c); goto loop_repeat;
 		scroll_screen: // scroll screen u/d/l/r
 			GETC(); if (c == 'u') text->scrollScreenUp(repeat_cnt);

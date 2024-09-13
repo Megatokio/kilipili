@@ -430,7 +430,7 @@ void TextVDU::scrollScreen(int dy /*chars*/, int dx /*chars*/) noexcept
 	if (dy < 0) clearRect(h, 0, -dy, cols);
 }
 
-void TextVDU::setCharAttributes(uint add, uint remove) noexcept
+void TextVDU::setAttributes(uint add, uint remove) noexcept
 {
 	attributes = Attributes((attributes & ~remove) | add);
 	dx		   = attributes & DOUBLE_WIDTH ? 2 : 1;

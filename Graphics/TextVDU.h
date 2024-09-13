@@ -78,9 +78,9 @@ public:
 	void moveTo(int row, int col, AutoWrap = nowrap) noexcept;
 	void moveToCol(int col, AutoWrap = nowrap) noexcept;
 	void moveToRow(int row, AutoWrap = nowrap) noexcept;
-	void setCharAttributes(uint add, uint remove = 0xff) noexcept;
-	void addCharAttributes(uint a) noexcept { setCharAttributes(a, 0); }
-	void removeCharAttributes(uint a = 0xff) noexcept { setCharAttributes(0, a); }
+	void setAttributes(uint add, uint remove = 0xff) noexcept;
+	void addAttributes(uint a) noexcept { setAttributes(a, 0); }
+	void removeAttributes(uint a = 0xff) noexcept { setAttributes(0, a); }
 	void printCharMatrix(CharMatrix, int count = 1) noexcept;
 	void printChar(char c, int count = 1) noexcept;				// no ctl
 	void print(cstr text) noexcept;								// supports \n and \t

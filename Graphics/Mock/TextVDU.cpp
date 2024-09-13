@@ -234,7 +234,7 @@ void TextVDU::scrollScreen(int dy /*chars*/, int dx /*chars*/) noexcept
 void TextVDU::setCharAttributes(uint add, uint remove) noexcept
 {
 	LOG("%s(%02x,%x)", __func__, add, remove);
-	return super::setCharAttributes(add, remove);
+	return super::setAttributes(add, remove);
 }
 
 void TextVDU::applyAttributes(CharMatrix bmp) noexcept

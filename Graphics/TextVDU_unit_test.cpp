@@ -110,7 +110,7 @@ TEST_CASE("TextVDU: reset()")
 	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8_i16);
 	TextVDU		  tv(pm);
 
-	tv.setCharAttributes(tv.BOLD | tv.INVERTED | tv.DOUBLE_WIDTH | tv.DOUBLE_HEIGHT);
+	tv.setAttributes(tv.BOLD | tv.INVERTED | tv.DOUBLE_WIDTH | tv.DOUBLE_HEIGHT);
 	tv.bgcolor = 1234;
 	tv.fgcolor = 2345;
 	tv.moveTo(5, 7);
@@ -351,17 +351,17 @@ TEST_CASE("TextVDU: setCharAttributes()")
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 1);
 
-	tv.setCharAttributes(tv.ITALIC);
+	tv.setAttributes(tv.ITALIC);
 	CHECK_EQ(tv.attributes, tv.ITALIC);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 1);
 
-	tv.setCharAttributes(tv.BOLD, 0);
+	tv.setAttributes(tv.BOLD, 0);
 	CHECK_EQ(tv.attributes, tv.ITALIC + tv.BOLD);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 1);
 
-	tv.setCharAttributes(tv.INVERTED, tv.ITALIC);
+	tv.setAttributes(tv.INVERTED, tv.ITALIC);
 	CHECK_EQ(tv.attributes, tv.BOLD + tv.INVERTED);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 1);
@@ -372,7 +372,7 @@ TEST_CASE("TextVDU: setCharAttributes()")
 
 	tv.moveTo(0, 9);
 
-	tv.setCharAttributes(tv.DOUBLE_WIDTH);
+	tv.setAttributes(tv.DOUBLE_WIDTH);
 	CHECK_EQ(tv.attributes, tv.DOUBLE_WIDTH);
 	CHECK_EQ(tv.dx, 2);
 	CHECK_EQ(tv.dy, 1);
@@ -380,7 +380,7 @@ TEST_CASE("TextVDU: setCharAttributes()")
 	CHECK_EQ(tv.row, 0);
 	CHECK_EQ(pm->log, ref);
 
-	tv.setCharAttributes(tv.DOUBLE_HEIGHT, tv.DOUBLE_WIDTH);
+	tv.setAttributes(tv.DOUBLE_HEIGHT, tv.DOUBLE_WIDTH);
 	CHECK_EQ(tv.attributes, tv.DOUBLE_HEIGHT);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 2);
@@ -388,7 +388,7 @@ TEST_CASE("TextVDU: setCharAttributes()")
 	CHECK_EQ(tv.row, 0);
 	CHECK_EQ(pm->log, ref);
 
-	tv.setCharAttributes(tv.DOUBLE_HEIGHT + tv.DOUBLE_WIDTH);
+	tv.setAttributes(tv.DOUBLE_HEIGHT + tv.DOUBLE_WIDTH);
 	CHECK_EQ(tv.attributes, tv.DOUBLE_HEIGHT + tv.DOUBLE_WIDTH);
 	CHECK_EQ(tv.dx, 2);
 	CHECK_EQ(tv.dy, 2);
@@ -396,7 +396,7 @@ TEST_CASE("TextVDU: setCharAttributes()")
 	CHECK_EQ(tv.row, 0);
 	CHECK_EQ(pm->log, ref);
 
-	tv.setCharAttributes(tv.TRANSPARENT, 0);
+	tv.setAttributes(tv.TRANSPARENT, 0);
 	CHECK_EQ(tv.attributes, tv.DOUBLE_HEIGHT + tv.DOUBLE_WIDTH + tv.TRANSPARENT);
 	CHECK_EQ(tv.dx, 2);
 	CHECK_EQ(tv.dy, 2);
@@ -422,8 +422,8 @@ TEST_CASE("TextVDU: addCharAttributes()")
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
 
-	tv.setCharAttributes(tv.BOLD);
-	tv.addCharAttributes(tv.INVERTED);
+	tv.setAttributes(tv.BOLD);
+	tv.addAttributes(tv.INVERTED);
 	CHECK_EQ(tv.attributes, tv.BOLD + tv.INVERTED);
 }
 
@@ -434,12 +434,12 @@ TEST_CASE("TextVDU: removeCharAttributes()")
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
 
-	tv.setCharAttributes(tv.BOLD + tv.INVERTED);
-	tv.removeCharAttributes(tv.INVERTED);
+	tv.setAttributes(tv.BOLD + tv.INVERTED);
+	tv.removeAttributes(tv.INVERTED);
 	CHECK_EQ(tv.attributes, tv.BOLD);
 
-	tv.setCharAttributes(0xff);
-	tv.removeCharAttributes();
+	tv.setAttributes(0xff);
+	tv.removeAttributes();
 	CHECK_EQ(tv.attributes, 0);
 }
 
