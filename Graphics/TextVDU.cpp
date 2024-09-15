@@ -119,7 +119,7 @@ void TextVDU::showCursor(bool on) noexcept
 	show_cursor(on);
 }
 
-inline void TextVDU::hideCursor() noexcept
+void TextVDU::hideCursor() noexcept
 {
 	if (cursorVisible) show_cursor(false);
 }
@@ -558,13 +558,11 @@ void TextVDU::getCharMatrix(CharMatrix charmatrix, char cc) noexcept
 	// 0x80 .. 0x9F	UDG
 	// 0xA0 .. 0xFF	LATIN-1
 
-	uchar c = uchar(cc);
-
-	if (attributes & GRAPHICS) { getGraphicsCharMatrix(charmatrix, c); }
+	if (attributes & GRAPHICS) { getGraphicsCharMatrix(charmatrix, cc); }
 	else
 	{
-		uint o = 127 - 32; // default = pattern of 'delete'
-
+		uint  o = 127 - 32; // default = pattern of 'delete'
+		uchar c = uchar(cc);
 		if (c < 0x20) {}
 		else if (c < 0x80) { o = c - 32; }
 		else if (c < 0xA0) {} // readUDG(c,charmatrix);		TODO:  LCD: read from eeprom
