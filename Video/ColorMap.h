@@ -45,7 +45,7 @@ inline Color* newColorMap(ColorDepth CD) throws
 	return table;
 }
 
-inline Color* newColorMap(ColorMode CM) noexcept
+inline Color* newColorMap(ColorMode CM) throws
 {
 	return newColorMap(get_colordepth(CM)); //
 }
