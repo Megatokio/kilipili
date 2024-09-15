@@ -777,8 +777,8 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 	// 2023-10-27
 	// this version displays 1024x768 with avg/max load = 247.1/259.3MHz
 
-#ifndef VIDEO_OPTIMISTICAL_A1W8_RGB
-  #define VIDEO_OPTIMISTICAL_A1W8_RGB OFF
+#ifndef VIDEO_OPTIMISTIC_A1W8_RGB
+  #define VIDEO_OPTIMISTIC_A1W8_RGB OFF
 #endif
 
 	// if 200x150 or 400x300 are not supported but displayed, this causes a bus error!
@@ -807,7 +807,7 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 		for (uint i = 0; i < width / 32; i++)
 		{
 			color10a = *attributes++;
-			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
+			if (!VIDEO_OPTIMISTIC_A1W8_RGB || color10a != color10b)
 			{
 				twocolors color01 = (color10a >> ssx) | twocolors(color10a << ssx);
 				twocolors xxx	  = onecolor(color01 ^ color10a);
@@ -826,7 +826,7 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
 
 			color10b = *attributes++;
-			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
+			if (!VIDEO_OPTIMISTIC_A1W8_RGB || color10a != color10b)
 			{
 				twocolors color01 = (color10b >> ssx) | twocolors(color10b << ssx);
 				twocolors xxx	  = onecolor(color01 ^ color10b);
@@ -842,7 +842,7 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
 
 			color10a = *attributes++;
-			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
+			if (!VIDEO_OPTIMISTIC_A1W8_RGB || color10a != color10b)
 			{
 				twocolors color01 = (color10a >> ssx) | twocolors(color10a << ssx);
 				twocolors xxx	  = onecolor(color01 ^ color10a);
@@ -858,7 +858,7 @@ scanlineRenderFunction<colormode_a1w8_rgb>(uint32* _dest, uint width, const uint
 			*dest++ = *reinterpret_cast<const twocolors*>(interp_pop_lane_result(interp1, lane1));
 
 			color10b = *attributes++;
-			if (!VIDEO_OPTIMISTICAL_A1W8_RGB || color10a != color10b)
+			if (!VIDEO_OPTIMISTIC_A1W8_RGB || color10a != color10b)
 			{
 				twocolors color01 = (color10b >> ssx) | twocolors(color10b << ssx);
 				twocolors xxx	  = onecolor(color01 ^ color10b);

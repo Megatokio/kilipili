@@ -52,7 +52,7 @@ inline int current_scanline() noexcept;
 		#define VIDEO_CLOCK_PIN_BASE 0
 		
 	Possible options in CMakeLists.txt:
-	- VIDEO_OPTIMISTICAL_A1W8_RGB = ON|OFF 
+	- VIDEO_OPTIMISTIC_A1W8_RGB = ON|OFF 
 		The scanline render function for colormode `a1w8_rgb` (truecolor attributes 
 		with 1 bit / pixel in the bitmap and 8 pixel wide attributes) can use a variant
 		which optimizes based on the screen contents. This allows highest video resolution
@@ -68,7 +68,7 @@ inline int current_scanline() noexcept;
 		that the video display recovers fast, just displaying single wrong lines. The 
 		disadvantage is, that this test takes time and makes even more scanlines fail. 
 		Specifically with this option enabled, screen resolution 1024*768 without 
-		VIDEO_OPTIMISTICAL_A1W8_RGB misses some lines per frame while with this option disabled 
+		VIDEO_OPTIMISTIC_A1W8_RGB misses some lines per frame while with this option disabled 
 		it *just* works.		
 
 	General capabilities and drawbacks:
