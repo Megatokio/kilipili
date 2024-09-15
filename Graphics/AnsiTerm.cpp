@@ -160,7 +160,6 @@ void AnsiTerm::reset(bool hard) noexcept
 		auto_wrap		 = default_auto_wrap;
 		sgr_cumulative	 = default_sgr_cumulative;
 
-		display->printChar('E', display->cols * display->rows);
 		display->cls();
 	}
 }
@@ -459,7 +458,7 @@ void AnsiTerm::handle_C0(char c)
 	}
 
 	// unhandled C0 code:
-	if (debug) display->printf("{0x%02x}", c);
+	if (log_unhandled) display->printf("{0x%02x}", c);
 
 show_cursor:
 	if (cursor_visible) display->showCursor();
@@ -509,7 +508,7 @@ void AnsiTerm::handle_C1(char c)
 	case '^' & 0x1f: // ECMA-48: PM  Privacy Message. Terminated by ST
 	case '_' & 0x1f: // ECMA-48: APC Application Program Command. Terminated by ST
 	{
-		if (debug)
+		if (log_unhandled)
 		{
 			wbu[wcnt++] = uchar(c);
 			log_rbu();
@@ -544,7 +543,7 @@ void AnsiTerm::handle_C1(char c)
 	}
 
 	// unhandled C1 code:
-	if (debug)
+	if (log_unhandled)
 	{
 		wbu[wcnt++] = uchar(c);
 		log_rbu();
@@ -656,7 +655,7 @@ void AnsiTerm::handle_ESC(char c)
 	}
 
 	// broken or unhandled ESC code:
-	if (debug)
+	if (log_unhandled)
 	{
 		wbu[wcnt++] = uchar(c);
 		log_rbu();
@@ -754,7 +753,7 @@ void AnsiTerm::handle_EscArgsPending(char c)
 	}
 
 	// unknown/broken:
-	if (debug)
+	if (log_unhandled)
 	{
 		wbu[wcnt++] = uchar(c);
 		log_rbu();
@@ -797,7 +796,7 @@ void AnsiTerm::handle_CsiArgsPending(char c)
 
 	if (c < 0x40 || c > 0x7e) // expect a final char
 	{
-		if (debug) log_rbu();
+		if (log_unhandled) log_rbu();
 		else putc(c);
 		return;
 	}
@@ -1252,7 +1251,7 @@ void AnsiTerm::handle_CsiArgsPending(char c)
 				}
 				default: break;
 				}
-				if (debug) log_rbu();
+				if (log_unhandled) log_rbu();
 				return;
 			}
 			return;
@@ -1398,7 +1397,7 @@ void AnsiTerm::handle_CsiArgsPending(char c)
 					case 3:
 					case 4: mouse_report_btn_up = v == 3; break;
 					default:
-						if (debug) log_rbu();
+						if (log_unhandled) log_rbu();
 						return;
 					}
 				}
@@ -1532,7 +1531,7 @@ void AnsiTerm::handle_CsiArgsPending(char c)
 				}
 				default: break;
 				}
-				if (debug) log_rbu();
+				if (log_unhandled) log_rbu();
 				return;
 			}
 			goto show_cursor;
@@ -1542,7 +1541,7 @@ void AnsiTerm::handle_CsiArgsPending(char c)
 	}
 
 	// unknown or broken!
-	if (debug) log_rbu();
+	if (log_unhandled) log_rbu();
 
 show_cursor:
 	if (cursor_visible) display->showCursor();
@@ -1946,7 +1945,7 @@ void AnsiTerm::handle_SGR(uint argc, uint16 args[])
 		break;
 	}
 
-	if (error && debug) log_rbu();
+	if (error && log_unhandled) log_rbu();
 }
 
 inline void AnsiTerm::print_char(char c)
@@ -1964,9 +1963,9 @@ void AnsiTerm::handle_Utf8ArgsPending(char c)
 
 	if unlikely (!is_fup(c)) // epcected fup
 	{
-		if (debug) log_rbu(); // log it
-		else putc('_');		  // print a replacement for the broken utf-8 char
-		putc(c);			  // handle the new char
+		if (log_unhandled) log_rbu(); // log it
+		else putc('_');				  // print a replacement for the broken utf-8 char
+		putc(c);					  // handle the new char
 		return;
 	}
 
@@ -1980,8 +1979,8 @@ void AnsiTerm::handle_Utf8ArgsPending(char c)
 
 	if unlikely (wc <= 0x7f) // illegal overlong encoding
 	{
-		if (debug) log_rbu(); // log it
-		else putc('_');		  // print a replacement char
+		if (log_unhandled) log_rbu(); // log it
+		else putc('_');				  // print a replacement char
 	}
 	else if (wc <= 0x9f) // utf8-encoded C1 control char
 	{
@@ -2059,7 +2058,7 @@ void AnsiTerm::putc(char c)
 		if (printable || (c >= 0x08 && c <= 0x0f))
 		{
 			// part of the message:
-			if (debug) display->printChar(c);
+			if (log_unhandled) display->printChar(c);
 		}
 		else
 		{
@@ -2143,10 +2142,6 @@ int AnsiTerm::getc()
 	{
 		KeyEvent e = getKeyEvent();
 		if (!e.down) continue;
-
-		if unlikely (e.modifiers == LEFTCTRL + LEFTALT)
-			if (e.hidkey == KEY_BACKSPACE || e.hidkey == KEY_DELETE)
-				if (detect_ctrl_alt_del) throw CTRL_ALT_DEL_PRESSED;
 
 		if unlikely (local_echo)
 		{

@@ -33,7 +33,37 @@
 	   to convert your 8-bit characters from and to Unicode for utf-8 encoded transmission.
 */
 
-constexpr char CTRL_ALT_DEL_PRESSED[] = "ctrl-alt-del pressed";
+#ifndef STDIO_USE_UTF8
+  #define STDIO_USE_UTF8 false
+#endif
+
+#ifndef ANSITERM_DEFAULT_APPLICATION_MODE
+  #define ANSITERM_DEFAULT_APPLICATION_MODE false
+#endif
+
+#ifndef ANSITERM_DEFAULT_LOCAL_ECHO
+  #define ANSITERM_DEFAULT_LOCAL_ECHO false
+#endif
+
+#ifndef ANSITERM_DEFAULT_NEWLINE_MODE
+  #define ANSITERM_DEFAULT_NEWLINE_MODE false
+#endif
+
+#ifndef ANSITERM_DEFAULT_SGR_CUMULATIVE
+  #define ANSITERM_DEFAULT_SGR_CUMULATIVE false
+#endif
+
+#ifndef ANSITERM_DEFAULT_C1_CODES_8BIT
+  #define ANSITERM_DEFAULT_C1_CODES_8BIT false
+#endif
+
+#ifndef ANSITERM_DEFAULT_AUTO_WRAP
+  #define ANSITERM_DEFAULT_AUTO_WRAP false
+#endif
+
+#ifndef ANSITERM_LOG_UNHANDLED
+  #define ANSITERM_LOG_UNHANDLED false
+#endif
 
 
 namespace kio::Graphics
@@ -76,32 +106,23 @@ public:
 	RCPtr<TextVDU> display;
 
 	// settings:
-	bool default_auto_wrap		  : 1 = false; // CSI ? 7 h
-	bool default_application_mode : 1 = false; // CSI ? 1 h  or  ESC =
-	bool default_utf8_mode		  : 1 = false; // ESC % G
-	bool default_c1_codes_8bit	  : 1 = false; // ESC SPC G
-	bool default_newline_mode	  : 1 = false; // LFNL: CSI 20 h
-	bool default_local_echo		  : 1 = false; // SRM:	CSI 12 l
-	bool default_sgr_cumulative	  : 1 = false; // GRCM:	CSI 21 h
-	bool _padding2				  : 1 = false;
-
-#ifdef RELEASE
-	static constexpr bool debug		= false;
-	bool				  _padding4 = false;
-#else
-	bool debug	  = true; // log unknown/bogus control codes
-#endif
-	bool dump_control_chars	 = false;
-	bool detect_ctrl_alt_del = false; // true => throw CTRL_ALT_DEL_PRESSED
+	bool default_auto_wrap		  : 1 = ANSITERM_DEFAULT_AUTO_WRAP;		   // CSI ? 7 h
+	bool default_application_mode : 1 = ANSITERM_DEFAULT_APPLICATION_MODE; // CSI ? 1 h  or  ESC =
+	bool default_utf8_mode		  : 1 = STDIO_USE_UTF8;					   // ESC % G
+	bool default_c1_codes_8bit	  : 1 = ANSITERM_DEFAULT_C1_CODES_8BIT;	   // ESC SPC G
+	bool default_newline_mode	  : 1 = ANSITERM_DEFAULT_NEWLINE_MODE;	   // LFNL: CSI 20 h
+	bool default_local_echo		  : 1 = ANSITERM_DEFAULT_LOCAL_ECHO;	   // SRM:	CSI 12 l
+	bool default_sgr_cumulative	  : 1 = ANSITERM_DEFAULT_SGR_CUMULATIVE;   // GRCM:	CSI 21 h
+	bool log_unhandled			  : 1 = ANSITERM_LOG_UNHANDLED;			   // log unhandled or broken control codes
 
 	// SETTINGS & state:
-	bool  utf8_mode			  = false;
-	bool  c1_codes_8bit		  = false;
-	bool  application_mode	  = false;
-	bool  local_echo		  = false;
-	bool  newline_mode		  = false;
-	bool  sgr_cumulative	  = false;
-	bool  auto_wrap			  = false;
+	bool  utf8_mode			  = STDIO_USE_UTF8;
+	bool  c1_codes_8bit		  = ANSITERM_DEFAULT_C1_CODES_8BIT;
+	bool  application_mode	  = ANSITERM_DEFAULT_APPLICATION_MODE;
+	bool  local_echo		  = ANSITERM_DEFAULT_LOCAL_ECHO;
+	bool  newline_mode		  = ANSITERM_DEFAULT_NEWLINE_MODE;
+	bool  sgr_cumulative	  = ANSITERM_DEFAULT_SGR_CUMULATIVE;
+	bool  auto_wrap			  = ANSITERM_DEFAULT_AUTO_WRAP;
 	bool  lr_ever_set_by_csis = false;
 	uchar htabs[160 / 8];
 

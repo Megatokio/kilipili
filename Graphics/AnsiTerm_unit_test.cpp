@@ -65,20 +65,22 @@ TEST_CASE("AnsiTerm: constructor")
 	CHECK_EQ(at.export_char('A'), 'A');
 	CHECK_EQ(at.export_char(char(220)), 220u);
 
-	CHECK_EQ(at.default_auto_wrap, false);
-	CHECK_EQ(at.default_application_mode, false);
-	CHECK_EQ(at.default_utf8_mode, false);
-	CHECK_EQ(at.default_c1_codes_8bit, false);
-	CHECK_EQ(at.default_newline_mode, false);
-	CHECK_EQ(at.default_local_echo, false);
-	CHECK_EQ(at.dump_control_chars, false);
-	CHECK_EQ(at.detect_ctrl_alt_del, false);
+	CHECK_EQ(at.default_auto_wrap, ANSITERM_DEFAULT_AUTO_WRAP);
+	CHECK_EQ(at.default_application_mode, ANSITERM_DEFAULT_APPLICATION_MODE);
+	CHECK_EQ(at.default_utf8_mode, STDIO_USE_UTF8);
+	CHECK_EQ(at.default_c1_codes_8bit, ANSITERM_DEFAULT_C1_CODES_8BIT);
+	CHECK_EQ(at.default_newline_mode, ANSITERM_DEFAULT_NEWLINE_MODE);
+	CHECK_EQ(at.default_local_echo, ANSITERM_DEFAULT_LOCAL_ECHO);
+	CHECK_EQ(at.sgr_cumulative, ANSITERM_DEFAULT_SGR_CUMULATIVE);
+	CHECK_EQ(at.log_unhandled, ANSITERM_LOG_UNHANDLED);
 
+	CHECK_EQ(at.auto_wrap, at.default_auto_wrap);
+	CHECK_EQ(at.application_mode, at.default_application_mode);
 	CHECK_EQ(at.utf8_mode, at.default_utf8_mode);
 	CHECK_EQ(at.c1_codes_8bit, at.default_c1_codes_8bit);
-	CHECK_EQ(at.application_mode, at.default_application_mode);
-	CHECK_EQ(at.local_echo, at.default_local_echo);
 	CHECK_EQ(at.newline_mode, at.default_newline_mode);
+	CHECK_EQ(at.local_echo, at.default_local_echo);
+	CHECK_EQ(at.sgr_cumulative, at.default_sgr_cumulative);
 	CHECK_EQ(at.lr_ever_set_by_csis, false);
 	CHECK_EQ(at.mouse_enabled, false);
 	CHECK_EQ(at.mouse_enabled_once, false);
@@ -171,7 +173,6 @@ TEST_CASE("AnsiTerm: reset(hard)")
 	CHECK_EQ(at.sgr_cumulative, at.default_sgr_cumulative);
 
 	ref << "reset()";
-	ref << "printChar('E',1250)"; // 400*300/8/12
 	ref << "cls()";
 	CHECK_EQ(at.display->log, ref);
 }
@@ -302,9 +303,10 @@ TEST_CASE("AnsiTerm: getc()")
 
 TEST_CASE("log unknown & errors")
 {
-	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
-	TextVDU*	tv = at.display;
+	CanvasPtr pm = new Pixmap(400, 300);
+	AnsiTerm  at(pm, nullptr);
+	TextVDU*  tv	 = at.display;
+	at.log_unhandled = true;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 
@@ -605,7 +607,7 @@ TEST_CASE("ESC % @  and  ESC % G")
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 
-	CHECK_EQ(at.utf8_mode, false);
+	at.utf8_mode	  = false;
 	at.cursor_visible = false;
 	at.auto_wrap	  = true;
 
@@ -739,8 +741,8 @@ TEST_CASE("ESC D  IND")
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 
-	CHECK_EQ(at.utf8_mode, false);
-	CHECK_EQ(at.auto_wrap, false);
+	at.utf8_mode = false;
+	at.auto_wrap = false;
 
 	tv->col = 13;
 	tv->row = 23;
@@ -809,8 +811,8 @@ TEST_CASE("ESC E  NEL")
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 
-	CHECK_EQ(at.utf8_mode, false);
-	CHECK_EQ(at.auto_wrap, false);
+	at.utf8_mode = false;
+	at.auto_wrap = false;
 
 	tv->col = 13;
 	tv->row = 23;
@@ -839,6 +841,8 @@ TEST_CASE("ESC H  HTS")
 	CanvasPtr pm = new Pixmap(400, 300);
 	AnsiTerm  at(pm, nullptr);
 	TextVDU*  tv = at.display;
+
+	at.utf8_mode = false;
 
 	tv->col = 0;
 	at.putc(char('H' + 0x40));
@@ -871,8 +875,8 @@ TEST_CASE("ESC M  RI")
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 
-	CHECK_EQ(at.utf8_mode, false);
-	CHECK_EQ(at.auto_wrap, false);
+	at.utf8_mode = false;
+	at.auto_wrap = false;
 
 	tv->col = 13;
 	tv->row = 2;
@@ -910,8 +914,8 @@ TEST_CASE("ESC Z  DECID  and  CSI 0 c  DA")
 	CanvasPtr pm = new Pixmap(400, 300);
 	AnsiTerm  at(pm, nullptr);
 
-	CHECK_EQ(at.c1_codes_8bit, false);
-	CHECK_EQ(at.utf8_mode, false);
+	at.c1_codes_8bit = false;
+	at.utf8_mode	 = false;
 
 	// 62 = kinda VT220 "device type identification code according to a register which is to be established."
 	// 16 = DEC: mouse port
@@ -973,6 +977,8 @@ TEST_CASE("ESC \\  ST")
 	ref << "TextVDU(pixmap)";
 
 	at.cursor_visible = false;
+	at.utf8_mode	  = false;
+	at.log_unhandled  = true;
 
 	at.puts("\x1b\\");		 // 2-byte form
 	ref << "print({ESC\\})"; // not handled => logged!
@@ -1024,7 +1030,6 @@ TEST_CASE("ESC c  RIS")
 	CHECK_EQ(at.newline_mode, at.default_newline_mode);
 
 	ref << "reset()";
-	ref << "printChar('E',1250)"; // 400*300/8/12
 	ref << "cls()";
 	ref << "showCursor(true)";
 	CHECK_EQ(tv->log, ref);
@@ -1092,6 +1097,8 @@ TEST_CASE("CSI n A  CUU  and  CSI n k  VPB")
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
+
+	at.utf8_mode = false;
 
 	for (int c = 'A'; c <= 'k'; c += 'k' - 'A')
 	{
