@@ -61,7 +61,7 @@ void pollUSB() noexcept
 	// limit actual calls to tuh_task() to 4000/sec:
 	static uint16 last = 0;
 	uint16		  now  = uint16(time_us_32());
-	if (now - last < 250) return;
+	if (uint16(now - last) < 250) return;
 	last = now;
 	tuh_task();
 }
