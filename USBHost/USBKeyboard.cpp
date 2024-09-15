@@ -22,6 +22,8 @@
 namespace kio::USB
 {
 
+bool ctrl_alt_del_detected = false;
+
 static HidKeyTable key_table = USB_DEFAULT_KEYTABLE;
 
 void setHidKeyTranslationTable(const HidKeyTable& table) { key_table = table; }
@@ -100,6 +102,10 @@ int getChar()
 static void pushKeyEvent(const KeyEvent& event) noexcept
 {
 	// store KeyEvent for getChar() or getKeyEvent():
+
+	if unlikely (event.modifiers == LEFTCTRL + LEFTALT)
+		if (event.down && (event.hidkey == KEY_BACKSPACE || event.hidkey == KEY_DELETE)) ctrl_alt_del_detected = true;
+
 	if unlikely (key_event_queue.free() == 0) key_event_queue.get(); // discard oldest
 	key_event_queue.put(event);
 }
@@ -140,3 +146,37 @@ void __weak_symbol defaultHidKeyboardEventHandler(const HidKeyboardReport& new_r
 
 
 } // namespace kio::USB
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

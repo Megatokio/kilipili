@@ -60,6 +60,8 @@ struct KeyEvent
 	char getchar() const noexcept; // returns char(0) for non-printing keys
 };
 
+extern bool ctrl_alt_del_detected; // ctrl+alt+delete or ctrl+alt+bs detected
+
 extern void setHidKeyTranslationTable(const HidKeyTable& table);
 
 using KeyEventHandler = void(const KeyEvent&);
