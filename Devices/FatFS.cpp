@@ -282,7 +282,7 @@ DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 	{
 		if (!blkdev->isWritable()) return RES_WRPRT;
 
-		blkdev->writeSectors(sector, ptr(buff), count);
+		blkdev->writeSectors(sector, cptr(buff), count);
 		return RES_OK;
 	}
 	catch (cstr e)
@@ -346,12 +346,57 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 		static_assert(IoCtl::GET_BLOCK_SIZE == get_block_size);
 		static_assert(IoCtl::CTRL_TRIM == ctrl_trim);
 
-		if (buff == nullptr)
+		// FatFS uses 512 byte sectors, except if configured to handle multiple sizes,
+		// but 512 bytes is the minimum.
+		// for devices with larger sectors we expect FatFS::FF_MAX_SS to be set accordingly.
+		// for devices with smaller sectors we package them to 512 byte units.
+
+		switch (cmd)
 		{
+		case IoCtl::GET_SECTOR_SIZE:
+		{
+			assert(buff);
+			//static_assert(sizeof(WORD) == sizeof(FATFS::ssize));
+			*reinterpret_cast<WORD*>(buff) = WORD(std::max(blkdev->getSectorSize(), 512u));
+			return RES_OK;
+		}
+		case IoCtl::GET_SECTOR_COUNT:
+		{
+			assert(buff);
+			Devices::LBA sectorcount = blkdev->getSectorCount();
+			if (blkdev->ss_write < 9) sectorcount >>= 9 - blkdev->ss_write;
+			*reinterpret_cast<LBA_t*>(buff) = sectorcount;
+			return RES_OK;
+		}
+		case IoCtl::GET_BLOCK_SIZE:
+		{
+			assert(buff);
+			*reinterpret_cast<DWORD*>(buff) = std::max(blkdev->getEraseBlockSize(), 512u);
+			return RES_OK;
+		}
+		case IoCtl::CTRL_TRIM:
+		{
+			assert(buff);
+			LBA_t*		  bu	= reinterpret_cast<LBA_t*>(buff);
+			Devices::LBA  lba	= bu[0];
+			Devices::SIZE count = bu[1] - bu[0] + 1;
+
+			if (blkdev->ss_write < 9)
+			{
+				lba <<= 9 - blkdev->ss_write;
+				count <<= 9 - blkdev->ss_write;
+			}
+
+			blkdev->ioctl(IoCtl(IoCtl::CTRL_TRIM, IoCtl::LBA, IoCtl::SIZE), &lba, &count);
+			return RES_OK;
+		}
+		default:
+		{
+			if (buff) throw "buff != null: TODO";
 			blkdev->ioctl(IoCtl::Cmd(cmd));
 			return RES_OK;
 		}
-		throw "buff != null: TODO";
+		}
 	}
 	catch (Error e)
 	{
