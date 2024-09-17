@@ -41,6 +41,7 @@ add_library(kilipili_devices STATIC
 	Directory.h Directory.cpp
 	FatDir.h FatDir.cpp
 	FileSystem.cpp
+	RamFile.cpp RamFile.h
 	)
 
 target_compile_definitions(kilipili_devices PUBLIC
