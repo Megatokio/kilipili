@@ -42,6 +42,7 @@ add_library(kilipili_devices STATIC
 	FatDir.h FatDir.cpp
 	FileSystem.cpp
 	I2cEeprom.cpp I2cEeprom.h
+	QspiFlash.cpp QspiFlash.h
 	RamFile.cpp RamFile.h
 	)
 
@@ -59,7 +60,9 @@ target_link_libraries(kilipili_devices PUBLIC
 	kilipili_utilities
 	pico_stdlib
 	pico_stdio
+	hardware_flash
 	hardware_spi
+	hardware_i2c
 	)
 
 
