@@ -76,8 +76,9 @@ add_library(kilipili_devices STATIC
 	HeatShrinkEncoder.cpp
 	LzhDecoder.cpp
 	LzhDecoder.h
+	I2cEeprom.cpp I2cEeprom.h
 	${distinct_sources}
-)
+	)
 
 target_compile_definitions(kilipili_devices PUBLIC
 	ON=1 OFF=0
