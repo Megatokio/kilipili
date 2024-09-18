@@ -19,6 +19,8 @@ set(devices_sources
 	RamFile.h
 	DevNull.cpp
 	DevNull.h
+	I2cEeprom.cpp 
+	I2cEeprom.h
 	BlockDevice.h
 	BlockDevice.cpp
 	SerialDevice.h
@@ -111,6 +113,7 @@ else()
 		pico_stdio
 		hardware_spi
 		hardware_flash
+		hardware_i2c
 		kilipili_utilities
 	)
 endif()
