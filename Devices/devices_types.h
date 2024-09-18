@@ -24,12 +24,15 @@ class File;
 using FilePtr = RCPtr<File>;
 
 
-constexpr char NOT_WRITABLE[]	  = "not writable";
-constexpr char NOT_READABLE[]	  = "not readable";
-constexpr char NOT_ERASABLE[]	  = "not erasable";
-constexpr char END_OF_FILE[]	  = "end of file";
-constexpr char TIMEOUT[]		  = "timeout";
-constexpr char INVALID_ARGUMENT[] = "invalid argument";
+constexpr char NOT_WRITABLE[]		   = "not writable";
+constexpr char NOT_READABLE[]		   = "not readable";
+constexpr char NOT_ERASABLE[]		   = "not erasable";
+constexpr char END_OF_FILE[]		   = "end of file";
+constexpr char TIMEOUT[]			   = "timeout";
+constexpr char INVALID_ARGUMENT[]	   = "invalid argument";	  // ioctl()
+constexpr char DEVICE_NOT_RESPONDING[] = "Device not responding"; // block devices
+constexpr char HARD_WRITE_ERROR[]	   = "Hard write error";	  // block devices
+constexpr char HARD_READ_ERROR[]	   = "Hard read error";		  // block devices
 
 
 enum FileOpenMode : uint8 {

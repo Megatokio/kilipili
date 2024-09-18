@@ -26,11 +26,8 @@ struct CID
 static_assert(sizeof(CID) == 16, "");
 
 
-constexpr char DEVICE_NOT_RESPONDING[]	 = "Device not responding";
 constexpr char CRC_ERROR[]				 = "CRC error";
-constexpr char HARD_WRITE_ERROR[]		 = "Hard write error";
 constexpr char DEVICE_INVALID_RESPONSE[] = "Device illegal response";
-constexpr char HARD_READ_ERROR[]		 = "Hard read error";
 constexpr char CONTROLLER_FAILURE[]		 = "Controller failure";
 constexpr char ILLEGAL_COMMAND[]		 = "Illegal command";
 constexpr char ADDRESS_ERROR[]			 = "Address error";
