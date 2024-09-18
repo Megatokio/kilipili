@@ -637,7 +637,7 @@ r:
 		if (crc16(udata, 512) == peek_u16(crc))
 		{
 			blkidx++;
-			data += 512;
+			udata += 512;
 			blkcnt--;
 			continue;
 		}
