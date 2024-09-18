@@ -10,17 +10,17 @@ option(DEVICES_LARGE_FILE_SUPPORT "support files larger than 4GB" OFF)
 
 
 add_library(kilipili_devices STATIC
-	internal/CSD.h 
+	internal/CSD.h
 	internal/CSD.cpp
-	internal/crc.h 
+	internal/crc.h
 	internal/crc.cpp
-	internal/FatFile.h 
+	internal/FatFile.h
 	internal/FatFile.cpp
-	internal/FatFS.h 
+	internal/FatFS.h
 	internal/FatFS.cpp
-	internal/FatDir.h 
+	internal/FatDir.h
 	internal/FatDir.cpp
-	internal/RamFile.cpp 
+	internal/RamFile.cpp
 	internal/RamFile.h
 	internal/RsrcFile.h 
 	internal/RsrcFile.cpp
@@ -59,7 +59,8 @@ add_library(kilipili_devices STATIC
 	HeatShrinkEncoder.cpp
 	LzhDecoder.cpp
 	LzhDecoder.h
-)
+	I2cEeprom.cpp I2cEeprom.h
+	)
 
 target_compile_definitions(kilipili_devices PUBLIC
 	ON=1 OFF=0
@@ -79,6 +80,7 @@ target_link_libraries(kilipili_devices PUBLIC
 	pico_stdlib
 	pico_stdio
 	hardware_spi
+	hardware_i2c
 	)
 
 
