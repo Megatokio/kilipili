@@ -77,6 +77,7 @@ add_library(kilipili_devices STATIC
 	LzhDecoder.cpp
 	LzhDecoder.h
 	I2cEeprom.cpp I2cEeprom.h
+	QspiFlash.cpp QspiFlash.h
 	${distinct_sources}
 	)
 
