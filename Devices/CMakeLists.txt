@@ -41,6 +41,7 @@ add_library(kilipili_devices STATIC
 	Directory.h Directory.cpp
 	FatDir.h FatDir.cpp
 	FileSystem.cpp
+	I2cEeprom.cpp I2cEeprom.h
 	RamFile.cpp RamFile.h
 	)
 
