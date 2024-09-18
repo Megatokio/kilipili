@@ -125,7 +125,7 @@ void FatFS::mkfs(BlockDevice* blkdev, int idx, cstr /*type*/)
 	const uint	ssx	   = max(9u, blkdev->ss_erase);
 	const uint	align  = 1 << (ssx - 9);
 	const uint8 fmtopt = blkdev->flags & partition ? FM_ANY | FM_SFD : FM_ANY;
-	const uint	n_mix  = uint(blkdev->getSize() >> 16) >> (ssx - 7) << (ssx - 5);
+	const uint	n_mix  = uint(blkdev->totalSize() >> 16) >> (ssx - 7) << (ssx - 5);
 	const uint	n_root = minmax(align >> 5, n_mix, 512u);
 
 	MKFS_PARM options = {
@@ -357,13 +357,13 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 		{
 			assert(buff);
 			//static_assert(sizeof(WORD) == sizeof(FATFS::ssize));
-			*reinterpret_cast<WORD*>(buff) = WORD(std::max(blkdev->getSectorSize(), 512u));
+			*reinterpret_cast<WORD*>(buff) = WORD(std::max(blkdev->sectorSize(), 512u));
 			return RES_OK;
 		}
 		case IoCtl::GET_SECTOR_COUNT:
 		{
 			assert(buff);
-			Devices::LBA sectorcount = blkdev->getSectorCount();
+			Devices::LBA sectorcount = blkdev->sectorCount();
 			if (blkdev->ss_write < 9) sectorcount >>= 9 - blkdev->ss_write;
 			*reinterpret_cast<LBA_t*>(buff) = sectorcount;
 			return RES_OK;
@@ -371,7 +371,7 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 		case IoCtl::GET_BLOCK_SIZE:
 		{
 			assert(buff);
-			*reinterpret_cast<DWORD*>(buff) = std::max(blkdev->getEraseBlockSize(), 512u);
+			*reinterpret_cast<DWORD*>(buff) = std::max(blkdev->eraseBlockSize(), 512u);
 			return RES_OK;
 		}
 		case IoCtl::CTRL_TRIM:

@@ -10,6 +10,16 @@
 namespace kio::Devices
 {
 
+void BlockDevice::clamp_blocks(LBA block, SIZE count) const throws
+{
+	if (block > sector_count || count > sector_count - block) throw END_OF_FILE;
+}
+
+void BlockDevice::clamp(ADDR pos, SIZE size) const throws
+{
+	if (pos > totalSize() || size > totalSize() - pos) throw END_OF_FILE;
+}
+
 uint32 BlockDevice::ioctl(IoCtl cmd, void*, void*)
 {
 	// default implementation
@@ -19,6 +29,7 @@ uint32 BlockDevice::ioctl(IoCtl cmd, void*, void*)
 	case IoCtl::CTRL_SYNC: return 0;
 	case IoCtl::GET_SECTOR_SIZE: return 1u << ss_write;
 	case IoCtl::GET_BLOCK_SIZE: return 1u << ss_erase;
+	case IoCtl::GET_SECTOR_COUNT: return sector_count;
 	case IoCtl::CTRL_TRIM: return 0;
 
 	case IoCtl::FLUSH_IN: return 0;
@@ -29,32 +40,118 @@ uint32 BlockDevice::ioctl(IoCtl cmd, void*, void*)
 	}
 }
 
-void BlockDevice::readPartialSector(LBA lba, char* z, SIZE offs, SIZE count)
+void BlockDevice::readData(ADDR address, void* _data, SIZE count) throws // bad_alloc
 {
-	using Buffer = std::unique_ptr<char[]>;
+	ptr	 data		 = reinterpret_cast<ptr>(_data);
+	SIZE sector_size = 1 << ss_write;
+	LBA	 block		 = LBA(address >> ss_write);
 
-	if (count == 0) return;
-	const SIZE sector_size = 1 << ss_write;
-	assert(offs + count <= sector_size);
+	if (SIZE offset = address & (sector_size - 1))
+	{
+		std::unique_ptr<char[]> buffer {new char[sector_size]};
 
-	Buffer buffer {new char[sector_size]};
-	readSectors(lba, buffer.get(), 1);
-	memcpy(z, &buffer[offs], count);
+		SIZE n = std::min(count, sector_size - offset);
+
+		readSectors(block, buffer.get(), 1);
+		memcpy(data, &buffer[offset], n);
+
+		count -= n;
+		data += n;
+		block += 1;
+	}
+
+	if (SIZE n = count >> ss_write)
+	{
+		readSectors(block, data, n);
+		block += n;
+		count -= n << ss_write;
+		data += n << ss_write;
+	}
+
+	if (count)
+	{
+		std::unique_ptr<char[]> buffer {new char[sector_size]};
+		readSectors(block, buffer.get(), 1);
+		memcpy(data, &buffer[0], count);
+	}
 }
 
-void BlockDevice::writePartialSector(LBA lba, const char* q, SIZE offs, SIZE count)
+void BlockDevice::writeData(ADDR address, const void* _data, SIZE count) throws // bad_alloc
 {
-	using Buffer = std::unique_ptr<char[]>;
+	cptr data		 = reinterpret_cast<cptr>(_data);
+	SIZE sector_size = 1 << ss_write;
+	LBA	 block		 = LBA(address >> ss_write);
 
-	if (count == 0) return;
-	const SIZE sector_size = 1 << ss_write;
-	assert(offs + count <= sector_size);
+	if (SIZE offset = address & (sector_size - 1))
+	{
+		std::unique_ptr<char[]> buffer {new char[sector_size]};
 
-	Buffer buffer {new char[sector_size]};
-	readSectors(lba, buffer.get(), 1);
-	memcpy(&buffer[offs], q, count);
-	writeSectors(lba, buffer.get(), 1);
+		SIZE n = std::min(count, sector_size - offset);
+
+		readSectors(block, buffer.get(), 1);
+		memcpy(&buffer[offset], data, n);
+		writeSectors(block, buffer.get(), 1);
+
+		count -= n;
+		data += n;
+		block += 1;
+	}
+
+	if (SIZE n = count >> ss_write)
+	{
+		writeSectors(block, data, n);
+		block += n;
+		count -= n << ss_write;
+		data += n << ss_write;
+	}
+
+	if (count)
+	{
+		std::unique_ptr<char[]> buffer {new char[sector_size]};
+
+		readSectors(block, buffer.get(), 1);
+		memcpy(&buffer[0], data, count);
+		writeSectors(block, buffer.get(), 1);
+	}
 }
 
 
 } // namespace kio::Devices
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

@@ -62,8 +62,7 @@ public:
 	char	 _padding;
 	CSD		 csd;
 	CID		 cid;
-	uint32	 ocr		= 0;
-	ADDR	 total_size = 0;
+	uint32	 ocr = 0;
 
 	SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) noexcept;
 
@@ -73,8 +72,8 @@ public:
 	//virtual void read (ADDR q, uint8* bu, SIZE) override;
 	//virtual void write (ADDR z, const uint8* bu, SIZE) override;
 	//virtual void copy_blocks (ADDR z, ADDR q, SIZE sz) override { copy_hd(z,q,sz); }
-	virtual void   readSectors(LBA, char* bu, SIZE) throws override;
-	virtual void   writeSectors(LBA, const char* bu, SIZE) throws override;
+	virtual void   readSectors(LBA, void* bu, SIZE) throws override;
+	virtual void   writeSectors(LBA, const void* bu, SIZE) throws override;
 	virtual uint32 ioctl(IoCtl, void* arg1 = nullptr, void* arg2 = nullptr) throws override;
 
 	void print_scr(uint v = 1);

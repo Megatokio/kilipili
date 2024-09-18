@@ -11,89 +11,33 @@ namespace kio::Devices
 BlockDeviceFile::BlockDeviceFile(RCPtr<BlockDevice> bdev) noexcept :
 	File(bdev->flags),
 	bdev(std::move(bdev)),
-	fsize(bdev->getSize())
+	fsize(bdev->totalSize())
 {}
 
 
 SIZE BlockDeviceFile::read(void* _data, SIZE count, bool partial)
 {
-	ptr data = ptr(_data);
-
 	if (count > fsize - fpos)
 	{
 		count = SIZE(fsize - fpos);
 		if (!partial) throw END_OF_FILE;
 	}
-	
-	int	 ss	   = bdev->ss_write;
-	SIZE ssize = 1 << ss;
-	SIZE smask = ssize - 1;
-	SIZE rem   = count;
 
-	if (fpos & smask)
-	{
-		SIZE cnt = min(rem, ssize - (SIZE(fpos) & smask));
-		bdev->readPartialSector(LBA(fpos >> ss), data, fpos & smask, cnt);
-		fpos += cnt;
-		data += cnt;
-		rem -= cnt;
-	}
-
-	if (rem > ssize)
-	{
-		bdev->readSectors(LBA(fpos >> ss), data, rem >> ss);
-		fpos += rem - (rem & smask);
-		data += rem - (rem & smask);
-		rem &= smask;
-	}
-
-	if (rem)
-	{
-		bdev->readPartialSector(LBA(fpos >> ss), data, 0, rem);
-		fpos += rem;
-	}
-
+	bdev->readData(fpos, _data, count);
+	fpos += count;
 	return count;
 }
 
 SIZE BlockDeviceFile::write(const void* _data, SIZE count, bool partial)
 {
-	cptr data = cptr(_data);
-
 	if (count > fsize - fpos)
 	{
 		count = SIZE(fsize - fpos);
 		if (!partial) throw END_OF_FILE;
 	}
 
-	int	 ss	   = bdev->ss_write;
-	SIZE ssize = 1 << ss;
-	SIZE smask = ssize - 1;
-	SIZE rem   = count;
-
-	if (fpos & smask)
-	{
-		SIZE cnt = min(rem, ssize - (SIZE(fpos) & smask));
-		bdev->writePartialSector(LBA(fpos >> ss), data, fpos & smask, cnt);
-		fpos += cnt;
-		data += cnt;
-		rem -= cnt;
-	}
-
-	if (rem > ssize)
-	{
-		bdev->writeSectors(LBA(fpos >> ss), data, rem >> ss);
-		fpos += rem - (rem & smask);
-		data += rem - (rem & smask);
-		rem &= smask;
-	}
-
-	if (rem)
-	{
-		bdev->writePartialSector(LBA(fpos >> ss), data, 0, rem);
-		fpos += rem;
-	}
-
+	bdev->writeData(fpos, _data, count);
+	fpos += count;
 	return count;
 }
 

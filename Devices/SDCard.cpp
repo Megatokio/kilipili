@@ -84,7 +84,7 @@ static bool		 is_clk_pin(uint pin) { return (pin & 3) == 2; }
 static bool		 is_tx_pin(uint pin) { return (pin & 3) == 3; }
 
 SDCard::SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) noexcept :
-	BlockDevice(9, 9, 9 /*ss*/, readwrite /*flags*/),
+	BlockDevice(0, 9, 9, 9 /*ss*/, readwrite /*flags*/),
 	spi(inst_for_pin(rx)),
 	rx_pin(rx),
 	cs_pin(cs),
@@ -120,9 +120,9 @@ void SDCard::disconnect() noexcept
 {
 	deselect();
 	//spi_deinit(spi);
-	total_size = 0;
-	flags	   = Flags(0);
-	card_type  = SD_unknown;
+	sector_count = 0;
+	flags		  = Flags(0);
+	card_type	  = SD_unknown;
 }
 
 
@@ -520,12 +520,9 @@ void SDCard::connect() throws
 		flags = csd.write_prot() ? partition | readable : partition | readwrite | overwritable;
 
 		debugstr("\n");
-		total_size = ADDR(csd.disk_size());
-		if (sizeof(ADDR) != sizeof(uint64) && total_size != csd.disk_size())
-		{
-			printf("WARNING: disk size >= 4GB\n");
-			total_size = UINT32_MAX & ~(getSectorSize() - 1);
-		}
+		uint64 total_size = csd.disk_size();
+		sector_count	  = SIZE(total_size >> ss_write);
+		if (ADDR(total_size) != total_size) debugstr("WARNING: disk size >= 4GB\n");
 		debugstr("ready\n");
 	}
 	catch (cstr& e)
@@ -612,7 +609,7 @@ void SDCard::stop_transmission() noexcept
 	if (r1 != 0) printf("\nERROR: cmd12 r1=0x%02x  ", r1);
 }
 
-void SDCard::readSectors(LBA blkidx, char* data, SIZE blkcnt) throws
+void SDCard::readSectors(LBA blkidx, void* data, SIZE blkcnt) throws
 {
 	// CMD18: read multiple blocks
 
@@ -650,7 +647,7 @@ r:
 	stop_transmission();
 }
 
-void SDCard::writeSectors(LBA blkidx, const char* data, SIZE blkcnt) throws
+void SDCard::writeSectors(LBA blkidx, const void* data, SIZE blkcnt) throws
 {
 	// CMD25: write multiple blocks
 
@@ -783,25 +780,20 @@ void SDCard::write(ADDR zpos, const uint8* data, SIZE size)
 }
 #endif
 
-uint32 SDCard::ioctl(IoCtl ctl, void*, void*) throws
+uint32 SDCard::ioctl(IoCtl ctl, void* a1, void* a2) throws
 {
 	switch (ctl.cmd)
 	{
-	case IoCtl::CTRL_RESET: // reset internal state, discard pending input and output, keep connected
-		break;
 	case IoCtl::CTRL_CONNECT: // connect to hardware, load removable disk
 		connect();			  // throws
 		print_card_info();
-		break;
+		return 0;
 	case IoCtl::CTRL_DISCONNECT: // disconnect from hardware, unload removable disk
 		disconnect();
-		break;
-	case IoCtl::FLUSH_OUT: // write out all buffers
-		break;
-	case IoCtl::FLUSH_IN: // flush buffered inputs
-		break;
+		return 0;
+	default: //
+		return BlockDevice::ioctl(ctl, a1, a2);
 	}
-	return 0;
 }
 
 static inline bool is_ascii(char c) { return c >= 32 && c <= 126; }
