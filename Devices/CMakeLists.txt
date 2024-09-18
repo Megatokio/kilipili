@@ -48,6 +48,7 @@ else()
 		pico_stdlib
 		pico_stdio
 		hardware_spi
+		hardware_i2c
 		kilipili_utilities)
 endif()
 
@@ -76,8 +77,10 @@ add_library(kilipili_devices STATIC
 	HeatShrinkEncoder.cpp
 	LzhDecoder.cpp
 	LzhDecoder.h
+	I2cEeprom.cpp 
+	I2cEeprom.h
 	${distinct_sources}
-)
+	)
 
 target_compile_definitions(kilipili_devices PUBLIC
 	ON=1 OFF=0
