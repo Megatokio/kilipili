@@ -60,6 +60,8 @@ add_library(kilipili_devices STATIC
 	LzhDecoder.cpp
 	LzhDecoder.h
 	I2cEeprom.cpp I2cEeprom.h
+	QspiFlash.cpp QspiFlash.h
+	RamFile.cpp RamFile.h
 	)
 
 target_compile_definitions(kilipili_devices PUBLIC
@@ -79,6 +81,7 @@ target_link_libraries(kilipili_devices PUBLIC
 	kilipili_utilities
 	pico_stdlib
 	pico_stdio
+	hardware_flash
 	hardware_spi
 	hardware_i2c
 	)
