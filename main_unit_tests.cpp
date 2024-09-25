@@ -7,7 +7,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 //
-#include "cdefs.h"
+#include "Graphics/graphics_types.h"
+#include "common/Array.h"
+#include "common/cdefs.h"
 
 
 void panic(const char* fmt, ...)
@@ -17,6 +19,26 @@ void panic(const char* fmt, ...)
 	vprintf(fmt, va);
 	exit(2);
 }
+
+namespace kio
+{
+doctest::String toString(Array<cstr> log)
+{
+	if (log.count() == 0) return "{<empty>}";
+	cstr s = log[0];
+	for (uint i = 1; i < log.count(); i++) { s = catstr(s, ",\n", log[i]); }
+	return catstr("{\n", s, "}");
+}
+} // namespace kio
+
+namespace kio::Graphics
+{
+doctest::String toString(ColorMode cm)
+{
+	return tostr(cm); //
+}
+} // namespace kio::Graphics
+
 
 #if 0 
 // c&p template:

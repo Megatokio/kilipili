@@ -31,10 +31,16 @@ if(${UNIT_TEST})
 		Graphics/Mock/Pixmap.cpp
 		Graphics/Mock/TextVDU.h 
 		Graphics/Mock/TextVDU.cpp
+		Audio/AudioSource_unit_test.cpp
+		Audio/AudioSample_unit_test.cpp
+		Audio/AudioSource.h
+		Audio/audio_options.h
+		Audio/AudioSample.h
 		common/tempmem.test.cpp
 		common/cstrings.test.cpp
 		common/relational_operators.test.cpp
-		common/Array.test.cpp 		
+		common/Array.test.cpp
+		Audio/AudioSource.cpp 		
 		)
 	
 	target_compile_definitions(unit_tests PUBLIC
@@ -65,6 +71,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 	add_subdirectory(utilities)
 	add_subdirectory(Graphics)
 	add_subdirectory(Video)
+	add_subdirectory(Audio)
 	add_subdirectory(Devices)
 	add_subdirectory(USBHost)
 	
@@ -82,6 +89,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 		kilipili_utilities
 		kilipili_graphics
 		kilipili_video
+		kilipili_audio
 		kilipili_devices
 		kilipili_usb_host
 		)

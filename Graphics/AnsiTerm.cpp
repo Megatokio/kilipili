@@ -16,7 +16,7 @@
 namespace kio::Audio
 {
 using Sample = int16;
-extern void __weak_symbol beep(float frequency_hz = 880, Sample volume = 0x3fff, uint32 duration_ms = 600);
+extern void __weak_symbol beep(float frequency_hz = 880, float volume = .5f, uint32 duration_ms = 600);
 } // namespace kio::Audio
 
 // ##########################################################

@@ -1,0 +1,38 @@
+; Copyright (c) 2024 - 2024 kio@little-bat.de
+; BSD-2-Clause license
+; https://opensource.org/licenses/BSD-2-Clause
+
+; Transmit a mono SigmaDelta audio stream 
+;
+; Autopull must be enabled, with threshold set to 32.
+; Since we need Sigma first which is in the msbit, shift direction must be to left.
+; the side set bit sets pindir for the output pin.
+; before start the ISR must be loaded with the const value = 127.
+
+; default state of the out pin is 'input' => high Z.
+; the 'sigma' bit sets the out pin to low or high, but doesn't change it's direction.
+; if 'count' != 0 then the delay loop is entered and the pin direction is set to 'output'.
+
+; data format: 4 x (sigma:1 + delta:7)
+;
+; clocks per sample = 127*2 + 1*2 + 4  = 260
+; max. on/off ratio = 127 / 3
+
+.program sid_audio
+.side_set 1 pindirs
+
+	
+l1: jmp y--, l2		side 1		; decrement y
+l2:	jmp x--, l1		side 1
+.wrap_target
+l0: jmp y--, l0		side 0  [1]
+
+public entry_point:
+	out  pins, 1	side 0		; 1=neg, 0=pos
+	out  x, 7		side 0		; delay count
+	mov  y,isr		side 0		; 127 => total loops = 128
+	jmp  x--, l1	side 0
+.wrap	
+
+
+

@@ -31,8 +31,7 @@
 #define VIDEO_PIXEL_BCOUNT 1
 
 // Audio
-#define PICO_AUDIO_LEFT_CHANNEL  26 // actually no dedicated pins for audio or a beep
-#define PICO_AUDIO_RIGHT_CHANNEL 27
+#define PICO_AUDIO_NONE
 
 // SDCard
 #define PICO_DEFAULT_SPI 1

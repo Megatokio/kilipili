@@ -15,24 +15,16 @@ static_assert(TextVDU::CHAR_HEIGHT == 12);
 static_assert(TextVDU::CHAR_WIDTH == 8);
 static_assert(Color::total_colorbits >= 15); // we get the defaults from vgaboard
 
+// defined in main_unit_tests.cpp:
+
 namespace kio
 {
-doctest::String toString(Array<cstr> log)
-{
-	if (log.count() == 0) return "{<empty>}";
-	cstr s = log[0];
-	for (uint i = 1; i < log.count(); i++) { s = catstr(s, ",\n", log[i]); }
-	return catstr("{\n", s, "}");
+extern doctest::String toString(Array<cstr>);
 }
-} // namespace kio
-
 namespace kio::Graphics
 {
-doctest::String toString(ColorMode cm)
-{
-	return tostr(cm); //
+extern doctest::String toString(ColorMode);
 }
-} // namespace kio::Graphics
 
 
 namespace kio::Test

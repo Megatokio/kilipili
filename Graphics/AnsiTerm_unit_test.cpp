@@ -26,13 +26,16 @@ static_assert(TextVDU::CHAR_HEIGHT == 12);
 static_assert(TextVDU::CHAR_WIDTH == 8);
 static_assert(Color::total_colorbits >= 15); // we get the defaults from vgaboard
 
-/* -----------------------
-   defined in TextVDU_unit_test.cpp:
+// defined in main_unit_tests.cpp:
 
-namespace kio { extern doctest::String toString(Array<cstr> log); }
-namespace kio::Graphics { extern doctest::String toString(ColorMode cm); }
-
--------------------------- */
+namespace kio
+{
+extern doctest::String toString(Array<cstr>);
+}
+namespace kio::Graphics
+{
+extern doctest::String toString(ColorMode);
+}
 
 // construct a USB KeyboardReport:
 static HidKeyboardReport keys(Modifiers m = NO_MODIFIERS, HIDKey a = NO_KEY, HIDKey b = NO_KEY, HIDKey c = NO_KEY)

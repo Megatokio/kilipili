@@ -45,6 +45,25 @@ The Graphics engine supports pixmaps with many modes which are supported by the 
 - `[done]` Text output
 - `[todo]` Graphics still lack some functionality.
 
+## Audio
+The audio sub system supports no audio and I2S and PWM audio with 1 or 2 channels.
+If your audio source has a fixed sample rate which cannot be matched by the hardware (PWM most notably),
+then you can wrap it in a SampleRateAdapter.  
+Programs can be written indepentent of the actual number of hardware channels by wrapping audio sources in a MakeMonoAdapter or MakeStereoAdapter.  
+The latency of the audio system is very low, approx. 5ms with default settings and can be configured down to 1ms.  
+Audio adapters add no latency. (the SampleRateAdapter may add up to 2 samples latency.)  
+The memory footprint is very low: default 2kB static memory for PWM stereo, 1kB for I2S or mono, can be configured down to 64 frames (à 4 or 8 bytes).  
+The adapters allocate no static memory but a small buffer on the stack if needed (64 frames à 4 or 8 bytes). This should be considered for the overall stack usage, especially when audio is filled up using a timer interrupt.  
+The `fillBuffer()` function can be called on timer interrupt or manually, e.g. in the applications event loop.
+The audio interface automatically adjusts to a changed system clock when switching video modes.  
+- `[done]` PWM mono and stereo output
+- `[done]` I2S stereo output
+- `[test]` Sigma-delta mono and stereo output
+- `[done]` no audio and simple beeper
+- `[done]` sinus and square wave generators
+- `[done]` sample rate adapter, misc. mono <-> stereo adapters
+- `[done]` low latency of as little as 1ms
+
 ## SDCard support
 The SDcard Interface accesses the SD card via it's SPI interface.  
 
@@ -54,11 +73,12 @@ The SDcard Interface accesses the SD card via it's SPI interface.
 ## Other
 - `[done]` cpu load sensor
 - `[done]` **malloc** replacement which doesn't fail to return available memory
-- `[todo]` Audio
+- `[test]` I2C BlockDevice
+- `[test]` QSPI flash BlockDevice
 
 ## Resources & restrictions
-- Uses CPU core 1, 3 DMA channels and 2 state machines in PIO 1.  
-  (The 2 other state machines will probably be used for audio)
+- Uses CPU core 1, 3 DMA channels and 2 state machines in PIO 1 for video.  
+  Upt to 2 DMA channels and the other state machines are used for audio.
 - Some video modes require excessive high system clock in high screen resolutions.
 - Pixel clock restricted to full MHz.
 - System clock must be a multiple of the pixel clock.
