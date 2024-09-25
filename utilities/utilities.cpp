@@ -3,7 +3,6 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "utilities.h"
-#include "LoadSensor.h"
 #include "cdefs.h"
 #include <hardware/clocks.h>
 #include <hardware/pll.h>
@@ -32,6 +31,9 @@ extern char __flash_binary_end;
 
 // ram from ram_vector_table to end / __HeapLimit / __StackLimit / __StackTop
 extern char __data_start__; // TODO: ram_vector_table
+
+// possible callback for the application:
+__weak_symbol void sysclockChanged(uint32 new_clock) noexcept;
 
 
 // =========================================
@@ -324,11 +326,26 @@ Error set_system_clock(uint32 new_clock, uint32 max_error)
 		sleep_ms(1);
 	}
 
-	// clk_peri has changed:
-	setup_default_uart();
-	LoadSensor::recalibrate();
+	sysclock_changed(new_clock);
 
 	return NO_ERROR;
+}
+
+namespace Audio
+{
+__weak_symbol void sysclockChanged(uint32 new_clock) noexcept;
+}
+namespace LoadSensor
+{
+__weak_symbol void recalibrate() noexcept;
+}
+
+void sysclock_changed(uint32 new_clock) noexcept
+{
+	::setup_default_uart();
+	if (LoadSensor::recalibrate) LoadSensor::recalibrate();
+	if (Audio::sysclockChanged) Audio::sysclockChanged(new_clock);
+	if (::sysclockChanged) ::sysclockChanged(new_clock);
 }
 
 

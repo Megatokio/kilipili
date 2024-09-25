@@ -6,19 +6,19 @@
 #ifdef UNIT_TEST
   #include "glue.h"
 #else
-  
-#include "LoadSensor.h"
-#include "basic_math.h"
-#include "standard_types.h"
-#include <hardware/clocks.h>
-#include <hardware/pll.h>
-#include <hardware/timer.h>
-#include <hardware/vreg.h>
-#include <pico/stdlib.h>
 
-#ifndef SYSCLOCK_fMAX
-  #define SYSCLOCK_fMAX (290 MHz)
-#endif
+  #include "LoadSensor.h"
+  #include "basic_math.h"
+  #include "standard_types.h"
+  #include <hardware/clocks.h>
+  #include <hardware/pll.h>
+  #include <hardware/timer.h>
+  #include <hardware/vreg.h>
+  #include <pico/stdlib.h>
+
+  #ifndef SYSCLOCK_fMAX
+	#define SYSCLOCK_fMAX (290 MHz)
+  #endif
 
 
 constexpr Error UNSUPPORTED_SYSTEM_CLOCK = "requested system clock is not supported";
@@ -65,6 +65,7 @@ extern uint calc_stack_guard_min_free(uint core);
 
 inline uint32 get_system_clock() { return clock_get_hz(clk_sys); }
 extern Error  set_system_clock(uint32 sys_clock = 125 MHz, uint32 max_error = 1 MHz);
+extern void	  sysclock_changed(uint32 new_clock) noexcept;
 
 struct sysclock_params
 {

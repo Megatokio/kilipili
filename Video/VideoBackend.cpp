@@ -420,8 +420,7 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 
 	// *** VIDEO GENERATION RESTARTED ***
 
-	setup_default_uart(); // clk_peri has changed
-	LoadSensor::recalibrate();
+	sysclock_changed(new_sys_clock);
 
 	if (params.voltage < vreg_get_voltage())
 	{
