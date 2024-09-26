@@ -13,6 +13,11 @@
 #include "Video/ColorMap.h"
 #include "common/cstrings.h"
 
+namespace kio::Audio
+{
+using Sample = int16;
+extern void __weak_symbol beep(float frequency_hz = 880, Sample volume = 0x3fff, uint32 duration_ms = 600);
+} // namespace kio::Audio
 
 // ##########################################################
 
@@ -399,7 +404,8 @@ void AnsiTerm::handle_C0(char c)
 	{
 	case 0x07: // BELL
 	{
-		return; // TODO
+		if (kio::Audio::beep) kio::Audio::beep();
+		return;
 	}
 	case 0x08: // BS - backspace (data)
 	{
