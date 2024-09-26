@@ -12,7 +12,6 @@
 
 #include "ScanlineRenderFu.h"
 #include "basic_math.h"
-#include "video_types.h"
 #include <hardware/interp.h>
 #include <string.h>
 

@@ -33,9 +33,6 @@ add_library(kilipili_video STATIC
 	ScanlineBuffer.cpp
 	VideoBackend.cpp
 	VideoBackend.h
-	ColorMap.cpp
-	ColorMap.h
-	Color.h
 	Shape.h
 	Sprite.h
 	Sprite.cpp
@@ -45,7 +42,6 @@ add_library(kilipili_video STATIC
 	MultiSpritesPlane.cpp
 	MultiSpritesPlane.h
 	UniColorBackdrop.h
-	video_types.h
 	Frames.h
 )
 

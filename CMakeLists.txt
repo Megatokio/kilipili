@@ -35,9 +35,6 @@ if(${UNIT_TEST})
 		common/cstrings.test.cpp
 		common/relational_operators.test.cpp
 		common/Array.test.cpp 		
-		Video/ColorMap.cpp
-		Video/ColorMap.h
-		Video/Color.h
 		)
 	
 	target_compile_definitions(unit_tests PUBLIC

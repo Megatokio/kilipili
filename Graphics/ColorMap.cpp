@@ -4,7 +4,7 @@
 
 #include "ColorMap.h"
 
-namespace kio::Video
+namespace kio::Graphics
 {
 
 // clang-format off
@@ -161,4 +161,4 @@ constexpr const Color* const default_colormaps[5]
 
 // clang-format on
 
-} // namespace kio::Video
+} // namespace kio::Graphics

@@ -2,10 +2,10 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
+#include "Graphics/Color.h"
 #include "Mock/Pixmap.h"
 #include "Pixmap_wAttr.h"
 #include "TextVDU.h"
-#include "Video/Color.h"
 #include "doctest.h"
 
 using namespace kio::Graphics;
@@ -13,7 +13,7 @@ using namespace kio;
 
 static_assert(TextVDU::CHAR_HEIGHT == 12);
 static_assert(TextVDU::CHAR_WIDTH == 8);
-static_assert(Video::Color::total_colorbits >= 15); // we get the defaults from vgaboard
+static_assert(Color::total_colorbits >= 15); // we get the defaults from vgaboard
 
 namespace kio
 {

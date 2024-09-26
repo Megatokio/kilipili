@@ -4,8 +4,8 @@
 
 #pragma once
 #include "Graphics/Canvas.h"
+#include "Graphics/Color.h"
 #include "Graphics/Mock/TextVDU.h"
-#include "Video/Color.h"
 #include "common/Queue.h"
 #include "common/RCPtr.h"
 #include "common/geometry.h"
@@ -72,8 +72,6 @@ namespace kio::Graphics
 class AnsiTerm final : public RCObject
 {
 public:
-	using Color		= Video::Color;
-	using CanvasPtr = Graphics::CanvasPtr;
 #ifdef UNIT_TEST
 	using TextVDU = Graphics::Mock::TextVDU;
 #else

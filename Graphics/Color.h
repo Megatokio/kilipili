@@ -3,12 +3,12 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "color_options.h"
 #include "standard_types.h"
 #include "tempmem.h"
-#include "video_options.h"
 #include <cstdio>
 
-namespace kio::Video
+namespace kio::Graphics
 {
 
 /*
@@ -273,12 +273,12 @@ constexpr Color light_grey = white;
 constexpr Color dark_grey  = bright_black;
 } // namespace vga
 
-} // namespace kio::Video
+} // namespace kio::Graphics
 
 
-inline cstr tostr(kio::Video::Color c)
+inline cstr tostr(kio::Graphics::Color c)
 {
-	using namespace kio::Video;
+	using namespace kio::Graphics;
 	char bu[20];
 
 #if (ORDER_GREY)

@@ -9,12 +9,13 @@
 // To my best knowing the copyright never extended on the decoder.
 
 #include "GifDecoder.h"
-#include "Video/Color.h"
+#include "Graphics/Color.h"
 #include "basic_math.h"
 #include <cstrings.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+
 namespace kio
 {
 extern void print_heap_free(int r = 0);
@@ -447,7 +448,7 @@ void GifDecoder::lz_read_scanline(uchar* line, int length)
 	this->stack_ptr = stack_ptr;
 }
 
-Video::Color* GifDecoder::read_cmap(uint8 bits, uint maxbits)
+Color* GifDecoder::read_cmap(uint8 bits, uint maxbits)
 {
 	if (!maxbits) maxbits = bits;
 	assert(maxbits >= bits);
@@ -728,7 +729,7 @@ int GifDecoder::decode_frame(Canvas& pm, int x0, int y0)
 	// does not draw the transparent pixels => dest pixmap must be cleared ahead
 	// this version is for true color dest pixmap
 
-	store_scanline fu = [&](int x, int y, int w, uchar* pixels, Video::Color* cmap, int transp) {
+	store_scanline fu = [&](int x, int y, int w, uchar* pixels, Color* cmap, int transp) {
 		y += y0;
 		if (uint(y) >= uint(pm.height)) return;
 		x += x0;
@@ -753,7 +754,7 @@ int GifDecoder::decode_frame(Canvas& dest, Color* cmap_out, int x0, int y0)
 	// does not draw the transparent pixels => dest pixmap must be cleared ahead
 	// pixmap must be an indexed color pixmap of the same depth as the gif image
 
-	store_scanline fu = [&](int x, int y, int w, uchar* pixels, Video::Color* __unused cmap, int transp) {
+	store_scanline fu = [&](int x, int y, int w, uchar* pixels, Color* __unused cmap, int transp) {
 		y += y0;
 		if (uint(y) >= uint(dest.height)) return;
 		x += x0;
@@ -780,7 +781,7 @@ int GifDecoder::decode_frame(Canvas& pm, Color* colormap, int* transp_color, int
 	// draws the transparent pixels & returns the transparent color index
 	// pixmap must be an indexed color pixmap of the same depth as the gif image
 
-	store_scanline fu = [&](int x, int y, int w, uchar* pixels, Video::Color* __unused cmap, int transp) {
+	store_scanline fu = [&](int x, int y, int w, uchar* pixels, Color* __unused cmap, int transp) {
 		y += y0;
 		if (uint(y) >= uint(pm.height)) return;
 		x += x0;

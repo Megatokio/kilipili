@@ -3,13 +3,11 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Color.h"
-#include "video_types.h"
+#include "graphics_types.h"
 #include <string.h>
 
-namespace kio::Video
+namespace kio::Graphics
 {
-using namespace Graphics;
 
 template<ColorDepth CD>
 using ColorMap = Color[1 << (1 << CD)];
@@ -86,4 +84,4 @@ inline void resetColorMap<colordepth_16bpp>(Color*) noexcept
 {}
 
 
-} // namespace kio::Video
+} // namespace kio::Graphics

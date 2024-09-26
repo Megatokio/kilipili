@@ -10,6 +10,7 @@
 namespace kio::Video
 {
 using ColorMode = Graphics::ColorMode;
+using Color		= Graphics::Color;
 
 template<ColorMode CM, typename = std::enable_if_t<is_direct_color(CM)>>
 void scanlineRenderFunction(uint32* dest, uint screen_width_pixels, const uint8* video_pixels);

@@ -45,6 +45,10 @@ add_library(kilipili_graphics STATIC
 	${distinct_sources}
 	TextVDU.h TextVDU.cpp
 	AnsiTerm.cpp AnsiTerm.h
+	color_options.h
+	Color.h
+	ColorMap.h
+	ColorMap.cpp
 	)
 
 target_compile_definitions(kilipili_graphics PUBLIC

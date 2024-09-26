@@ -3,14 +3,14 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "AnsiTerm.h"
+#include "Graphics/Color.h"
+#include "Graphics/ColorMap.h"
 #include "Mock/Pixmap.h"
 #include "Pixmap_wAttr.h"
 #include "USBHost/HidKeyTables.h"
 #include "USBHost/USBKeyboard.h"
 #include "USBHost/USBMouse.h"
 #include "USBHost/hid_handler.h"
-#include "Video/Color.h"
-#include "Video/ColorMap.h"
 #include "doctest.h"
 
 namespace kio::Test
@@ -24,7 +24,7 @@ using Pixmap  = kio::Graphics::Mock::Pixmap;
 
 static_assert(TextVDU::CHAR_HEIGHT == 12);
 static_assert(TextVDU::CHAR_WIDTH == 8);
-static_assert(Video::Color::total_colorbits >= 15); // we get the defaults from vgaboard
+static_assert(Color::total_colorbits >= 15); // we get the defaults from vgaboard
 
 /* -----------------------
    defined in TextVDU_unit_test.cpp:
@@ -2118,11 +2118,11 @@ TEST_CASE("CSI ? n… h  DECSET  and  CSI ? n… l  DECRST")
 	CHECK_EQ(at.application_mode, false);
 
 	at.puts("\x1b[?5h");
-	CHECK_EQ(tv->fgcolor, kio::Video::black);
-	CHECK_EQ(tv->bgcolor, kio::Video::white);
+	CHECK_EQ(tv->fgcolor, black);
+	CHECK_EQ(tv->bgcolor, white);
 	at.puts("\x1b[?5l");
-	CHECK_EQ(tv->bgcolor, kio::Video::black);
-	CHECK_EQ(tv->fgcolor, kio::Video::white);
+	CHECK_EQ(tv->bgcolor, black);
+	CHECK_EQ(tv->fgcolor, white);
 
 	at.puts("\x1b[?7h");
 	CHECK_EQ(at.auto_wrap, true);
@@ -2145,23 +2145,23 @@ TEST_CASE("CSI ? n… h  DECSET  and  CSI ? n… l  DECRST")
 
 	at.puts("\x1b[?1;25;1;7;7h");
 	CHECK_EQ(at.application_mode, true);
-	CHECK_EQ(tv->bgcolor, kio::Video::black);
-	CHECK_EQ(tv->fgcolor, kio::Video::white);
+	CHECK_EQ(tv->bgcolor, black);
+	CHECK_EQ(tv->fgcolor, white);
 	CHECK_EQ(at.auto_wrap, true);
 	CHECK_EQ(at.cursor_visible, true);
 	at.puts("\x1b[?25;7l");
 	CHECK_EQ(at.application_mode, true);
-	CHECK_EQ(tv->bgcolor, kio::Video::black);
-	CHECK_EQ(tv->fgcolor, kio::Video::white);
+	CHECK_EQ(tv->bgcolor, black);
+	CHECK_EQ(tv->fgcolor, white);
 	CHECK_EQ(at.auto_wrap, false);
 	CHECK_EQ(at.cursor_visible, false);
 	at.puts("\x1b[?5h");
-	CHECK_EQ(tv->fgcolor, kio::Video::black);
-	CHECK_EQ(tv->bgcolor, kio::Video::white);
+	CHECK_EQ(tv->fgcolor, black);
+	CHECK_EQ(tv->bgcolor, white);
 	at.puts("\x1b[?1;25;7l");
 	CHECK_EQ(at.application_mode, false);
-	CHECK_EQ(tv->fgcolor, kio::Video::black);
-	CHECK_EQ(tv->bgcolor, kio::Video::white);
+	CHECK_EQ(tv->fgcolor, black);
+	CHECK_EQ(tv->bgcolor, white);
 	CHECK_EQ(at.auto_wrap, false);
 	CHECK_EQ(at.cursor_visible, false);
 
@@ -2342,8 +2342,6 @@ TEST_CASE("CSI n ' ~  DECDC")
 TEST_CASE("CSI n… m  SGR")
 {
 	// set character attributes.
-
-	using namespace kio::Video;
 
 	CanvasPtr pm = new Pixmap(400, 300);
 	AnsiTerm  at(pm, nullptr);
@@ -2545,8 +2543,6 @@ TEST_CASE("ESC 7  DECSC  and  ESC 8  DECRC")
 	// DECSC: DEC save cursor
 	// DECRC: DEC restore cursor
 
-	using namespace kio::Video;
-
 	CanvasPtr pm = new Pixmap(400, 300);
 	AnsiTerm  at(pm, nullptr);
 	TextVDU*  tv = at.display;
@@ -2687,8 +2683,8 @@ TEST_CASE("CSI n ; m r  DECSTBM")
 	tv->col = 10;
 	tv->row = 5;
 	tv->setCharAttributes(tv->BOLD);
-	tv->fgcolor = Video::vga::yellow;
-	tv->bgcolor = Video::vga::green;
+	tv->fgcolor = vga::yellow;
+	tv->bgcolor = vga::green;
 
 	// set vertical scroll region boundaries
 	// scroll region not yet enabled
@@ -2706,8 +2702,8 @@ TEST_CASE("CSI n ; m r  DECSTBM")
 	CHECK_EQ(tv->col, 10);
 	CHECK_EQ(tv->row, 5);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// enable scroll region set with CSI r
 
@@ -2728,8 +2724,8 @@ TEST_CASE("CSI n ; m r  DECSTBM")
 	CHECK_EQ(tv->col, 0);
 	CHECK_EQ(tv->row, 0);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// disable scroll region
 
@@ -2753,8 +2749,8 @@ TEST_CASE("CSI n ; m r  DECSTBM")
 	CHECK_EQ(tv->col, 0);
 	CHECK_EQ(tv->row, 0);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// enable invalid scroll region
 	// => marked as enabled but scroll region not activated
@@ -2776,8 +2772,8 @@ TEST_CASE("CSI n ; m r  DECSTBM")
 	CHECK_EQ(tv->col, 10);
 	CHECK_EQ(tv->row, 5);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// set scroll region while enabled:
 
@@ -2897,8 +2893,8 @@ TEST_CASE("CSI n;n;n;n r  DECSTBM")
 	tv->col = 10;
 	tv->row = 5;
 	tv->setCharAttributes(tv->BOLD);
-	tv->fgcolor = Video::vga::yellow;
-	tv->bgcolor = Video::vga::green;
+	tv->fgcolor = vga::yellow;
+	tv->bgcolor = vga::green;
 
 	// set scroll region boundaries
 	// scroll region not yet enabled
@@ -2918,8 +2914,8 @@ TEST_CASE("CSI n;n;n;n r  DECSTBM")
 	CHECK_EQ(tv->col, 10);
 	CHECK_EQ(tv->row, 5);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// enable scroll region set with CSI r
 
@@ -2942,8 +2938,8 @@ TEST_CASE("CSI n;n;n;n r  DECSTBM")
 	CHECK_EQ(tv->col, 0);
 	CHECK_EQ(tv->row, 0);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// disable scroll region
 
@@ -2969,8 +2965,8 @@ TEST_CASE("CSI n;n;n;n r  DECSTBM")
 	CHECK_EQ(tv->col, 0);
 	CHECK_EQ(tv->row, 0);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// enable invalid scroll region
 	// => marked as enabled but scroll region not activated
@@ -2994,8 +2990,8 @@ TEST_CASE("CSI n;n;n;n r  DECSTBM")
 	CHECK_EQ(tv->col, 10);
 	CHECK_EQ(tv->row, 5);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// set scroll region while enabled:
 
@@ -3240,8 +3236,8 @@ TEST_CASE("CSI n ; m s  DECSLRM")
 	tv->col = 10;
 	tv->row = 5;
 	tv->setCharAttributes(tv->BOLD);
-	tv->fgcolor = Video::vga::yellow;
-	tv->bgcolor = Video::vga::green;
+	tv->fgcolor = vga::yellow;
+	tv->bgcolor = vga::green;
 
 	// set horizontal scroll region boundaries
 	// scroll region not yet enabled
@@ -3259,8 +3255,8 @@ TEST_CASE("CSI n ; m s  DECSLRM")
 	CHECK_EQ(tv->col, 10);
 	CHECK_EQ(tv->row, 5);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// enable scroll region set with CSI s
 
@@ -3281,8 +3277,8 @@ TEST_CASE("CSI n ; m s  DECSLRM")
 	CHECK_EQ(tv->col, 0);
 	CHECK_EQ(tv->row, 0);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// disable scroll region
 
@@ -3306,8 +3302,8 @@ TEST_CASE("CSI n ; m s  DECSLRM")
 	CHECK_EQ(tv->col, 0);
 	CHECK_EQ(tv->row, 0);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// enable invalid scroll region
 	// => marked as enabled but scroll region not activated
@@ -3329,8 +3325,8 @@ TEST_CASE("CSI n ; m s  DECSLRM")
 	CHECK_EQ(tv->col, 10);
 	CHECK_EQ(tv->row, 5);
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Video::vga::yellow);
-	CHECK_EQ(tv->bgcolor, Video::vga::green);
+	CHECK_EQ(tv->fgcolor, vga::yellow);
+	CHECK_EQ(tv->bgcolor, vga::green);
 
 	// set scroll region while enabled:
 

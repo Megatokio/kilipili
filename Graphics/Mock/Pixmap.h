@@ -4,7 +4,6 @@
 
 #pragma once
 #include "Canvas.h"
-#include "Video/video_types.h"
 #include "common/Array.h"
 
 namespace kio::Graphics::Mock

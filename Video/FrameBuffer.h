@@ -32,8 +32,9 @@ template<ColorMode CM>
 class FrameBuffer<CM, std::enable_if_t<is_direct_color(CM)>> final : public VideoPlane
 {
 public:
-	using Pixmap   = Video::Pixmap<CM>;
-	using ColorMap = Video::ColorMap<get_colordepth(CM)>;
+	using Pixmap   = Graphics::Pixmap<CM>;
+	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
+	using Canvas   = Graphics::Canvas;
 
 	RCPtr<Pixmap>	   pixmap;
 	const Color* const colormap;
@@ -96,8 +97,9 @@ template<ColorMode CM>
 class FrameBuffer<CM, std::enable_if_t<is_attribute_mode(CM)>> final : public VideoPlane
 {
 public:
-	using Pixmap   = Video::Pixmap<CM>;
-	using ColorMap = Video::ColorMap<get_colordepth(CM)>;
+	using Pixmap   = Graphics::Pixmap<CM>;
+	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
+	using Canvas   = Graphics::Canvas;
 
 	RCPtr<Pixmap>	   pixmap;
 	const Color* const colormap;

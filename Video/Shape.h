@@ -10,7 +10,6 @@
 #include "atomic.h"
 #include "cdefs.h"
 #include "geometry.h"
-#include "video_types.h"
 
 
 /* —————————————————————————————————————————————————————————
@@ -42,6 +41,7 @@
 
 namespace kio::Video
 {
+using Color = Graphics::Color;
 
 /* ——————————————————————————————————————————————————————————————————————————
 	reference-counted array of pixels with intermixed commands.

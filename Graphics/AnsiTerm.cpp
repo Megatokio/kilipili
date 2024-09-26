@@ -5,12 +5,12 @@
 
 #include "AnsiTerm.h"
 #include "Graphics/Canvas.h"
+#include "Graphics/Color.h"
+#include "Graphics/ColorMap.h"
 #include "USBHost/HidKeys.h"
 #include "USBHost/USBKeyboard.h"
 #include "USBHost/USBMouse.h"
 #include "USBHost/hid_handler.h"
-#include "Video/Color.h"
-#include "Video/ColorMap.h"
 #include "common/cstrings.h"
 
 namespace kio::Audio
@@ -24,8 +24,6 @@ extern void __weak_symbol beep(float frequency_hz = 880, Sample volume = 0x3fff,
 namespace kio::Graphics
 {
 
-using namespace kio::Graphics;
-using namespace kio::Video;
 using AutoWrap = TextVDU::AutoWrap;
 
 static constexpr int			   nochar = -1;

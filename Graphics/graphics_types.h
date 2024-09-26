@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "cdefs.h"
+#include "Color.h"
 #include "standard_types.h"
 
 /*	This file defines some enum types used in the Pixmap and graphics engine.
@@ -159,6 +159,18 @@ enum ColorMode : uint8 {
 
 constexpr uint num_colormodes = colormode_a2w8_i16 + 1;
 
+static constexpr ColorMode colormode_rgb	  = sizeof(Color) == 1 ? colormode_i8 : colormode_i16;
+static constexpr ColorMode colormode_a1w1_rgb = sizeof(Color) == 1 ? colormode_a1w1_i8 : colormode_a1w1_i16;
+static constexpr ColorMode colormode_a1w2_rgb = sizeof(Color) == 1 ? colormode_a1w2_i8 : colormode_a1w2_i16;
+static constexpr ColorMode colormode_a1w4_rgb = sizeof(Color) == 1 ? colormode_a1w4_i8 : colormode_a1w4_i16;
+static constexpr ColorMode colormode_a1w8_rgb = sizeof(Color) == 1 ? colormode_a1w8_i8 : colormode_a1w8_i16;
+static constexpr ColorMode colormode_a2w1_rgb = sizeof(Color) == 1 ? colormode_a2w1_i8 : colormode_a2w1_i16;
+static constexpr ColorMode colormode_a2w2_rgb = sizeof(Color) == 1 ? colormode_a2w2_i8 : colormode_a2w2_i16;
+static constexpr ColorMode colormode_a2w4_rgb = sizeof(Color) == 1 ? colormode_a2w4_i8 : colormode_a2w4_i16;
+static constexpr ColorMode colormode_a2w8_rgb = sizeof(Color) == 1 ? colormode_a2w8_i8 : colormode_a2w8_i16;
+
+static constexpr ColorDepth colordepth_rgb = sizeof(Color) == 1 ? colordepth_8bpp : colordepth_16bpp;
+
 
 constexpr ColorMode calc_colormode(AttrMode am, AttrWidth aw, ColorDepth cd) noexcept
 {
@@ -183,6 +195,11 @@ constexpr ColorDepth get_colordepth(ColorMode cm) noexcept
 
 constexpr bool is_direct_color(ColorMode cm) noexcept { return cm <= colormode_i16; }
 constexpr bool is_attribute_mode(ColorMode cm) noexcept { return !is_direct_color(cm); }
+
+constexpr bool is_indexed_color(ColorDepth cd) noexcept { return cd < colordepth_rgb; }
+constexpr bool is_indexed_color(ColorMode cm) noexcept { return is_indexed_color(get_colordepth(cm)); }
+constexpr bool is_true_color(ColorDepth cd) noexcept { return cd >= colordepth_rgb; }
+constexpr bool is_true_color(ColorMode cm) noexcept { return !is_indexed_color(cm); }
 
 inline void split_colormode(ColorMode cm, AttrMode* am, AttrWidth* aw, ColorDepth* cd) noexcept
 {

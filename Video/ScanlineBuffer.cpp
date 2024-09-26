@@ -21,6 +21,7 @@ alignas(sizeof(ScanlineBuffer::scanlines)) //
 
 void ScanlineBuffer::setup(const VgaMode& vga_mode, uint buffer_size) throws
 {
+	using Color = Graphics::Color;
 	assert_eq(count, 0);									 // must be invalid
 	assert_eq(buffer_size & (buffer_size - 1), 0);			 // must be 2^N
 	assert_ge(buffer_size, 2u);								 // must buffer at least 2 lines

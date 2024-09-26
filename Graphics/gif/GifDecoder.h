@@ -12,9 +12,8 @@
 */
 
 #include "../Devices/File.h"
-#include "Canvas.h"
-#include "Video/Color.h"
-#include "Video/video_types.h"
+#include "Graphics/Canvas.h"
+#include "Graphics/Color.h"
 #include "standard_types.h"
 #include <functional>
 
@@ -28,7 +27,7 @@ static constexpr uint FIRST_CODE   = 4097; // Impossible code = first
 static constexpr uint NO_SUCH_CODE = 4098; // Impossible code = empty
 
 
-using store_scanline = std::function<void(int x, int y, int w, uchar* pixels, Video::Color* cmap, int transp_color)>;
+using store_scanline = std::function<void(int x, int y, int w, uchar* pixels, Color* cmap, int transp_color)>;
 
 
 class GifDecoder
@@ -36,7 +35,6 @@ class GifDecoder
 public:
 	using File	  = Devices::File;
 	using FilePtr = Devices::FilePtr;
-	using Color	  = Video::Color;
 
 	/* ctor: after this check `isa_gif_file`.
 	   create pixmap with screen_width, screen_height and total_color_bits.
