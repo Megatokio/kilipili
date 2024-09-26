@@ -3,7 +3,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "cdefs.h"
+#include "common/cdefs.h"
 #include "standard_types.h"
 #include <atomic>
 
@@ -24,9 +24,9 @@ class Queue
 	static_assert(SIZE > 0 && (SIZE & MASK) == 0, "size must be a power of 2");
 
 protected:
-	T				 buffer[SIZE]; // write -> wp++ -> read -> rp++
-	std::atomic<IDX> rp = 0;	   // only modified by reader
-	std::atomic<IDX> wp = 0;	   // only modified by writer
+	T	buffer[SIZE]; // write -> wp++ -> read -> rp++
+	IDX rp = 0;		  // only modified by reader
+	IDX wp = 0;		  // only modified by writer
 
 	static void copy(T* z, const T* q, uint n) noexcept;
 	void		copy_q2b(T*, uint n) noexcept;		 // helper: copy queue to external linear buffer
@@ -41,8 +41,7 @@ public:
 
 	void flush() noexcept // call from receiver only!
 	{
-		IDX z = wp;
-		rp	  = z;
+		rp = wp;
 	}
 
 #define FENCE std::atomic_thread_fence(std::memory_order_release)
