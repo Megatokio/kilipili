@@ -43,14 +43,14 @@ public:
 
 	FrameBuffer(RCPtr<Pixmap> px, const ColorMap colormap) noexcept : pixmap(px), colormap(colormap)
 	{
-		assert(is_direct_color(CM) || colormap != nullptr);
+		assert(is_true_color(CM) || colormap != nullptr);
 	}
 	FrameBuffer(RCPtr<Canvas> px, const ColorMap colormap) noexcept :
 		pixmap(static_cast<Pixmap*>(px.ptr())),
 		colormap(colormap)
 	{
 		assert(px->colormode == CM);
-		assert(is_direct_color(CM) || colormap != nullptr);
+		assert(is_true_color(CM) || colormap != nullptr);
 	}
 
 	virtual ~FrameBuffer() noexcept override = default;
@@ -115,7 +115,7 @@ public:
 		row_offset(px.row_offset),
 		attrheight(px.attrheight)
 	{
-		assert(is_direct_color(CM) || colormap != nullptr);
+		assert(is_true_color(CM) || colormap != nullptr);
 	}
 	FrameBuffer(RCPtr<Canvas> px, const ColorMap colormap) noexcept :
 		pixmap(static_cast<Pixmap*>(px.ptr())),
@@ -124,7 +124,7 @@ public:
 		attrheight(px->attrheight)
 	{
 		assert(px->colormode == CM);
-		assert(is_direct_color(CM) || colormap != nullptr);
+		assert(is_true_color(CM) || colormap != nullptr);
 	}
 
 	virtual ~FrameBuffer() noexcept override = default;
