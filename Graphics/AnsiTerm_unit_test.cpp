@@ -2404,8 +2404,8 @@ TEST_CASE("CSI n… m  SGR")
 
 	at.puts("\x1b[1;31;46m");
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Color(vga::blue));
-	CHECK_EQ(tv->bgcolor, Color(vga::yellow));
+	CHECK_EQ(tv->fgcolor, Color(vga::red));
+	CHECK_EQ(tv->bgcolor, Color(vga::cyan));
 
 	at.puts("\x1b[m");
 	CHECK_EQ(tv->attributes, 0);
@@ -2429,8 +2429,8 @@ TEST_CASE("CSI n… m  SGR")
 
 	at.puts("\x1b[0;1;31;46m");
 	CHECK_EQ(tv->attributes, tv->BOLD);
-	CHECK_EQ(tv->fgcolor, Color(vga::blue));
-	CHECK_EQ(tv->bgcolor, Color(vga::yellow));
+	CHECK_EQ(tv->fgcolor, Color(vga::red));
+	CHECK_EQ(tv->bgcolor, Color(vga::cyan));
 
 	at.puts("\x1b[m");
 	CHECK_EQ(tv->attributes, 0);
@@ -2459,12 +2459,12 @@ TEST_CASE("CSI n… m  SGR")
 	CHECK_EQ(tv->bgcolor, vga::white);
 
 	at.puts("\x1b[32;45m");
-	CHECK_EQ(tv->fgcolor, vga::red);
-	CHECK_EQ(tv->bgcolor, vga::cyan);
+	CHECK_EQ(tv->fgcolor, vga::green);
+	CHECK_EQ(tv->bgcolor, vga::magenta);
 
 	at.puts("\x1b[39m");
 	CHECK_EQ(tv->fgcolor, tv->default_fgcolor);
-	CHECK_EQ(tv->bgcolor, vga::cyan);
+	CHECK_EQ(tv->bgcolor, vga::magenta);
 
 	at.puts("\x1b[49m");
 	CHECK_EQ(tv->fgcolor, tv->default_fgcolor);
@@ -2472,8 +2472,8 @@ TEST_CASE("CSI n… m  SGR")
 
 	at.puts("\x1b[38;5;10m");
 	at.puts("\x1b[48;5;12m");
-	CHECK_EQ(tv->fgcolor, vga::bright_red);
-	CHECK_EQ(tv->bgcolor, vga::bright_green);
+	CHECK_EQ(tv->fgcolor, vga::bright_green);
+	CHECK_EQ(tv->bgcolor, vga::bright_blue);
 
 	at.puts("\x1b[38;5;100m");
 	at.puts("\x1b[48;5;200m");
@@ -2502,8 +2502,8 @@ TEST_CASE("CSI n… m  SGR")
 	CHECK_EQ(tv->bgcolor, vga::bright_white);
 
 	at.puts("\x1b[92;105m");
-	CHECK_EQ(tv->fgcolor, vga::bright_red);
-	CHECK_EQ(tv->bgcolor, vga::bright_cyan);
+	CHECK_EQ(tv->fgcolor, vga::bright_green);
+	CHECK_EQ(tv->bgcolor, vga::bright_magenta);
 
 	tv->setCharAttributes(0xff);
 	at.puts("\x1b[22m");

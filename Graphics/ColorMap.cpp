@@ -82,23 +82,23 @@ constexpr Color zx_colors[16] =
 };
 
 constexpr Color vga4_colors[16] =
-{ 
+{
 	vga::black,
-	vga::blue,
 	vga::red,
-	vga::magenta,
 	vga::green,
-	vga::cyan,
 	vga::yellow,
+	vga::blue,
+	vga::magenta,
+	vga::cyan,
 	vga::white,
 	vga::bright_black,
-	vga::bright_blue,
 	vga::bright_red,
-	vga::bright_magenta,
 	vga::bright_green,
-	vga::bright_cyan,
 	vga::bright_yellow,
-	vga::bright_white
+	vga::bright_blue,
+	vga::bright_magenta,
+	vga::bright_cyan,
+	vga::bright_white,
 };
 
 constexpr Color vga8_colors[256] =
@@ -109,20 +109,20 @@ constexpr Color vga8_colors[256] =
 	// --> https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit
 
 	vga::black,
-	vga::blue,
 	vga::red,
-	vga::magenta,
 	vga::green,
-	vga::cyan,
 	vga::yellow,
+	vga::blue,
+	vga::magenta,
+	vga::cyan,
 	vga::white,
 	vga::bright_black,
-	vga::bright_blue,
 	vga::bright_red,
-	vga::bright_magenta,
 	vga::bright_green,
-	vga::bright_cyan,
 	vga::bright_yellow,
+	vga::bright_blue,
+	vga::bright_magenta,
+	vga::bright_cyan,
 	vga::bright_white,
 
 #define RGB(R, G, B) Color::fromRGB4(R * 6, G * 6, B * 6)
