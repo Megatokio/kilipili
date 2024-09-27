@@ -30,13 +30,12 @@ static HidMouseEventHandler*	mouse_event_handler	   = defaultHidMouseEventHandle
 static HidKeyboardEventHandler* keyboard_event_handler = defaultHidKeyboardEventHandler;
 
 
-bool initUSBHost() noexcept
+void initUSBHost() noexcept
 {
 	hid_reports.flush();
 	mouse_present		   = false;
 	mouse_event_handler	   = defaultHidMouseEventHandler;
 	keyboard_event_handler = defaultHidKeyboardEventHandler;
-	return true;
 }
 
 void pollUSB() noexcept

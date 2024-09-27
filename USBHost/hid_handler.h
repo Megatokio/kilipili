@@ -13,7 +13,7 @@ namespace kio::USB
 	poll USB events and call registered handlers.
 	simple forwarder functions. 
 */
-extern bool initUSBHost() noexcept; // returns true on success
+extern void initUSBHost() noexcept; // panics
 extern void pollUSB() noexcept;
 
 extern bool keyboardPresent() noexcept;
@@ -68,7 +68,7 @@ extern HidMouseEventHandler	   defaultHidMouseEventHandler;
 
 namespace kio::USB::Mock
 {
-extern void setMousePresent(bool f=true);
-extern void addKeyboardReport(const HidKeyboardReport& ) ;
-extern void addMouseReport(const HidMouseReport& ) ;
-} // namespace Mock
+extern void setMousePresent(bool f = true);
+extern void addKeyboardReport(const HidKeyboardReport&);
+extern void addMouseReport(const HidMouseReport&);
+} // namespace kio::USB::Mock

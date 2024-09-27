@@ -24,9 +24,9 @@
 * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 * THE SOFTWARE.
-*
 */
 
+#include "cdefs.h"
 #if USB_ENABLE_HOST
 
 /*
@@ -55,7 +55,15 @@ static uint8 keyboards = 0;
 
 namespace kio::USB
 {
-bool initUSBHost() noexcept { return tusb_init(); }
+void initUSBHost() noexcept
+{
+	// TUH_OPT_RHPORT must be defined in tusb_config.h
+	// better die here if it isn't defined.
+	// tusb_init() just did nothing and returned 'success'!
+	bool f = tuh_init(TUH_OPT_RHPORT);
+	if (!f) panic("initUSBHost() failed");
+	assert(tuh_inited() == true);
+}
 void pollUSB() noexcept
 {
 	// limit actual calls to tuh_task() to 4000/sec:
@@ -116,7 +124,7 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 
 	if (!rpt_info)
 	{
-		printf("Couldn't find the report info for this report!\n");
+		debugstr("Couldn't find the report info for this report!\n");
 		return;
 	}
 
@@ -133,13 +141,13 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 		switch (rpt_info->usage)
 		{
 		case HID_USAGE_DESKTOP_KEYBOARD:
-			//printf("HID receive keyboard report\n");
+			//debugstr("HID receive keyboard report\n");
 			// Assume keyboard follow boot report layout
 			keyboard_event_handler(reinterpret_cast<const HidKeyboardReport&>(*report));
 			break;
 
 		case HID_USAGE_DESKTOP_MOUSE:
-			//printf("HID receive mouse report\n");
+			//debugstr("HID receive mouse report\n");
 			// Assume mouse follow boot report layout
 			mouse_event_handler(reinterpret_cast<const HidMouseReport&>(*report));
 			break;
@@ -164,13 +172,13 @@ extern "C" void tuh_hid_mount_cb(uint8 dev_addr, uint8 instance, const uint8* de
 	// Note: if report descriptor length > CFG_TUH_ENUMERATION_BUFSIZE, it will be skipped
 	//		 therefore report_desc = NULL, desc_len = 0
 
-	printf("HID device address = %i, instance = %i mounted\n", dev_addr, instance);
+	debugstr("HID device address = %i, instance = %i mounted\n", dev_addr, instance);
 
 	// Interface protocol (hid_interface_protocol_enum_t)
 	constexpr char protocol_str[3][9] = {"None", "Keyboard", "Mouse"};
 	const uint8	   itf_protocol		  = tuh_hid_interface_protocol(dev_addr, instance);
 
-	printf("HID Interface Protocol = %s\n", protocol_str[itf_protocol]);
+	debugstr("HID Interface Protocol = %s\n", protocol_str[itf_protocol]);
 	if (itf_protocol == HID_ITF_PROTOCOL_KEYBOARD) keyboards++;
 	if (itf_protocol == HID_ITF_PROTOCOL_MOUSE) mouses++;
 
@@ -180,19 +188,19 @@ extern "C" void tuh_hid_mount_cb(uint8 dev_addr, uint8 instance, const uint8* de
 	{
 		hid_info[instance].report_count =
 			tuh_hid_parse_report_descriptor(hid_info[instance].report_info, MAX_REPORT, desc_report, desc_len);
-		printf("HID has %u reports\n", hid_info[instance].report_count);
+		debugstr("HID has %u reports\n", hid_info[instance].report_count);
 	}
 
 	// request to receive report
 	// tuh_hid_report_received_cb() will be invoked when report is available
-	if (!tuh_hid_receive_report(dev_addr, instance)) { printf("Error: cannot request to receive report\n"); }
+	if (!tuh_hid_receive_report(dev_addr, instance)) { debugstr("Error: cannot request to receive report\n"); }
 }
 
 extern "C" void tuh_hid_umount_cb(uint8_t dev_addr, uint8_t instance)
 {
 	// Device with hid interface is unmounted
 
-	printf("HID device address = %d, instance = %d is unmounted\n", dev_addr, instance);
+	debugstr("HID device address = %d, instance = %d is unmounted\n", dev_addr, instance);
 	const uint8 itf_protocol = tuh_hid_interface_protocol(dev_addr, instance);
 	if (itf_protocol == HID_ITF_PROTOCOL_KEYBOARD && keyboards) keyboards--;
 	if (itf_protocol == HID_ITF_PROTOCOL_MOUSE && mouses) mouses--;
@@ -207,12 +215,12 @@ extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const
 	switch (tuh_hid_interface_protocol(dev_addr, instance))
 	{
 	case HID_ITF_PROTOCOL_KEYBOARD:
-		//printf("HID receive boot keyboard report\n");
+		//debugstr("HID receive boot keyboard report\n");
 		keyboard_event_handler(reinterpret_cast<const HidKeyboardReport&>(*report));
 		break;
 
 	case HID_ITF_PROTOCOL_MOUSE:
-		//printf("HID receive boot mouse report\n");
+		//debugstr("HID receive boot mouse report\n");
 		mouse_event_handler(reinterpret_cast<const HidMouseReport&>(*report));
 		break;
 
@@ -223,7 +231,7 @@ extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const
 	}
 
 	// continue to request to receive report
-	if (!tuh_hid_receive_report(dev_addr, instance)) { printf("Error: cannot request to receive report\n"); }
+	if (!tuh_hid_receive_report(dev_addr, instance)) { debugstr("Error: cannot request to receive report\n"); }
 }
 
 
