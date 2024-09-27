@@ -445,14 +445,16 @@ static constexpr uchar ger_shift[HidKeyTable::table_size] =
 
 constexpr HidKeyTable key_table_us = 
 {
+	.name			= "US",
 	.solo		    = us_alone, 
 	.with_shift     = us_shift,
 	.with_alt	    = us_alone,
 	.with_shift_alt	= us_shift
 };
-
+ 
 constexpr HidKeyTable key_table_ger = 
 {
+	.name			= "DE",
 	.solo           = ger_solo,
 	.with_shift     = ger_shift,
 	.with_alt       = ger_solo,

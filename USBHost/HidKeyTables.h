@@ -13,6 +13,7 @@ struct HidKeyTable
 {
 	static constexpr uint table_size = 0x68;
 
+	cstr		 name;
 	const uchar* solo;
 	const uchar* with_shift;
 	const uchar* with_alt;
