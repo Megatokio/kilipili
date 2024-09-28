@@ -6,6 +6,7 @@
 #include "atomic.h"
 #include "cdefs.h"
 #include <type_traits>
+#include <utility>
 
 namespace kio
 {
@@ -96,7 +97,7 @@ public:
 #undef subclass_only
 
 	// see https://stackoverflow.com/questions/11562/how-to-overload-stdswap
-	static void swap(RCPtr<T>& a, RCPtr<T>& b) noexcept { std::swap(a.p, b.p); }
+	friend void swap(RCPtr& a, RCPtr& b) noexcept { std::swap(a.p, b.p); }
 
 	T* operator->() const noexcept { return p; }
 	T& operator*() const noexcept { return *p; }
