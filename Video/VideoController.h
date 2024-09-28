@@ -61,7 +61,7 @@ public:
 		setup internal state, buffers and hardware for the requested VideoMode.
 		blocks until backend has started.
 	*/
-	void startVideo(const VgaMode& mode, uint32 system_clock = 0, uint scanline_buffer_count = 2);
+	void startVideo(const VgaMode& = vga_mode_640x480_60, uint32 system_clock = 0, uint scanline_buffer_count = 2);
 
 	/*
 		stop video. 

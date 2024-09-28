@@ -49,7 +49,7 @@ constexpr bool ENABLE_CLOCK	  = VIDEO_CLOCK_ENABLE;
 constexpr bool CLOCK_POLARITY = VIDEO_CLOCK_POLARITY;
 constexpr bool ENABLE_DEN	  = VIDEO_DEN_ENABLE;
 constexpr bool DEN_POLARITY	  = VIDEO_DEN_POLARITY;
-constexpr uint TIMING_DMA_IRQ = DMA_IRQ_1;
+constexpr uint TIMING_DMA_IRQ_IDX = 1;
 
 static uint TIMING_SM;
 static uint SCANLINE_SM;
@@ -107,9 +107,9 @@ static void RAM timing_isr() noexcept
 	// triggered when DMA completed and needs refill & restart
 	// can be interrupted by scanline interrupt
 
-	if (dma_irqn_get_channel_status(TIMING_DMA_IRQ, TIMING_DMA_CHANNEL))
+	if (dma_irqn_get_channel_status(TIMING_DMA_IRQ_IDX, TIMING_DMA_CHANNEL))
 	{
-		dma_irqn_acknowledge_channel(TIMING_DMA_IRQ, TIMING_DMA_CHANNEL);
+		dma_irqn_acknowledge_channel(TIMING_DMA_IRQ_IDX, TIMING_DMA_CHANNEL);
 
 		state	   = State((state + 1) & 3);
 		auto& prog = program[state];
@@ -335,15 +335,15 @@ static void setup_dma(const VgaMode& vga_mode)
 	// configure timing dma interrupt:
 
 	dma_channel_acknowledge_irq1(TIMING_DMA_CHANNEL);						// discard any pending event (required?)
-	dma_irqn_set_channel_enabled(TIMING_DMA_IRQ, TIMING_DMA_CHANNEL, true); // enable DMA_CHANNEL irqs on DMA_IRQ
-	irq_set_enabled(TIMING_DMA_IRQ, true);									// enable DMA_IRQ interrupt on this core
+	dma_irqn_set_channel_enabled(TIMING_DMA_IRQ_IDX, TIMING_DMA_CHANNEL, true); // enable DMA_CHANNEL irqs on DMA_IRQ
+	irq_set_enabled(DMA_IRQ_0 + TIMING_DMA_IRQ_IDX, true);						// enable DMA_IRQ interrupt on this core
 }
 
 static void stop_sm_and_dma() noexcept
 {
 	// stop timing irq & dma:
-	irq_set_enabled(TIMING_DMA_IRQ, false);									 // disable interrupt
-	dma_irqn_set_channel_enabled(TIMING_DMA_IRQ, TIMING_DMA_CHANNEL, false); // disable interrupt source
+	irq_set_enabled(DMA_IRQ_0 + TIMING_DMA_IRQ_IDX, false);						 // disable interrupt
+	dma_irqn_set_channel_enabled(TIMING_DMA_IRQ_IDX, TIMING_DMA_CHANNEL, false); // disable interrupt source
 	dma_channel_cleanup(TIMING_DMA_CHANNEL);
 
 	// stop scanline dma:
@@ -429,16 +429,16 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 	}
 
 	uint freq = (pixel_clock / vga_mode.h_total() * 1000 + vga_mode.v_total() / 2) / vga_mode.v_total();
-	printf("set resolution %i x %i @ %u.%03u Hz\n", vga_mode.width, vga_mode.height, freq / 1000, freq % 1000);
-	printf("system clock = %u\n", get_system_clock());
-	printf("pixel clock  = %u\n", vga_mode.pixel_clock);
-	printf("cc_per_us = %u\n", cc_per_us);
-	printf("cc_per_px = %u\n", cc_per_px);
-	printf("px_per_scanline = %u\n", px_per_scanline);
-	printf("cc_per_scanline = %u\n", cc_per_scanline);
-	printf("px_per_frame = %u\n", px_per_frame);
-	printf("cc_per_frame = %u\n", cc_per_frame);
-	printf("us_per_frame = %u, fract = %u/%u\n", us_per_frame, cc_per_frame_fract, cc_per_us);
+	debugstr("set resolution %i x %i @ %u.%03u Hz\n", vga_mode.width, vga_mode.height, freq / 1000, freq % 1000);
+	debugstr("system clock = %u\n", get_system_clock());
+	debugstr("pixel clock  = %u\n", vga_mode.pixel_clock);
+	debugstr("cc_per_us = %u\n", cc_per_us);
+	debugstr("cc_per_px = %u\n", cc_per_px);
+	debugstr("px_per_scanline = %u\n", px_per_scanline);
+	debugstr("cc_per_scanline = %u\n", cc_per_scanline);
+	debugstr("px_per_frame = %u\n", px_per_frame);
+	debugstr("cc_per_frame = %u\n", cc_per_frame);
+	debugstr("us_per_frame = %u, fract = %u/%u\n", us_per_frame, cc_per_frame_fract, cc_per_us);
 }
 
 void VideoBackend::stop() noexcept
@@ -475,7 +475,7 @@ void VideoBackend::initialize() noexcept
 
 	initialize_gpio_pins();
 	initialize_state_machines();
-	irq_add_shared_handler(TIMING_DMA_IRQ, timing_isr, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+	irq_add_shared_handler(DMA_IRQ_0 + TIMING_DMA_IRQ_IDX, timing_isr, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
 	state = not_started;
 }
 
