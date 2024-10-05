@@ -100,33 +100,34 @@ The SDcard Interface accesses the SD card via it's SPI interface.
 
 ```cpp
 // VGA Video 800 x 600 pixel
-// with 8x12 pixel true color attributes (this is the character size used in PicoTerm)
+// with 8x12 pixel true color attributes (this is the character size used in TextVDU)
 
-#include "kilipili/Graphics/PicoTerm.h"
 #include "kilipili/Graphics/Pixmap_wAttr.h"
+#include "kilipili/Graphics/TextVDU.h"
+#include "kilipili/USBHost/hid_handler.h"
 #include "kilipili/Video/FrameBuffer.h"
 #include "kilipili/Video/VideoController.h"
 #include "pico/stdio.h"
-#include <tusb.h>
 
 int main()
 {
-    using namespace kio::Video;
+	using namespace kio::Video;
+	using namespace kio::Graphics;
 
-    stdio_init_all();
-    tuh_init(BOARD_TUH_RHPORT);
+	stdio_init_all();
+	kio::USB::initUSBHost();
 
-    auto* pixmap          = new Pixmap<colormode_a1w8_rgb>(800, 600, attrheight_12px);
-    auto* framebuffer     = new FrameBuffer<colormode_a1w8_rgb>(*pixmap, nullptr);
-    auto& videocontroller = VideoController::getRef();
-    videocontroller.addPlane(framebuffer);
-    videocontroller.startVideo(vga_mode_800x600_60);
+	auto* pixmap		  = new Pixmap<colormode_a1w8_rgb>(800, 600, attrheight_12px);
+	auto* framebuffer	  = new FrameBuffer(pixmap, nullptr);
+	auto& videocontroller = VideoController::getRef();
+	videocontroller.addPlane(framebuffer);
+	videocontroller.startVideo(vga_mode_800x600_60);
 
-    PicoTerm* picoterm = new PicoTerm(*pixmap);
-    picoterm->cls();
-    picoterm->printf("%s\n", picoterm->identify());
+	TextVDU* picoterm = new TextVDU(pixmap);
+	picoterm->cls();
+	picoterm->identify();
 
-    for (;;) {} // your main action
+	for (;;) {} // your main action
 }
 ```
 

@@ -42,6 +42,7 @@ public:
 	int				   row;	   // expected next row
 	uint			   width;
 
+	FrameBuffer(Pixmap* px, const ColorMap cm) noexcept : FrameBuffer(RCPtr<Pixmap>(px), cm) {}
 	FrameBuffer(RCPtr<Pixmap> px, const ColorMap colormap) noexcept : pixmap(px), colormap(colormap)
 	{
 		assert(is_true_color(CM) || colormap != nullptr);
@@ -111,11 +112,12 @@ public:
 	int				   row_offset;
 	int				   attrheight;
 
+	FrameBuffer(Pixmap* px, const ColorMap cm) noexcept : FrameBuffer(RCPtr<Pixmap>(px), cm) {}
 	FrameBuffer(RCPtr<Pixmap> px, const ColorMap cm) noexcept :
 		pixmap(px),
 		colormap(cm),
-		row_offset(px.row_offset),
-		attrheight(px.attrheight)
+		row_offset(px->row_offset),
+		attrheight(px->attrheight)
 	{
 		assert(is_true_color(CM) || colormap != nullptr);
 	}
@@ -173,5 +175,13 @@ public:
 		arow	   = 0;
 	}
 };
+
+// deduction guides:
+
+template<ColorMode CM>
+FrameBuffer(Graphics::Pixmap<CM>*, const Graphics::ColorMap<get_colordepth(CM)>) -> FrameBuffer<CM>;
+
+template<ColorMode CM>
+FrameBuffer(RCPtr<Graphics::Pixmap<CM>>, const Graphics::ColorMap<get_colordepth(CM)>) -> FrameBuffer<CM>;
 
 } // namespace kio::Video
