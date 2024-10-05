@@ -45,6 +45,17 @@ The Graphics engine supports pixmaps with many modes which are supported by the 
 - `[done]` Text output
 - `[todo]` Graphics still lack some functionality.
 
+## Ansi Terminal
+The Graphics engine contains a class which provides a wannabe-ANSI-compliant text terminal. See `Graphics/ANSITerm` for feature list.  
+The ANSITerm can be used with any Pixmap size and should be used with colormode_a1w8_rgb for the colors. The number of actual colors displayed depends on your video hardware setup.  
+- `[done]` color (xterm compatible)
+- `[done]` mouse pointer support
+- `[done]` horizontal and vertical scroll region
+- `[done]` bold, inverse, italic, underlined, double width and double height 
+- `[done]` Latin-1 character set, one Graphics character set
+- `[done]` optional utf-8 encoding
+- `[done]` US and German keyboard (you are welcomed to add your nationality!)
+
 ## Audio
 The audio sub system supports no audio and I2S and PWM audio with 1 or 2 channels.
 If your audio source has a fixed sample rate which cannot be matched by the hardware (PWM most notably),
