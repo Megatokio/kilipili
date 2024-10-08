@@ -23,6 +23,8 @@ add_library(kilipili_audio STATIC
 	i2s_audio.pio
 	pwm_audio.pio
 	sid_audio.pio
+	Ay38912.cpp 
+	Ay38912.h
 )
 
 target_compile_definitions(kilipili_audio PUBLIC
