@@ -46,6 +46,16 @@ public:
 
 #define FENCE std::atomic_thread_fence(std::memory_order_release)
 
+	T& peek() noexcept
+	{
+		assert(avail());
+		return buffer[rp & MASK];
+	}
+	void drop() noexcept
+	{
+		assert(avail());
+		rp += 1;
+	}
 	T get() noexcept
 	{
 		assert(avail());
