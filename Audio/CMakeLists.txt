@@ -26,6 +26,8 @@ add_library(kilipili_audio STATIC
 	Ay38912.cpp 
 	Ay38912.h
 	Ay38912_AudioSource.h 
+	SP0256.cpp
+	SP0256.h
 )
 
 target_compile_definitions(kilipili_audio PUBLIC
