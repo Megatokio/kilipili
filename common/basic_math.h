@@ -108,6 +108,44 @@ static_assert(msbit(0x401) == 10);
 static_assert(msbit(~0u >> 1) == 30);
 
 
+/*	circular ints can be viewed as points on the circular range of an int,
+	wrapping from max_int to min_int.
+	when comparing two circular ints "which is before" or "which is after"
+	overflow is handled differently to signed or unsigned ints.
+	circular ints are great for comparing time stamps which may roll over time and time again,
+	as long as the expected time distance is smaller than 1/2 of the representable range.
+
+	viewing circular ints as "points" on the circular ring tells which operations are reasonable.
+	plain ints are the distance between two circular int points:
+
+	c_int + int = c_int			point + distance = point
+	c_int - c_int = int			distance between two points
+	c_int << int = c_int		e.g. scale int to fixed point
+	c_int >> int = c_int		makes sense but is not possible because we don't know the msbits.
+*/
+struct circular_int
+{
+	int value = 0;
+	circular_int() noexcept {}
+	constexpr explicit circular_int(int n) noexcept : value(n) {}
+	constexpr explicit operator int() const noexcept { return value; }
+
+	constexpr void operator+=(int o) noexcept { value += o; }
+	constexpr void operator-=(int o) noexcept { value -= o; }
+
+	constexpr circular_int operator+(int d) const noexcept { return circular_int(value + d); }
+	constexpr circular_int operator-(int d) const noexcept { return circular_int(value - d); }
+	constexpr int		   operator-(circular_int d) const noexcept { return value - d.value; }
+	constexpr circular_int operator<<(int d) const noexcept { return circular_int(value << d); }
+
+	constexpr bool operator==(circular_int o) const noexcept { return value - o.value == 0; }
+	constexpr bool operator!=(circular_int o) const noexcept { return value - o.value != 0; }
+	constexpr bool operator>(circular_int o) const noexcept { return value - o.value > 0; }
+	constexpr bool operator>=(circular_int o) const noexcept { return value - o.value >= 0; }
+	constexpr bool operator<(circular_int o) const noexcept { return value - o.value < 0; }
+	constexpr bool operator<=(circular_int o) const noexcept { return value - o.value <= 0; }
+};
+
 } // namespace kio
 
 
