@@ -4,6 +4,7 @@
 
 #include "sm_utilities.h"
 #include "LoadSensor.h"
+#include "sm_macros.h"
 #include "standard_types.h"
 #include "utilities.h"
 #include <cstdio>

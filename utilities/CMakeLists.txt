@@ -19,6 +19,7 @@ add_library(kilipili_utilities STATIC
 	sm_utilities.cpp
 	Trace.cpp
 	Trace.h
+	sm_macros.h
 	)
 
 target_compile_definitions(kilipili_utilities PUBLIC 

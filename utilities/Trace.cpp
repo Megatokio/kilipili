@@ -4,11 +4,11 @@
 
 #undef stackinfo
 #if defined DEBUG && !defined UNIT_TEST
-  
-#include "Trace.h"
-#include "basic_math.h"
-#include "sm_utilities.h"
-#include <stdio.h>
+
+  #include "Trace.h"
+  #include "basic_math.h"
+  #include "sm_macros.h"
+  #include <stdio.h>
 
 namespace kio
 {
