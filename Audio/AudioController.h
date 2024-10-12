@@ -124,8 +124,8 @@ public:
 		return HwAudioSource which can be used for later removal of the AudioSource.
 		returns nullptr if the AudioSource could not be added.
 	*/
-	HwAudioSource* addChannel(RCPtr<AudioSource<1>>) noexcept;
-	HwAudioSource* addChannel(RCPtr<AudioSource<2>>) noexcept;
+	HwAudioSource* addAudioSource(RCPtr<AudioSource<1>>) noexcept;
+	HwAudioSource* addAudioSource(RCPtr<AudioSource<2>>) noexcept;
 
 	/* _______________________________________________________________________________________
 		remove an AudioSource from the controller.
@@ -134,7 +134,7 @@ public:
 		a source can also remove itself from the AudioController by returning less samples than requested
 		in a call to `virtual bool AudioSource::addAudio()`.
 	*/
-	void removeChannel(RCPtr<HwAudioSource>) noexcept;
+	void removeAudioSource(RCPtr<HwAudioSource>) noexcept;
 
 private:
 	AudioController() noexcept;

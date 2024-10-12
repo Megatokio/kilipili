@@ -589,19 +589,19 @@ float AudioController::getSampleFrequency() noexcept
 	return hw_sample_frequency;
 }
 
-HwAudioSource* AudioController::addChannel(RCPtr<AudioSource<hw_num_channels>> ac) noexcept
+HwAudioSource* AudioController::addAudioSource(RCPtr<AudioSource<hw_num_channels>> ac) noexcept
 {
 	Locker _;
 	if (ac == nullptr || num_sources >= max_sources) return nullptr;
 	else return audio_sources[num_sources++] = std::move(ac);
 }
 
-HwAudioSource* AudioController::addChannel(RCPtr<AudioSource<3 - hw_num_channels>> ac) noexcept
+HwAudioSource* AudioController::addAudioSource(RCPtr<AudioSource<3 - hw_num_channels>> ac) noexcept
 {
-	return addChannel(new (std::nothrow) NumChannelsAdapter<3 - hw_num_channels, hw_num_channels>(std::move(ac)));
+	return addAudioSource(new (std::nothrow) NumChannelsAdapter<3 - hw_num_channels, hw_num_channels>(std::move(ac)));
 }
 
-void AudioController::removeChannel(RCPtr<HwAudioSource> ac) noexcept
+void AudioController::removeAudioSource(RCPtr<HwAudioSource> ac) noexcept
 {
 	{
 		Locker _;
@@ -666,7 +666,7 @@ void beep(float frequency, float volume, uint32 duration_ms)
 	};
 
 	AudioController& ac = AudioController::getRef();
-	ac.addChannel(new BeepingAudioSource(frequency, volume, duration_ms));
+	ac.addAudioSource(new BeepingAudioSource(frequency, volume, duration_ms));
 	if (!is_running) ac.startAudio(true);
 }
 
@@ -692,9 +692,9 @@ void		   AudioController::setSampleFrequency(float) noexcept {}
 void		   AudioController::setMaxLatency(uint32) noexcept {}
 void		   AudioController::startAudio(bool) noexcept { is_running = 1; }
 void		   AudioController::stopAudio() noexcept { is_running = 0; }
-HwAudioSource* AudioController::addChannel(RCPtr<AudioSource<1>>) noexcept { return nullptr; }
-HwAudioSource* AudioController::addChannel(RCPtr<AudioSource<2>>) noexcept { return nullptr; }
-void		   AudioController::removeChannel(RCPtr<HwAudioSource>) noexcept {}
+HwAudioSource* AudioController::addAudioSource(RCPtr<AudioSource<1>>) noexcept { return nullptr; }
+HwAudioSource* AudioController::addAudioSource(RCPtr<AudioSource<2>>) noexcept { return nullptr; }
+void		   AudioController::removeAudioSource(RCPtr<HwAudioSource>) noexcept {}
 bool		   AudioController::isRunning() noexcept { return is_running; }
 void		   AudioController::fillBuffer() noexcept {}
 
