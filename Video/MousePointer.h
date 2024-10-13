@@ -29,8 +29,8 @@ public:
 	static_assert(Shape::isa_shape);
 
 
-	MousePointer(MousePointerID, const Point&);
-	MousePointer(const Shape& s, const Point& p) : super(s, p) {}
+	MousePointer(MousePointerID = MOUSE_POINTER);
+	MousePointer(const Shape& s);
 	~MousePointer() noexcept override = default;
 
 	virtual void setup(coord width) override;

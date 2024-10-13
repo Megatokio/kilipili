@@ -237,8 +237,8 @@ Shape shape_for_id(MousePointerID id)
 }
 
 template<typename Sprite>
-MousePointer<Sprite>::MousePointer(MousePointerID id, const Point& position) : // ctor
-	super(shape_for_id(id), position)
+MousePointer<Sprite>::MousePointer(MousePointerID id) :
+	super(shape_for_id(id), Point(vga_mode.width / 2, vga_mode.height / 2))
 {
 	if constexpr (Sprite::is_animated)
 		if (id == MOUSE_BUSY)
@@ -253,6 +253,11 @@ MousePointer<Sprite>::MousePointer(MousePointerID id, const Point& position) : /
 			replace(shapes, 6, 4);
 		}
 }
+
+template<typename Sprite>
+MousePointer<Sprite>::MousePointer(const Shape& s) : //
+	super(s, Point(vga_mode.width / 2, vga_mode.height / 2))
+{}
 
 template<typename Shape>
 void MousePointer<Shape>::vblank() noexcept
