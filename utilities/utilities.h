@@ -16,13 +16,6 @@
   #include <hardware/vreg.h>
   #include <pico/stdlib.h>
 
-  #ifndef SYSCLOCK_fMAX
-	#define SYSCLOCK_fMAX (290 MHz)
-  #endif
-
-
-constexpr Error UNSUPPORTED_SYSTEM_CLOCK = "requested system clock is not supported";
-
 
 namespace kio
 {
@@ -37,18 +30,32 @@ inline void wfi() noexcept;
 extern void wfe_or_timeout(int timeout_usec) noexcept;
 
 
-extern size_t flash_size();
-extern size_t flash_used();
-extern size_t flash_free();
-extern size_t heap_size();
-extern size_t calc_heap_free();
-extern ptr	  core0_stack_bottom();
-extern ptr	  core1_stack_bottom();
-extern ptr	  stack_bottom(uint core);
-extern ptr	  core0_stack_end();
-extern ptr	  core1_stack_end();
-extern ptr	  stack_end(uint core);
-extern size_t stack_free();
+extern size_t heap_start() noexcept;
+extern size_t heap_end() noexcept;
+extern size_t heap_size() noexcept;
+extern size_t heap_free() noexcept;
+
+extern size_t core0_scratch_y_start() noexcept;
+extern size_t core0_scratch_y_end() noexcept;
+extern size_t core1_scratch_x_start() noexcept;
+extern size_t core1_scratch_x_end() noexcept;
+
+extern size_t core0_stack_bottom() noexcept;
+extern size_t core1_stack_bottom() noexcept;
+extern size_t stack_bottom(uint core) noexcept;
+extern size_t core0_stack_top() noexcept;
+extern size_t core1_stack_top() noexcept;
+extern size_t stack_top(uint core) noexcept;
+extern size_t stack_free() noexcept;
+
+extern size_t flash_binary_start() noexcept;
+extern size_t flash_binary_end() noexcept;
+extern size_t flash_start() noexcept;
+extern size_t flash_end() noexcept;
+extern size_t flash_size() noexcept;
+extern size_t flash_used() noexcept;
+extern size_t flash_free() noexcept;
+
 
 extern void print_core();
 extern void print_heap_free(int r = 0);
@@ -57,24 +64,6 @@ extern void print_core0_scratch_y_usage();
 extern void print_core1_scratch_x_usage();
 extern void print_flash_usage();
 extern void print_system_info(uint = ~0u);
-
-extern void init_stack_guard();
-extern void test_stack_guard(uint core);
-extern uint calc_stack_guard_min_free(uint core);
-
-
-inline uint32 get_system_clock() { return clock_get_hz(clk_sys); }
-extern Error  set_system_clock(uint32 sys_clock = 125 MHz, uint32 max_error = 1 MHz);
-extern void	  sysclock_changed(uint32 new_clock) noexcept;
-
-struct sysclock_params
-{
-	uint		 vco, div1, div2, err;
-	vreg_voltage voltage;
-};
-extern constexpr sysclock_params calc_sysclock_params(uint32 f) noexcept;
-extern constexpr vreg_voltage	 calc_vreg_voltage_for_sysclock(uint32 f) noexcept;
-inline vreg_voltage				 vreg_get_voltage();
 
 
 //
@@ -93,70 +82,6 @@ inline void wfi() noexcept
 	idle_start();
 	__asm volatile("wfi");
 	idle_end();
-}
-
-inline vreg_voltage vreg_get_voltage()
-{
-	uint v = (vreg_and_chip_reset_hw->vreg & VREG_AND_CHIP_RESET_VREG_VSEL_BITS) >> VREG_AND_CHIP_RESET_VREG_VSEL_LSB;
-	return vreg_voltage(v);
-}
-
-constexpr vreg_voltage calc_vreg_voltage_for_sysclock(uint32 f) noexcept
-{
-	f /= 1 MHz;
-	return vreg_voltage(f >= 100 ? VREG_VOLTAGE_1_10 + (min(f, 220u) - 100) / 30 : VREG_VOLTAGE_0_85 + f / 20);
-}
-
-
-constexpr sysclock_params calc_sysclock_params(uint32 f) noexcept
-{
-	// the system clock is derived from the crystal by scaling up for the vco and two 3-bit dividers,
-	// thus system_clock = crystal * vco_cnt / div1 / div2
-	// with vco_cnt = 16 .. 320
-	// limited by min_vco and max_vco frequency 750 MHz and 1600 MHz resp.
-	// => vco_cnt = 63 .. 133
-	//      div1 = 1 .. 7
-	//      div2 = 1 .. 7
-	// the crystal on the Pico board is 12 MHz
-	// lowest  possible sys_clock = 12*63/7/7 ~ 15.428 MHz
-	// highest possible sys_clock = 12*133/1/1 ~ 1596 MHz
-	//
-	// possible full MHz clocks:
-	//  63 .. 133 MHz	in 1 MHz steps	(f_out = 12 MHz * vco / 12)
-	// 126 .. 266 MHz	in 2 MHz steps  (f_out = 12 MHz * vco / 6)
-	// 189 .. 399 MHz	in 3 MHz steps	(f_out = 12 MHz * vco / 4)
-	// 252 .. 532 MHz   in 4 MHz steps  (f_out = 12 MHz * vco / 3)
-
-	// 275 MHz is not possible ( 275 > 266 && 275%3 != 0 && 275%4 != 0 )
-	// 280 MHz ok              ( 280 > 266 && 280%4 == 0 => vco = 280/4 && div by 12/4 )
-	// 300 MHz freezes
-
-	constexpr uint	xtal = XOSC_KHZ / PLL_COMMON_REFDIV * 1000; // 12 MHz
-	sysclock_params best {0, 0, 0, 666 MHz, calc_vreg_voltage_for_sysclock(f)};
-
-	uint div_min = (PICO_PLL_VCO_MIN_FREQ_KHZ * 1000 + f - 1) / f; // round up
-	uint div_max = (PICO_PLL_VCO_MAX_FREQ_KHZ * 1000) / f;		   // round down
-
-	for (uint div1 = 2; div1 <= 7; div1++)
-		for (uint div2 = 1; div2 <= div1; div2++)
-		{
-			uint div = div1 * div2;
-			if (div < div_min) continue;
-			if (div > div_max) break;
-
-			uint vco = (f * div + xtal / 2) / xtal * xtal; // ~ 1 GHz
-			uint err = abs(int(f) - int(vco / div));
-
-			if (err >= best.err) continue;
-			if (f >= 40 MHz && err % 1000000) continue; // video backend needs full MHz
-
-			best.div1 = div1;
-			best.div2 = div2;
-			best.vco  = vco;
-			best.err  = err;
-			if (err == 0) return best;
-		}
-	return best;
 }
 
 

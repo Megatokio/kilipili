@@ -13,6 +13,7 @@
 #include "cdefs.h"
 #include "tempmem.h"
 #include "utilities/LoadSensor.h"
+#include "utilities/stack_guard.h"
 #include "utilities/utilities.h"
 #include <cstdio>
 #include <hardware/clocks.h>
@@ -24,7 +25,6 @@
 #include <pico/multicore.h>
 #include <pico/platform.h>
 #include <pico/sem.h>
-
 
 #ifndef VIDEO_RECOVERY_PER_LINE
   #define VIDEO_RECOVERY_PER_LINE OFF

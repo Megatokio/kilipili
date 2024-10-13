@@ -20,6 +20,8 @@ add_library(kilipili_utilities STATIC
 	Trace.cpp
 	Trace.h
 	sm_macros.h
+	stack_guard.h stack_guard.cpp
+	system_clock.h system_clock.cpp
 	)
 
 target_compile_definitions(kilipili_utilities PUBLIC 

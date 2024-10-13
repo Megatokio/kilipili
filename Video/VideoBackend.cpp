@@ -8,6 +8,7 @@
 #include "basic_math.h"
 #include "scanline.pio.h"
 #include "timing.pio.h"
+#include "utilities/system_clock.h"
 #include "video_options.h"
 #include <hardware/clocks.h>
 #include <hardware/dma.h>
@@ -38,17 +39,17 @@ namespace kio ::Video
 
 #define video_pio pio0
 
-constexpr uint SIZEOF_COLOR	  = VIDEO_COLOR_PIN_COUNT <= 8 ? 1 : 2;
-constexpr uint SYNC_PIN_BASE  = VIDEO_SYNC_PIN_BASE;
-constexpr uint HSYNC_PIN	  = VIDEO_SYNC_PIN_BASE;
-constexpr uint VSYNC_PIN	  = VIDEO_SYNC_PIN_BASE + 1;
-constexpr uint CLOCK_PIN_BASE = VIDEO_CLOCK_PIN_BASE;
-constexpr uint CLOCK_PIN	  = VIDEO_CLOCK_PIN_BASE;
-constexpr uint DEN_PIN		  = VIDEO_CLOCK_PIN_BASE + 1;
-constexpr bool ENABLE_CLOCK	  = VIDEO_CLOCK_ENABLE;
-constexpr bool CLOCK_POLARITY = VIDEO_CLOCK_POLARITY;
-constexpr bool ENABLE_DEN	  = VIDEO_DEN_ENABLE;
-constexpr bool DEN_POLARITY	  = VIDEO_DEN_POLARITY;
+constexpr uint SIZEOF_COLOR		  = VIDEO_COLOR_PIN_COUNT <= 8 ? 1 : 2;
+constexpr uint SYNC_PIN_BASE	  = VIDEO_SYNC_PIN_BASE;
+constexpr uint HSYNC_PIN		  = VIDEO_SYNC_PIN_BASE;
+constexpr uint VSYNC_PIN		  = VIDEO_SYNC_PIN_BASE + 1;
+constexpr uint CLOCK_PIN_BASE	  = VIDEO_CLOCK_PIN_BASE;
+constexpr uint CLOCK_PIN		  = VIDEO_CLOCK_PIN_BASE;
+constexpr uint DEN_PIN			  = VIDEO_CLOCK_PIN_BASE + 1;
+constexpr bool ENABLE_CLOCK		  = VIDEO_CLOCK_ENABLE;
+constexpr bool CLOCK_POLARITY	  = VIDEO_CLOCK_POLARITY;
+constexpr bool ENABLE_DEN		  = VIDEO_DEN_ENABLE;
+constexpr bool DEN_POLARITY		  = VIDEO_DEN_POLARITY;
 constexpr uint TIMING_DMA_IRQ_IDX = 1;
 
 static uint TIMING_SM;
@@ -334,7 +335,7 @@ static void setup_dma(const VgaMode& vga_mode)
 
 	// configure timing dma interrupt:
 
-	dma_channel_acknowledge_irq1(TIMING_DMA_CHANNEL);						// discard any pending event (required?)
+	dma_channel_acknowledge_irq1(TIMING_DMA_CHANNEL);							// discard any pending event (required?)
 	dma_irqn_set_channel_enabled(TIMING_DMA_IRQ_IDX, TIMING_DMA_CHANNEL, true); // enable DMA_CHANNEL irqs on DMA_IRQ
 	irq_set_enabled(DMA_IRQ_0 + TIMING_DMA_IRQ_IDX, true);						// enable DMA_IRQ interrupt on this core
 }

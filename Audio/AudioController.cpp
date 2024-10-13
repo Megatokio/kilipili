@@ -9,6 +9,7 @@
 #include "pwm_audio.pio.h"
 #include "sid_audio.pio.h"
 #include "utilities.h"
+#include "utilities/system_clock.h"
 #include <cstdio>
 #include <cstring>
 #include <hardware/dma.h>

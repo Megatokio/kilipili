@@ -6,7 +6,7 @@
 #include "LoadSensor.h"
 #include "sm_macros.h"
 #include "standard_types.h"
-#include "utilities.h"
+#include "system_clock.h"
 #include <cstdio>
 
 namespace kio

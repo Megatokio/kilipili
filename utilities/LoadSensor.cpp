@@ -5,7 +5,7 @@
 #include "LoadSensor.h"
 #include "basic_math.h"
 #include "cdefs.h"
-#include "utilities.h"
+#include "system_clock.h"
 #include <stdio.h>
 
 namespace kio::LoadSensor
