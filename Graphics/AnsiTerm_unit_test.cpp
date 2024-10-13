@@ -70,12 +70,12 @@ TEST_CASE("AnsiTerm: constructor")
 
 	CHECK_EQ(at.default_auto_wrap, ANSITERM_DEFAULT_AUTO_WRAP);
 	CHECK_EQ(at.default_application_mode, ANSITERM_DEFAULT_APPLICATION_MODE);
-	CHECK_EQ(at.default_utf8_mode, STDIO_USE_UTF8);
+	CHECK_EQ(at.default_utf8_mode, ANSITERM_DEFAULT_UTF8_MODE);
 	CHECK_EQ(at.default_c1_codes_8bit, ANSITERM_DEFAULT_C1_CODES_8BIT);
 	CHECK_EQ(at.default_newline_mode, ANSITERM_DEFAULT_NEWLINE_MODE);
 	CHECK_EQ(at.default_local_echo, ANSITERM_DEFAULT_LOCAL_ECHO);
 	CHECK_EQ(at.sgr_cumulative, ANSITERM_DEFAULT_SGR_CUMULATIVE);
-	CHECK_EQ(at.log_unhandled, ANSITERM_LOG_UNHANDLED);
+	CHECK_EQ(at.log_unhandled, ANSITERM_DEFAULT_LOG_UNHANDLED);
 
 	CHECK_EQ(at.auto_wrap, at.default_auto_wrap);
 	CHECK_EQ(at.application_mode, at.default_application_mode);

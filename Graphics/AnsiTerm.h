@@ -33,8 +33,8 @@
 	   to convert your 8-bit characters from and to Unicode for utf-8 encoded transmission.
 */
 
-#ifndef STDIO_USE_UTF8
-  #define STDIO_USE_UTF8 false
+#ifndef ANSITERM_DEFAULT_UTF8_MODE
+  #define ANSITERM_DEFAULT_UTF8_MODE false
 #endif
 
 #ifndef ANSITERM_DEFAULT_APPLICATION_MODE
@@ -61,8 +61,8 @@
   #define ANSITERM_DEFAULT_AUTO_WRAP false
 #endif
 
-#ifndef ANSITERM_LOG_UNHANDLED
-  #define ANSITERM_LOG_UNHANDLED false
+#ifndef ANSITERM_DEFAULT_LOG_UNHANDLED
+  #define ANSITERM_DEFAULT_LOG_UNHANDLED false
 #endif
 
 
@@ -106,15 +106,15 @@ public:
 	// settings:
 	bool default_auto_wrap		  : 1 = ANSITERM_DEFAULT_AUTO_WRAP;		   // CSI ? 7 h
 	bool default_application_mode : 1 = ANSITERM_DEFAULT_APPLICATION_MODE; // CSI ? 1 h  or  ESC =
-	bool default_utf8_mode		  : 1 = STDIO_USE_UTF8;					   // ESC % G
+	bool default_utf8_mode		  : 1 = ANSITERM_DEFAULT_UTF8_MODE;					   // ESC % G
 	bool default_c1_codes_8bit	  : 1 = ANSITERM_DEFAULT_C1_CODES_8BIT;	   // ESC SPC G
 	bool default_newline_mode	  : 1 = ANSITERM_DEFAULT_NEWLINE_MODE;	   // LFNL: CSI 20 h
 	bool default_local_echo		  : 1 = ANSITERM_DEFAULT_LOCAL_ECHO;	   // SRM:	CSI 12 l
 	bool default_sgr_cumulative	  : 1 = ANSITERM_DEFAULT_SGR_CUMULATIVE;   // GRCM:	CSI 21 h
-	bool log_unhandled			  : 1 = ANSITERM_LOG_UNHANDLED;			   // log unhandled or broken control codes
+	bool log_unhandled			  : 1 = ANSITERM_DEFAULT_LOG_UNHANDLED;			   // log unhandled or broken control codes
 
 	// SETTINGS & state:
-	bool  utf8_mode			  = STDIO_USE_UTF8;
+	bool  utf8_mode			  = ANSITERM_DEFAULT_UTF8_MODE;
 	bool  c1_codes_8bit		  = ANSITERM_DEFAULT_C1_CODES_8BIT;
 	bool  application_mode	  = ANSITERM_DEFAULT_APPLICATION_MODE;
 	bool  local_echo		  = ANSITERM_DEFAULT_LOCAL_ECHO;
