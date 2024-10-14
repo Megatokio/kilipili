@@ -128,6 +128,7 @@ struct circular_int
 	int value = 0;
 	circular_int() noexcept {}
 	constexpr explicit circular_int(int n) noexcept : value(n) {}
+	constexpr explicit circular_int(uint32_t n) noexcept : value(int(n)) {} // just for time_us_32()
 	constexpr explicit operator int() const noexcept { return value; }
 
 	constexpr void operator+=(int o) noexcept { value += o; }
