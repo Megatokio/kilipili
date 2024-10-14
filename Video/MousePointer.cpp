@@ -224,11 +224,12 @@ Shape shape_for_id(MousePointerID id)
 	Dist				  hotspot;
 	Pixmap<colormode_i2>* pixmap;
 
-	switch (id)
+	switch (uint(id))
 	{
 	case MOUSE_BUSY: pixmap = busy(0, &hotspot); break;
 	case MOUSE_CROSSHAIR: pixmap = crosshair(&hotspot); break;
 	case MOUSE_IBEAM: pixmap = ibeam(&hotspot); break;
+	default:
 	case MOUSE_POINTER: pixmap = pointer_m(&hotspot); break;
 	}
 
@@ -237,8 +238,8 @@ Shape shape_for_id(MousePointerID id)
 }
 
 template<typename Sprite>
-MousePointer<Sprite>::MousePointer(MousePointerID id) :
-	super(shape_for_id(id), Point(vga_mode.width / 2, vga_mode.height / 2))
+MousePointer<Sprite>::MousePointer(MousePointerID id) : //
+	super(shape_for_id(id), USB::getMousePosition())
 {
 	if constexpr (Sprite::is_animated)
 		if (id == MOUSE_BUSY)
@@ -256,7 +257,7 @@ MousePointer<Sprite>::MousePointer(MousePointerID id) :
 
 template<typename Sprite>
 MousePointer<Sprite>::MousePointer(const Shape& s) : //
-	super(s, Point(vga_mode.width / 2, vga_mode.height / 2))
+	super(s, USB::getMousePosition())
 {}
 
 template<typename Shape>
