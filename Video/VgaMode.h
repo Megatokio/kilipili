@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "standard_types.h"
-
+#include "common/geometry.h"
+#include "common/standard_types.h"
 
 namespace kio::Video
 {
@@ -33,6 +33,8 @@ struct VgaMode
 	constexpr uint h_total() const { return h_front_porch + h_pulse + h_back_porch + h_active(); }
 	constexpr uint v_active() const noexcept { return uint(height) << vss; }
 	constexpr uint v_total() const { return v_front_porch + v_pulse + v_back_porch + v_active(); }
+	constexpr Size  size() const noexcept { return Size(width,height); }
+	constexpr Point center() const noexcept { return Point(width/2,height/2); }
 
 	constexpr VgaMode half() const noexcept 
 	{
