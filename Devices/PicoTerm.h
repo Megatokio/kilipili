@@ -59,9 +59,6 @@ public:
 	//virtual SIZE puts(cstr) override;
 	//virtual SIZE printf(cstr fmt, ...) override __printflike(2, 3);
 
-	int getc(void (*sm)(), int timeout_us = 0);
-	str input_line(void (*sm)(), str oldtext = nullptr, int epos = 0);
-
 	void reset() noexcept;
 	using SerialDevice::printf;
 	char* identify();

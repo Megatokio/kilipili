@@ -759,8 +759,11 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 	// supports multiple types of cursor control.
 	// note: getc() may combine multiple sources and run a state machine.
 	// todo: positioning is still a little bit buggy.
+	// returns a tempstr
 
-	enum : uchar {
+	using namespace USB;
+
+	enum {
 		CURSOR_LEFT	 = 8,  // ^H
 		TAB			 = 9,  //
 		CURSOR_DOWN	 = 10, // ^J
@@ -784,89 +787,77 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 		moveTo(row0, col0 + epos, wrap);
 		int c = getc();
 
-		if (c < 32)
+		if (c <= 0xff)
 		{
+			if (is_printable(char(c)))
+			{
+				oldtext = catstr(leftstr(oldtext, epos), charstr(char(c)), oldtext + epos);
+				print(oldtext + epos++);
+				continue;
+			}
+
+			// else it's a control code:
 			switch (c)
 			{
-			case CURSOR_LEFT: c = USB::KEY_ARROW_LEFT; break;
-			case CURSOR_RIGHT: c = USB::KEY_ARROW_RIGHT; break;
-			case CURSOR_UP: c = USB::KEY_ARROW_UP; break;
-			case CURSOR_DOWN: c = USB::KEY_ARROW_DOWN; break;
+			case CURSOR_LEFT: c = KEY_ARROW_LEFT; break;
+			case CURSOR_RIGHT: c = KEY_ARROW_RIGHT; break;
+			case CURSOR_UP: c = KEY_ARROW_UP; break;
+			case CURSOR_DOWN: c = KEY_ARROW_DOWN; break;
 			case RETURN:
 				print(oldtext + epos);
 				newLine();
 				return oldtext;
-			default: printf("{0x%02x}", c); continue;
+			case BACKSPACE: c = KEY_BACKSPACE; break;
 			case ESC:
-				switch (c = getc())
+			case 0x9b:
+				if (c == ESC) c = getc();
+				if (c == '[') c = getc();
+				switch (c)
 				{
-				case 'A': c = USB::KEY_ARROW_UP; break;	   // VT52
-				case 'B': c = USB::KEY_ARROW_DOWN; break;  // VT52
-				case 'C': c = USB::KEY_ARROW_RIGHT; break; // VT52
-				case 'D': c = USB::KEY_ARROW_LEFT; break;  // VT52
+				case 'A': c = KEY_ARROW_UP; break;
+				case 'B': c = KEY_ARROW_DOWN; break;
+				case 'C': c = KEY_ARROW_RIGHT; break;
+				case 'D': c = KEY_ARROW_LEFT; break;
 				default: printf("{ESC,0x%02x}", c); continue;
-				case '[':
-					switch (c = getc())
-					{
-					case 'A': c = USB::KEY_ARROW_UP; break;	   // VT100
-					case 'B': c = USB::KEY_ARROW_DOWN; break;  // VT100
-					case 'C': c = USB::KEY_ARROW_RIGHT; break; // VT100
-					case 'D': c = USB::KEY_ARROW_LEFT; break;  // VT100
-					default: printf("{ESC[0x%02x}", c); continue;
-					}
-					break;
 				}
 				break;
+			default: printf("{0x%02x}", c); continue;
 			}
 		}
 
-		else if (c == BACKSPACE) //
-		{
-			c = USB::KEY_BACKSPACE;
-		}
+		// it's a USB key code:
 
-		else if (c <= 255) // printable or ignored control
+		if (c == HID_KEY_OTHER + KEY_BACKSPACE + (LEFTSHIFT << 16)) //
 		{
-			oldtext = catstr(leftstr(oldtext, epos), charstr(char(c)), oldtext + epos);
-			print(oldtext + epos++);
-			continue;
-		}
-
-		else if (c == USB::HID_KEY_OTHER + USB::KEY_BACKSPACE + (USB::LEFTSHIFT << 16)) //
-		{
-			c = USB::KEY_DELETE;
+			c = KEY_DELETE;
 		}
 
 		if (c >> 16) // with modifiers
 		{
-			printf("{%s+%s}", tostr(USB::HIDKey(c & 0xff)), tostr(USB::Modifiers(c >> 16), true));
+			printf("{%s+%s}", tostr(HIDKey(c & 0xff)), tostr(Modifiers(c >> 16), true));
 			continue;
 		}
 
-		static_assert(USB::KEY_ARROW_LEFT == 0x50);
-		static_assert(USB::KEY_EXSEL == 0xA4);
-		static_assert(USB::KEY_GUI_RIGHT == 0xE7);
-
 		switch (c & 0xff) // the USB keycode
 		{
-		case USB::KEY_BACKSPACE:
+		case KEY_BACKSPACE:
 			if (epos == 0) break;
 			epos--;
 			cursorLeft();
 			[[fallthrough]];
-		case USB::KEY_DELETE:
+		case KEY_DELETE:
 			if (oldtext[epos] == 0) break;
 			oldtext = catstr(leftstr(oldtext, epos), oldtext + epos + 1);
 			print(oldtext + epos);
 			printChar(' ');
 			break;
-		case USB::KEY_ARROW_LEFT: epos = max(epos - 1, 0); break;
-		case USB::KEY_ARROW_RIGHT:
+		case KEY_ARROW_LEFT: epos = max(epos - 1, 0); break;
+		case KEY_ARROW_RIGHT:
 			if (oldtext[epos] != 0) printChar(oldtext[epos++]);
 			break;
-		case USB::KEY_ARROW_UP: epos = max(epos - cols, 0); break;
-		case USB::KEY_ARROW_DOWN: epos = min(epos + cols, int(strlen(oldtext))); break;
-		default: printf("{%s}", tostr(USB::HIDKey(c & 0xff)));
+		case KEY_ARROW_UP: epos = max(epos - cols, 0); break;
+		case KEY_ARROW_DOWN: epos = min(epos + cols, int(strlen(oldtext))); break;
+		default: printf("{%s}", tostr(HIDKey(c & 0xff)));
 		}
 	}
 }
