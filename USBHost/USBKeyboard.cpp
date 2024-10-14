@@ -4,6 +4,7 @@
 
 #include "USBKeyboard.h"
 #include "common/Queue.h"
+#include "common/basic_math.h"
 #include "hid_handler.h"
 #include <cstring>
 #include <glue.h>
@@ -44,9 +45,16 @@ char KeyEvent::getchar() const noexcept
 static Queue<KeyEvent, 8, uint8> key_event_queue;
 static_assert(sizeof(key_event_queue) == 2 + 3 * 8);
 
+using CC						  = circular_int;
+static HIDKey	 repeat_key		  = NO_KEY;
+static Modifiers repeat_modifiers = NO_MODIFIERS;
+static CC		 repeat_next;
+
 bool keyEventAvailable() noexcept
 {
-	return key_event_queue.avail(); //
+	if (key_event_queue.avail()) return true;
+	if (repeat_key == NO_KEY) return false;
+	return CC(time_us_32()) >= repeat_next;
 }
 
 KeyEvent getKeyEvent()
@@ -55,13 +63,33 @@ KeyEvent getKeyEvent()
 	// if no event handler is installed
 	// returns KeyEvent with event.hidkey = NO_KEY and event.down = false  if no event available
 
-	if (key_event_queue.avail()) return key_event_queue.get();
-	else return KeyEvent {};
-}
+	// if (key_event_queue.avail()) return key_event_queue.get();
+	// if repeat_key avail return repeat_key.
+	// else return KeyEvent {};
 
-static HIDKey getchar_repeat_key  = NO_KEY;
-static int	  getchar_repeat_char = 0;
-static int32  getchar_repeat_next = 0;
+	if (key_event_queue.avail())
+	{
+		const KeyEvent event = key_event_queue.get();
+
+		if (event.hidkey == repeat_key) repeat_key = NO_KEY;
+		if (event.down && event.hidkey < KEY_CONTROL_LEFT)
+		{
+			repeat_key		 = event.hidkey;
+			repeat_modifiers = event.modifiers;
+			repeat_next		 = CC(time_us_32()) + USB_KEY_DELAY1 * 1000;
+		}
+
+		return event;
+	}
+
+	if (repeat_key != NO_KEY && CC(time_us_32()) >= repeat_next)
+	{
+		repeat_next = CC(time_us_32()) + USB_KEY_DELAY * 1000;
+		return KeyEvent {true, repeat_modifiers, repeat_key};
+	}
+
+	return KeyEvent {};
+}
 
 int getChar()
 {
@@ -70,30 +98,16 @@ int getChar()
 	// keys with no entry in the translation table are returned as
 	//		HID_KEY_OTHER + HidKey + modifiers<<16
 
-	while (key_event_queue.avail())
+	while (keyEventAvailable())
 	{
-		const KeyEvent event = key_event_queue.get();
+		const KeyEvent event = getKeyEvent();
 
 		if (event.down)
 		{
 			int c = uchar(event.getchar());
 			if (!c) c = HID_KEY_OTHER + event.hidkey + (event.modifiers << 16); // non-priting char
-
-			getchar_repeat_key	= event.hidkey;
-			getchar_repeat_char = c;
-			getchar_repeat_next = int(time_us_32()) + USB_KEY_DELAY1 * 1000;
 			return c;
 		}
-		else
-		{
-			if (event.hidkey == getchar_repeat_key) getchar_repeat_key = NO_KEY;
-		}
-	}
-
-	if (getchar_repeat_key && int(time_us_32()) - getchar_repeat_next >= 0)
-	{
-		getchar_repeat_next = int(time_us_32()) + USB_KEY_DELAY * 1000;
-		return getchar_repeat_char;
 	}
 
 	return -1;
@@ -116,7 +130,7 @@ void setKeyEventHandler(KeyEventHandler* handler)
 {
 	key_event_handler = handler ? handler : &pushKeyEvent;
 	key_event_queue.flush();
-	getchar_repeat_key = NO_KEY;
+	repeat_key = NO_KEY;
 	setHidKeyboardEventHandler(&defaultHidKeyboardEventHandler);
 }
 
