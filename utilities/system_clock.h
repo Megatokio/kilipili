@@ -20,8 +20,8 @@ constexpr Error UNSUPPORTED_SYSTEM_CLOCK = "requested system clock is not suppor
 
 namespace kio
 {
-  
-inline uint32  get_system_clock() { return clock_get_hz(clk_sys); }
+
+inline uint32 get_system_clock() { return clock_get_hz(clk_sys); }
 extern Error  set_system_clock(uint32 sys_clock = 125 MHz, uint32 max_error = 1 MHz);
 extern void	  sysclock_changed(uint32 new_clock) noexcept;
 

@@ -139,7 +139,10 @@ Error set_system_clock(uint32 new_clock, uint32 max_error)
 
 void sysclock_changed(uint32 new_clock) noexcept
 {
-	::setup_default_uart();
+#if defined PICO_DEFAULT_UART_BAUD_RATE && defined PICO_DEFAULT_UART_INSTANCE
+	// if the baudrate was changed at runtime then ::sysclockChanged() can fix it:
+	uart_set_baudrate(PICO_DEFAULT_UART_INSTANCE, PICO_DEFAULT_UART_BAUD_RATE);
+#endif
 	if (LoadSensor::recalibrate) LoadSensor::recalibrate();
 	if (Audio::sysclockChanged) Audio::sysclockChanged(new_clock);
 	if (::sysclockChanged) ::sysclockChanged(new_clock);
