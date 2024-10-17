@@ -41,6 +41,9 @@ if(${UNIT_TEST})
 		common/relational_operators.test.cpp
 		common/Array.test.cpp
 		Audio/AudioSource.cpp 		
+		Audio/Ay38912.cpp
+		Audio/Ay38912.h
+		Audio/Ay38912_unit_test.cpp
 		)
 	
 	target_compile_definitions(unit_tests PUBLIC
