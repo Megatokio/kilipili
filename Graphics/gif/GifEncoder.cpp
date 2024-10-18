@@ -175,7 +175,6 @@ void GifEncoder::startImage(int cmap_bits) throws
 
 	depth			  = cmap_bits;
 	file_state		  = IMAGE_SAVING;
-	position		  = 0;
 	bufsize			  = 0;
 	buf[0]			  = 0;
 	clear_code		  = 1 << cmap_bits;

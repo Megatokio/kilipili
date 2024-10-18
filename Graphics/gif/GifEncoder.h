@@ -72,7 +72,7 @@ class GifEncoder
 	Colormap global_cmap; // if not used, then global_cmap.used = 0
 
 	int	   depth, clear_code, eof_code, running_code, running_bits, max_code_plus_one;
-	int	   current_code, shift_state, file_state, position, bufsize;
+	int	   current_code, shift_state, file_state, bufsize;
 	uint32 shift_data;
 	uint8  buf[256];
 
