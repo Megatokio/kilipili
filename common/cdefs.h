@@ -47,6 +47,10 @@
   #define __printflike(A, B) __attribute__((format(printf, A, B)))
 #endif
 
+#ifndef __packed
+  #define __packed __attribute__((__packed__))
+#endif
+
 // this is the most portable FALLTHROUGH annotation.
 // only disadvantage: you must not write a ';' after it
 #define __fallthrough             \
