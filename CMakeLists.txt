@@ -57,9 +57,17 @@ if(${UNIT_TEST})
 		Audio/StSoundLibrary/YmUserInterface.cpp
 		Audio/StSoundLibrary/LZH/LZH.H
 		Audio/StSoundLibrary/LZH/LzhLib.cpp		
+		Audio/Ay38912.cpp
+		Audio/Ay38912.h
+		Audio/Ay38912_unit_test.cpp
 		)
 	
 	target_compile_definitions(unit_tests PUBLIC
+		#YM_FILE="test_files/solom3.ym"
+		YM_FILE="test_files/Ninja Spirits  5.ym"
+		YM_DIR="Audio/rsrc/ym_files/"
+		#YM_DIR="/mnt/WD2/ym-jukebox.git/data"
+		YM_WHAT=What::RSRC
 		)
 
 	# add current dir to 'include search path':
@@ -72,6 +80,7 @@ if(${UNIT_TEST})
 		kilipili_common 
 		kilipili_graphics 
 		kilipili_usb_host
+		z
 		)
 	
 endif()
