@@ -41,6 +41,8 @@ if(${UNIT_TEST})
 		common/relational_operators.test.cpp
 		common/Array.test.cpp
 		Audio/AudioSource.cpp 		
+		Audio/YMFileConverter.cpp
+		Audio/YMFileConverter.h
 		Audio/StSoundLibrary/StSoundLibrary.h
 		Audio/StSoundLibrary/digidrum.cpp
 		Audio/StSoundLibrary/digidrum.h
