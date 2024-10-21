@@ -46,6 +46,8 @@ add_library(kilipili_common STATIC
 	Xoshiro128.cpp
 	Xoshiro128.h	
 	sdbm_hash.h
+	LzhDecoder.cpp
+	LzhDecoder.h
 	${distinct_sources}
 	)
 
