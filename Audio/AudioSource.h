@@ -410,6 +410,60 @@ public:
 };
 
 
+/* _______________________________________________________________________________________
+   simple filter to remove DC bias and HF hissing:
+*/
+template<uint nc>
+class HF_DC_Filter : public AudioSource<1>
+{
+public:
+	HF_DC_Filter(RCPtr<AudioSource<nc>> audio_source) noexcept : audio_source(audio_source) {}
+
+	virtual void setSampleRate(float new_sample_frequency) noexcept override
+	{
+		audio_source->setSampleRate(new_sample_frequency);
+	}
+
+	virtual uint getAudio(AudioSample<nc>* buffer, uint num_frames) noexcept override
+	{
+		num_frames = audio_source->getAudio(buffer, num_frames);
+
+		for (uint ch = 0; ch < nc; ch++)
+		{
+			int		sample = last_sample[ch];
+			int		center = audio_center[ch];
+			Sample* p	   = &buffer[0][ch];
+
+			for (uint i = 0; i < num_frames * nc; i += nc)
+			{
+				sample = Sample((sample + p[i]) >> 1);
+				sample -= center;
+				center += sample >> 11;
+				if unlikely (sample != Sample(sample))
+				{
+					center += sample;
+					sample = sample < 0 ? -0x8000 : +0x7fff;
+					center -= sample;
+				}
+				p[i] = Sample(sample);
+			}
+
+			last_sample[ch]	 = sample;
+			audio_center[ch] = center;
+		}
+		return num_frames;
+	}
+
+private:
+	RCPtr<AudioSource<nc>> audio_source;
+	AudioSample<nc, int>   audio_center {0};
+	AudioSample<nc, int>   last_sample {0};
+};
+
+
+template<uint nc>
+HF_DC_Filter(RCPtr<AudioSource<nc>>) -> HF_DC_Filter<nc>;
+
 } // namespace kio::Audio
 
 
