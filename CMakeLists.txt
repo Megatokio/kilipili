@@ -41,6 +41,20 @@ if(${UNIT_TEST})
 		common/relational_operators.test.cpp
 		common/Array.test.cpp
 		Audio/AudioSource.cpp 		
+		Audio/StSoundLibrary/StSoundLibrary.h
+		Audio/StSoundLibrary/digidrum.cpp
+		Audio/StSoundLibrary/digidrum.h
+		Audio/StSoundLibrary/YmTypes.h
+		Audio/StSoundLibrary/Ym2149Ex.cpp
+		Audio/StSoundLibrary/Ym2149Ex.h
+		Audio/StSoundLibrary/Ymload.cpp
+		Audio/StSoundLibrary/YmLoad.h
+		Audio/StSoundLibrary/YmMusic.cpp
+		Audio/StSoundLibrary/YmMusic.h
+		Audio/StSoundLibrary/YmTypes.h
+		Audio/StSoundLibrary/YmUserInterface.cpp
+		Audio/StSoundLibrary/LZH/LZH.H
+		Audio/StSoundLibrary/LZH/LzhLib.cpp		
 		)
 	
 	target_compile_definitions(unit_tests PUBLIC
