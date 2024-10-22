@@ -3,14 +3,25 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Directory.h"
+#include "cstrings.h"
 
-namespace kio {
-namespace Devices {
-
-Directory::Directory()
+namespace kio::Devices
 {
-	
+
+static bool is_absolute_path(cstr path) { return path[0] == '/'; }
+
+Directory::Directory(cstr path)
+{
+	assert(path);
+	assert(is_absolute_path(path));
+	this->path = newcopy(path);
 }
 
-} // namespace Devices
-} // namespace kio
+cstr Directory::makeAbsolutePath(cstr path)
+{
+	assert(path);
+	if (is_absolute_path(path)) return path;
+	else return catstr(this->path, "/", path);
+}
+
+} // namespace kio::Devices
