@@ -90,7 +90,7 @@ extern FileSystem* file_systems[];
 	After that the name may be absolute or relative.
 	Relative paths are appended to the current workdir of the device.
 */
-extern FilePtr		openFile(cstr path, FileOpenMode flags) throws;
+extern FilePtr		openFile(cstr path, FileOpenMode flags = READ) throws;
 extern DirectoryPtr openDir(cstr path) throws;
 
 } // namespace kio::Devices

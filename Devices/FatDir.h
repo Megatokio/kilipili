@@ -30,16 +30,12 @@ public:
 	virtual void		 setFmode(cstr path, FileMode fmode, uint8 mask) override;
 	virtual void		 setMtime(cstr path, uint32 mtime) override;
 
-	cstr path = nullptr;
-
 private:
 	FatFSPtr device; // keep alive
 	DIR		 fatdir;
 
 	FatDir(FatFSPtr device, cstr path) throws;
 	friend class FatFS;
-	cstr makeAbsolutePath(cstr path);
-	//void copy_fileinfo(FileInfo&, const FILINFO&);
 };
 
 } // namespace kio::Devices

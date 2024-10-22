@@ -41,9 +41,13 @@ public:
 	virtual void setFmode(cstr path, FileMode mode, uint8 mask) throws = 0;
 	virtual void setMtime(cstr path, uint32 mtime) throws			   = 0;
 
+	cstr getPath() const noexcept { return path; }
+
 protected:
-	Directory();
-	virtual ~Directory() noexcept override = default;
+	cstr path = nullptr;
+	Directory(cstr path);
+	virtual ~Directory() noexcept override { delete[] path; }
+	cstr makeAbsolutePath(cstr path);
 };
 
 

@@ -14,7 +14,7 @@
 
 // volume names as required by FatFS:
 constexpr char NoDevice[]			 = "";
-cstr		   VolumeStr[FF_VOLUMES] = {NoDevice};
+cstr		   VolumeStr[FF_VOLUMES] = {NoDevice, NoDevice, NoDevice, NoDevice};
 
 
 namespace kio::Devices
@@ -22,7 +22,7 @@ namespace kio::Devices
 
 //using FSName = char[8];
 //static FSName	   fs_names[FF_VOLUMES]		= {""};
-FileSystem* file_systems[FF_VOLUMES] = {nullptr};
+FileSystem* file_systems[FF_VOLUMES] = {nullptr, nullptr, nullptr, nullptr};
 
 static constexpr char UNKNOWN_FILESYSTEM[]	= "unknown file system";
 static constexpr char UNKNOWN_DEVICE[]		= "unknown device";
