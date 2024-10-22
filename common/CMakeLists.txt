@@ -11,6 +11,8 @@ if(${UNIT_TEST})
 		linux/glue.cpp
 		linux/glue.h
 		linux/atomic.h
+		linux/RsrcFileWriter.cpp
+		linux/RsrcFileWriter.h
 		tempmem-posix.cpp)
 	set(distinct_headers 
 		${CMAKE_CURRENT_LIST_DIR}/linux)
