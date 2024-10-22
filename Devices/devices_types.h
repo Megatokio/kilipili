@@ -33,6 +33,8 @@ constexpr char INVALID_ARGUMENT[]	   = "invalid argument";	  // ioctl()
 constexpr char DEVICE_NOT_RESPONDING[] = "Device not responding"; // block devices
 constexpr char HARD_WRITE_ERROR[]	   = "Hard write error";	  // block devices
 constexpr char HARD_READ_ERROR[]	   = "Hard read error";		  // block devices
+constexpr char FILE_NOT_FOUND[]		   = "File not found";
+constexpr char DIRECTORY_NOT_FOUND[]   = "Directory not found";
 
 
 enum FileOpenMode : uint8 {
@@ -74,15 +76,15 @@ enum FileMode : uint8 {
 
 struct DateTime
 {
-	uint8 year;	 // 1970 = 0
-	uint8 month; // Jan = 0
-	uint8 day;	 // 1st = 0
-	uint8 hour;
-	uint8 minute;
-	uint8 second;
+	uint8 year	 = 0; // 1970 = 0
+	uint8 month	 = 0; // Jan = 0
+	uint8 day	 = 0; // 1st = 0
+	uint8 hour	 = 0;
+	uint8 minute = 0;
+	uint8 second = 0;
 
-	DateTime() = default;
-	DateTime(uint8 y, uint8 mo, uint8 d, uint8 h, uint8 mi, uint8 s) noexcept :
+	constexpr DateTime() = default;
+	constexpr DateTime(uint8 y, uint8 mo, uint8 d, uint8 h, uint8 mi, uint8 s) noexcept :
 		year(y),
 		month(mo),
 		day(d),
