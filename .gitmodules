@@ -4,3 +4,6 @@
 [submodule "stb"]
 	path = stb
 	url = ../../nothings/stb.git
+[submodule "common/heatshrink"]
+	path = common/heatshrink
+	url = ../../atomicobject/heatshrink.git
