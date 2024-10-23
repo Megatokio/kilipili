@@ -3,22 +3,16 @@
 // https://spdx.org/licenses/BSD-2-Clause.html
 
 #include "SDCard.h"
-#include "basic_math.h"
 #include "cdefs.h"
 #include "crc.h"
-#include "stdio.h"
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
 #include <pico/stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #undef debugstr
 #define debugstr(...) void(0)
-
-
-static constexpr uint log2(uint n) { return n == 1 ? 0 : 1 + log2(n >> 1); }
-static_assert(log2(32) == 5, "");
-
 
 // clang-format off
 // assert unchanged definition, then replace c-style casting macros with c++ version:
@@ -46,42 +40,57 @@ static_assert(log2(32) == 5, "");
 // CMD13 SEND_STATUS       0x0d
 
 
-__attribute__((weak)) void set_disk_light(bool onoff)
-{
-#ifdef PICO_DEFAULT_LED_PIN
-	gpio_put(PICO_DEFAULT_LED_PIN, onoff);
-#endif
-}
-
-
-namespace kio::Devices
-{
-
-
 // ==================================================
 //			SD Card Block Device
 // ==================================================
 
 
+namespace kio::Devices
+{
+
+static spi_inst*	  inst_for_pin(uint pin) { return pin < 20 ? pin & 8 ? spi1 : spi0 : nullptr; }
+static constexpr bool is_rx_pin(uint pin) { return (pin & 3) == 0; }
+static constexpr bool is_clk_pin(uint pin) { return (pin & 3) == 2; }
+static constexpr bool is_tx_pin(uint pin) { return (pin & 3) == 3; }
+
+SDCard* SDCard::defaultInstance() // static
+{
+#ifndef PICO_DEFAULT_SPI
+	return nullptr;
+#else
+	static SDCard sdcard;
+	return &sdcard;
+#endif
+}
+
 inline void SDCard::read_spi(uint8* data, uint32 cnt) const noexcept { spi_read_blocking(spi, 0xff, data, cnt); }
 inline void SDCard::write_spi(const uint8* data, uint32 cnt) const noexcept { spi_write_blocking(spi, data, cnt); }
 inline void SDCard::select() const noexcept
 {
-	set_disk_light(on);
+	if (set_disk_light) set_disk_light(on);
 	gpio_put(cs_pin, 0);
 }
 inline void SDCard::deselect() const noexcept
 {
-	set_disk_light(off);
+	if (set_disk_light) set_disk_light(off);
 	gpio_put(cs_pin, 1);
 	static uint8 u1;
 	read_spi(&u1, 1); // flush card's shift register (!SanDisk!)
 }
 
-static spi_inst* inst_for_pin(uint pin) { return pin < 20 ? pin & 8 ? spi1 : spi0 : nullptr; }
-static bool		 is_rx_pin(uint pin) { return (pin & 3) == 0; }
-static bool		 is_clk_pin(uint pin) { return (pin & 3) == 2; }
-static bool		 is_tx_pin(uint pin) { return (pin & 3) == 3; }
+static_assert(is_rx_pin(PICO_DEFAULT_SPI_RX_PIN));
+static_assert(is_tx_pin(PICO_DEFAULT_SPI_TX_PIN));
+static_assert(is_clk_pin(PICO_DEFAULT_SPI_SCK_PIN));
+
+static constexpr uint8 rx  = PICO_DEFAULT_SPI_RX_PIN;
+static constexpr uint8 cs  = PICO_DEFAULT_SPI_CSN_PIN;
+static constexpr uint8 clk = PICO_DEFAULT_SPI_SCK_PIN;
+static constexpr uint8 tx  = PICO_DEFAULT_SPI_TX_PIN;
+
+SDCard::SDCard() noexcept : SDCard(rx, cs, clk, tx)
+{
+	rc = 1; // never destroy!
+}
 
 SDCard::SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) noexcept :
 	BlockDevice(0, 9, 9, 9 /*ss*/, readwrite /*flags*/),
@@ -121,8 +130,8 @@ void SDCard::disconnect() noexcept
 	deselect();
 	//spi_deinit(spi);
 	sector_count = 0;
-	flags		  = Flags(0);
-	card_type	  = SD_unknown;
+	flags		 = Flags(0);
+	card_type	 = SD_unknown;
 }
 
 
