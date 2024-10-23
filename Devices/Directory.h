@@ -29,10 +29,10 @@ public:
 	/* ————————————————————————————————————————
 		Create, delete and open files and directories:
 	*/
-	virtual FilePtr		 openFile(cstr path, FileOpenMode mode) throws = 0;
-	virtual DirectoryPtr openDir(cstr path) throws					   = 0;
-	virtual void		 remove(cstr path) throws					   = 0;
-	virtual void		 makeDir(cstr path) throws					   = 0;
+	virtual FilePtr		 openFile(cstr path, FileOpenMode mode = READ) throws = 0;
+	virtual DirectoryPtr openDir(cstr path) throws							  = 0;
+	virtual void		 remove(cstr path) throws							  = 0;
+	virtual void		 makeDir(cstr path) throws							  = 0;
 
 	/* ————————————————————————————————————————
 		Get and manipulate meta data:
