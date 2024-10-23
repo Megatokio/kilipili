@@ -14,14 +14,14 @@
 namespace kio::Devices
 {
 
-FileSystem* file_systems[FF_VOLUMES] = {nullptr, nullptr, nullptr, nullptr};
+static FileSystem* file_systems[FF_VOLUMES] = {}; // all NULL
 
-static constexpr char UNKNOWN_FILESYSTEM[]	= "unknown file system";
-static constexpr char UNKNOWN_DEVICE[]		= "unknown device";
-static constexpr char DEVICE_IN_USE[]		= "device in use";
-static constexpr char NO_MOUNTPOINT_FREE[]	= "no mountpoint free";
-static constexpr char PATH_WITHOUT_DEVICE[] = "invalid path without device";
-static constexpr char NAME_TOO_LONG[]		= "name too long";
+static constexpr char UNKNOWN_FILESYSTEM[] = "unknown file system";
+static constexpr char UNKNOWN_DEVICE[]	   = "unknown device";
+static constexpr char DEVICE_IN_USE[]	   = "device in use";
+static constexpr char NO_MOUNTPOINT_FREE[] = "no mountpoint free";
+static constexpr char NO_WORKING_DEVICE[]  = "no working device";
+static constexpr char NAME_TOO_LONG[]	   = "name too long";
 
 
 // ====================================================
@@ -139,16 +139,23 @@ cstr FileSystem::makeAbsolutePath(cstr path)
 	trace(__func__);
 
 	if (path[0] == '/') return path;
-	if (workdir) return catstr(workdir, "/", path);
-	else return catstr("/", path);
+	if (path[0] == 0) return getWorkDir();
+	else return catstr(getWorkDir(), path);
 }
+
+// current working device
+static FileSystemPtr cwd;
 
 DirectoryPtr openDir(cstr path) throws
 {
 	trace(__func__);
 
 	ptr dp = strchr(path, ':');
-	if (!dp) throw PATH_WITHOUT_DEVICE;
+	if (!dp)
+	{
+		if (cwd) return cwd->openDir(path);
+		else throw NO_WORKING_DEVICE;
+	}
 
 	cstr devname = substr(path, dp);
 	return FileSystem::mount(devname)->openDir(dp + 1);
@@ -159,10 +166,64 @@ FilePtr openFile(cstr path, FileOpenMode flags) throws
 	trace(__func__);
 
 	ptr dp = strchr(path, ':');
-	if (!dp) throw PATH_WITHOUT_DEVICE;
+	if (!dp)
+	{
+		if (cwd) return cwd->openFile(path);
+		else throw NO_WORKING_DEVICE;
+	}
 
 	cstr devname = substr(path, dp);
 	return FileSystem::mount(devname)->openFile(dp + 1, flags);
+}
+
+
+FileSystemPtr getWorkDevice()
+{
+	return cwd; //
+}
+
+void setWorkDevice(FileSystemPtr fs)
+{
+	cwd = std::move(fs); //
+}
+
+FileSystemPtr getDevice(cstr name)
+{
+	int i = index_of(name);
+	return i >= 0 ? file_systems[i] : nullptr;
+}
+
+cstr getWorkDir()
+{
+	// "A:/", "A:/foo"
+	return cwd ? catstr(cwd->name, ":", cwd->getWorkDir()) : nullptr;
+}
+
+void setWorkDir(cstr path)
+{
+	trace(__func__);
+
+	// "A:", "A:/foo", "A:foo", "/foo", "foo"
+	if (!path || !*path) return;
+
+	if (ptr dp = strchr(path, ':'))
+	{
+		cwd	 = FileSystem::mount(substr(path, dp));
+		path = dp + 1;
+	}
+
+	if (cwd) cwd->setWorkDir(path);
+	else throw NO_WORKING_DEVICE;
+}
+
+FileSystemPtr mount(cstr devicename)
+{
+	return FileSystem::mount(devicename); //
+}
+
+void unmount(FileSystemPtr fs)
+{
+	if (fs == cwd) cwd = nullptr;
 }
 
 
