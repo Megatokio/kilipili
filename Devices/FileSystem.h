@@ -4,7 +4,6 @@
 
 #pragma once
 #include "BlockDevice.h"
-#include "Directory.h"
 
 namespace kio::Devices
 {
@@ -26,20 +25,27 @@ class FileSystem : public RCObject
 {
 public:
 	/* —————————————————————————————————————————————
-		Mount supplied device or the named device and register it as device `name`.
+		Mount supplied device and register it as device `name`.
 		Normally not needed but may be used to check FS beforehand
 		or to keep it in memory to prevent repeated unmount-mount cycles.
 	*/
 	static FileSystemPtr mount(cstr name, BlockDevicePtr device) throws;
-	static FileSystemPtr mount(cstr name) throws;
 
 	/* —————————————————————————————————————————————
-		Create filesystem on the supplied device or on the named device.
+		Mount the well-known named device.
+		well-known are currently:
+		- "sdcard"  the default SDCard
+		- "rsrc"    the resource file system
+	*/
+	static FileSystemPtr mount(cstr devicename) throws;
+
+	/* —————————————————————————————————————————————
+		Create filesystem on the supplied device.
 		Type "FAT" creates the default variant of FAT for the disk size.
 		Other filesystems are TODO.
+		The device should not be mounted.
 	*/
 	static void makeFS(BlockDevicePtr, cstr type = "FAT") throws;
-	static void makeFS(cstr devname, cstr type = "FAT") throws;
 
 	/* —————————————————————————————————————————————
 		Get total size and free space.
@@ -63,20 +69,16 @@ public:
 	cstr makeAbsolutePath(cstr path); // utility for subclasses
 
 
-	char			   name[8] = "";
-	RCPtr<BlockDevice> blkdev;
-	cstr			   workdir = nullptr; // allocated
+	char name[8] = "";
+	cstr workdir = nullptr; // allocated
 
 protected:
-	FileSystem(cstr name, BlockDevice* blkdev) throws;
+	FileSystem(cstr name) throws;
 	virtual ~FileSystem() noexcept override;
 
 private:
 	virtual bool mount() throws = 0;
 };
-
-
-extern FileSystem* file_systems[];
 
 
 // =================================================== //

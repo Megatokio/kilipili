@@ -17,14 +17,17 @@
 #undef debugstr
 #define debugstr(...) void(0)
 
+// volume names as required by FatFS:
+constexpr char NoDevice[]			 = "";
+cstr		   VolumeStr[FF_VOLUMES] = {"", "", "", ""};
 
 static const cstr ff_errors[] = {
 	/*  FR_OK,					*/ "Success",
 	/*  FR_DISK_ERR,			*/ "A hard error occurred in the low level disk I/O layer",
 	/*  FR_INT_ERR,				*/ "Assertion failed",
 	/*  FR_NOT_READY,			*/ "The physical drive cannot work",
-	/*  FR_NO_FILE,				*/ "Could not find the file",
-	/*  FR_NO_PATH,				*/ "Could not find the path",
+	/*  FR_NO_FILE,				*/ kio::Devices::FILE_NOT_FOUND,
+	/*  FR_NO_PATH,				*/ kio::Devices::DIRECTORY_NOT_FOUND,
 	/*  FR_INVALID_NAME,		*/ "The path name format is invalid",
 	/*  FR_DENIED,				*/ "Access denied due to prohibited access or directory full",
 	/*  FR_EXIST,				*/ "Access denied due to prohibited access",
@@ -51,14 +54,20 @@ cstr tostr(FRESULT err) noexcept
 namespace kio::Devices
 {
 
-FatFS::FatFS(cstr name, BlockDevice* blkdev, int idx) throws : // ctor
-	FileSystem(name, blkdev)
+// BlockDevices matching VolumeStr[]:
+static RCPtr<BlockDevice> blkdevs[FF_VOLUMES];
+
+
+FatFS::FatFS(cstr name, BlockDevicePtr bdev, int idx) throws : // ctor
+	FileSystem(name),
+	volume_idx(idx)
 {
 	trace(__func__);
 
 	debugstr("FatFS::FatFS\n");
 
 	assert(uint(idx) <= FF_VOLUMES);
+	blkdevs[idx] = bdev;
 }
 
 FatFS::~FatFS() // dtor
@@ -67,7 +76,9 @@ FatFS::~FatFS() // dtor
 
 	debugstr("FatFS::~FatFS\n");
 
-	FRESULT err = f_mount(nullptr, name, 0); // unmount, unregister buffers
+	FRESULT err			  = f_mount(nullptr, name, 0); // unmount, unregister buffers
+	VolumeStr[volume_idx] = NoDevice;
+	blkdevs[volume_idx]	  = nullptr;
 	if (err) logline("unmount error: %s", tostr(err));
 }
 
@@ -97,7 +108,9 @@ bool FatFS::mount()
 
 	debugstr("FatFS::mount\n");
 
-	FRESULT err = f_mount(&fatfs, name, 1 /*mount now*/);
+	VolumeStr[volume_idx] = name;
+	FRESULT err			  = f_mount(&fatfs, name, 1 /*mount now*/);
+	if (err) VolumeStr[volume_idx] = NoDevice;
 	if (err && err != FR_NO_FILESYSTEM) throw tostr(err);
 	return !err; // ok = true
 }
@@ -155,11 +168,6 @@ void FatFS::mkfs(BlockDevice* blkdev, int idx, cstr /*type*/)
 using namespace kio;
 using namespace kio::Devices;
 
-
-/*-----------------------------------------------------------------------*/
-/* Get Drive Status                                                      */
-/*-----------------------------------------------------------------------*/
-
 DSTATUS disk_status(BYTE id)
 {
 	trace(__func__);
@@ -174,8 +182,8 @@ DSTATUS disk_status(BYTE id)
 	// STA_NODISK		0x02	/* No medium in the drive */
 	// STA_PROTECT		0x04	/* Write protected */
 
-	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
-	BlockDevice* blkdev = file_systems[id]->blkdev;
+	assert(id < FF_VOLUMES && blkdevs[id] != nullptr);
+	BlockDevice* blkdev = blkdevs[id];
 
 	if (blkdev->isWritable()) return 0;
 	if (blkdev->isReadable()) return STA_PROTECT;
@@ -196,8 +204,8 @@ DSTATUS disk_initialize(BYTE id)
 
 	debugstr("***disk_initialize***\n");
 
-	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
-	BlockDevice* blkdev = file_systems[id]->blkdev;
+	assert(id < FF_VOLUMES && blkdevs[id] != nullptr);
+	BlockDevice* blkdev = blkdevs[id];
 
 	try
 	{
@@ -235,8 +243,8 @@ DRESULT disk_read(BYTE id, BYTE* buff, LBA_t sector, UINT count)
 	// RES_NOTRDY,		/* 3: Not Ready */
 	// RES_PARERR		/* 4: Invalid Parameter */
 
-	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
-	BlockDevice* blkdev = file_systems[id]->blkdev;
+	assert(id < FF_VOLUMES && blkdevs[id] != nullptr);
+	BlockDevice* blkdev = blkdevs[id];
 
 	try
 	{
@@ -275,8 +283,8 @@ DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 	// RES_NOTRDY,		/* 3: Not Ready */
 	// RES_PARERR		/* 4: Invalid Parameter */
 
-	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
-	BlockDevice* blkdev = file_systems[id]->blkdev;
+	assert(id < FF_VOLUMES && blkdevs[id] != nullptr);
+	BlockDevice* blkdev = blkdevs[id];
 
 	try
 	{
@@ -325,8 +333,8 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 	// RES_NOTRDY,		/* 3: Not Ready */
 	// RES_PARERR		/* 4: Invalid Parameter */
 
-	assert(id < FF_VOLUMES && file_systems[id] != nullptr && file_systems[id]->blkdev);
-	BlockDevice* blkdev = file_systems[id]->blkdev;
+	assert(id < FF_VOLUMES && blkdevs[id] != nullptr);
+	BlockDevice* blkdev = blkdevs[id];
 
 	try
 	{
