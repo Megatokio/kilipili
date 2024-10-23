@@ -22,7 +22,7 @@ public:
 
 	virtual FileInfo	 next(cstr pattern = nullptr) throws override;
 	virtual void		 rewind() throws override;
-	virtual FilePtr		 openFile(cstr path, FileOpenMode mode) override;
+	virtual FilePtr		 openFile(cstr path, FileOpenMode mode = READ) override;
 	virtual DirectoryPtr openDir(cstr path) override;
 	virtual void		 remove(cstr path) override;
 	virtual void		 makeDir(cstr path) override;
