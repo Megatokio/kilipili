@@ -5,29 +5,20 @@
 #include "FileSystem.h"
 #include "FatFS.h"
 #include "File.h"
+#include "RsrcFS.h"
 #include "SDCard.h"
 #include "Trace.h"
 #include "cstrings.h"
 #include "ff15/source/ffconf.h"
-#include "pico/stdio.h"
-#include <pico/config.h>
-
-// volume names as required by FatFS:
-constexpr char NoDevice[]			 = "";
-cstr		   VolumeStr[FF_VOLUMES] = {NoDevice, NoDevice, NoDevice, NoDevice};
-
 
 namespace kio::Devices
 {
 
-//using FSName = char[8];
-//static FSName	   fs_names[FF_VOLUMES]		= {""};
 FileSystem* file_systems[FF_VOLUMES] = {nullptr, nullptr, nullptr, nullptr};
 
 static constexpr char UNKNOWN_FILESYSTEM[]	= "unknown file system";
 static constexpr char UNKNOWN_DEVICE[]		= "unknown device";
 static constexpr char DEVICE_IN_USE[]		= "device in use";
-static constexpr char FILESYSTEM_IN_USE[]	= "file system in use";
 static constexpr char NO_MOUNTPOINT_FREE[]	= "no mountpoint free";
 static constexpr char PATH_WITHOUT_DEVICE[] = "invalid path without device";
 static constexpr char NAME_TOO_LONG[]		= "name too long";
@@ -35,38 +26,31 @@ static constexpr char NAME_TOO_LONG[]		= "name too long";
 
 // ====================================================
 
-int index_of(cstr name)
+static int index_of(cstr name)
 {
 	for (int i = 0; i < FF_VOLUMES; i++)
-		if (lceq(name, VolumeStr[i])) return i;
+	{
+		FileSystem* fs = file_systems[i];
+		if (fs && lceq(name, fs->name)) return i;
+	}
 	return -1;
 }
 
-int index_of(FileSystem* fs)
+static int index_of(FileSystem* fs)
 {
 	for (int i = 0; i < FF_VOLUMES; i++)
 		if (fs == file_systems[i]) return i;
 	return -1;
 }
 
-BlockDevice* newBlockDeviceForName(cstr name)
+static int index_of(std::nullptr_t)
 {
-	trace(__func__);
-
-	if (lceq(name, "sdcard"))
-	{
-		static constexpr uint8 rx  = PICO_DEFAULT_SPI_RX_PIN;
-		static constexpr uint8 cs  = PICO_DEFAULT_SPI_CSN_PIN;
-		static constexpr uint8 clk = PICO_DEFAULT_SPI_SCK_PIN;
-		static constexpr uint8 tx  = PICO_DEFAULT_SPI_TX_PIN;
-
-		return new SDCard(rx, cs, clk, tx);
-	}
-	throw UNKNOWN_DEVICE;
+	for (int i = 0; i < FF_VOLUMES; i++)
+		if (file_systems[i] == nullptr) return i;
+	return -1;
 }
 
-FileSystem::FileSystem(cstr devname, BlockDevice* blkdev) throws : // ctor
-	blkdev(blkdev)
+FileSystem::FileSystem(cstr devname) throws // ctor
 {
 	trace(__func__);
 
@@ -81,11 +65,7 @@ FileSystem::~FileSystem() noexcept
 	delete[] workdir;
 
 	int idx = index_of(this);
-	if (idx >= 0)
-	{
-		VolumeStr[idx]	  = NoDevice;
-		file_systems[idx] = nullptr;
-	}
+	if (idx >= 0) file_systems[idx] = nullptr;
 }
 
 void FileSystem::makeFS(BlockDevicePtr bdev, cstr type) throws // static
@@ -95,56 +75,51 @@ void FileSystem::makeFS(BlockDevicePtr bdev, cstr type) throws // static
 	type = lowerstr(type);
 	if (startswith(type, "fat"))
 	{
-		int idx = index_of(NoDevice); // FatFS needs a slot, even if not mounted
+		int idx = index_of(nullptr); // FatFS needs a slot, even if not mounted
 		if (idx < 0) throw NO_MOUNTPOINT_FREE;
 		FatFS::mkfs(bdev, idx, type);
 	}
 	else throw UNKNOWN_FILESYSTEM;
 }
 
-void FileSystem::makeFS(cstr devname, cstr type) throws // static
+FileSystemPtr FileSystem::mount(cstr devicename, BlockDevicePtr bdev) throws // static
 {
 	trace(__func__);
 
-	int idx = index_of(devname);
-	if (idx >= 0) throw FILESYSTEM_IN_USE;
-
-	makeFS(newBlockDeviceForName(devname), type);
-}
-
-FileSystemPtr FileSystem::mount(cstr devname, BlockDevicePtr bdev) throws // static
-{
-	trace(__func__);
-
-	int idx = index_of(devname);
+	int idx = index_of(devicename);
 	if (idx >= 0) throw DEVICE_IN_USE;
-	idx = index_of(NoDevice);
+
+	idx = index_of(nullptr);
 	if (idx < 0) throw NO_MOUNTPOINT_FREE;
 
 	// try to mount with all FileSystems we know:
 	// (not that many, right now :-)
-	{
-		FileSystemPtr fs  = new FatFS(devname, bdev, idx);
-		file_systems[idx] = fs;
-		VolumeStr[idx]	  = fs->name;
-		bool success	  = fs->mount();
-		if (success) return fs;
-	}
+	FileSystemPtr fs = new FatFS(devicename, bdev, idx);
 
-	file_systems[idx] = nullptr;
-	VolumeStr[idx]	  = NoDevice;
-	throw UNKNOWN_FILESYSTEM;
+	if (fs->mount()) return file_systems[idx] = fs;
+	else throw UNKNOWN_FILESYSTEM;
 }
 
-FileSystemPtr FileSystem::mount(cstr devname) throws // static
+FileSystemPtr FileSystem::mount(cstr devicename) throws // static
 {
 	trace(__func__);
 
-	int idx = index_of(devname);
+	int idx = index_of(devicename);
 	if (idx >= 0) return file_systems[idx];
 
-	BlockDevicePtr bdev = newBlockDeviceForName(devname);
-	return mount(devname, bdev);
+	idx = index_of(nullptr);
+	if (idx < 0) throw NO_MOUNTPOINT_FREE;
+
+
+	FileSystem* fs = nullptr;
+	if (lceq(devicename, "rsrc")) fs = RsrcFS::getInstance();
+#ifdef PICO_DEFAULT_SPI
+	else if (lceq(devicename, "sdcard")) { fs = new FatFS(devicename, SDCard::defaultInstance(), idx); }
+#endif
+	else throw UNKNOWN_DEVICE;
+
+	if (fs->mount()) return file_systems[idx] = fs;
+	else throw UNKNOWN_FILESYSTEM;
 }
 
 void FileSystem::setWorkDir(cstr path)
