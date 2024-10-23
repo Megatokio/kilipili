@@ -30,8 +30,6 @@ inline uint32 peek24(cuint8* p)
 	return value;
 }
 
-inline cstr	  get_name(cuint8* p) { return cstr(p); }
-inline uint32 get_csize(cuint8* p) { return peek24(skip(p)); }
 inline uint32 get_fsize(cuint8* p)
 {
 	p = skip(p);
