@@ -10,6 +10,11 @@
 #include "cdefs.h"
 #include "standard_types.h"
 
+
+// you may define this symbol to get a disk activity light:
+extern __weak_symbol void set_disk_light(bool onoff);
+
+
 namespace kio::Devices
 {
 
@@ -63,6 +68,8 @@ public:
 	CSD		 csd;
 	CID		 cid;
 	uint32	 ocr = 0;
+
+	static SDCard* defaultInstance();
 
 	SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) noexcept;
 
