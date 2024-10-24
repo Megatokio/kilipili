@@ -32,6 +32,8 @@ private:
 	virtual bool mount() override;
 };
 
+using FatFSPtr = RCPtr<FatFS>;
+
 } // namespace kio::Devices
 
 

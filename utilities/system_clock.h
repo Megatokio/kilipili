@@ -79,8 +79,13 @@ constexpr sysclock_params calc_sysclock_params(uint32 f) noexcept
 	constexpr uint	xtal = XOSC_KHZ / PLL_COMMON_REFDIV * 1000; // 12 MHz
 	sysclock_params best {0, 0, 0, 666 MHz, calc_vreg_voltage_for_sysclock(f)};
 
-	uint div_min = (PICO_PLL_VCO_MIN_FREQ_KHZ * 1000 + f - 1) / f; // round up
-	uint div_max = (PICO_PLL_VCO_MAX_FREQ_KHZ * 1000) / f;		   // round down
+#ifndef PICO_PLL_VCO_MIN_FREQ_HZ // SDK 1.5.1
+  #define PICO_PLL_VCO_MIN_FREQ_HZ (PICO_PLL_VCO_MIN_FREQ_KHZ * 1000)
+  #define PICO_PLL_VCO_MAX_FREQ_HZ (PICO_PLL_VCO_MAX_FREQ_KHZ * 1000)
+#endif
+
+	uint div_min = (PICO_PLL_VCO_MIN_FREQ_HZ + f - 1) / f; // round up
+	uint div_max = (PICO_PLL_VCO_MAX_FREQ_HZ) / f;		   // round down
 
 	for (uint div1 = 2; div1 <= 7; div1++)
 		for (uint div2 = 1; div2 <= div1; div2++)

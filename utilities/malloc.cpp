@@ -5,8 +5,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <pico.h>
 #include <pico/malloc.h>
-#include <pico/platform.h>
 
 #ifndef PICO_CXX_ENABLE_EXCEPTIONS
   #define PICO_CXX_ENABLE_EXCEPTIONS false

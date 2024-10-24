@@ -62,11 +62,13 @@ static const uint8* next_direntry(cuptr p, cstr pattern)
 RsrcFS* RsrcFS::getInstance() noexcept
 {
 	static RsrcFS rsfs;
-	if (rsfs.rc == 0) rsfs.retain(); // never destroy!
 	return &rsfs;
 }
 
-RsrcFS::RsrcFS() noexcept : FileSystem("rsrc") {}
+RsrcFS::RsrcFS() noexcept : FileSystem("rsrc")
+{
+	rc = 1; // never destroy!
+}
 
 ADDR RsrcFS::getSize()
 {

@@ -6,7 +6,7 @@
 #include "standard_types.h"
 
 #if defined DEBUG && !defined UNIT_TEST
-  #include <pico/platform.h>
+  #include <pico.h>
   #include <pico/sync.h>
 
 namespace kio

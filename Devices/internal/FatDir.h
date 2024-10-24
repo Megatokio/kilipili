@@ -9,8 +9,6 @@
 namespace kio ::Devices
 {
 
-class FatDir;
-using FatDirPtr = RCPtr<FatDir>;
 class FatFS;
 using FatFSPtr = RCPtr<FatFS>;
 
@@ -37,5 +35,7 @@ private:
 	FatDir(FatFSPtr device, cstr path) throws;
 	friend class FatFS;
 };
+
+using FatDirPtr = RCPtr<FatDir>;
 
 } // namespace kio::Devices

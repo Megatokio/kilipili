@@ -7,6 +7,7 @@
 #include "basic_math.h"
 #include "common/RCPtr.h"
 #include "common/no_copy_move.h"
+#include <common/cdefs.h>
 #include <string.h>
 
 namespace kio::Audio

@@ -7,7 +7,7 @@
 #include "tempmem.h"
 #include <cstddef>
 #include <cstring>
-#include <pico/platform.h>
+#include <pico.h>
 
 // this file provides tempmem buffers on the RP2040 (Raspberry Pico).
 
