@@ -8,6 +8,8 @@ cmake_minimum_required(VERSION 3.13)
 set(PICO_BOARD_HEADER_DIRS  "${CMAKE_CURRENT_LIST_DIR}/boards")
 set(PICO_BOARD_HEADER_DIRS ${PICO_BOARD_HEADER_DIRS} CACHE STRING "PICO board header directories" FORCE)
 
+option(UNIT_TEST "compile the unit tests (desktop, not pico!)" OFF)
+
 
 ###########################################
 # executable for unit tests:
@@ -64,7 +66,7 @@ endif()
 ###########################################
 # library with all kilipili subdirectories:
 
-if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
+if(NOT ${UNIT_TEST})
 	
 	# dependencies:
 	add_subdirectory(common)
