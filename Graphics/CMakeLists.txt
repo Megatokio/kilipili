@@ -8,6 +8,10 @@ cmake_minimum_required(VERSION 3.13)
 
 if(${UNIT_TEST})
 	set(distinct_sources 
+		Mock/Pixmap.cpp
+		Mock/Pixmap.h
+		Mock/TextVDU.cpp
+		Mock/TextVDU.h
 		)
 	set(distinct_libraries 
 		)
