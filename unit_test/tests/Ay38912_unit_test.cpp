@@ -5,9 +5,9 @@
 
 #include "Audio/Ay38912.h"
 #include "Xoshiro256.h"
-#include "YMFileConverter.h"
+//#include "YMFileConverter.h"
 #include "cdefs.h"
-#include "cstrings.h"
+//#include "cstrings.h"
 #include "doctest.h"
 #include <cerrno>
 #include <cmath>
@@ -1524,6 +1524,7 @@ TEST_CASE("Audio::Ay38912 envelope")
 	}
 }
 
+#if 0
 TEST_CASE("Audio::Ay38912 play \"Ninja Spirits #5.ym\"")
 {
 	// this file doesn't use channel A and C for a prolonged time
@@ -1534,7 +1535,7 @@ TEST_CASE("Audio::Ay38912 play \"Ninja Spirits #5.ym\"")
 	converter.convert(infile, "/tmp", true);
 }
 
-#if defined YM_FILE && defined YM_WHAT
+  #if defined YM_FILE && defined YM_WHAT
 
 TEST_CASE("Audio::Ay38912 create file")
 {
@@ -1547,9 +1548,9 @@ TEST_CASE("Audio::Ay38912 create file")
 	CHECK(1);
 }
 
-#endif
+  #endif
 
-#if defined YM_DIR && defined YM_WHAT
+  #if defined YM_DIR && defined YM_WHAT
 
 TEST_CASE("Audio::Ay38912 create files in dir")
 {
@@ -1562,6 +1563,7 @@ TEST_CASE("Audio::Ay38912 create files in dir")
 	CHECK(1);
 }
 
+  #endif
 #endif
 
 

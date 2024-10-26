@@ -2,7 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "RsrcFileWriter.h"
+#include "CompressedRsrcFileWriter.h"
 #include "cstrings.h"
 
 // https://github.com/atomicobject/heatshrink
@@ -19,9 +19,11 @@ namespace kio
 	  char[] data       compressed file data
 */
 
-RsrcFileWriter::RsrcFileWriter(cstr hdr_fpath, cstr rsrc_fname)
+CompressedRsrcFileWriter::CompressedRsrcFileWriter(cstr hdr_fpath, cstr rsrc_fname, uint8 wsize, uint8 lsize) :
+	windowsize(wsize),
+	lookaheadsize(lsize)
 {
-	encoder = heatshrink_encoder_alloc(windowsize, lookaheadsize);
+	encoder = heatshrink_encoder_alloc(wsize, lsize);
 	if (!encoder) throw "out of memory";
 
 	if ((file = fopen(hdr_fpath, "wb")) == NULL)
@@ -47,7 +49,7 @@ RsrcFileWriter::RsrcFileWriter(cstr hdr_fpath, cstr rsrc_fname)
 	// now compressed data follows
 }
 
-void RsrcFileWriter::_store(const void* q, uint len)
+void CompressedRsrcFileWriter::_store(const void* q, uint len)
 {
 	cuptr p = reinterpret_cast<cuptr>(q);
 	while (len > 32)
@@ -65,7 +67,7 @@ void RsrcFileWriter::_store(const void* q, uint len)
 	fputs(bu, file);
 }
 
-void RsrcFileWriter::_flush(bool force)
+void CompressedRsrcFileWriter::_flush(bool force)
 {
 	// flush the encoder and write chunks of 32 bytes:
 
@@ -85,7 +87,7 @@ void RsrcFileWriter::_flush(bool force)
 	}
 }
 
-uint32 RsrcFileWriter::close()
+uint32 CompressedRsrcFileWriter::close()
 {
 	if (!file) return 0;
 	heatshrink_encoder_finish(encoder);
@@ -97,7 +99,7 @@ uint32 RsrcFileWriter::close()
 	uint32 fsize = uint32(ftell(file));
 
 	fseek(file, position_of_size, SEEK_SET);
-	uint32 csize = this->csize + (windowsize << 28) + (lookaheadsize << 24);
+	uint32 csize = this->csize + 4 + (windowsize << 28) + (lookaheadsize << 24);
 	uint32 bu[2] = {htole32(csize), htole32(usize)};
 	_store(bu, 8);
 
@@ -106,35 +108,99 @@ uint32 RsrcFileWriter::close()
 	return fsize;
 }
 
-void RsrcFileWriter::store(cstr s)
+void CompressedRsrcFileWriter::store(cstr s)
 {
 	// store data into compressed file:
 
 	store(s, strlen(s) + 1);
 }
 
-void RsrcFileWriter::store(const void* q, uint len)
+void CompressedRsrcFileWriter::store(const void* q, uint len)
 {
 	// store data into compressed file:
 
+	uint8* p = reinterpret_cast<uint8*>(const_cast<void*>(q));
 	usize += len;
-	size_t cnt = 0;
-	uint8* p   = reinterpret_cast<uint8*>(const_cast<void*>(q));
-	heatshrink_encoder_sink(encoder, p, len, &cnt);
-	assert(cnt == len); //else todo
-	_flush();
+
+	while (len)
+	{
+		_flush();
+		size_t cnt = 0;
+		heatshrink_encoder_sink(encoder, p, len, &cnt);
+		len -= cnt;
+		p += cnt;
+	}
 }
 
-void RsrcFileWriter::store_byte(uint8 n)
+void CompressedRsrcFileWriter::store(uint32 n)
+{
+	n = htole32(n);
+	store(&n, 4);
+}
+
+void CompressedRsrcFileWriter::store_byte(uint8 n)
 {
 	// store data into compressed file:
 
+	_flush();
 	usize += 1;
 	size_t cnt = 0;
 	heatshrink_encoder_sink(encoder, &n, 1, &cnt);
-	assert(cnt == 1); //else todo
-	_flush();
+	assert(cnt == 1);
 }
 
 
 } // namespace kio
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

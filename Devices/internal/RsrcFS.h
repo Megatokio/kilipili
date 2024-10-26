@@ -7,7 +7,7 @@
 #include "Directory.h"
 #include "FileSystem.h"
 
-extern const uint8 resource_file_data[] __weak_symbol;
+extern const unsigned char resource_file_data[] __weak_symbol;
 
 namespace kio::Devices
 {

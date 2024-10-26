@@ -6,12 +6,10 @@ cmake_minimum_required(VERSION 3.13)
 # common/CMakeLists.txt 
 
 
-if(${UNIT_TEST})
+if(${UNIT_TEST} OR ${MAKE_TOOLS})
 	set(distinct_sources 
 		linux/glue.cpp
 		linux/glue.h
-		linux/RsrcFileWriter.cpp
-		linux/RsrcFileWriter.h
 		tempmem-posix.cpp)
 	set(distinct_headers 
 		${CMAKE_CURRENT_LIST_DIR}/linux)

@@ -32,6 +32,8 @@ add_executable(RsrcFileWriter
 	../Audio/Ay38912.h
 	RsrcFileWriter.cpp
 	RsrcFileWriter.h
+	CompressedRsrcFileWriter.cpp
+	CompressedRsrcFileWriter.h
 	YMFileConverter.cpp
 	YMFileConverter.h
 	StSoundLibrary/StSoundLibrary.h

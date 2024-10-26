@@ -16,8 +16,8 @@
 
 #include "YMFileConverter.h"
 #include "Audio/Ay38912.h"
+#include "CompressedRsrcFileWriter.h"
 #include "LzhDecoder.h"
-#include "RsrcFileWriter.h"
 #include "StSoundLibrary/StSoundLibrary.h"
 #include "cdefs.h"
 #include "cstrings.h"
@@ -333,8 +333,10 @@ uint32 YMFileConverter::exportYMRegisterFile(cstr fpath)
 	return uint32(size);
 }
 
-void ym_music_convert(cstr filename, cstr destfile)
+void YMFileConverter::exportYMMusicWavFile(cstr filename, cstr destfile)
 {
+	// TODO load data from data[] (needs header again)
+
 	YMMUSIC* pMusic = ymMusicCreate();
 
 	if (ymMusicLoad(pMusic, filename) == false)
@@ -406,13 +408,12 @@ uint32 YMFileConverter::exportYMFile(cstr fpath)
 	return uint32(size);
 }
 
-uint32 YMFileConverter::exportRsrcFile(cstr hdr_fpath, cstr rsrc_fname)
+uint32 YMFileConverter::exportRsrcFile(cstr hdr_fpath, cstr rsrc_fname, uint8 wsize, uint8 lsize)
 {
 	// create header file with an array with a compressed resource file
 	// for a YM register file in flash.
-	// the array is named after the basename of the fpath.
 
-	RsrcFileWriter writer(hdr_fpath, rsrc_fname);
+	CompressedRsrcFileWriter writer(hdr_fpath, rsrc_fname, wsize, lsize);
 
 	writer.store("ymrf", 4); // file ID
 	writer.store_byte(0);	 // format variant
@@ -536,7 +537,7 @@ void YMFileConverter::convert(cstr infile, cstr outdir, bool verbose)
 	}
 	if (what & YMM_WAV) // for reference
 	{
-		ym_music_convert(infile, catstr(outdir, basename, ".ymm.wav"));
+		exportYMMusicWavFile(infile, catstr(outdir, basename, ".ymm.wav"));
 	}
 	if (what & YMRF)
 	{

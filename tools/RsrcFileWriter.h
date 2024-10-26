@@ -3,7 +3,6 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "heatshrink/heatshrink_encoder.h"
 #include "standard_types.h"
 #include <cstdio>
 
@@ -35,29 +34,25 @@ namespace kio
 class RsrcFileWriter
 {
 public:
-	static constexpr uint windowsize	= 12; // 2<<10 = 2048 bytes + 4<<10 bytes for index (if enabled)
-	static constexpr uint lookaheadsize = 6;  // 2<<6 = 64 bytes
-
 	RsrcFileWriter(cstr hdr_fpath, cstr rsrc_fname);
 	~RsrcFileWriter() { close(); }
-	void   store(cstr s);
 	void   store(const void*, uint);
 	void   store_byte(uint8 n);
-	void   store(uint32 n) { store(&n, 4); }
-	uint32 close(); // returns csize
+	void   store(uint32 n); // little endian
+	void   store(cstr s);	// store c-string (incl. 0-byte)
+	uint32 close();			// returns csize
 
-	uint32 usize = 0;
-	uint32 csize = 0;
+	uint32 datasize = 0;
+	uint   _padding;
 
 private:
-	FILE*				file	= nullptr;
-	heatshrink_encoder* encoder = nullptr;
-	int32				position_of_size;
+	FILE* file = nullptr;
+	int32 position_of_size;
 
 	uint8 cbu[32];
 	uint  cbu_cnt = 0;
 
-	void _flush(bool force = false);
+	void _flush();
 	void _store(const void*, uint); // direct store data (uncompressed)
 };
 
