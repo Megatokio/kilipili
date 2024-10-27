@@ -104,12 +104,17 @@ FileSystemPtr FileSystem::mount(cstr devicename) throws // static
 {
 	trace(__func__);
 
+	assert(devicename);
+	debugstr("FileSystem::mount: \"%s\"\n", devicename);
+
+	cptr p = strchr(devicename, ':');
+	if (p) devicename = substr(devicename, p);
+
 	int idx = index_of(devicename);
 	if (idx >= 0) return file_systems[idx];
 
 	idx = index_of(nullptr);
 	if (idx < 0) throw NO_MOUNTPOINT_FREE;
-
 
 	FileSystem* fs = nullptr;
 	if (lceq(devicename, "rsrc")) fs = RsrcFS::getInstance();
@@ -134,13 +139,44 @@ void FileSystem::setWorkDir(cstr path)
 	workdir		   = newcopy(path);
 }
 
+static cstr makeCanonicalPath(cstr path)
+{
+	// eliminate "//", "/." and "/.."
+
+	for (int i = 0; path[i] != 0; i++)
+	{
+		if (path[i] != '/') continue;
+		else if (path[i + 1] == '/') path = i == 0 ? path + 1 : catstr(substr(path, path + i), path + i + 1);
+		else if (path[i + 1] != '.') continue;
+		else if (path[i + 2] == 0) return i == 0 ? "/" : substr(path, path + i);
+		else if (path[i + 2] == '/') path = catstr(substr(path, path + i), path + i + 2);
+		else if (path[i + 2] != '.') continue;
+		if (path[i + 3] == 0)
+		{
+			if (i == 0) return "/";
+			while (path[--i] != '/') {}
+			return i == 0 ? "/" : substr(path, path + i);
+		}
+		else if (path[i + 3] != '/') continue;
+		else if (i == 0) path = path + 3;
+		else
+		{
+			int j = i;
+			while (path[--i] != '/') {}
+			path = catstr(substr(path, path + i), path + j + 3);
+		}
+		i--;
+	}
+	return path[0] != 0 ? path : "/";
+}
+
 cstr FileSystem::makeAbsolutePath(cstr path)
 {
 	trace(__func__);
 
-	if (path[0] == '/') return path;
+	if (path[0] == '/') return makeCanonicalPath(path);
 	if (path[0] == 0) return getWorkDir();
-	else return catstr(getWorkDir(), path);
+	else return makeCanonicalPath(catstr(getWorkDir(), "/", path));
 }
 
 // current working device
@@ -216,9 +252,18 @@ void setWorkDir(cstr path)
 	else throw NO_WORKING_DEVICE;
 }
 
+cstr makeAbsolutePath(cstr path)
+{
+	ptr dp = strchr(path, ':');
+	if (dp) return FileSystem::mount(substr(path, dp))->makeAbsolutePath(dp + 1);
+	else if (cwd) return cwd->makeAbsolutePath(path);
+	else throw NO_WORKING_DEVICE;
+}
+
 FileSystemPtr mount(cstr devicename)
 {
-	return FileSystem::mount(devicename); //
+	// "rsrc:", "sdcard:"
+	return FileSystem::mount(devicename);
 }
 
 void unmount(FileSystemPtr fs)
@@ -226,6 +271,10 @@ void unmount(FileSystemPtr fs)
 	if (fs == cwd) cwd = nullptr;
 }
 
+extern void unmountAll()
+{
+	cwd = nullptr; //
+}
 
 } // namespace kio::Devices
 

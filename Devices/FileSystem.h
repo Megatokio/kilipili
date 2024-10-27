@@ -63,6 +63,8 @@ extern FileSystemPtr getDevice(cstr name); // get device or nullptr
 extern void setWorkDir(cstr path);
 extern cstr getWorkDir();
 
+extern cstr makeAbsolutePath(cstr path);
+extern void unmountAll();
 
 /*	openDir(path) and openFile(path):
 		path must start with "someDevice:"
