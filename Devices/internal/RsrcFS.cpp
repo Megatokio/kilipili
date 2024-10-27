@@ -81,8 +81,9 @@ ADDR RsrcFS::getSize()
 DirectoryPtr RsrcFS::openDir(cstr path)
 {
 	assert(path);
-	path = makeAbsolutePath(path);
-	if (next_direntry(resource_file_data, catstr(path, "/*") + 1)) return new RsrcDir(this, path);
+	path		 = makeAbsolutePath(path);
+	cstr pattern = eq(path, "/") ? "*" : catstr(path + 1, "/*");
+	if (next_direntry(resource_file_data, pattern)) return new RsrcDir(this, path);
 	else throw DIRECTORY_NOT_FOUND;
 }
 
@@ -159,7 +160,7 @@ FileInfo RsrcDir::next(cstr pattern) throws
 		if (dpathlen) // we are a subdir
 		{
 			if (dpos[dpathlen] != '/') continue;
-			if (memcmp(this->path, dpos, dpathlen)) continue;
+			if (memcmp(path + 1, dpos, dpathlen)) continue;
 			dpos += 1 + dpathlen; // this is a nice trick! :-)
 		}
 
