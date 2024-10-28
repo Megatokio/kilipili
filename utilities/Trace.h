@@ -5,7 +5,7 @@
 #pragma once
 #include "standard_types.h"
 
-#if defined DEBUG && !defined UNIT_TEST
+#if defined DEBUG && !defined MAKE_TOOLS
   #include <pico.h>
   #include <pico/sync.h>
 

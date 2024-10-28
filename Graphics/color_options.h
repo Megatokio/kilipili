@@ -4,7 +4,7 @@
 // ==== CONFIG ====================================================
 
 // pull in board description file for targeted board:
-#ifndef UNIT_TEST
+#ifndef MAKE_TOOLS
   #include <pico/config.h>
 #endif
 

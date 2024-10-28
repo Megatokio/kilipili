@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#ifdef UNIT_TEST
+#ifdef MAKE_TOOLS
   #include "glue.h"
 #else
 

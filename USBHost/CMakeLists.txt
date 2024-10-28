@@ -14,7 +14,7 @@ set(USB_DEFAULT_KEYTABLE "key_table_ger" CACHE STRING "USB keyboard: default key
 set_property(CACHE USB_DEFAULT_KEYTABLE PROPERTY STRINGS key_table_us key_table_ger)
 
 
-if(${UNIT_TEST})
+if(${MAKE_TOOLS})
 	set(USB_ENABLE_HOST OFF)
 	set(more_usb_sources 
 		hid_handler_mock.cpp

@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.13)
 # Graphics/CMakeLists.txt
 
 
-if(${UNIT_TEST})
+if(${MAKE_TOOLS})
 	set(distinct_sources 
 		Mock/Pixmap.cpp
 		Mock/Pixmap.h

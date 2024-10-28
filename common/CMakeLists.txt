@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.13)
 # common/CMakeLists.txt 
 
 
-if(${UNIT_TEST})
+if(${MAKE_TOOLS})
 	set(distinct_sources 
 		linux/glue.cpp
 		linux/glue.h

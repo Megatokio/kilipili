@@ -5,7 +5,7 @@
 #pragma once
 
 // pull in board description file for targeted board:
-#ifndef UNIT_TEST
+#ifndef MAKE_TOOLS
   #include <pico/config.h>
 #else
   #define PICO_AUDIO_PWM
