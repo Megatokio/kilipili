@@ -27,6 +27,7 @@ add_library(kilipili_audio STATIC
 	Ay38912.h
 	YMMusicPlayer.h 
 	YMMusicPlayer.cpp 
+	Ay38912_AudioSource.h 
 )
 
 target_compile_definitions(kilipili_audio PUBLIC
