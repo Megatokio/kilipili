@@ -18,9 +18,9 @@
 #include "Audio/Ay38912.h"
 #include "CompressedRsrcFileWriter.h"
 #include "LzhDecoder.h"
-#include "extern/StSoundLibrary/StSoundLibrary.h"
 #include "cdefs.h"
 #include "cstrings.h"
+#include "extern/StSoundLibrary/StSoundLibrary.h"
 #include "standard_types.h"
 #include <cstring>
 #include <dirent.h>
@@ -254,16 +254,12 @@ uint32 YMFileConverter::write_raw_audio_file(FILE* file, float sample_rate)
 	return num_frames * samples_per_frame;
 }
 
-static constexpr uint32 ID_RIFF = 'RIFF'; // 0x46464952
-static constexpr uint32 ID_WAVE = 'WAVE'; // 0x45564157
-static constexpr uint32 ID_FMT	= 'fmt '; // 0x20746D66
-static constexpr uint32 ID_DATA = 'data'; // 0x61746164
 struct WAVHeader
 {
-	uint32 RIFFMagic	 = htobe32(ID_RIFF);
+	uint8  RIFFMagic[4]	 = {'R', 'I', 'F', 'F'};
 	uint32 FileLength	 = 0; // length of data that follows
-	uint32 FileType		 = htobe32(ID_WAVE);
-	uint32 FormMagic	 = htobe32(ID_FMT);
+	uint8  FileType[4]	 = {'W', 'A', 'V', 'E'};
+	uint8  FormMagic[4]	 = {'f', 'm', 't', ' '};
 	uint32 FormLength	 = htole32(0x10);
 	uint16 SampleFormat	 = htole16(1);
 	uint16 NumChannels	 = htole16(1);
@@ -271,7 +267,7 @@ struct WAVHeader
 	uint32 BytesPerSec	 = htole32(44100 * (16 / 8));
 	uint16 Pad			 = htole16(16 / 8);
 	uint16 BitsPerSample = htole16(16);
-	uint32 DataMagic	 = htobe32(ID_DATA);
+	uint8  DataMagic[4]	 = {'d', 'a', 't', 'a'};
 	uint32 DataLength	 = 0;
 };
 
@@ -375,10 +371,6 @@ void YMFileConverter::exportYMMusicWavFile(cstr filename, cstr destfile)
 	}
 
 	fseek(out, 0, SEEK_SET);
-	head.RIFFMagic	   = htobe32(ID_RIFF);
-	head.FileType	   = htobe32(ID_WAVE);
-	head.FormMagic	   = htobe32(ID_FMT);
-	head.DataMagic	   = htobe32(ID_DATA);
 	head.FormLength	   = 0x10;
 	head.SampleFormat  = 1;
 	head.NumChannels   = 1;
@@ -442,7 +434,7 @@ uint32 YMFileConverter::exportRsrcFile(cstr hdr_fpath, cstr rsrc_fname, uint8 ws
 	return writer.csize;
 }
 
-void YMFileConverter::importFile(cstr fpath, bool v)
+uint32 YMFileConverter::importFile(cstr fpath, bool v)
 {
 	dispose_all();
 
@@ -463,30 +455,35 @@ void YMFileConverter::importFile(cstr fpath, bool v)
 	register_data = new uchar[fsize];
 	if (fread(register_data, 1, fsize, file) != fsize) throw "Unable to read file";
 	fclose(file);
-	file = nullptr;
-	unpack_lzh_data(register_data, fsize);
+	file		= nullptr;
+	uint32 size = fsize;
+	unpack_lzh_data(register_data, size);
 
-	uint32 ymID = be32toh(*reinterpret_cast<uint32*>(register_data));
-	switch (ymID)
+	if (memcmp(register_data, "YM5!", 4) == 0) file_type = YM5;
+	else if (memcmp(register_data, "YM6!", 4) == 0) file_type = YM6;
+	else if (memcmp(register_data, "YM2!", 4) == 0) file_type = YM2;
+	else if (memcmp(register_data, "YM3!", 4) == 0) file_type = YM3;
+	else if (memcmp(register_data, "YM3b", 4) == 0) file_type = YM3b;
+	else if (memcmp(register_data, "YM4!", 4) == 0) throw "File is YM4 - not supported";
+	else throw "not a YM music file";
+
+	if (v) printf("importing: %s\n", fpath);
+	if (v) printf("file size = %d\n", fsize);
+	if (v) printf("  version = %.4s\n", cptr(register_data));
+
+	if (file_type < YM5)
 	{
-	case 'YM2!':
-	case 'YM3!':
-	case 'YM3b':
-		if (v) printf("File is YM2/YM3\n");
-		file_type  = ymID == 'YM2!' ? YM2 : YM3;
 		frame_size = 14;
-		num_frames = (fsize - 4) / 14;
+		num_frames = (size - 4) / 14;
 		memmove(register_data, register_data + 4, num_frames * frame_size);
 		title	= filenamefrompath(fpath);
 		comment = "converted by lib kilipili";
-		break;
-	case 'YM4!': throw "File is YM4 - not supported";
-	case 'YM5!':
-	case 'YM6!':
+
+		if (v) printf("   frames = %d\n", num_frames);
+	}
+	else // YM5, YM6
 	{
 		if (strncmp(cptr(register_data + 4), "LeOnArD!", 8)) throw "File is not a valid YM5/YM6 file";
-		if (v) printf("File is YM5/YM6\n");
-		file_type  = ymID == 'YM5!' ? YM5 : YM6;
 		uchar* p   = register_data + 12;
 		num_frames = readBE32(&p);
 		attributes = readBE32(&p);
@@ -496,31 +493,24 @@ void YMFileConverter::importFile(cstr fpath, bool v)
 		loop_frame = readBE32(&p);
 		uint skip  = readBE16(&p);
 		p		   = p + skip;
-		if (drums) throw "Digi Drums not supported. Sorry.";
+		if (drums) throw "DigiDrums not supported.";
 		title	= readString(&p);
 		author	= readString(&p);
 		comment = readString(&p);
 
 		frame_size = 16;
 		memmove(register_data, p, num_frames * frame_size);
-		break;
-	}
-	default: throw "File is unknown";
-	}
 
-	if (v) printf("File path: %s\n", fpath);
-	if (v) printf("File size: %d\n", fsize);
-	if (v) printf("   Frames: %d\n", num_frames);
-	if (file_type >= YM5)
-	{
-		if (v) printf("   Attrib: %#.4x (%s)\n", attributes, attributes & 1 ? "not interleaved" : "interleaved!");
-		if (v) printf("    Clock: %d Hz\n", ay_clock);
-		if (v) printf("     Rate: %d Hz\n", frame_rate);
-		if (v) printf("  loop to: %d\n", loop_frame);
-		if (v) printf("    Title: %s\n", title);
-		if (v) printf("   Author: %s\n", author);
-		if (v) printf("  Comment: %s\n", comment);
+		if (v) printf("   frames = %d\n", num_frames);
+		if (v) printf("   attrib = %#.4x (%s)\n", attributes, attributes & 1 ? "not interleaved" : "interleaved!");
+		if (v) printf("    clock = %d Hz\n", ay_clock);
+		if (v) printf("     rate = %d Hz\n", frame_rate);
+		if (v) printf("  loop to = %d\n", loop_frame);
+		if (v) printf("    title = %s\n", title);
+		if (v) printf("   author = %s\n", author);
+		if (v) printf("  comment = %s\n", comment);
 	}
+	return fsize;
 }
 
 void YMFileConverter::convert(cstr infile, cstr outdir, bool verbose)

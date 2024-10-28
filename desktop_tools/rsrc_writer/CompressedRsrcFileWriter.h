@@ -44,7 +44,7 @@ public:
 	uint32 close();			// returns csize
 
 	uint windowsize	   = 12; // 2<<10 = 2048 bytes + 4<<10 bytes for index (if enabled)
-	uint lookaheadsize = 6;	 // 2<<6 = 64 bytes
+	uint lookaheadsize = 6;	 // 2<<6 = 128 bytes
 
 	uint32 usize = 0;
 	uint32 csize = 0;

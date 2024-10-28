@@ -15,7 +15,7 @@ namespace kio::Audio
 class YMFileConverter
 {
 public:
-	enum FType : uint16 { UNSET = 0, YM2, YM3, YM5, YM6 };
+	enum FType : uint16 { UNSET = 0, YM2, YM3, YM3b, YM5, YM6 };
 	enum What : uint16 {
 		NOTHING = 0, //
 		WAV		= 1, // mono 44.1kHz
@@ -32,7 +32,7 @@ public:
 
 	void		convert(cstr infile, cstr outdir = nullptr, bool verbose = false);
 	void		convertDir(cstr basedir, bool recursive = false, bool verbose = false);
-	void		importFile(cstr infile, bool verbose = false);
+	uint32		importFile(cstr infile, bool verbose = false);
 	uint32		exportYMRegisterFile(cstr outfile);
 	uint32		exportWavFile(cstr outfile, float sample_rate = 44100);
 	uint32		exportYMFile(cstr outfile);

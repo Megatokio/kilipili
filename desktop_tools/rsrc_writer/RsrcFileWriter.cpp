@@ -66,15 +66,13 @@ uint32 RsrcFileWriter::close()
 	_flush();
 
 	fputs("\n", file);
-	uint32 fsize = uint32(ftell(file));
-
 	fseek(file, position_of_size, SEEK_SET);
 	uint32 size = htole32(datasize);
 	_store(&size, 4);
 
 	fclose(file);
 	file = nullptr;
-	return fsize;
+	return datasize;
 }
 
 void RsrcFileWriter::store(cstr s)

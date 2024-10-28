@@ -96,8 +96,6 @@ uint32 CompressedRsrcFileWriter::close()
 	encoder = nullptr;
 
 	fputs("\n", file);
-	uint32 fsize = uint32(ftell(file));
-
 	fseek(file, position_of_size, SEEK_SET);
 	uint32 csize = this->csize + 4 + (windowsize << 28) + (lookaheadsize << 24);
 	uint32 bu[2] = {htole32(csize), htole32(usize)};
@@ -105,7 +103,7 @@ uint32 CompressedRsrcFileWriter::close()
 
 	fclose(file);
 	file = nullptr;
-	return fsize;
+	return this->csize + 4;
 }
 
 void CompressedRsrcFileWriter::store(cstr s)

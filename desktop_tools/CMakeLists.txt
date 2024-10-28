@@ -18,8 +18,10 @@ set(CMAKE_CXX_FLAGS          "${CMAKE_CXX_FLAGS}         -DMAKE_TOOLS")
 set(CMAKE_CXX_FLAGS          "${CMAKE_CXX_FLAGS}         -DDEBUG -DUNIT_TEST")
 
 	 
-set(PICO_BOARD_HEADER_DIRS  "${CMAKE_CURRENT_LIST_DIR}/boards")
+set(PICO_BOARD_HEADER_DIRS  "${CMAKE_CURRENT_LIST_DIR}/kilipili/boards")
 set(PICO_BOARD_HEADER_DIRS ${PICO_BOARD_HEADER_DIRS} CACHE STRING "PICO board header directories" FORCE)
+set(PICO_BOARD "vgaboard" CACHE STRING "the target board")	
+
 
 set(MAKE_TOOLS ON)
 
@@ -36,6 +38,9 @@ add_executable(RsrcFileWriter
 	rsrc_writer/CompressedRsrcFileWriter.h
 	rsrc_writer/YMFileConverter.cpp
 	rsrc_writer/YMFileConverter.h
+	kilipili/common/Array.h
+	kilipili/Graphics/color_options.h
+	kilipili/Graphics/Color.h
 	kilipili/Audio/AudioSource.h
 	kilipili/Audio/audio_options.h
 	kilipili/Audio/AudioSample.h
@@ -56,10 +61,13 @@ add_executable(RsrcFileWriter
 	kilipili/extern/StSoundLibrary/YmUserInterface.cpp
 	kilipili/extern/StSoundLibrary/LZH/LZH.H
 	kilipili/extern/StSoundLibrary/LZH/LzhLib.cpp
+	rsrc_writer/ImageFileWriter.h 
+	rsrc_writer/ImageFileWriter.cpp
 	)
 
 target_compile_definitions(RsrcFileWriter PUBLIC
 	MAKE_TOOLS=1
+	PICO_BOARD="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 	)
 
 # add current dir to 'include search path':
