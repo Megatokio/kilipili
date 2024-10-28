@@ -22,7 +22,7 @@ if(${UNIT_TEST})
 elseif(${PICO_STDIO_USB}) 
 	# if USB is used for STDIO then we are obviously in Device Mode:	
 	set(USB_ENABLE_HOST OFF)
-	set(more_usb_sources  dummy.dummy.cpp) 
+	set(more_usb_sources  dummy.cpp) 
 else()
 	set(more_usb_sources 
 		hid_handler.cpp 		
