@@ -27,3 +27,7 @@ inline void sleep_us(int usec) noexcept { (void)usec; }
 inline void wfe() noexcept {}
 
 } // namespace kio
+
+
+#define kilipili_lock_spinlock()   (void)0
+#define kilipili_unlock_spinlock() (void)0

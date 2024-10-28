@@ -7,7 +7,6 @@
 #include "Pixmap_wAttr.h"
 #include "RCPtr.h"
 #include "VideoBackend.h"
-#include "atomic.h"
 #include "cdefs.h"
 #include "geometry.h"
 
@@ -62,8 +61,6 @@ public:
 		return z;
 	}
 
-	uint16 refcnt() const noexcept { return rc; }
-
 	Color&		 operator[](uint i) noexcept { return pixels[i]; }
 	const Color& operator[](uint i) const noexcept { return pixels[i]; }
 
@@ -74,12 +71,6 @@ private:
 
 	friend class kio::RCPtr<Pixels>;
 	friend class kio::RCPtr<const Pixels>;
-
-	void retain() const noexcept { pp_atomic(rc); }
-	void release() const noexcept
-	{
-		if (mm_atomic(rc) == 0) delete[] ptr(this);
-	}
 };
 
 

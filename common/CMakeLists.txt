@@ -10,7 +10,6 @@ if(${UNIT_TEST})
 	set(distinct_sources 
 		linux/glue.cpp
 		linux/glue.h
-		linux/atomic.h
 		tempmem-posix.cpp)
 	set(distinct_headers 
 		${CMAKE_CURRENT_LIST_DIR}/linux)
@@ -19,7 +18,6 @@ else()
 	set(distinct_sources 
 		pico/glue.cpp
 		pico/glue.h
-		pico/atomic.h
 		tempmem-pico.cpp)
 	set(distinct_headers 
 		${CMAKE_CURRENT_LIST_DIR}/pico)
