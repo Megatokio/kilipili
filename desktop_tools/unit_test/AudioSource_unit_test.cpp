@@ -6,6 +6,7 @@
 #include "cstrings.h"
 #include "doctest.h"
 #include <cmath>
+#include <cstdio>
 
 
 namespace kio::Audio

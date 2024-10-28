@@ -15,7 +15,7 @@ static_assert(TextVDU::CHAR_HEIGHT == 12);
 static_assert(TextVDU::CHAR_WIDTH == 8);
 static_assert(Color::total_colorbits >= 15); // we get the defaults from vgaboard
 
-// defined in main_unit_tests.cpp:
+// defined in main_unit_test.cpp:
 
 namespace kio
 {
