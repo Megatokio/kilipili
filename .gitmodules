@@ -1,6 +1,12 @@
-[submodule "doctest"]
-	path = doctest
+[submodule "extern/doctest"]
+	path = extern/doctest
 	url = ../../doctest/doctest.git
-[submodule "stb"]
-	path = stb
+	branch = master
+[submodule "extern/stb"]
+	path = extern/stb
 	url = ../../nothings/stb.git
+	branch = master
+[submodule "extern/heatshrink"]
+	path = extern/heatshrink
+	url = ../heatshrink.git
+	branch = kilipili

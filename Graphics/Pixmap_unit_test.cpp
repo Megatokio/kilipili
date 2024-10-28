@@ -5,7 +5,6 @@
 #include "Pixmap_wAttr.h"
 #include "basic_math.h"
 #include "doctest.h"
-#include "stb/stb_image.h"
 #include <memory>
 
 using namespace kio::Graphics;

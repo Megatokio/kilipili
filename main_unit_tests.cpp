@@ -5,7 +5,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include "extern/stb/stb_image.h"
 //
 #include "Graphics/graphics_types.h"
 #include "common/Array.h"

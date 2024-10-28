@@ -48,6 +48,12 @@ add_library(kilipili_common STATIC
 	sdbm_hash.h
 	LzhDecoder.cpp
 	LzhDecoder.h
+	../extern/heatshrink/heatshrink_common.h
+	../extern/heatshrink/heatshrink_config.h
+	../extern/heatshrink/heatshrink_decoder.cpp
+	../extern/heatshrink/heatshrink_decoder.h
+	../extern/heatshrink/heatshrink_encoder.cpp
+	../extern/heatshrink/heatshrink_encoder.h
 	${distinct_sources}
 	)
 

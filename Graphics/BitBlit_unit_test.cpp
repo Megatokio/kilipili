@@ -5,7 +5,6 @@
 #include "BitBlit.h"
 #include "basic_math.h"
 #include "doctest.h"
-#include "stb/stb_image.h"
 #include <memory>
 
 // clang-format off
