@@ -19,6 +19,8 @@ namespace kio::Devices
 class Directory : public RCObject
 {
 public:
+	virtual ~Directory() noexcept override { delete[] path; }
+
 	/* ————————————————————————————————————————
 		Iterate over directory entries:
 	*/
@@ -29,10 +31,10 @@ public:
 	/* ————————————————————————————————————————
 		Create, delete and open files and directories:
 	*/
-	virtual FilePtr		 openFile(cstr path, FileOpenMode mode) throws = 0;
-	virtual DirectoryPtr openDir(cstr path) throws					   = 0;
-	virtual void		 remove(cstr path) throws					   = 0;
-	virtual void		 makeDir(cstr path) throws					   = 0;
+	virtual FilePtr		 openFile(cstr path, FileOpenMode mode = READ) throws = 0;
+	virtual DirectoryPtr openDir(cstr path) throws							  = 0;
+	virtual void		 remove(cstr path) throws							  = 0;
+	virtual void		 makeDir(cstr path) throws							  = 0;
 
 	/* ————————————————————————————————————————
 		Get and manipulate meta data:
@@ -41,9 +43,12 @@ public:
 	virtual void setFmode(cstr path, FileMode mode, uint8 mask) throws = 0;
 	virtual void setMtime(cstr path, uint32 mtime) throws			   = 0;
 
+	cstr getPath() const noexcept { return path; }
+
 protected:
-	Directory();
-	virtual ~Directory() noexcept override = default;
+	cstr path = nullptr;
+	Directory(cstr path);
+	cstr makeAbsolutePath(cstr path);
 };
 
 
