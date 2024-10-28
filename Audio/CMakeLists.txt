@@ -27,6 +27,7 @@ set(audio_sources
 	Ay38912.h
 	YMMusicPlayer.h 
 	YMMusicPlayer.cpp 
+	Ay38912_AudioSource.h 
 )
 
 set(audio_defines
