@@ -15,14 +15,6 @@
 namespace kio ::Devices
 {
 
-bool is_absolute_path(cstr path) { return path[0] == '/'; }
-
-cstr FatDir::makeAbsolutePath(cstr path)
-{
-	if (is_absolute_path(path)) return path;
-	else return catstr(this->path, "/", path);
-}
-
 template<>
 FileInfo::FileInfo(const FILINFO& info)
 {
@@ -40,13 +32,11 @@ FileInfo::FileInfo(const FILINFO& info)
 	mtime.second = (info.ftime & 0x1f) * 2;
 }
 
-FatDir::FatDir(FatFSPtr device, cstr path) throws : // ctor
+FatDir::FatDir(FatFSPtr device, cstr path) throws : //
+	Directory(path),
 	device(device)
 {
 	trace(__func__);
-
-	assert(is_absolute_path(path));
-	this->path = newcopy(path);
 
 	FRESULT err = f_opendir(&fatdir, catstr(device->name, ":", path));
 	if (err) throw tostr(err);
@@ -58,7 +48,6 @@ FatDir::~FatDir() noexcept
 
 	FRESULT err = f_closedir(&fatdir);
 	if (err) logline("close FatDir: %s", tostr(err));
-	delete[] path;
 }
 
 void FatDir::rewind() throws

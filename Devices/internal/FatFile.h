@@ -12,8 +12,6 @@ namespace kio::Devices
 
 static_assert(sizeof(ADDR) == sizeof(FSIZE_t));
 
-class FatFile;
-using FatFilePtr = RCPtr<FatFile>;
 class FatFS;
 using FatFSPtr = RCPtr<FatFS>;
 
@@ -51,6 +49,8 @@ private:
 	friend class FatDir;
 	friend class FatFS;
 };
+
+using FatFilePtr = RCPtr<FatFile>;
 
 } // namespace kio::Devices
 

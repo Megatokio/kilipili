@@ -9,8 +9,6 @@
 namespace kio ::Devices
 {
 
-class FatDir;
-using FatDirPtr = RCPtr<FatDir>;
 class FatFS;
 using FatFSPtr = RCPtr<FatFS>;
 
@@ -22,7 +20,7 @@ public:
 
 	virtual FileInfo	 next(cstr pattern = nullptr) throws override;
 	virtual void		 rewind() throws override;
-	virtual FilePtr		 openFile(cstr path, FileOpenMode mode) override;
+	virtual FilePtr		 openFile(cstr path, FileOpenMode mode = READ) override;
 	virtual DirectoryPtr openDir(cstr path) override;
 	virtual void		 remove(cstr path) override;
 	virtual void		 makeDir(cstr path) override;
@@ -30,16 +28,14 @@ public:
 	virtual void		 setFmode(cstr path, FileMode fmode, uint8 mask) override;
 	virtual void		 setMtime(cstr path, uint32 mtime) override;
 
-	cstr path = nullptr;
-
 private:
 	FatFSPtr device; // keep alive
 	DIR		 fatdir;
 
 	FatDir(FatFSPtr device, cstr path) throws;
 	friend class FatFS;
-	cstr makeAbsolutePath(cstr path);
-	//void copy_fileinfo(FileInfo&, const FILINFO&);
 };
+
+using FatDirPtr = RCPtr<FatDir>;
 
 } // namespace kio::Devices

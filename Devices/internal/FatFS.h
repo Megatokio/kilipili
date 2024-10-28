@@ -11,8 +11,6 @@ namespace kio::Devices
 
 class FatFS : public FileSystem
 {
-	FATFS fatfs;
-
 public:
 	virtual ADDR		 getFree() override;
 	virtual ADDR		 getSize() override;
@@ -20,16 +18,21 @@ public:
 	virtual FilePtr		 openFile(cstr path, FileOpenMode flags = READ) override;
 
 private:
+	int	  volume_idx;
+	FATFS fatfs;
+
 	friend class FileSystem;
 	friend class FatDir;
 	friend class FatFile;
 	friend class RCPtr<FatFS>;
 
-	static void mkfs(BlockDevice*, int idx, cstr type = "FAT");
-	FatFS(cstr name, BlockDevice* blkdev, int idx) throws;
+	static void mkfs(BlockDevice*, int volume_idx, cstr type = "FAT");
+	FatFS(cstr name, BlockDevicePtr, int volume_idx) throws;
 	virtual ~FatFS() override;
 	virtual bool mount() override;
 };
+
+using FatFSPtr = RCPtr<FatFS>;
 
 } // namespace kio::Devices
 

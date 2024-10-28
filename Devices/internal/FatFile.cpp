@@ -139,13 +139,14 @@ void FatFile::close(bool __unused force)
 
 	FRESULT err = f_close(&fatfile);
 	if (err) throw tostr(err);
+	device = nullptr;
 }
 
 FatFile::~FatFile()
 {
 	trace(__func__);
 
-	if (fatfile.obj.fs != nullptr) // else the file is closed
+	if (device) // else the file is closed
 	{
 		FRESULT err = f_close(&fatfile);
 		if (err) logline(tostr(err));
