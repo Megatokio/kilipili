@@ -57,6 +57,7 @@ struct Color
 	static constexpr int ishift = VIDEO_PIXEL_ICOUNT + VIDEO_PIXEL_ISHIFT;
 
 	static constexpr uint total_colorbits = rbits + gbits + bbits + ibits;
+	static constexpr uint total_colormask = rmask | gmask | bmask | imask;
 	static constexpr bool is_monochrome	  = total_colorbits == 1;
 	static constexpr bool is_greyscale	  = ORDER_GREY;
 	static constexpr bool is_colorful	  = !ORDER_GREY;
@@ -85,6 +86,7 @@ struct Color
 	constexpr void blend_with(const Color b) noexcept;
 
 	constexpr int distance(const Color& b) const noexcept;
+	constexpr int brightness() const noexcept; // distance to black
 
 	// components scaled to n bit:
 	constexpr uint8 red(uint b = 8) const noexcept
@@ -200,6 +202,16 @@ constexpr void Color::blend_with(const Color b) noexcept
 		uRGB cy = (raw | b.raw) & lsb;
 		raw		= (((raw & mask) + (b.raw & mask)) >> 1) + cy;
 	}
+}
+
+inline constexpr int Color::brightness() const noexcept
+{
+	// distance to black
+	// color components are weighted r=4, g=5, b=3
+	
+	if constexpr (ORDER_GREY) { return raw&imask; }
+	if constexpr (ORDER_RGB) { return red(8) * 4 + green(8) * 5 + blue(8) * 3; }
+	if constexpr (ORDER_RGBI) { return grey(8 - gbits) * (4 + 5 + 3) + red(8) * 4 + green(8) * 5 + blue(8) * 3; }
 }
 
 inline constexpr int Color::distance(const Color& b) const noexcept
