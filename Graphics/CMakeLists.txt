@@ -53,6 +53,7 @@ add_library(kilipili_graphics STATIC
 	Color.h
 	ColorMap.h
 	ColorMap.cpp
+	img/ImageDecoder.h img/ImageDecoder.cpp
 	)
 
 target_compile_definitions(kilipili_graphics PUBLIC
