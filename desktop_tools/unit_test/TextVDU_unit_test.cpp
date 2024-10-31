@@ -31,20 +31,20 @@ namespace kio::Test
 {
 
 using Pixmap	 = kio::Graphics::Mock::Pixmap;
-using RealPixmap = kio::Graphics::Pixmap<colormode_a1w8_rgb>;
+using RealPixmap = kio::Graphics::Pixmap<colormode_a1w8_i16>;
 
 TEST_CASE("TextVDU: constructor")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8_i16);
 	TextVDU		  tv(pm);
 	Array<cstr>	  ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)";
+	ref << "Pixmap(80,60,a1w8_i16,12)";
 	CHECK_EQ(pm->log, ref);
 
 	CHECK_EQ(Color(tv.default_bgcolor).raw, 0xffffu); // white
 	CHECK_EQ(Color(tv.default_fgcolor).raw, 0x0000u); // black
 	CHECK_EQ(tv.pixmap.ptr(), pm.ptr());
-	CHECK_EQ(tv.colormode, uint(colormode_a1w8_rgb));
+	CHECK_EQ(tv.colormode, uint(colormode_a1w8_i16));
 	CHECK_EQ(tv.attrheight, 12);
 	CHECK_EQ(tv.colordepth, 4); //log2(16)
 	CHECK_EQ(tv.attrmode, attrmode_1bpp);
@@ -78,7 +78,7 @@ TEST_CASE("TextVDU: showCursor(), hideCursor()")
 		CHECK_EQ(tv.cursorVisible, false);
 
 		Array<cstr> ref;
-		ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+		ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 		ref << "clear(65535)";				// cls
 		ref << "xorRect(0,0,8,12,65535)";	// show cursor
 		ref << "xorRect(0,0,8,12,65535)";	// hide cursor
@@ -109,7 +109,7 @@ TEST_CASE("TextVDU: reset()")
 	tv.reset();
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)";
+	ref << "Pixmap(80,60,a1w8_i16,12)";
 	CHECK_EQ(pm->log, ref);
 
 	CHECK_EQ(tv.bgcolor, tv.default_bgcolor);
@@ -214,7 +214,7 @@ TEST_CASE("TextVDU: moveTo()")
 	CHECK_EQ(tv.col, 9);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.moveTo(10, 0, tv.wrap);
@@ -254,7 +254,7 @@ TEST_CASE("TextVDU: moveToCol()")
 	CHECK_EQ(tv.row, 0);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.moveToCol(10, tv.wrap);
@@ -316,7 +316,7 @@ TEST_CASE("TextVDU: moveToRow()")
 	CHECK_EQ(tv.col, 2);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.moveToRow(8, tv.wrap); // scrolls 4 lines
@@ -359,7 +359,7 @@ TEST_CASE("TextVDU: setCharAttributes()")
 	CHECK_EQ(tv.dy, 1);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.moveTo(0, 9);
@@ -453,7 +453,7 @@ TEST_CASE("TextVDU: limitCursorPosition()")
 	CHECK_EQ(tv.row, 0);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 }
 
@@ -463,7 +463,7 @@ TEST_CASE("TextVDU: validateCursorPosition()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 
 	tv.validateCursorPosition(false);
 	CHECK_EQ(tv.col, 0);
@@ -901,7 +901,7 @@ TEST_CASE("TextVDU: clearRect()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 1;
@@ -933,7 +933,7 @@ TEST_CASE("TextVDU: clearToStartOfLine()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 1;
@@ -984,7 +984,7 @@ TEST_CASE("TextVDU: clearToStartOfScreen()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 0;
@@ -1025,7 +1025,7 @@ TEST_CASE("TextVDU: clearToEndOfLine()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 0;
@@ -1057,7 +1057,7 @@ TEST_CASE("TextVDU: clearToEndOfScreen()") //
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 0;
@@ -1093,7 +1093,7 @@ TEST_CASE("TextVDU: copyRect()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row = 1;
@@ -1124,7 +1124,7 @@ TEST_CASE("TextVDU: scrollScreen()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 1;
@@ -1190,7 +1190,7 @@ TEST_CASE("TextVDU: scrollScreenUp()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1210,7 +1210,7 @@ TEST_CASE("TextVDU: scrollScreenDown()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1230,7 +1230,7 @@ TEST_CASE("TextVDU: scrollScreenLeft()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1250,7 +1250,7 @@ TEST_CASE("TextVDU: scrollScreenRight()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1270,7 +1270,7 @@ TEST_CASE("TextVDU: scrollRect()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.row	   = 1;
@@ -1358,7 +1358,7 @@ TEST_CASE("TextVDU: scrollRectLeft()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1378,7 +1378,7 @@ TEST_CASE("TextVDU: scrollRectRight()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1398,7 +1398,7 @@ TEST_CASE("TextVDU: scrollRectUp()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1418,7 +1418,7 @@ TEST_CASE("TextVDU: scrollRectDown()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1440,7 +1440,7 @@ TEST_CASE("TextVDU: insertChars()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1465,7 +1465,7 @@ TEST_CASE("TextVDU: deleteChars()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1490,7 +1490,7 @@ TEST_CASE("TextVDU: insertRows()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,120,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,120,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1512,7 +1512,7 @@ TEST_CASE("TextVDU: deleteRows()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,120,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,120,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1534,7 +1534,7 @@ TEST_CASE("TextVDU: insertColumns()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;
@@ -1556,7 +1556,7 @@ TEST_CASE("TextVDU: deleteColumns()")
 	TextVDU		  tv(pm);
 
 	Array<cstr> ref;
-	ref << "Pixmap(80,60,a1w8_rgb,12)"; // ctor
+	ref << "Pixmap(80,60,a1w8_i16,12)"; // ctor
 	CHECK_EQ(pm->log, ref);
 
 	tv.bgcolor = 1234;

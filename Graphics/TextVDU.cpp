@@ -92,8 +92,10 @@ void TextVDU::identify() noexcept
 	// size=400*300, text=50*25, char=8*12, colors=rgb
 	// size=400*300, text=50*25, char=8*12, colors=i8, attr=8*12
 
+	cstr colors = colordepth == colordepth_rgb ? "rgb" : tostr(colordepth);
+
 	printf("size=%u*%u, text=%u*%u, ", pixmap->width, pixmap->height, cols, rows);
-	printf("char=%u*%u, colors=%s", CHAR_WIDTH, CHAR_HEIGHT, tostr(colordepth));
+	printf("char=%u*%u, colors=%s", CHAR_WIDTH, CHAR_HEIGHT, colors);
 	if (attrmode != attrmode_none) printf(", attr=%u*%u", 1 << attrwidth, attrheight);
 	newLine();
 }

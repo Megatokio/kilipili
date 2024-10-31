@@ -236,7 +236,7 @@ static_assert(get_colordepth(colormode_a1w4_i8) == colordepth_8bpp);
 
 inline cstr tostr(kio::Graphics::ColorDepth cd)
 {
-	static constexpr char id[][4] = {"i1", "i2", "i4", "i8", "rgb"};
+	static constexpr char id[][4] = {"i1", "i2", "i4", "i8", "i16"};
 	return id[cd];
 }
 
@@ -244,15 +244,15 @@ inline cstr tostr(kio::Graphics::ColorMode cm)
 {
 	// clang-format off
 	static constexpr char id[kio::Graphics::num_colormodes][9] = {
-		"i1", "i2", "i4", "i8", "rgb",		
-		"a1w1_i4",	"a1w1_i8",  "a1w1_rgb", 
-		"a1w2_i4",	"a1w2_i8",  "a1w2_rgb", 		
-		"a1w4_i4",	"a1w4_i8",  "a1w4_rgb", 
-		"a1w8_i4",	"a1w8_i8",  "a1w8_rgb", 
-		"a2w1_i4",	"a2w1_i8",  "a2w1_rgb", 
-		"a2w2_i4",	"a2w2_i8",  "a2w2_rgb", 		
-		"a2w4_i4",	"a2w4_i8",  "a2w4_rgb", 
-		"a2w8_i4",	"a2w8_i8",  "a2w8_rgb", 
+		"i1", "i2", "i4", "i8", "i16",		
+		"a1w1_i4",	"a1w1_i8",  "a1w1_i16", 
+		"a1w2_i4",	"a1w2_i8",  "a1w2_i16", 		
+		"a1w4_i4",	"a1w4_i8",  "a1w4_i16", 
+		"a1w8_i4",	"a1w8_i8",  "a1w8_i16", 
+		"a2w1_i4",	"a2w1_i8",  "a2w1_i16", 
+		"a2w2_i4",	"a2w2_i8",  "a2w2_i16", 		
+		"a2w4_i4",	"a2w4_i8",  "a2w4_i16", 
+		"a2w8_i4",	"a2w8_i8",  "a2w8_i16", 
 	};
 	// clang-format on
 	return id[cm];
