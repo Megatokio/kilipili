@@ -11,6 +11,11 @@
 
 // this file provides tempmem buffers on the RP2040 (Raspberry Pico).
 
+//
+// this file is not used.
+// it is kept for reference
+//
+
 namespace kio
 {
 

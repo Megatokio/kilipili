@@ -10,7 +10,7 @@ if(${MAKE_TOOLS})
 	set(distinct_sources 
 		linux/glue.cpp
 		linux/glue.h
-		tempmem-posix.cpp)
+		linux/tempmem.cpp)
 	set(distinct_headers 
 		${CMAKE_CURRENT_LIST_DIR}/linux)
 	set(distinct_libraries )
@@ -18,7 +18,7 @@ else()
 	set(distinct_sources 
 		pico/glue.cpp
 		pico/glue.h
-		tempmem-pico.cpp)
+		pico/tempmem.cpp)
 	set(distinct_headers 
 		${CMAKE_CURRENT_LIST_DIR}/pico)
 	set(distinct_libraries 
