@@ -7,6 +7,7 @@
 #include "sm_macros.h"
 #include "standard_types.h"
 #include "system_clock.h"
+#include "utilities.h"
 #include <cstdio>
 
 namespace kio
