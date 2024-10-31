@@ -709,6 +709,11 @@ void TextVDU::print(cstr s) noexcept
 				cursorTab();
 				continue;
 			}
+			if (c == '\r')
+			{
+				cursorReturn();
+				continue;
+			}
 		}
 
 		CharMatrix charmatrix;
@@ -766,14 +771,10 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 	using namespace USB;
 
 	enum {
-		CURSOR_LEFT	 = 8,  // ^H
-		TAB			 = 9,  //
-		CURSOR_DOWN	 = 10, // ^J
-		CURSOR_UP	 = 11, // ^K
-		CURSOR_RIGHT = 12, // ^L
-		RETURN		 = 13, //
-		ESC			 = 27,
-		BACKSPACE	 = 127,
+		BACKSPACE = 8,
+		RETURN	  = 13,
+		ESC		  = 0x1b,
+		CSI		  = 0x9b, // C1 version of ESC[
 	};
 
 	if (oldtext == nullptr) oldtext = emptystr;
@@ -787,6 +788,7 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 	for (;;)
 	{
 		moveTo(row0, col0 + epos, wrap);
+		showCursor();
 		int c = getc();
 
 		if (c <= 0xff)
@@ -801,25 +803,25 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 			// else it's a control code:
 			switch (c)
 			{
-			case CURSOR_LEFT: c = KEY_ARROW_LEFT; break;
-			case CURSOR_RIGHT: c = KEY_ARROW_RIGHT; break;
-			case CURSOR_UP: c = KEY_ARROW_UP; break;
-			case CURSOR_DOWN: c = KEY_ARROW_DOWN; break;
 			case RETURN:
 				print(oldtext + epos);
 				newLine();
 				return oldtext;
 			case BACKSPACE: c = KEY_BACKSPACE; break;
 			case ESC:
-			case 0x9b:
+			case CSI:
 				if (c == ESC) c = getc();
 				if (c == '[') c = getc();
 				switch (c)
 				{
-				case 'A': c = KEY_ARROW_UP; break;
-				case 'B': c = KEY_ARROW_DOWN; break;
-				case 'C': c = KEY_ARROW_RIGHT; break;
-				case 'D': c = KEY_ARROW_LEFT; break;
+				case '3': // ESC[3~
+					if (getc() != '~') continue;
+					c = KEY_DELETE;
+					break;
+				case 'A': c = KEY_ARROW_UP; break;	  // ESC[A
+				case 'B': c = KEY_ARROW_DOWN; break;  // ESC[B
+				case 'C': c = KEY_ARROW_RIGHT; break; // ESC[C
+				case 'D': c = KEY_ARROW_LEFT; break;  // ESC[D
 				default: printf("{ESC,0x%02x}", c); continue;
 				}
 				break;
