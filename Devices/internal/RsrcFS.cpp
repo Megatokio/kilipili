@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "RsrcFS.h"
-#include "RomFile.h"
+#include "RsrcFile.h"
 #include "cstrings.h"
 #include <cstring>
 
@@ -111,7 +111,7 @@ FilePtr RsrcFS::openFile(cstr path, FileOpenMode mode)
 	p			 = skip(p);
 	uint32 csize = peek24(p);
 	uint8  flags = p[3];
-	if (flags == 0) return new RomFile(p + 4, csize);
+	if (flags == 0) return new RsrcFile(p + 4, csize);
 	uint32 usize = peek32(p + 4);
 	return new CompressedRomFile(p + 8, usize, csize - 4, flags);
 }

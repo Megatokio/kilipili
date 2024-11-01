@@ -13,10 +13,10 @@ namespace kio::Devices
 /*
 	class RomFile reads from data in Rom (Flash).
 */
-class RomFile : public File
+class RsrcFile : public File
 {
 public:
-	~RomFile() noexcept override = default;
+	~RsrcFile() noexcept override = default;
 
 	virtual ADDR getSize() const noexcept override { return fsize; }
 	virtual ADDR getFpos() const noexcept override { return fpos; }
@@ -29,7 +29,7 @@ private:
 	uint32		 fsize = 0;
 	uint32		 fpos  = 0;
 
-	RomFile(const uchar* data, uint32 size);
+	RsrcFile(const uchar* data, uint32 size);
 	friend class RsrcFS;
 };
 

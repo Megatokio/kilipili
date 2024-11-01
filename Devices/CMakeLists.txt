@@ -19,8 +19,8 @@ add_library(kilipili_devices STATIC
 	internal/FatDir.cpp
 	internal/RamFile.cpp 
 	internal/RamFile.h
-	internal/RomFile.h 
-	internal/RomFile.cpp
+	internal/RsrcFile.h 
+	internal/RsrcFile.cpp
 	internal/RsrcFS.h 
 	internal/RsrcFS.cpp	
 	internal/ff15/source/ff.h

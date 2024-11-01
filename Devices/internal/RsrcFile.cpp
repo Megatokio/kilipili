@@ -2,7 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "RomFile.h"
+#include "RsrcFile.h"
 #include "basic_math.h"
 #include <cstring>
 
@@ -12,19 +12,19 @@ namespace kio ::Devices
 // ***********************************************************************
 // Rom File
 
-RomFile::RomFile(const uchar* data, uint32 size) : //
+RsrcFile::RsrcFile(const uchar* data, uint32 size) : //
 	File(readable),
 	data(data),
 	fsize(size)
 {}
 
-void RomFile::setFpos(ADDR new_fpos)
+void RsrcFile::setFpos(ADDR new_fpos)
 {
 	if unlikely (new_fpos > fsize) fpos = fsize;
 	else fpos = uint32(new_fpos);
 }
 
-SIZE RomFile::read(void* data, SIZE size, bool partial)
+SIZE RsrcFile::read(void* data, SIZE size, bool partial)
 {
 	if unlikely (size > fsize - fpos)
 	{
