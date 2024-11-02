@@ -101,7 +101,7 @@ extern "C" __printflike(1, 2) __noreturn void panic(const char* fmt, ...);
 
 #undef debugstr
 #ifdef DEBUG
-  #define debugstr printf
+  #define debugstr ::printf
 #else
   #define debugstr(...) ((void)0)
 #endif

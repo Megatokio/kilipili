@@ -5,6 +5,7 @@
 #pragma once
 #include "devices_types.h"
 #include "little_big_endian.h"
+#include "no_copy_move.h"
 
 namespace kio::Devices
 {
@@ -14,20 +15,17 @@ constexpr uint gets_max_len = 512; // max string length handled by gets()
 
 /* Interface class `SerialDevice`
 */
-class SerialDevice : public RCObject
+class SerialDevice
 {
 public:
+	uint16 rc		 = 0;
 	char   last_char = 0; // used by gets()
 	Flags  flags;
-	uint16 _padding;
 
 public:
 	SerialDevice(Flags flags) noexcept : flags(flags) {}
-	virtual ~SerialDevice() noexcept override	 = default;
-	SerialDevice(const SerialDevice&) noexcept	 = default;
-	SerialDevice(SerialDevice&&) noexcept		 = default;
-	SerialDevice& operator=(const SerialDevice&) = delete;
-	SerialDevice& operator=(SerialDevice&&)		 = delete;
+	virtual ~SerialDevice() noexcept = default;
+	NO_COPY_MOVE(SerialDevice);
 
 	// sequential read/write
 	//   partial=true:  transfer as much as possible without blocking. possibly none.

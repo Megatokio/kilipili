@@ -16,10 +16,6 @@
 #include <string.h>
 #include <unistd.h>
 
-namespace kio
-{
-extern void print_heap_free(int r = 0);
-}
 //#define IMAGE_LOADING  0 /* file_state = processing */
 //#define IMAGE_SAVING   0 /* file_state = processing */
 //#define IMAGE_COMPLETE 1 /* finished reading or writing */
