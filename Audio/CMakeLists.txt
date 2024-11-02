@@ -25,6 +25,8 @@ add_library(kilipili_audio STATIC
 	sid_audio.pio
 	Ay38912.cpp 
 	Ay38912.h
+	YMMusicPlayer.h 
+	YMMusicPlayer.cpp 
 )
 
 target_compile_definitions(kilipili_audio PUBLIC
