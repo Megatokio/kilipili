@@ -618,6 +618,19 @@ void AudioController::removeAudioSource(RCPtr<HwAudioSource> ac) noexcept
 	// note: channel ac deleted here (probably) after lock released
 }
 
+void AudioController::removeAllAudioSources() noexcept
+{
+	RCPtr<HwAudioSource> as = nullptr;
+	while (num_sources)
+	{
+		{
+			Locker _;
+			swap(audio_sources[--num_sources], as);
+		}
+		as = nullptr;
+	}
+}
+
 void sysclockChanged(uint32 /*new_clock*/) noexcept
 {
 	// called from set_system_clock():

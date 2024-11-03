@@ -136,6 +136,8 @@ public:
 	*/
 	void removeAudioSource(RCPtr<HwAudioSource>) noexcept;
 
+	void removeAllAudioSources() noexcept;
+
 private:
 	AudioController() noexcept;
 };
