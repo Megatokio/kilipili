@@ -521,6 +521,13 @@ TEST_CASE("Audio::SampleRateAdapter<2>")
 	}
 }
 
+TEST_CASE("Audio::HF_DC_Filter")
+{
+	// minimum test: instantiate
+	HF_DC_Filter<1> f1(new SineWaveSource<1>(100,1));
+	HF_DC_Filter<2> f2(new SineWaveSource<2>(100,1));
+}
+
 } // namespace kio::Test
 
 

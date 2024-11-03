@@ -415,7 +415,7 @@ public:
    simple filter to remove DC bias and HF hissing:
 */
 template<uint nc>
-class HF_DC_Filter : public AudioSource<1>
+class HF_DC_Filter : public AudioSource<nc>
 {
 public:
 	HF_DC_Filter(RCPtr<AudioSource<nc>> audio_source) noexcept : audio_source(audio_source) {}
