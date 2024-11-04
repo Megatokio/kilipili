@@ -51,7 +51,7 @@ CompressedRomFile::CompressedRomFile(const uchar* cdata, uint32 usize, uint32 cs
 
 	assert(4 <= ss_lookahead);		  // currently used: 6
 	assert(ss_lookahead < ss_window); //
-	assert(ss_window <= 13);		  // currently used: 12
+	assert(ss_window <= 14);		  // currently used: 12
 
 	decoder = heatshrink_decoder_alloc(256, ss_window, ss_lookahead);
 	if (!decoder) throw OUT_OF_MEMORY;
