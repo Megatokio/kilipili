@@ -251,7 +251,7 @@ static void update_timing() noexcept
 	{
 		uint32 div = uint32(sysclock / (requested_sample_frequency * cc_per_sample_i2s) * 256 + 0.5f);
 		pio_sm_set_clkdiv_int_frac(audio_pio, sm[0], uint16(div / 256), uint8(div));
-		hw_sample_frequency = sysclock / float(div) * 256;
+		hw_sample_frequency = sysclock / float(div) * 256 / cc_per_sample_i2s;
 	}
 	if constexpr (audio_hw == PWM)
 	{
@@ -679,8 +679,8 @@ void beep(float frequency, float volume, uint32 duration_ms)
 	};
 
 	AudioController& ac = AudioController::getRef();
-	ac.addAudioSource(new BeepingAudioSource(frequency, volume, duration_ms));
 	if (!is_running) ac.startAudio(true);
+	ac.addAudioSource(new BeepingAudioSource(frequency, volume, duration_ms));
 }
 
 #endif // audio_hw_num_channels != 0
