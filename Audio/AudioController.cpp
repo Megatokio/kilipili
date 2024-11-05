@@ -52,7 +52,7 @@ static_assert((dma_buffer_num_frames & (dma_buffer_num_frames - 1)) == 0, "dma b
 static_assert(dma_buffer_num_frames >= 64, "dma buffer size too small");
 static_assert(dma_buffer_num_frames <= 4096, "dma buffer_size too big"); // some calculations overflow
 
-constexpr uint cc_per_sample_pwm = 3960;
+constexpr uint cc_per_sample_pwm = (255 + 9) * 16;
 constexpr uint cc_per_sample_sid = 260;
 constexpr uint cc_per_sample_i2s = 64;
 
@@ -81,22 +81,22 @@ extern int* sid_last_sample; // dummy, syntax only
 static uint pio_program_entry_point;
 
 static constexpr uint32 dither_table[16] = {
-	0b000000000000000 << 16, //
-	0b000000010000000 << 16, //
-	0b000001000010000 << 16, //
-	0b000100010001000 << 16, //
-	0b000100100100100 << 16, //
-	0b001001010010010 << 16, //
-	0b001010100101010 << 16, //
-	0b010101010101010 << 16, //
-	0b010101011010101 << 16, //
-	0b010110110101101 << 16, //
-	0b011011011011011 << 16, //
-	0b011101110111011 << 16, //
-	0b011110111101111 << 16, //
-	0b011111110111111 << 16, //
-	0b011111111111111 << 16, //
-	0b111111111111111 << 16, //
+	0b0000000000000000u << 16, // 0/16
+	0b0000000010000000u << 16, // 1/16
+	0b0000100000010000u << 16, // 2/16
+	0b0001000010000100u << 16, // 3/16
+	0b0010001000100010u << 16, // 4/16
+	0b0010010010010010u << 16, // 5/16
+	0b0010101001010010u << 16, // 6/16
+	0b0101010100101010u << 16, // 7/16
+	0b1010101010101010u << 16, // 8/16
+	0b1010101011010101u << 16, // 9/16
+	0b1010110110101101u << 16, // 10/16
+	0b1011011011011011u << 16, // 11/16
+	0b1011101110111011u << 16, // 12/16
+	0b1101111011110111u << 16, // 13/16
+	0b1110111111101111u << 16, // 14/16
+	0b1111111011111111u << 16, // 15/16
 };
 
 static float		 requested_sample_frequency = AUDIO_DEFAULT_SAMPLE_FREQUENCY;
@@ -122,7 +122,7 @@ static void init_pio() noexcept
 {
 	if constexpr (audio_hw == I2S)
 	{
-		uint load_offset		= pio_add_program(audio_pio, &i2s_audio_program);
+		uint load_offset		= uint(pio_add_program(audio_pio, &i2s_audio_program));
 		pio_program_entry_point = load_offset + i2s_audio_offset_entry_point;
 
 		pio_sm_config config = i2s_audio_program_get_default_config(load_offset);
@@ -138,12 +138,12 @@ static void init_pio() noexcept
 	}
 	if constexpr (audio_hw == PWM)
 	{
-		uint load_offset		= pio_add_program(audio_pio, &pwm_audio_program);
+		uint load_offset		= uint(pio_add_program(audio_pio, &pwm_audio_program));
 		pio_program_entry_point = load_offset + pwm_audio_offset_entry_point;
 
 		pio_sm_config config = pwm_audio_program_get_default_config(load_offset);
 		sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
-		sm_config_set_out_shift(&config, true, false, 8 + 8 + 15); // shift right, no autopull, 31 bits
+		sm_config_set_out_shift(&config, true, false, 8 + 8 + 16); // shift right, no autopull, 31 bits
 		//sm_config_set_clkdiv_int_frac(&config,1,0);
 
 		for (uint i = 0; i < num_sm; i++)
@@ -157,7 +157,7 @@ static void init_pio() noexcept
 	}
 	if constexpr (audio_hw == SIGMA_DELTA) // TODO
 	{
-		uint load_offset		= pio_add_program(audio_pio, &sid_audio_program);
+		uint load_offset		= uint(pio_add_program(audio_pio, &sid_audio_program));
 		pio_program_entry_point = load_offset + sid_audio_offset_entry_point;
 
 		pio_sm_config config = sid_audio_program_get_default_config(load_offset);
@@ -256,8 +256,7 @@ static void update_timing() noexcept
 	if constexpr (audio_hw == PWM)
 	{
 		// pwm sample frequency varies from 23674 Hz @ 100MHz to 68655 Hz @ 290MHz
-		// no need to update clock divider as long as we always use 1.
-		// evtl. we could limit the sample frequency and use a divider of 2.
+		// no need to update clock divider as long as we always use 1.00.
 
 		hw_sample_frequency = sysclock / cc_per_sample_pwm;
 	}
@@ -302,13 +301,13 @@ inline uint32 pwm_sample(int32 sample) noexcept
 	// L = run length low for upper 8 bits of sample
 	// H = run length high for upper 8 bits of sample
 
-	uint32 result = (uint32(sample) >> 4) ^ (sample >= 0 ? 0x00000800u : 0x0000F800u); // 12 bit
-	if unlikely (result >> 12) return sample >= 0 ? 0xffff00ffu : 0x0000ff00u;
+	if unlikely (sample != int16(sample)) return sample >= 0 ? 0xffff00ffu : 0x0000ff00u;
 
-	uint u4 = result & 0x000f;
-	uint o8 = result >> 4;
+	sample		   = sample + 0x8000; // signed -> unsigned
+	uint32 setbits = uint32(sample) >> 8;
+	uint32 dither  = dither_table[uint8(sample) >> 4];
 
-	return dither_table[u4] | o8 | ((255 - o8) << 8);
+	return dither + setbits + ((255 - setbits) << 8);
 }
 
 inline int8 sid_sample(int32& current_sample, int32 sample) noexcept

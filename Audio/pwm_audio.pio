@@ -13,7 +13,7 @@
 ;	; Format:
 ;	; | high len | low len | (dither) * n |
 ;	; OSR level
-;	; cycle length = 7 + 2 + 127
+;	; cycle length = 9 + 127
 ;	
 ;	; 136 clocks/cycle frequency 352941 / 16 = 22058
 ;	delay:
@@ -36,32 +36,33 @@
 
 
 ; =====================================================
-; modified program to run on the RP2040 which runs at a higher clock speed.
-; it has an effective resolution of 12 bit. (8+log2(16))
+; Modified program to run on the RP2040 which runs at a higher clock speed.
+; It has an effective resolution of 12 bit. (8+log2(16))
 ;
-; the major benefit from the "dithering" is that we get 15 pwm pulses per sample 
-; which results in a much higher, easier to filter frequency for the pwm noise.
+; The sample is not emitted as one single pulse rather that 16 pulses.
+; This results in a much higher, easier to filter frequency for the extremely load pwm noise.
 ;
-; we need only 15 pulses, not 16, because dithering adds 0 to 15 clock cycles 
-; thus we also need at most 15 pulses which we can enlarge.
+; The basic resolution of each pulse is 8 bit. 
+; 4 more bits are added by adding 1 clock cycle to 0 to 15 of these pulses.
 ;
-; the sample rate depends on the system clock:
-; to avoid audible artifacts, only an integer clock divider can be used, no fractional part.
-; to avoid audible artifacts, all pwm pulses must be same width.
-; => sample frequency = 264*15 = 3960 clocks per sample 
+; The sample rate depends on the system clock:
+; To avoid audible artifacts, only an integer clock divider can be used, no fractional part.
+; To avoid audible artifacts, all pwm pulse periods must be the same length.
+; => we always use a pio clock divider of 1.00.
+; => sample frequency = (255+9)*16 = 4224 clocks per sample 
 ;
-; 100 MHz / 3960  = 25252 Hz
-; 125 MHz / 3960  = 31565 Hz
-; 44100 Hz * 3960 = 174.64 MHz
-; 48000 Hz = 3960 = 190.08 MHz
-; 290 MHz / 3960  = 73232 Hz  --> we could divide by 2 
+; 100 MHz / 4224  = 23674 Hz
+; 125 MHz / 4224  = 29593 Hz
+; 44100 Hz * 4224 = 186.28 MHz
+; 48000 Hz * 4224 = 202.75 MHz
+; 290 MHz / 4224  = 68655 Hz   
 
 ; Data Format:
-; | high_len[8] | low_len[8] | dither[15] |
+; | dither[16] | low_len[8] | high_len[8] |
 ; 
 ; requirement: high_len + low_len = 255 
 ; => cycle length = 9 + 255 = 264 clocks/cycle
-; =>  264 * 15 = 3960 clocks per sample 
+; =>  264 * 16 = 4224 clocks per sample 
 
 .program pwm_audio
 .side_set 1 opt
@@ -76,8 +77,8 @@ l0:	jmp  x-- l0
 	jmp  !osre delay
 public entry_point:
 	pull
-	out  isr, 8
-	out  y, 8
+	out  isr, 8				; high length
+	out  y, 8				; low length
 .wrap
 
 
