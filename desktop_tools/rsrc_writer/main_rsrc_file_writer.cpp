@@ -137,7 +137,7 @@ static void copy_as_wav(cstr indir, cstr outdir, cstr infile)
 	if (write_hdr && verbose) puts("  skipped\n"); // don't copy wav into rsrc
 	if (write_hdr) return;
 
-	YMFileConverter converter(YMFileConverter::NOTHING);
+	YMFileConverter converter;
 	converter.importFile(catstr(indir, infile), verbose);
 	cstr   ext	= extension_from_path(infile); // points to '.' in infile
 	uint32 size = converter.exportWavFile(catstr(outdir, substr(infile, ext), ".wav"));
@@ -149,7 +149,7 @@ static void copy_as_ym(cstr indir, cstr outdir, cstr infile)
 	if (write_hdr && verbose) puts("  skipped\n"); // TODO maybe into rsrc too
 	if (write_hdr) return;
 
-	YMFileConverter converter(YMFileConverter::NOTHING);
+	YMFileConverter converter;
 	uint32			qsize = converter.importFile(catstr(indir, infile), verbose);
 	cstr			ext	  = extension_from_path(infile); // points to '.' in infile
 	uint32			zsize = converter.exportYMFile(catstr(outdir, substr(infile, ext), ".unc.ym"));
@@ -159,7 +159,7 @@ static void copy_as_ym(cstr indir, cstr outdir, cstr infile)
 
 static void copy_as_ymrf(cstr indir, cstr outdir, cstr infile, Info& info)
 {
-	YMFileConverter converter(YMFileConverter::NOTHING);
+	YMFileConverter converter;
 	uint32			qsize	 = converter.importFile(catstr(indir, infile), verbose);
 	cstr			ext		 = extension_from_path(infile); // points to '.' in infile
 	cstr			basename = substr(infile, ext);
