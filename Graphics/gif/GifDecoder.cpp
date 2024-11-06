@@ -255,7 +255,7 @@ void GifDecoder::finish()
 {
 	//	Read to end of image, including the zero block.
 
-	while ((bufsize = file->read_uchar())) { file->read(buf, bufsize); }
+	while ((bufsize = file->read<uchar>())) { file->read(buf, bufsize); }
 }
 
 void GifDecoder::lz_initialize()
@@ -263,7 +263,7 @@ void GifDecoder::lz_initialize()
 	// Initialize decoder for the next image
 
 	//file_state      = IMAGE_LOADING;
-	depth			  = file->read_uint8(); /* lzw_min */
+	depth			  = file->read<uint8>(); /* lzw_min */
 	clear_code		  = 1 << depth;
 	eof_code		  = clear_code + 1;
 	running_code	  = eof_code + 1;
@@ -290,7 +290,7 @@ inline uchar GifDecoder::read_gif_byte()
 
 	if unlikely (position == bufsize) // internal buffer now empty?
 	{								  // => read the next block
-		bufsize = file->read_uchar();
+		bufsize = file->read<uchar>();
 		if (bufsize == 0)
 		{
 			throw "Unexpected final block"; // TODO
@@ -527,11 +527,11 @@ GifDecoder::GifDecoder(FilePtr file) : file(file)
 	file->read(bu, 6);
 	if (!eq(bu, "GIF87a") && !eq(bu, "GIF89a")) return; // not a gif file
 
-	image_width		 = file->read_uint16();
-	image_height	 = file->read_uint16();
-	uint8 flags		 = file->read_uint8();
-	background_color = file->read_uint8();
-	aspect			 = file->read_uint8(); // normally = 0
+	image_width		 = file->read_LE<uint16>();
+	image_height	 = file->read_LE<uint16>();
+	uint8 flags		 = file->read<uint8>();
+	background_color = file->read<uint8>();
+	aspect			 = file->read<uint8>(); // normally = 0
 
 	if (image_width > 2 kB || image_width < 4) return;	 // sanity
 	if (image_height > 2 kB || image_height < 1) return; // sanity
@@ -582,7 +582,7 @@ int GifDecoder::decode_frame(store_scanline& fu)
 
 	for (;;)
 	{
-		uint8 blocktype = file->read_uint8();
+		uint8 blocktype = file->read<uint8>();
 
 		if (blocktype == ',') // sub_image
 		{
@@ -599,11 +599,11 @@ int GifDecoder::decode_frame(store_scanline& fu)
 				}
 			}
 
-			xpos				 = file->read_uint16();
-			ypos				 = file->read_uint16();
-			width				 = file->read_uint16();
-			height				 = file->read_uint16();
-			uint8 flags			 = file->read_uint8();
+			xpos				 = file->read_LE<uint16>();
+			ypos				 = file->read_LE<uint16>();
+			width				 = file->read_LE<uint16>();
+			height				 = file->read_LE<uint16>();
+			uint8 flags			 = file->read<uint8>();
 			bool  has_local_cmap = flags & 0x80;
 			bool  interleaved	 = flags & 0x40;
 			uint8 cmap_bits		 = (flags & 7) + 1;
@@ -657,15 +657,15 @@ int GifDecoder::decode_frame(store_scanline& fu)
 
 		else if (blocktype == '!') // extension block
 		{
-			blocktype = file->read_uint8();
+			blocktype = file->read<uint8>();
 
 			if (blocktype == 0xff) // looping animation
 			{
-				uint count = file->read_uint8();
+				uint count = file->read<uint8>();
 				file->read(buf, count);
 				if (count == 11) // "NETSCAPE2.0"
 				{
-					count = file->read_uint8();
+					count = file->read<uint8>();
 					file->read(buf + 1, count);
 					if (count == 3)
 					{
@@ -680,7 +680,7 @@ int GifDecoder::decode_frame(store_scanline& fu)
 			{
 				if (!comment)
 				{
-					uint count = file->read_uint8();
+					uint count = file->read<uint8>();
 					comment	   = newstr(count);
 					file->read(comment, count);
 				}
@@ -688,7 +688,7 @@ int GifDecoder::decode_frame(store_scanline& fu)
 			}
 			else if (blocktype == 0xf9) // animation control
 			{
-				uint count = file->read_uint8();
+				uint count = file->read<uint8>();
 				file->read(buf + 1, count);
 				if (count == 4)
 				{

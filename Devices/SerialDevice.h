@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "little_big_endian.h"
 #include "devices_types.h"
-
 
 namespace kio::Devices
 {
@@ -48,6 +48,80 @@ public:
 	virtual SIZE printf(cstr fmt, ...) __printflike(2, 3);
 
 	void flushOut() { ioctl(IoCtl::FLUSH_OUT); }
+
+	// ------- Convenience Methods ---------------
+
+	template<typename T>
+	T read()
+	{
+		T n;
+		read(&n, sizeof(T));
+		return n;
+	}
+
+	template<typename T>
+	SIZE read(T& n)
+	{
+		return read(&n, sizeof(T));
+	}
+
+	template<typename T>
+	SIZE write(const T& n)
+	{
+		return write(&n, sizeof(T));
+	}
+
+	template<typename T, bool LE>
+	T reverted(T n)
+	{
+		if constexpr (LE == little_endian) return n;
+		char* p = reinterpret_cast<char*>(&n);
+		if constexpr (sizeof(T) >= 2) std::swap(p[0], p[sizeof(T) - 1]);
+		if constexpr (sizeof(T) >= 4) std::swap(p[1], p[sizeof(T) - 2]);
+		if constexpr (sizeof(T) >= 8) std::swap(p[2], p[sizeof(T) - 3]);
+		if constexpr (sizeof(T) >= 8) std::swap(p[3], p[sizeof(T) - 4]);
+		return n;
+	}
+
+	template<typename T>
+	T read_BE()
+	{
+		return reverted<T, 0>(read<T>());
+	}
+
+	template<typename T>
+	SIZE read_BE(T& n)
+	{
+		SIZE d = read(n);
+		n	   = reverted<T, 0>(n);
+		return d;
+	}
+
+	template<typename T>
+	SIZE write_BE(const T& n)
+	{
+		return write<T>(reverted<T, 0>(n));
+	}
+
+	template<typename T>
+	T read_LE()
+	{
+		return reverted<T, 1>(read<T>());
+	}
+
+	template<typename T>
+	SIZE read_LE(T& n)
+	{
+		SIZE d = read(n);
+		n	   = reverted<T, 1>(n);
+		return d;
+	}
+
+	template<typename T>
+	SIZE write_LE(const T& n)
+	{
+		return write<T>(reverted<T, 1>(n));
+	}
 };
 
 

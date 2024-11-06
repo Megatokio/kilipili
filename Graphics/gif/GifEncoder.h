@@ -141,7 +141,7 @@ public:
 	*/
 	void writeGif87aHeader() throws { fd->write("GIF87a", 6); }
 	void writeGif89aHeader() throws { fd->write("GIF89a", 6); }
-	void writeGifTrailer() throws { fd->write_uchar(0x3B); }
+	void writeGifTrailer() throws { fd->write<uchar>(0x3B); }
 
 
 	/*	Write descriptor for following sub image:

@@ -100,12 +100,12 @@ void GifEncoder::write_gif_byte(int ch) throws
 	{
 		if (bufsize)
 		{
-			fd->write_uchar(bufsize);
+			fd->write<uchar>(bufsize);
 			fd->write(ptr(buf), bufsize);
 			bufsize = 0;
 		}
 		/* write an empty block to mark end of data */
-		fd->write_uchar(0);
+		fd->write<uchar>(0);
 		file_state = IMAGE_COMPLETE;
 	}
 	else
@@ -113,7 +113,7 @@ void GifEncoder::write_gif_byte(int ch) throws
 		if (bufsize == 255)
 		{
 			/* write this buffer to the file */
-			fd->write_uchar(bufsize);
+			fd->write<uchar>(bufsize);
 			fd->write(ptr(buf), bufsize);
 			bufsize = 0;
 		}
@@ -186,9 +186,9 @@ void GifEncoder::startImage(int cmap_bits) throws
 	shift_state		  = 0;
 	shift_data		  = 0;
 
-	fd->write_uchar(uchar(cmap_bits)); // Write the lzw minimum code size
-	clear_hash_table();				   // Clear hash table
-	write_gif_code(clear_code);		   // output Clear code
+	fd->write<uchar>(uchar(cmap_bits)); // Write the lzw minimum code size
+	clear_hash_table();					// Clear hash table
+	write_gif_code(clear_code);			// output Clear code
 }
 
 void GifEncoder::writePixelRow(cuptr pixel, uint length) throws

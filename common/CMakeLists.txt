@@ -8,6 +8,7 @@ cmake_minimum_required(VERSION 3.13)
 
 if(${MAKE_TOOLS})
 	set(distinct_sources 
+		linux/little_big_endian.h
 		linux/glue.cpp
 		linux/glue.h
 		linux/tempmem.cpp)
@@ -16,6 +17,7 @@ if(${MAKE_TOOLS})
 	set(distinct_libraries )
 else()
 	set(distinct_sources 
+		pico/little_big_endian.h
 		pico/glue.cpp
 		pico/glue.h
 		pico/tempmem.cpp)

@@ -12,10 +12,10 @@ ImageDecoder::ImageDecoder(FilePtr file) : file(file)
 {
 	constexpr uint headersize = 9;
 	if (file->getSize() - file->getFpos() < headersize + 1) return; // avoid eof error
-	if (file->read_uint32() != magic) return;
-	uint8 colormodel = file->read_uint8();
-	image_width		 = file->read_uint16();
-	image_height	 = file->read_uint16();
+	if (file->read_LE<uint32>() != magic) return;
+	uint8 colormodel = file->read<uint8>();
+	image_width		 = file->read_LE<uint16>();
+	image_height	 = file->read_LE<uint16>();
 	has_cmap		 = colormodel & 4;
 	has_transparency = colormodel & 8;
 	colormodel &= 0xf3;
@@ -25,7 +25,7 @@ ImageDecoder::ImageDecoder(FilePtr file) : file(file)
 	uint16 colorsize = colormodel == grey ? 1 : colormodel == rgb ? 3 : sizeof(Color);
 	pixelsize		 = has_cmap ? 1 : colorsize;
 	buffersize		 = uint16(image_width * pixelsize);
-	if (has_cmap) cmapsize = file->read_uint8() + 1;
+	if (has_cmap) cmapsize = file->read<uint8>() + 1;
 
 	if (file->getSize() - file->getFpos() < cmapsize * colorsize + buffersize * uint(image_height)) return;
 

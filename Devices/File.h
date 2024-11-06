@@ -45,43 +45,41 @@ public:
 	virtual void truncate() { throw "truncate() not supported"; }
 
 	bool is_eof() const noexcept { return getFpos() >= getSize(); }
-
-
-	// ------- Convenience Methods ---------------
-
-	using super = SerialDevice;
-	using super::read;
-
-	template<typename T>
-	T read()
-	{
-		T n;
-		read(ptr(&n), sizeof(T));
-		return n;
-	}
-	int8   read_int8() { return read<int8>(); }
-	uint8  read_uint8() { return read<uint8>(); }
-	char   read_char() { return read<char>(); }
-	uchar  read_uchar() { return read<uchar>(); }
-	int16  read_int16() { return read<int16>(); }
-	uint16 read_uint16() { return read<uint16>(); }
-	int32  read_int32() { return read<int32>(); }
-	uint32 read_uint32() { return read<uint32>(); }
-	int64  read_int64() { return read<int64>(); }
-	uint64 read_uint64() { return read<uint64>(); }
-
-	SIZE write_int8(int8 n) { return write(cptr(&n), sizeof(n)); }
-	SIZE write_uint8(uint8 n) { return write(cptr(&n), sizeof(n)); }
-	SIZE write_char(char n) { return write(cptr(&n), sizeof(n)); }
-	SIZE write_uchar(uchar n) { return write(cptr(&n), sizeof(n)); }
-	SIZE write_int16(int16 n) { return write(cptr(&n), sizeof(n)); }
-	SIZE write_uint16(uint16 n) { return write(cptr(&n), sizeof(n)); }
-	SIZE write_int32(int32 n) { return write(cptr(&n), sizeof(n)); }
-	SIZE write_uint32(uint32 n) { return write(cptr(&n), sizeof(n)); }
-	SIZE write_int64(int64 n) { return write(cptr(&n), sizeof(n)); }
-	SIZE write_uint64(uint64 n) { return write(cptr(&n), sizeof(n)); }
-	SIZE write_nl() { return write_char('\n'); }
 };
 
 
 } // namespace kio::Devices
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
