@@ -38,9 +38,15 @@ add_executable(RsrcFileWriter
 	rsrc_writer/CompressedRsrcFileWriter.h
 	rsrc_writer/YMFileConverter.cpp
 	rsrc_writer/YMFileConverter.h
+	rsrc_writer/StdFile.cpp
+	rsrc_writer/StdFile.h
 	kilipili/common/Array.h
 	kilipili/Graphics/color_options.h
 	kilipili/Graphics/Color.h
+	kilipili/Devices/SerialDevice.h
+	kilipili/Devices/SerialDevice.cpp
+	kilipili/Devices/File.h
+	kilipili/Devices/File.cpp
 	kilipili/Audio/AudioSource.h
 	kilipili/Audio/audio_options.h
 	kilipili/Audio/AudioSample.h
