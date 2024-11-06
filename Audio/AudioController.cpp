@@ -443,6 +443,8 @@ static uint dma_frames_avail() noexcept
 
 static int64 fill_buffer(alarm_id_t, void*) noexcept
 {
+	uint32 old_idle = LoadSensor::isr_start();
+
 	if unlikely (check_timing)
 	{
 		check_timing = false;
@@ -451,8 +453,6 @@ static int64 fill_buffer(alarm_id_t, void*) noexcept
 		if (hw_sample_frequency != old)
 			for (uint i = 0; i < num_sources; i++) { audio_sources[i]->setSampleRate(hw_sample_frequency); }
 	}
-
-	//sm_blink_onboard_led();
 
 	constexpr uint packetsize = 1 + 3 * (audio_hw == SIGMA_DELTA);
 	constexpr uint packetmask = ~(packetsize - 1);
@@ -486,6 +486,7 @@ static int64 fill_buffer(alarm_id_t, void*) noexcept
 		frames_needed -= count;
 	}
 
+	LoadSensor::isr_end(old_idle);
 	return -int32(timer_period_us);
 }
 
