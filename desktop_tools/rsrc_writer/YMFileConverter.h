@@ -21,12 +21,11 @@ public:
 	YMFileConverter() noexcept {}
 	~YMFileConverter() { dispose_all(); }
 
-	uint32		importFile(cstr infile, bool verbose = false);
-	uint32		exportYMRegisterFile(cstr outfile);
-	uint32		exportWavFile(cstr outfile, float sample_rate = 44100);
-	uint32		exportYMFile(cstr outfile);
-	uint32		exportRsrcFile(cstr hdrfilepath, cstr outfile, uint8 wsize = 12, uint8 lsize = 6);
-	static void exportYMMusicWavFile(cstr infile, cstr outfile);
+	uint32 importFile(cstr infile, bool verbose = false);
+	uint32 exportYMRegisterFile(cstr outfile);
+	uint32 exportWavFile(cstr outfile, float sample_rate = 44100);
+	uint32 exportYMFile(cstr outfile);
+	uint32 exportRsrcFile(cstr hdrfilepath, cstr outfile, uint8 wsize = 12, uint8 lsize = 6);
 
 	FType  file_type  = UNSET;
 	uint   frame_size = 0;

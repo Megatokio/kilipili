@@ -69,6 +69,8 @@ add_executable(RsrcFileWriter
 	kilipili/extern/StSoundLibrary/LZH/LzhLib.cpp
 	rsrc_writer/ImageFileWriter.h 
 	rsrc_writer/ImageFileWriter.cpp
+	rsrc_writer/exportStSoundWavFile.cpp
+	rsrc_writer/exportStSoundWavFile.h
 	)
 
 target_compile_definitions(RsrcFileWriter PUBLIC

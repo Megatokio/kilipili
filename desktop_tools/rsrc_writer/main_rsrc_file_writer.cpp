@@ -7,6 +7,7 @@
 #include "RsrcFileWriter.h"
 #include "YMFileConverter.h"
 #include "cdefs.h"
+#include "exportStSoundWavFile.h"
 #include "standard_types.h"
 #include <cerrno>
 #include <cstdarg>
@@ -129,7 +130,7 @@ static void copy_as_ymm_wav(cstr indir, cstr outdir, cstr infile)
 
 	cstr ext	  = extension_from_path(infile); // points to '.' in infile
 	cstr basename = substr(infile, ext);
-	YMFileConverter::exportYMMusicWavFile(catstr(indir, infile), catstr(outdir, basename, ".ymm.wav"));
+	exportStSoundWavFile(catstr(indir, infile), catstr(outdir, basename, ".wav"));
 }
 
 static void copy_as_wav(cstr indir, cstr outdir, cstr infile)
@@ -152,7 +153,7 @@ static void copy_as_ym(cstr indir, cstr outdir, cstr infile)
 	YMFileConverter converter;
 	uint32			qsize = converter.importFile(catstr(indir, infile), verbose);
 	cstr			ext	  = extension_from_path(infile); // points to '.' in infile
-	uint32			zsize = converter.exportYMFile(catstr(outdir, substr(infile, ext), ".unc.ym"));
+	uint32			zsize = converter.exportYMFile(catstr(outdir, substr(infile, ext), ".ym"));
 	if (verbose) printf("  .ym input file size = %d\n", qsize);
 	if (verbose) printf("  .ym output file size = %d\n", zsize);
 }

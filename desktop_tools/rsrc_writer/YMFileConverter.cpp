@@ -20,7 +20,6 @@
 #include "LzhDecoder.h"
 #include "cdefs.h"
 #include "cstrings.h"
-#include "extern/StSoundLibrary/StSoundLibrary.h"
 #include "standard_types.h"
 #include <cstring>
 #include <dirent.h>
@@ -329,63 +328,6 @@ uint32 YMFileConverter::exportYMRegisterFile(cstr fpath)
 	return uint32(size);
 }
 
-void YMFileConverter::exportYMMusicWavFile(cstr filename, cstr destfile)
-{
-	// TODO load data from data[] (needs header again)
-
-	YMMUSIC* pMusic = ymMusicCreate();
-
-	if (ymMusicLoad(pMusic, filename) == false)
-	{
-		auto err = ymMusicGetLastError(pMusic);
-		ymMusicDestroy(pMusic);
-		throw usingstr("Error in loading file %s:\n%s\n", filename, err);
-	}
-
-	ymMusicInfo_t info;
-	ymMusicGetInfo(pMusic, &info);
-
-	printf("Generating wav file from \"%s\"\n", filename);
-	printf("%s\n%s\n(%s)\n", info.pSongName, info.pSongAuthor, info.pSongComment);
-	printf("Total music time: %d seconds.\n", info.musicTimeInSec);
-
-	FILE* out = fopen(destfile, "wb");
-	if (!out)
-	{
-		ymMusicDestroy(pMusic);
-		throw usingstr("Unable to create %s file.\n", destfile);
-	}
-
-	WAVHeader head;
-	fwrite(&head, 1, sizeof(WAVHeader), out); // reserve space
-
-	ymMusicSetLoopMode(pMusic, YMFALSE);
-	ymu32		   totalNbSample	 = 0;
-	constexpr uint NBSAMPLEPERBUFFER = 1024;
-	ymsample	   convertBuffer[NBSAMPLEPERBUFFER];
-
-	while (ymMusicCompute(pMusic, convertBuffer, NBSAMPLEPERBUFFER))
-	{
-		fwrite(convertBuffer, sizeof(ymsample), NBSAMPLEPERBUFFER, out);
-		totalNbSample += NBSAMPLEPERBUFFER;
-	}
-
-	fseek(out, 0, SEEK_SET);
-	head.FormLength	   = 0x10;
-	head.SampleFormat  = 1;
-	head.NumChannels   = 1;
-	head.PlayRate	   = 44100;
-	head.BitsPerSample = 16;
-	head.BytesPerSec   = 44100 * (16 / 8);
-	head.Pad		   = (16 / 8);
-	head.DataLength	   = totalNbSample * (16 / 8);
-	head.FileLength	   = head.DataLength + sizeof(WAVHeader) - 8;
-	fwrite(&head, 1, sizeof(WAVHeader), out);
-	fseek(out, 0, SEEK_END);
-	fclose(out);
-	printf("%d samples written (%.02f Mb).\n", totalNbSample, double(totalNbSample * sizeof(ymsample)) / (1024 * 1024));
-	ymMusicDestroy(pMusic);
-}
 
 uint32 YMFileConverter::exportYMFile(cstr fpath)
 {
