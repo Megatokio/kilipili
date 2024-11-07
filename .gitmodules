@@ -6,7 +6,3 @@
 	path = extern/stb
 	url = ../../nothings/stb.git
 	branch = master
-[submodule "extern/heatshrink"]
-	path = extern/heatshrink
-	url = ../heatshrink.git
-	branch = kilipili
