@@ -53,6 +53,10 @@ add_library(kilipili_devices STATIC
 	Directory.h 
 	Directory.cpp
 	FileSystem.cpp	
+	HeatShrinkDecoder.h 
+	HeatShrinkDecoder.cpp
+	HeatShrinkEncoder.h 
+	HeatShrinkEncoder.cpp
 )
 
 target_compile_definitions(kilipili_devices PUBLIC
