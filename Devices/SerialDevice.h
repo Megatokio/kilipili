@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "little_big_endian.h"
 #include "devices_types.h"
+#include "little_big_endian.h"
 
 namespace kio::Devices
 {
@@ -48,6 +48,8 @@ public:
 	virtual SIZE printf(cstr fmt, ...) __printflike(2, 3);
 
 	void flushOut() { ioctl(IoCtl::FLUSH_OUT); }
+	bool is_readable() const noexcept { return flags & readable; }
+	bool is_writable() const noexcept { return flags & writable; }
 
 	// ------- Convenience Methods ---------------
 
