@@ -57,6 +57,8 @@ add_library(kilipili_devices STATIC
 	HeatShrinkDecoder.cpp
 	HeatShrinkEncoder.h 
 	HeatShrinkEncoder.cpp
+	LzhDecoder.cpp
+	LzhDecoder.h
 )
 
 target_compile_definitions(kilipili_devices PUBLIC
