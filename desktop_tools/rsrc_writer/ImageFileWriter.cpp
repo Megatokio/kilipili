@@ -3,12 +3,13 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "ImageFileWriter.h"
-#include "CompressedRsrcFileWriter.h"
+#include "StdFile.h"
 #include "cstrings.h"
 #include PICO_BOARD
+#include "Devices/HeatShrinkEncoder.h"
 #include "Graphics/Color.h"
+#include "RsrcFileEncoder.h"
 #include "common/Array.h"
-//#include"common/basic_math.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_FAILURE_USERMSG 1
@@ -25,21 +26,18 @@
 namespace kio
 {
 using namespace Graphics;
+using namespace Devices;
 
-ImageFileWriter::~ImageFileWriter()
-{
-	if (file) fclose(file);
-	if (rsrc_writer) delete rsrc_writer;
-}
+ImageFileWriter::~ImageFileWriter() {}
 
 static inline bool is_transparent(uint8 c) { return c < 128; }
 static inline bool is_opaque(uint8 c) { return c >= 128; }
 
 void ImageFileWriter::scan_img_data()
 {
-	// create clut[] (or bail out if too many colors and direct color required)
+	// create clut[] (or bail out if too many colors and true color required)
 	// detect use of transparency
-	// colors in clut are 0x00bbggrr or 0xgg
+	// colors in clut are 0x00rrggbb or 0xgg
 
 	has_cmap		 = false;
 	has_transparency = false;
@@ -74,7 +72,7 @@ void ImageFileWriter::scan_img_data()
 			has_transparency = true;
 			continue;
 		}
-		int32 pixel = (p[0] << 16) + (p[1] << 8) + (p[2] << 0); // r,g,b
+		uint32 pixel = uint32((p[0] << 16) + (p[1] << 8) + (p[2] << 0)); // r,g,b
 		cmap.appendifnew(pixel);
 	}
 
@@ -90,19 +88,19 @@ void ImageFileWriter::scan_img_data()
 		if (cmap.count() < 256)
 		{
 			cmap.append(cmap[0]);
-			cmap[0] = int32(0xff000000); // black, but not black
+			cmap[0] = 0xff000000u; // black, but not black
 		}
 		else // clut full => use darkest color for transp. ((must be a png, can't be gif))
 		{
 			uint		transp_index = 0;
-			int			dist		 = 999999;
-			static auto brightness	 = [](int32 c) {
+			uint		dist		 = 999999;
+			static auto brightness	 = [](uint32 c) {
 				  return ((c >> 16) & 0xff) * 4 + ((c >> 8) & 0xff) * 5 + (c & 0xff) * 3;
 			};
 			for (uint i = 0; i < cmap.count(); i++)
 			{
-				int c = cmap[i];
-				int d = brightness(c);
+				uint c = cmap[i];
+				uint d = brightness(c);
 				if (d < dist) transp_index = i, dist = d;
 			}
 			std::swap(cmap[transp_index], cmap[0]);
@@ -121,96 +119,69 @@ void ImageFileWriter::importFile(cstr infile)
 	assert(!has_transparency || with_transparency);
 }
 
-uint32 ImageFileWriter::exportImgFile(cstr outfile)
+uint32 ImageFileWriter::exportImgFile(FilePtr file)
 {
-	file = fopen(outfile, "wb");
-	if (!file) throw "could not open output file";
-
 	// store header
-	uint32 n = htole32(magic);
-	fwrite(&n, 4, 1, file);
-	uint8 cm = uint8(colormodel + (has_cmap << 2) + (has_transparency << 3));
-	fputc(cm, file);
-	uint16 sz[2] = {htole16(image_width), htole16(image_height)};
-	fwrite(&sz, 2, 2, file);
-	if (has_cmap) fputc(int(cmap.count()) - 1, file);
-	for (uint i = 0; i < cmap.count(); i++) { store_cmap_color(cmap[i]); }
+	file->write_LE(magic);
+	file->putc(char(colormodel + (has_cmap << 2) + (has_transparency << 3)));
+	file->write_LE<uint16>(uint16(image_width));
+	file->write_LE<uint16>(uint16(image_height));
+
+	if (has_cmap) file->putc(char(cmap.count() - 1));
+	for (uint i = 0; i < cmap.count(); i++) { store_cmap_color(file, cmap[i]); }
 
 	uint8* p = data;
 	for (int i = 0; i < image_width * image_height; i++)
 	{
-		store_pixel(p);
+		store_pixel(file, p);
 		p += num_channels;
 	}
 
-	uint32 fsize = uint32(ftell(file));
-	fclose(file);
-	file = nullptr;
-	return fsize;
+	return uint32(file->getSize());
 }
 
-uint32 ImageFileWriter::exportRsrcFile(cstr hdr_fpath, cstr rsrc_fname, uint8 wsize, uint8 lsize)
+uint32 ImageFileWriter::exportImgFile(cstr fpath, uint8 w, uint8 l)
 {
-	rsrc_writer = new CompressedRsrcFileWriter(hdr_fpath, rsrc_fname, wsize, lsize);
-
-	// store header
-	rsrc_writer->store(magic);
-	uint8 cm = uint8(colormodel + (has_cmap << 2) + (has_transparency << 3));
-	rsrc_writer->store_byte(cm);
-	uint16 sz[2] = {htole16(image_width), htole16(image_height)};
-	rsrc_writer->store(&sz, 4);
-	if (has_cmap) rsrc_writer->store_byte(uint8(cmap.count() - 1));
-	for (uint i = 0; i < cmap.count(); i++) { store_cmap_color(cmap[i]); }
-
-	uint8* p = data;
-	for (int i = 0; i < image_width * image_height; i++)
+	FilePtr file = new StdFile(fpath, WRITE | TRUNCATE);
+	if (w && l)
 	{
-		store_pixel(p);
-		p += num_channels;
+		RCPtr<HeatShrinkEncoder> cfile = new HeatShrinkEncoder(file, w, l);
+		exportImgFile(cfile);
+		cfile->close();
+		return cfile->csize + 12;
 	}
-
-	uint32 fsize = rsrc_writer->close();
-	delete rsrc_writer;
-	rsrc_writer = nullptr;
-	return fsize;
+	else return exportImgFile(file);
 }
 
-void ImageFileWriter::store_byte(uint8 b)
+uint32 ImageFileWriter::exportRsrcFile(cstr hdr_fpath, cstr rsrc_fpath, uint8 w, uint8 l)
 {
-	if (file) fputc(b, file);
-	else rsrc_writer->store_byte(b);
+	// create header file with array data for a compressed resource file
+	// for an IMG image file in flash resource file system.
+
+	if (w == 0) w = 12;
+	if (l == 0) l = 8;
+
+	FilePtr file				   = new StdFile(hdr_fpath, WRITE | TRUNCATE);
+	file						   = new RsrcFileEncoder(file, rsrc_fpath);
+	RCPtr<HeatShrinkEncoder> cfile = new HeatShrinkEncoder(file, w, l, false);
+	exportImgFile(cfile);
+	cfile->close();
+	return cfile->csize + 8;
 }
 
-void ImageFileWriter::store(const void* p, uint cnt)
-{
-	if (file) fwrite(p, 1, cnt, file);
-	else rsrc_writer->store(p, cnt);
-}
+void ImageFileWriter::store(File* file, Color color) { file->write_LE<Color>(color); }
 
-void ImageFileWriter::store(Color color)
-{
-	if constexpr (sizeof(Color) == 1)
-	{
-		store_byte(uint8(color.raw)); //
-	}
-	else
-	{
-		uint16 n = htole16(color.raw);
-		store(&n, 2);
-	}
-}
-
-void ImageFileWriter::store_cmap_color(int32 c)
+void ImageFileWriter::store_cmap_color(File* file, uint32 c)
 {
 	if (colormodel == rgb)
 	{
 		uint32 n = htobe32(c << 8); // high byte first, highest byte = red
-		store(&n, 3);
+		file->write(&n, 3);
 	}
 	else // hw_color
 	{
 		assert(colormodel == hw_color);
-		store(Color::fromRGB8(uint32(c)));
+		store(file, Color::fromRGB8(uint32(c)));
 	}
 }
 
@@ -236,7 +207,7 @@ static constexpr __unused Color closest_to_black() noexcept
 }
 
 
-void ImageFileWriter::store_pixel(uint8* p)
+void ImageFileWriter::store_pixel(File* file, uint8* p)
 {
 	if (num_channels <= 2) // grey
 	{
@@ -246,7 +217,7 @@ void ImageFileWriter::store_pixel(uint8* p)
 
 		uint8 n = p[0];
 		if (has_transparency) n = is_transparent(p[1]) ? 0 : n == 0 ? 1 : n; // grey=1 -> closest to black
-		store_byte(n);
+		file->write<uint8>(n);
 	}
 	else // rgb or hw_color, clut or no clut:
 	{
@@ -255,7 +226,7 @@ void ImageFileWriter::store_pixel(uint8* p)
 			// transparency is indicated by a value of 0 in all modes:
 			// color_index=0, grey=0, rgb=(0,0,0), Color(0)
 			int32 transp_pixel = 0;
-			store(&transp_pixel, sizeof_pixel);
+			file->write(&transp_pixel, sizeof_pixel);
 		}
 		else // opaque pixel:
 		{
@@ -264,22 +235,22 @@ void ImageFileWriter::store_pixel(uint8* p)
 			uint8 b = p[2];
 			if (has_cmap)
 			{
-				int32 color = (r << 16) + (g << 8) + (b << 0);
-				uint  i		= cmap.indexof(color);
-				assert(i < cmap.count()); // all pixels' colors must be in clut[]
-				store_byte(uint8(i));
+				uint32 color = r * 0x10000u + g * 0x100u + b;
+				uint   i	 = cmap.indexof(color);
+				assert(i < cmap.count()); // all colors must be in clut[]
+				file->write<uint8>(uint8(i));
 			}
 			else if (colormodel == rgb) // opaque pixel, rgb, no cmap
 			{
 				if unlikely (has_transparency && (r + g + b == 0)) p[2] = 1; // blue=1 -> closest_to_black
-				store(p, 3);
+				file->write(p, 3);
 			}
 			else // opaque pixel, hw_color, no cmap
 			{
 				Color c = Color::fromRGB8(r, g, b);
-				if (c.raw != 0 || !has_transparency) store(c);
-				else if constexpr (has_free_bits()) store(non_zero_black());
-				else store(closest_to_black());
+				if (c.raw != 0 || !has_transparency) store(file, c);
+				else if constexpr (has_free_bits()) store(file, non_zero_black());
+				else store(file, closest_to_black());
 			}
 		}
 	}

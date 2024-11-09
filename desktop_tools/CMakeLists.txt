@@ -32,10 +32,8 @@ add_subdirectory(kilipili/USBHost)
 
 add_executable(RsrcFileWriter
 	rsrc_writer/main_rsrc_file_writer.cpp
-	rsrc_writer/RsrcFileWriter.cpp
-	rsrc_writer/RsrcFileWriter.h
-	rsrc_writer/CompressedRsrcFileWriter.cpp
-	rsrc_writer/CompressedRsrcFileWriter.h
+	rsrc_writer/RsrcFileEncoder.cpp
+	rsrc_writer/RsrcFileEncoder.h
 	rsrc_writer/YMFileConverter.cpp
 	rsrc_writer/YMFileConverter.h
 	rsrc_writer/StdFile.cpp
@@ -47,6 +45,12 @@ add_executable(RsrcFileWriter
 	kilipili/Devices/SerialDevice.cpp
 	kilipili/Devices/File.h
 	kilipili/Devices/File.cpp
+	kilipili/Devices/HeatShrinkDecoder.cpp
+	kilipili/Devices/HeatShrinkDecoder.h
+	kilipili/Devices/HeatShrinkEncoder.cpp
+	kilipili/Devices/HeatShrinkEncoder.h
+	kilipili/Devices/LzhDecoder.cpp
+	kilipili/Devices/LzhDecoder.h
 	kilipili/Audio/AudioSource.h
 	kilipili/Audio/audio_options.h
 	kilipili/Audio/AudioSample.h

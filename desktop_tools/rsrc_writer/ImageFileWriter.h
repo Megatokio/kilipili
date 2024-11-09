@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "CompressedRsrcFileWriter.h"
+#include "Devices/File.h"
 #include "Graphics/Color.h"
 #include "common/Array.h"
 #include "common/standard_types.h"
@@ -42,6 +42,9 @@ namespace kio
 class ImageFileWriter
 {
 public:
+	using FilePtr = Devices::FilePtr;
+	using File	  = Devices::File;
+
 	static constexpr uint32 magic = 0xd7e3bc09;
 
 	ImageFileWriter(bool use_hw_color, bool with_transparency = true) :
@@ -50,8 +53,9 @@ public:
 	{}
 	~ImageFileWriter();
 	void   importFile(cstr infile);
-	uint32 exportImgFile(cstr outfile);
-	uint32 exportRsrcFile(cstr hdr_fpath, cstr rsrc_fname, uint8 wsize = 12, uint8 lsize = 8);
+	uint32 exportImgFile(FilePtr);
+	uint32 exportImgFile(cstr fpath, uint8 wbits, uint8 lbits);
+	uint32 exportRsrcFile(cstr hdr_fpath, cstr rsrc_fpath, uint8 wbits, uint8 lbits);
 
 	const bool use_hw_color;
 	const bool with_transparency;
@@ -69,20 +73,63 @@ public:
 	uint sizeof_pixel = 0; // 1,2,3
 	uint sizeof_color = 0; // 1,2
 
-	Array<int32> cmap;
+	Array<uint32> cmap;
 
 private:
-	CompressedRsrcFileWriter* rsrc_writer = nullptr;
-	FILE*					  file		  = nullptr;
-
 	void scan_img_data();
-	void store_cmap_color(int32); // clut
-	void store_pixel(uint8*);
+	void store_cmap_color(File*, uint32); // clut
+	void store_pixel(File*, uint8*);
 
-	void store_byte(uint8);
-	void store(const void*, uint cnt);
-	void store(Graphics::Color);
+	//void store_byte(File*, uint8);
+	//void store(File*, const void*, uint cnt);
+	void store(File*, Graphics::Color);
 };
 
-
 } // namespace kio
+
+
+inline cstr tostr(kio::ImageFileWriter::ColorModel c)
+{
+	if (c == kio::ImageFileWriter::ColorModel::grey) return "grey";
+	if (c == kio::ImageFileWriter::ColorModel::rgb) return "rgb";
+	else return "hwcolor";
+}
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
