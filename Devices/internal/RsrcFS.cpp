@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "RsrcFS.h"
+#include "HeatShrinkDecoder.h"
 #include "RsrcFile.h"
 #include "cstrings.h"
 #include <cstring>
@@ -30,17 +31,28 @@ inline uint32 peek24(cuint8* p)
 	return value;
 }
 
+inline bool is_compressed(cuptr p) { return p[3] & 0x80; }
+
+inline uint32 usize(cuptr p) { return peek32(p) & 0x7fffffff; }
+
+inline uint32 csize(cuptr p)
+{
+	assert(is_compressed(p));
+	return peek24(p + 4);
+}
+
 inline uint32 get_fsize(cuint8* p)
 {
 	p = skip(p);
-	return peek32(p[3] ? p + 4 : p);
+	return usize(p);
 }
 
 inline cuptr next_entry(cuptr p)
 {
 	if unlikely (!p) return nullptr;
 	p = skip(p);
-	return p + peek24(p) + 4;
+	if (is_compressed(p)) return p + csize(p) + 8; // compressed file
+	else return p + usize(p) + 4;				   // uncompressed file
 }
 
 inline const uint8* next_direntry(cuptr p)
@@ -72,10 +84,12 @@ RsrcFS::RsrcFS() noexcept : FileSystem("rsrc")
 
 ADDR RsrcFS::getSize()
 {
+	// get size of the file system
+
 	if (!resource_file_data) return 0;
 	cuptr p = resource_file_data;
 	while (*p) { p = next_entry(p); }
-	return uint32(p - resource_file_data);
+	return ADDR(p - resource_file_data);
 }
 
 DirectoryPtr RsrcFS::openDir(cstr path)
@@ -89,18 +103,17 @@ DirectoryPtr RsrcFS::openDir(cstr path)
 
 FilePtr RsrcFS::openFile(cstr path, FileOpenMode mode)
 {
-	/*	uncompressed[] =
+	/*	uncompressed:
 		  char[] filename   0-terminated string
-		  uint24 size       data size )
-		  uint8  flag = 0
-		  char[size] data   uncompressed file data
-
-		compressed[] =
+		  uint32 size       sizeof data[]
+		  char[] data       uncompressed file data
+	
+		compressed:
 		  char[] filename   0-terminated string
-		  uint24 csize+4    compressed size (incl. usize)
-		  uint8  flags != 0 windowsize<<4 + lookaheadsize
-		  uint32 usize      uncompressed size
-		  char[csize] data  compressed file data
+		  uint32 size       uncompressed data size | 0x80000000
+		  uint24 csize      sizeof cdata[]
+		  uint8  flags		wbits<<4 + lbits
+		  char[] data       compressed file data
 	*/
 	assert(path);
 	path = makeAbsolutePath(path);
@@ -108,12 +121,9 @@ FilePtr RsrcFS::openFile(cstr path, FileOpenMode mode)
 	cuint8* p = next_direntry(resource_file_data, path + 1);
 	if (!p) throw FILE_NOT_FOUND;
 
-	p			 = skip(p);
-	uint32 csize = peek24(p);
-	uint8  flags = p[3];
-	if (flags == 0) return new RsrcFile(p + 4, csize);
-	uint32 usize = peek32(p + 4);
-	return new CompressedRomFile(p + 8, usize, csize - 4, flags);
+	p = skip(p);
+	if (is_compressed(p)) return new HeatShrinkDecoder(new RsrcFile(p, csize(p) + 8), false); // compressed
+	else return new RsrcFile(p + 4, usize(p));												  // uncompressed
 }
 
 
@@ -152,7 +162,7 @@ FileInfo RsrcDir::next(cstr pattern) throws
 	// subdirs are returned when next() encounters the first file which establishes the subdir.
 	// in order to only return a subdir once the returned subdir is registered in Array subdirs.
 
-	while (dpos)
+	while (this->dpos)
 	{
 		cuptr dpos = this->dpos;
 		this->dpos = next_direntry(dpos);

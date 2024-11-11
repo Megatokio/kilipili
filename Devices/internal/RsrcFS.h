@@ -14,14 +14,27 @@ namespace kio::Devices
 
 /*	class RsrcFS is the FileSystem for the resource files stored in Flash.
 	The resources are uint8[] arrays written by class RsrcFileWriter. (in common/linux)
+	The compressed file is suitable to be decoded by HeatShrinkDecoder.
 
 	uncompressed[] =
+	  char[] filename   0-terminated string
+	  uint32 size       sizeof data[]
+	  char[] data       uncompressed file data
+
+	compressed[] =
+	  char[] filename   0-terminated string
+	  uint32 size       uncompressed data size | 0x80000000
+	  uint24 csize      sizeof cdata[]
+	  uint8  flags		wbits<<4 + lbits
+	  char[] data       compressed file data
+
+ALT uncompressed[] =
 	  char[] filename   0-terminated string
 	  uint24 size       data size (after flag)
 	  uint8  flag = 0
 	  char[] data       uncompressed file data
 
-	compressed[] =
+ALT	compressed[] =
 	  char[] filename   0-terminated string
 	  uint24 csize      compressed size (incl. usize)
 	  uint8  flags != 0 windowsize<<4 + lookaheadsize

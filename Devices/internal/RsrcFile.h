@@ -4,14 +4,15 @@
 
 #pragma once
 #include "File.h"
-#include "extern/heatshrink/heatshrink_decoder.h"
 
 
 namespace kio::Devices
 {
 
 /*
-	class RomFile reads from data in Rom (Flash).
+	class RsrcFile reads from data in Flash or Rom.
+	compressed files are wrapped in a HeatShrinkDecoder by the RsrcFS,
+	so you always get the uncompressed data.
 */
 class RsrcFile : public File
 {
@@ -22,7 +23,7 @@ public:
 	virtual ADDR getFpos() const noexcept override { return fpos; }
 	virtual void setFpos(ADDR) override;
 	virtual SIZE read(void* data, SIZE, bool partial = false) override;
-	virtual void close(bool) override {}
+	virtual void close() override {}
 
 private:
 	const uint8* data  = nullptr;
@@ -32,30 +33,5 @@ private:
 	RsrcFile(const uchar* data, uint32 size);
 	friend class RsrcFS;
 };
-
-class CompressedRomFile : public File
-{
-public:
-	~CompressedRomFile() noexcept override { close(); }
-
-	virtual ADDR getSize() const noexcept override { return usize; }
-	virtual ADDR getFpos() const noexcept override { return fpos; }
-	virtual void setFpos(ADDR) override;
-	virtual void close(bool force = true) override;
-	virtual SIZE read(void* data, SIZE, bool partial = false) override;
-
-private:
-	const uint8*		cdata	= nullptr;
-	heatshrink_decoder* decoder = nullptr;
-
-	uint32 usize = 0;
-	uint32 csize = 0;
-	uint32 fpos	 = 0;
-	uint32 cpos	 = 0;
-
-	CompressedRomFile(const uchar* cdata, uint32 usize, uint32 csize, uint8 parameters);
-	friend class RsrcFS;
-};
-
 
 } // namespace kio::Devices
