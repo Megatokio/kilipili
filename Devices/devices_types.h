@@ -11,9 +11,13 @@
 namespace kio::Devices
 {
 
-using SIZE = uint;	 // byte count for read/write/erase
-using ADDR = uint64; // uint32/64: disk size, file size, file position. exFAT needs uint64
-using LBA  = uint32; // up to 2TB
+using SIZE = uint; // byte count for read/write/erase
+#if defined DEVICES_LARGE_FILE_SUPPORT && DEVICES_LARGE_FILE_SUPPORT
+using ADDR = uint64;
+#else
+using ADDR = uint32; // uint32/64: disk size, file size, file position. exFAT needs uint64
+#endif
+using LBA = uint32; // up to 2TB
 
 
 class FileSystem;

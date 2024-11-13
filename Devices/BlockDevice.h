@@ -43,7 +43,7 @@ public:
 	SIZE sectorSize() const noexcept { return 1 << ss_write; }
 	SIZE eraseBlockSize() const noexcept { return 1 << ss_erase; }
 	LBA	 sectorCount() const noexcept { return sector_count; }
-	ADDR totalSize() const noexcept { return ADDR(sector_count) << ss_write; }
+	ADDR totalSize() const noexcept;
 	bool isReadable() const noexcept { return flags & readable; }
 	bool isWritable() const noexcept { return flags & writable; }
 	bool isOverwritable() const noexcept { return flags & overwritable; }

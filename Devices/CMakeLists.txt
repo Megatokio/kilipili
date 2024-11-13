@@ -6,6 +6,9 @@ cmake_minimum_required(VERSION 3.13)
 # Devices/CMakeLists.txt
 
 
+option(DEVICES_LARGE_FILE_SUPPORT "support files larger than 4GB" OFF)
+
+
 add_library(kilipili_devices STATIC
 	internal/CSD.h 
 	internal/CSD.cpp
@@ -53,6 +56,8 @@ add_library(kilipili_devices STATIC
 )
 
 target_compile_definitions(kilipili_devices PUBLIC
+	ON=1 OFF=0
+	DEVICES_LARGE_FILE_SUPPORT=${DEVICES_LARGE_FILE_SUPPORT}
 	)
 
 # add current dir to 'include search path':

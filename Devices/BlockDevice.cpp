@@ -115,6 +115,14 @@ void BlockDevice::writeData(ADDR address, const void* _data, SIZE count) throws 
 	}
 }
 
+ADDR BlockDevice::totalSize() const noexcept
+{
+	if constexpr (sizeof(ADDR) == sizeof(uint64)) return ADDR(sector_count) << ss_write;
+	ADDR size = sector_count << ss_write;
+	if (size >> ss_write == sector_count) return size;
+	debugstr("BlockDevice: size exceeds 4GB\n");
+	return 0xffffffffu << ss_write;
+}
 
 } // namespace kio::Devices
 

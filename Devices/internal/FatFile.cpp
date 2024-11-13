@@ -4,7 +4,6 @@
 
 #include "FatFile.h"
 #include "FatFS.h"
-#include "Logger.h"
 #include "Trace.h"
 #include "cdefs.h"
 #include "cstrings.h"
@@ -130,14 +129,22 @@ ADDR FatFile::getSize() const noexcept
 {
 	trace(__func__);
 
-	return f_size(&fatfile); //
+	if constexpr (sizeof(ADDR) >= sizeof(FSIZE_t)) return f_size(&fatfile);
+	FSIZE_t fsize = f_size(&fatfile);
+	if (fsize == ADDR(fsize)) return ADDR(fsize);
+	debugstr("FatFile: file size exceeds 4GB\n");
+	return 0xffffffffu;
 }
 
 ADDR FatFile::getFpos() const noexcept
 {
 	trace(__func__);
 
-	return f_tell(&fatfile); //
+	if constexpr (sizeof(ADDR) >= sizeof(FSIZE_t)) return f_tell(&fatfile);
+	FSIZE_t fpos = f_tell(&fatfile);
+	if (fpos == ADDR(fpos)) return ADDR(fpos);
+	debugstr("FatFile: file position beyond 4GB\n");
+	return 0xffffffffu;
 }
 
 void FatFile::setFpos(ADDR addr)

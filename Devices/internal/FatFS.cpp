@@ -91,15 +91,22 @@ ADDR FatFS::getFree()
 	FRESULT err		 = f_getfree(name, &num_clusters, &fatfsptr);
 	if (err) throw tostr(err);
 	assert(fatfsptr == &fatfs);
-	return ADDR(num_clusters) * uint(fatfs.csize << 9);
+	if constexpr (sizeof(ADDR) >= sizeof(FSIZE_t)) return ADDR(num_clusters) * uint(fatfs.csize << 9);
+	uint64 free = uint64(num_clusters) * uint(fatfs.csize << 9);
+	if (free == ADDR(free)) return ADDR(free);
+	debugstr("FatFS: free size exceeds 4GB\n");
+	return 0xffffffffu & ~(uint(fatfs.csize << 9) - 1);
 }
 
 ADDR FatFS::getSize()
 {
 	trace(__func__);
 
-	ADDR total_size = (ADDR(fatfs.n_fatent - 2) * uint(fatfs.csize << 9));
-	return total_size;
+	if constexpr (sizeof(ADDR) >= sizeof(FSIZE_t)) return ADDR(fatfs.n_fatent - 2) * uint(fatfs.csize << 9);
+	uint64 total_size = ADDR(fatfs.n_fatent - 2) * uint(fatfs.csize << 9);
+	if (total_size == ADDR(total_size)) return ADDR(total_size);
+	debugstr("FatFS: total size exceeds 4GB\n");
+	return 0xffffffffu & ~(uint(fatfs.csize << 9) - 1);
 }
 
 bool FatFS::mount()

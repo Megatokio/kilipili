@@ -10,8 +10,6 @@
 namespace kio::Devices
 {
 
-static_assert(sizeof(ADDR) == sizeof(FSIZE_t));
-
 class FatFS;
 using FatFSPtr = RCPtr<FatFS>;
 
