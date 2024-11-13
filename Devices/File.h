@@ -25,6 +25,7 @@ class File : public SerialDevice
 {
 protected:
 	File(Flags flags) noexcept : SerialDevice(flags) {}
+	File(FileOpenMode mode) noexcept : SerialDevice(flags_for_mode(mode)) {}
 
 public:
 	// noexcept: subclasses must catch all exceptions in the d'tor.
@@ -57,6 +58,9 @@ protected:
 	bool eof_pending() const noexcept { return flags & EOF_PENDING; }
 	void set_eof_pending() noexcept { flags = flags | EOF_PENDING; }
 	void clear_eof_pending() noexcept { flags = flags & ~EOF_PENDING; }
+
+private:
+	static Flags flags_for_mode(FileOpenMode mode) noexcept;
 };
 
 

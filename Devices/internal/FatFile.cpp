@@ -12,25 +12,37 @@
 namespace kio::Devices
 {
 
-static Flags fileflagsfrommode(FileOpenMode mode)
+uint8 fatFS_mode_for_File_mode(FileOpenMode m)
 {
-	constexpr uint m_readable = FileOpenMode::READ;
-	constexpr uint m_writable = FileOpenMode::WRITE;
+	static_assert(FileOpenMode::READ == 1 + 16);
+	static_assert(FileOpenMode::WRITE == 2 + 32);
+	static_assert(FileOpenMode::APPEND == 2 + 4);
 
-	constexpr uint f_readable = Flags::readable;
-	constexpr uint f_writable = Flags::writable;
+	static_assert(FA_READ == 1);
+	static_assert(FA_WRITE == 2);
 
-	uint flags = ((mode & m_readable) ? f_readable : 0) | ((mode & m_writable) ? f_writable : 0);
-	return Flags(flags);
+	// not WRITE => open for reading only
+	if ((m & 2) == 0) return FA_READ + FA_OPEN_EXISTING;
+
+	// WRITE or READWRITE:
+	uint8 ff_mode = m & 3;								// READ and WRITE bits
+	if (m & 4) m = m - TRUNCATE;						// sanitize
+	if (m & 4) ff_mode |= FA_OPEN_APPEND;				// write, append
+	if (m & NEW) ff_mode |= FA_CREATE_NEW;				// new
+	else if (m & TRUNCATE) ff_mode |= FA_CREATE_ALWAYS; // exist|new, truncate
+	else if (m & EXIST) ff_mode |= FA_OPEN_EXISTING;	// exist, !truncate
+	else ff_mode |= FA_OPEN_ALWAYS;						// exist|new, !truncate
+
+	return ff_mode;
 }
 
 FatFile::FatFile(FatFSPtr device, cstr path, FileOpenMode mode) : //
-	File(fileflagsfrommode(mode)),
+	File(mode),
 	device(device)
 {
 	trace(__func__);
 
-	FRESULT err = f_open(&fatfile, catstr(device->name, ":", path), mode);
+	FRESULT err = f_open(&fatfile, catstr(device->name, ":", path), fatFS_mode_for_File_mode(mode));
 	if (err) throw tostr(err);
 }
 

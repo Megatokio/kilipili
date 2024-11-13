@@ -38,27 +38,19 @@ constexpr char DIRECTORY_NOT_FOUND[]   = "Directory not found";
 
 
 enum FileOpenMode : uint8 {
-	READ	 = 1,	 // FA_READ,		   - Open for reading
-	WRITE	 = 2,	 // FA_WRITE,		   - Open for writing.
-	EXIST	 = 0,	 // FA_OPEN_EXISTING, - File must already exist. (Default)
-	NEW		 = 4,	 // FA_CREATE_NEW,	   - File must not exist.
-	TRUNCATE = 8,	 // FA_CREATE_ALWAYS, - File may exist. Create if not. Truncate existing file.
-	PRESERVE = 0x10, // FA_OPEN_ALWAYS,   - File may exist. Create if not. Don't truncate existing file.
-	APPEND	 = 0x30, // FA_OPEN_APPEND,   - Same as OPEN_PRESERVE except fpos is set to end of file.
+	READ	  = 1 + 16, // Open for reading, implies EXIST
+	WRITE	  = 2 + 32, // Open for writing, implies TRUNCATE
+	READWRITE = 3,		// Open for reading and writing
+	APPEND	  = 4 + 2,	// Open for writing at end of file
+	NEW		  = 8,		// flag: file must be new
+	EXIST	  = 16,		// flag: file must exist
+	TRUNCATE  = 32,		// flag: truncate existing file
 };
 
-inline FileOpenMode operator|(FileOpenMode a, FileOpenMode b) { return FileOpenMode(uint8(a) | uint8(b)); }
+inline constexpr FileOpenMode operator|(FileOpenMode a, FileOpenMode b) { return FileOpenMode(a | ~~b); }
+inline constexpr FileOpenMode operator+(FileOpenMode a, FileOpenMode b) { return FileOpenMode(a | ~~b); }
+inline constexpr FileOpenMode operator-(FileOpenMode a, FileOpenMode b) { return FileOpenMode(a & ~b); }
 
-/*	POSIX fopen() flags vs. FatFs mode flags:
-		"r"		FA_READ
-		"r+"	FA_READ | FA_WRITE
-		"w"		FA_CREATE_ALWAYS | FA_WRITE
-		"w+"	FA_CREATE_ALWAYS | FA_WRITE | FA_READ
-		"a"		FA_OPEN_APPEND | FA_WRITE
-		"a+"	FA_OPEN_APPEND | FA_WRITE | FA_READ
-		"wx"	FA_CREATE_NEW | FA_WRITE
-		"w+x"	FA_CREATE_NEW | FA_WRITE | FA_READ
-*/
 
 enum FileType : uint8 {
 	NoFile		  = 0,
@@ -187,6 +179,7 @@ enum Flags : uint8 {
 	overwritable = 4,	 // can overwrite old data without formatting. else eventually 0xff->anyvalue->0x00.
 	partition	 = 0x20, // hint for mkfs: needs partitioning like a HD
 	EOF_PENDING	 = 0x40, // File::read()
+	APPEND_MODE	 = 0x80, // File
 	readwrite	 = readable | writable | overwritable,
 };
 inline Flags operator|(Flags a, Flags b) { return Flags(uint(a) | uint(b)); }
