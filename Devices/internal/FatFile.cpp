@@ -129,7 +129,7 @@ void FatFile::setFpos(ADDR addr)
 	if (err) throw tostr(err);
 }
 
-void FatFile::close(bool __unused force)
+void FatFile::close()
 {
 	// the docs don't tell what to if close fails.
 	// we assume that the file handle has become invalid
@@ -138,18 +138,18 @@ void FatFile::close(bool __unused force)
 	trace(__func__);
 
 	FRESULT err = f_close(&fatfile);
+	device		= nullptr;
 	if (err) throw tostr(err);
-	device = nullptr;
 }
 
-FatFile::~FatFile()
+FatFile::~FatFile() noexcept
 {
 	trace(__func__);
 
 	if (device) // else the file is closed
 	{
 		FRESULT err = f_close(&fatfile);
-		if (err) logline(tostr(err));
+		if (err) debugstr("%s", tostr(err));
 	}
 }
 

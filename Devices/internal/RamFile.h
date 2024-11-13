@@ -37,7 +37,7 @@ class RamFile final : public File
 public:
 	RamFile() : File(readwrite) {}
 
-	virtual ~RamFile() override
+	virtual ~RamFile() noexcept override
 	{
 		while (Sector* s = sector0.next)
 		{
@@ -108,7 +108,7 @@ public:
 	virtual ADDR getSize() const noexcept override { return fsize; }
 	virtual ADDR getFpos() const noexcept override { return fpos; }
 	virtual void setFpos(ADDR a) override { fpos = std::min(uint(a), fsize); }
-	virtual void close(bool = true) override {}
+	virtual void close() override {}
 	virtual void truncate() override
 	{
 		fsize = fpos;

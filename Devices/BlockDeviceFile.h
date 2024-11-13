@@ -18,17 +18,13 @@ namespace kio::Devices
 class BlockDeviceFile : public File
 {
 	RCPtr<BlockDevice> bdev;
-	const ADDR	 fsize;
-	ADDR		 fpos = 0;
+	const ADDR		   fsize;
+	ADDR			   fpos = 0;
 
 
 public:
 	BlockDeviceFile(RCPtr<BlockDevice>) noexcept;
-	virtual ~BlockDeviceFile() override				   = default;
-	BlockDeviceFile(const BlockDeviceFile&) noexcept   = default;
-	BlockDeviceFile(BlockDeviceFile&&) noexcept		   = default;
-	BlockDeviceFile& operator=(const BlockDeviceFile&) = delete;
-	BlockDeviceFile& operator=(BlockDeviceFile&&)	   = delete;
+	virtual ~BlockDeviceFile() noexcept override = default;
 
 	// *** Interface: ***
 
@@ -51,7 +47,7 @@ public:
 	virtual ADDR getSize() const noexcept override { return fsize; }
 	virtual ADDR getFpos() const noexcept override { return fpos; }
 	virtual void setFpos(ADDR new_fpos) override { fpos = min(new_fpos, fsize); }
-	virtual void close(bool force = true) override;
+	virtual void close() override;
 	//virtual void truncate();
 };
 

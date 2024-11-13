@@ -17,11 +17,7 @@ protected:
 	File(Flags flags) noexcept : SerialDevice(flags) {}
 
 public:
-	virtual ~File() override	 = default;
-	File(const File&) noexcept	 = default;
-	File(File&&) noexcept		 = default;
-	File& operator=(const File&) = delete;
-	File& operator=(File&&)		 = delete;
+	virtual ~File() noexcept override = default;
 
 	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) override;
 
@@ -41,7 +37,7 @@ public:
 	virtual ADDR getSize() const noexcept = 0;
 	virtual ADDR getFpos() const noexcept = 0;
 	virtual void setFpos(ADDR)			  = 0;
-	virtual void close(bool force = true) = 0;
+	virtual void close()				  = 0;
 	virtual void truncate() { throw "truncate() not supported"; }
 
 	bool is_eof() const noexcept { return getFpos() >= getSize(); }

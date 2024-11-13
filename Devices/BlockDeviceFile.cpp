@@ -73,7 +73,7 @@ SIZE BlockDeviceFile::putc(char c)
 	return 1;
 }
 
-void BlockDeviceFile::close(bool)
+void BlockDeviceFile::close()
 {
 	bdev->sync(); //
 }

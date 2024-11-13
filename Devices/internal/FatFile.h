@@ -19,7 +19,7 @@ using FatFSPtr = RCPtr<FatFS>;
 class FatFile : public File
 {
 public:
-	~FatFile() override;
+	~FatFile() noexcept override;
 
 	// *** Interface: ***
 
@@ -38,7 +38,7 @@ public:
 	virtual ADDR getSize() const noexcept override;
 	virtual ADDR getFpos() const noexcept override;
 	virtual void setFpos(ADDR) override;
-	virtual void close(bool force = true) override;
+	virtual void close() override;
 	virtual void truncate() override;
 
 private:
