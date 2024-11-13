@@ -186,6 +186,7 @@ enum Flags : uint8 {
 	writable	 = 2,	 //
 	overwritable = 4,	 // can overwrite old data without formatting. else eventually 0xff->anyvalue->0x00.
 	partition	 = 0x20, // hint for mkfs: needs partitioning like a HD
+	EOF_PENDING	 = 0x40, // File::read()
 	readwrite	 = readable | writable | overwritable,
 };
 inline Flags operator|(Flags a, Flags b) { return Flags(uint(a) | uint(b)); }

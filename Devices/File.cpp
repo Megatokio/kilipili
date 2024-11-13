@@ -18,4 +18,19 @@ uint32 File::ioctl(IoCtl cmd, void*, void*)
 	}
 }
 
+int File::getc(__unused uint timeout_us)
+{
+	SIZE count = read(&last_char, 1, true);
+	if (count) return uchar(last_char);
+	if (eof_pending()) throw END_OF_FILE;
+	else set_eof_pending();
+	return -1;
+}
+
+char File::getc()
+{
+	read(&last_char, 1, false);
+	return last_char;
+}
+
 } // namespace kio::Devices

@@ -35,9 +35,9 @@ public:
 	virtual SIZE read(void* data, SIZE, bool partial = false) override;
 	virtual SIZE write(const void* data, SIZE, bool partial = false) override;
 
-	virtual int	 getc(uint timeout_us) override;
-	virtual char getc() override;
-	virtual SIZE putc(char) override;
+	// virtual int  getc(uint timeout_us) override;
+	// virtual char getc() override;
+	// virtual SIZE putc(char) override;
 	// virtual str	gets() override;
 	// virtual SIZE puts(cstr);
 	// virtual SIZE printf(cstr fmt, ...) __printflike(2, 3);
@@ -46,7 +46,11 @@ public:
 
 	virtual ADDR getSize() const noexcept override { return fsize; }
 	virtual ADDR getFpos() const noexcept override { return fpos; }
-	virtual void setFpos(ADDR new_fpos) override { fpos = min(new_fpos, fsize); }
+	virtual void setFpos(ADDR new_fpos) override
+	{
+		clear_eof_pending();
+		fpos = min(new_fpos, fsize);
+	}
 	virtual void close() override;
 	//virtual void truncate();
 };

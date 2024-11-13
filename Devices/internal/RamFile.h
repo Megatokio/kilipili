@@ -70,6 +70,8 @@ public:
 		{
 			size = fsize - fpos;
 			if (!partial) throw END_OF_FILE;
+			if (eof_pending()) throw END_OF_FILE;
+			if (size == 0) set_eof_pending();
 		}
 
 		ptr	 data = reinterpret_cast<ptr>(_data);
@@ -107,7 +109,11 @@ public:
 
 	virtual ADDR getSize() const noexcept override { return fsize; }
 	virtual ADDR getFpos() const noexcept override { return fpos; }
-	virtual void setFpos(ADDR a) override { fpos = std::min(uint(a), fsize); }
+	virtual void setFpos(ADDR a) override
+	{
+		clear_eof_pending();
+		fpos = std::min(uint(a), fsize);
+	}
 	virtual void close() override {}
 	virtual void truncate() override
 	{

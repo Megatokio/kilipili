@@ -62,7 +62,12 @@ SIZE FatFile::read(void* data, SIZE size, bool partial)
 	SIZE	count = 0;
 	FRESULT err	  = f_read(&fatfile, data, size, &count);
 	if unlikely (err) throw tostr(err);
-	if unlikely (count < size && !partial) throw END_OF_FILE;
+	if unlikely (count < size)
+	{
+		if (!partial) throw END_OF_FILE;
+		if (eof_pending()) throw END_OF_FILE;
+		if (count == 0) set_eof_pending();
+	}
 	return count;
 }
 
@@ -81,8 +86,10 @@ int FatFile::getc(uint __unused timeout_us)
 {
 	trace(__func__);
 
-	if (fatfile.fptr < fatfile.obj.objsize) return getc();
-	else return -1;
+	if (fatfile.fptr < fatfile.obj.objsize) return FatFile::getc();
+	if (eof_pending()) throw END_OF_FILE;
+	set_eof_pending();
+	return -1;
 }
 
 char FatFile::getc()
@@ -125,6 +132,7 @@ void FatFile::setFpos(ADDR addr)
 {
 	trace(__func__);
 
+	clear_eof_pending();
 	FRESULT err = f_lseek(&fatfile, addr);
 	if (err) throw tostr(err);
 }
