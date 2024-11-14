@@ -42,7 +42,7 @@ public:
 
 	virtual int	 getc(uint timeout_us);
 	virtual char getc();
-	virtual str	 gets();
+	virtual str	 gets(uint line_ends = (1 << 0) + (1 << 10) + (1 << 13));
 	virtual SIZE putc(char);
 	virtual SIZE puts(cstr);
 	virtual SIZE printf(cstr fmt, ...) __printflike(2, 3);

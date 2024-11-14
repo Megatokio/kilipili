@@ -41,22 +41,19 @@ char SerialDevice::getc()
 	return last_char;
 }
 
-str SerialDevice::gets()
+str SerialDevice::gets(uint line_ends)
 {
 	// read string from Device
 	// handles DOS line ends
 
-	constexpr uint line_ends = (1 << 0) + (1 << 10) + (1 << 13);
-
 	char buffer[gets_max_len];
-
 	char last_eol = this->last_char;
 
 	uint i = 0;
 	while (i < gets_max_len)
 	{
 		char c = getc();
-		if (c > 13 || (1 << c) & ~line_ends)
+		if (uchar(c) >= 32 || (1 << c) & ~line_ends)
 		{
 			buffer[i++] = c;
 			continue;
