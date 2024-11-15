@@ -15,11 +15,8 @@ add_library(kilipili_utilities STATIC
 	#malloc.cpp  <-- must be included in add_executable directly
 	Logger.h 
 	Logger.cpp
-	sm_utilities.h 
-	sm_utilities.cpp
 	Trace.cpp
 	Trace.h
-	sm_macros.h
 	stack_guard.h stack_guard.cpp
 	system_clock.h system_clock.cpp
 	Dispatcher.h Dispatcher.cpp
