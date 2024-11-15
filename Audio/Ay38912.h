@@ -42,7 +42,6 @@ template<uint num_channels>
 class Ay38912
 {
 public:
-	using CC			= circular_int;
 	using WritePortProc = const std::function<void(CC, bool, uint8)>;
 	using ReadPortProc	= const std::function<uint8(CC, bool)>;
 
@@ -100,7 +99,7 @@ private:
 	// the emulation uses internally 24.8 fixed point values for the SP0256 clock frequency
 	// to allow integer calculations when resampling the output to the hw_frequency with little error.
 	static constexpr int ccx_fract_bits = 8;
-	using CCx							= circular_int; // 24.8 fixed point
+	using CCx							= CC; // 24.8 fixed point
 
 	struct Noise
 	{

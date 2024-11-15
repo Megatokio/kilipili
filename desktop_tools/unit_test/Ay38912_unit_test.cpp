@@ -78,7 +78,7 @@ TEST_CASE("Audio::Ay38912 setVolume") // * doctest::skip())
 		for (int16 i = -100; i <= 100; i++) // 201 values from -1.0 to 1.0
 		{
 			ay.setVolume(0.01f * i);
-			ay.setRegister(Ay38912<1>::CC(f * (i + 101)), 7, 0xff);
+			ay.setRegister(CC(f * (i + 101)), 7, 0xff);
 		}
 		ay.audioBufferEnd();
 		CHECK_EQ(bu[0].m, 47); //check guards
@@ -112,7 +112,7 @@ TEST_CASE("Audio::Ay38912 setVolume") // * doctest::skip())
 		for (int16 i = -100; i <= 100; i++) // 201 values from -1.0 to 1.0
 		{
 			ay.setVolume(0.01f * i);
-			ay.setRegister(Ay38912<1>::CC(f * (i + 101)), 7, 0xff);
+			ay.setRegister(CC(f * (i + 101)), 7, 0xff);
 		}
 		ay.audioBufferEnd();
 		CHECK_EQ(bu[0].m, 47); //check guards
@@ -216,7 +216,6 @@ TEST_CASE("Audio::Ay38912 setRegister, getRegister")
 
 TEST_CASE("Audio::Ay38912 setRegNr, getRegNr")
 {
-	using CC = Ay38912<1>::CC;
 	Ay38912<1> ay(1000000);
 	ay.setRegNr(3);
 	CHECK_EQ(ay.getRegNr(), 3);
@@ -254,7 +253,6 @@ TEST_CASE("Audio::Ay38912 setRegNr, getRegNr")
 
 TEST_CASE("Audio::Ay38912 reset")
 {
-	using CC = Ay38912<1>::CC;
 	{
 		Ay38912<1> ay(1000000);
 		for (uint8 r = 0; r <= 15; r++) { ay.setRegister(r, 0); }
@@ -330,7 +328,6 @@ TEST_CASE("Audio::Ay38912 reset")
 
 TEST_CASE("Audio::Ay38912 shiftTimebase, resetTimebase")
 {
-	using CC			= Ay38912<1>::CC;
 	hw_sample_frequency = 25000;
 	Ay38912<1> ay(1000000, Ay38912<1>::mono, 1.0f);
 	MonoSample bu[20];
@@ -424,7 +421,6 @@ TEST_CASE("Audio::Ay38912 shiftTimebase, resetTimebase")
 
 TEST_CASE("Audio::Ay38912 setRegister(CC)")
 {
-	using CC		 = Ay38912<1>::CC;
 	uint8 rv[]		 = {0, 1, 2, 3, 4, 5, 6, 0xff, 8, 9, 10, 11, 12, 13, 14, 15};
 	uint8 ports[2]	 = {0, 0};
 	CC	  portccs[2] = {CC(0), CC(0)};
@@ -446,7 +442,6 @@ TEST_CASE("Audio::Ay38912 setRegister(CC)")
 
 TEST_CASE("Audio::Ay38912 writeRegister(CC)")
 {
-	using CC		 = Ay38912<1>::CC;
 	uint8 rv[]		 = {10, 11, 12, 13, 14, 15, 16, 0xff, 18, 19, 110, 111, 112, 113, 114, 115};
 	uint8 ports[2]	 = {0, 0};
 	CC	  portccs[2] = {CC(0), CC(0)};
@@ -483,7 +478,6 @@ TEST_CASE("Audio::Ay38912 writeRegister(CC)")
 
 TEST_CASE("Audio::Ay38912 readRegister(CC)")
 {
-	using CC		 = Ay38912<1>::CC;
 	uint8 rv[]		 = {20, 21, 22, 23, 24, 25, 26, 0xff, 28, 29, 210, 211, 212, 213, 214, 215};
 	uint8 ports[2]	 = {0, 0};
 	CC	  portccs[2] = {CC(0), CC(0)};
@@ -576,7 +570,6 @@ TEST_CASE("Audio::Ay38912 channel A, B, C")
 {
 	hw_sample_frequency = 50000;
 	{
-		using CC = Ay38912<1>::CC;
 		Ay38912<1> ay(1000000, Ay38912<1>::mono, 1.0f);
 		MonoSample bu[100];
 		int		   cc_per_sample = 1000000 / 50000;
@@ -612,7 +605,6 @@ TEST_CASE("Audio::Ay38912 channel A, B, C")
 	}
 
 	{
-		using CC = Ay38912<2>::CC;
 		Ay38912<2>	 ay(1000000, Ay38912<2>::mono, 1.0f);
 		StereoSample bu[100];
 		int			 cc_per_sample = 1000000 / 50000;
@@ -658,7 +650,6 @@ TEST_CASE("Audio::Ay38912 channel A, B, C")
 	}
 
 	{
-		using CC = Ay38912<2>::CC;
 		Ay38912<2>	 ay(1000000, Ay38912<2>::abc_stereo, 1.0f);
 		StereoSample bu[100];
 		int			 cc_per_sample = 1000000 / 50000;
@@ -706,7 +697,6 @@ TEST_CASE("Audio::Ay38912 channel A, B, C")
 	}
 
 	{
-		using CC = Ay38912<2>::CC;
 		Ay38912<2>	 ay(1000000, Ay38912<2>::acb_stereo, 1.0f);
 		StereoSample bu[100];
 		int			 cc_per_sample = 1000000 / 50000;
@@ -1294,7 +1284,6 @@ TEST_CASE("Audio::Ay38912 envelope")
 	Sample log_B[16]; // channel B
 
 	{
-		using CC			= Ay38912<2>::CC;
 		hw_sample_frequency = 50000;
 		Ay38912<2>	 ay(50000 * 16, Ay38912<2>::abc_stereo, 1.0f);
 		StereoSample bu[250];

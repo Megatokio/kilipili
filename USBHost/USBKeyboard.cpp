@@ -45,7 +45,6 @@ char KeyEvent::getchar() const noexcept
 static Queue<KeyEvent, 8, uint8> key_event_queue;
 static_assert(sizeof(key_event_queue) == 2 + 3 * 8);
 
-using CC						  = circular_int;
 static HIDKey	 repeat_key		  = NO_KEY;
 static Modifiers repeat_modifiers = NO_MODIFIERS;
 static CC		 repeat_next;

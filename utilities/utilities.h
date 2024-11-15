@@ -20,10 +20,9 @@
 namespace kio
 {
 
-inline float now() noexcept { return float(time_us_64()) / 1e6f; }
-extern void	 sleep_us(int usec) noexcept; // power saving mode
-inline void	 sleep_ms(int msec) noexcept { sleep_us(msec * 1000); }
-inline void	 sleep(float d) noexcept { sleep_us(int32(d * 1e6f)); }
+inline CC	now() noexcept { return CC(time_us_32()); }
+extern void sleep_us(int usec) noexcept; // power saving mode
+inline void sleep_ms(int msec) noexcept { sleep_us(msec * 1000); }
 
 inline void wfe() noexcept;
 inline void wfi() noexcept;
