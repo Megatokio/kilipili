@@ -14,7 +14,7 @@ namespace kio::USB
 	simple forwarder functions. 
 */
 extern void initUSBHost() noexcept; // panics
-extern void pollUSB() noexcept;
+extern int	pollUSB(void* = nullptr) noexcept;
 
 extern bool keyboardPresent() noexcept;
 extern bool mousePresent() noexcept;
