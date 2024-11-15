@@ -38,7 +38,7 @@ void initUSBHost() noexcept
 	keyboard_event_handler = defaultHidKeyboardEventHandler;
 }
 
-void pollUSB() noexcept
+int pollUSB(void*) noexcept
 {
 	while (hid_reports.avail())
 	{
@@ -46,6 +46,7 @@ void pollUSB() noexcept
 		if (r.isa_keyboard_report) keyboard_event_handler(r.keyboard_report);
 		else mouse_event_handler(r.mouse_report);
 	}
+	return 1000;
 }
 
 bool keyboardPresent() noexcept { return true; }

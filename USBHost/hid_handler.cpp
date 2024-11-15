@@ -64,14 +64,11 @@ void initUSBHost() noexcept
 	if (!f) panic("initUSBHost() failed");
 	assert(tuh_inited() == true);
 }
-void pollUSB() noexcept
+int pollUSB(void*) noexcept
 {
-	// limit actual calls to tuh_task() to 4000/sec:
-	static uint16 last = 0;
-	uint16		  now  = uint16(time_us_32());
-	if (uint16(now - last) < 250) return;
-	last = now;
+	// Dispatcher Handler function
 	tuh_task();
+	return 250; // µsec
 }
 bool keyboardPresent() noexcept { return keyboards; }
 bool mousePresent() noexcept { return mouses; }
