@@ -112,6 +112,35 @@ TempMem::~TempMem() noexcept
 	free(pool);
 }
 
+template<uint SIZE>
+TempMemOnStack<SIZE>::TempMemOnStack() noexcept
+{
+	uint  core		= get_core_num();
+	Pool* new_pool	= reinterpret_cast<Pool*>(this->buffer);
+	new_pool->prev	= pools[core];
+	new_pool->size	= uint16(sizeof(buffer) - sizeof(Pool) + sizeof(Pool::data));
+	new_pool->avail = uint16(sizeof(buffer) - sizeof(Pool) + sizeof(Pool::data));
+	pools[core]		= new_pool;
+}
+
+template<uint SIZE>
+TempMemOnStack<SIZE>::~TempMemOnStack() noexcept
+{
+	uint  core		= get_core_num();
+	Pool* this_pool = reinterpret_cast<Pool*>(this->buffer);
+	assert_eq(pools[core], this_pool);
+	pools[core] = this_pool->prev;
+}
+
+template class TempMemOnStack<200>;
+template class TempMemOnStack<400>;
+template class TempMemOnStack<600>;
+
+
+TempMemSave::TempMemSave() noexcept : avail(pools[get_core_num()]->avail) {}
+TempMemSave::~TempMemSave() noexcept { pools[get_core_num()]->avail = avail; }
+
+
 str newstr(uint len)
 {
 	// allocate char[]

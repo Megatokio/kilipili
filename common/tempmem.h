@@ -66,6 +66,43 @@ public:
 };
 
 
+/*	Class to create and auto-destruct a small local TempMem pool on the stack.
+	If you need a (small) private tempmem pool but don't want to spend the time for malloc().
+	The implementations need access to static data therefore only discrete sizes available.
+	*** Only implemented in the Pico version.
+*/
+template<uint SIZE>
+class TempMemOnStack
+{
+	NO_COPY_MOVE(TempMemOnStack);
+	uint32 buffer[SIZE / 4];
+
+public:
+	TempMemOnStack() noexcept;
+	~TempMemOnStack() noexcept;
+	static void purge() noexcept { purge_tempmem(); }
+};
+
+// these are instantiated:
+extern template class TempMemOnStack<200>;
+extern template class TempMemOnStack<400>;
+extern template class TempMemOnStack<600>;
+
+
+/*	get and restore the current allocation position of the current TempMem pool.
+	This can be used inside or before calling a function which may allocate some temp strings
+	and would, when called repeatedly, at some point overwrite temp strings of the caller.
+	This is the fastest method, but use with care!
+	Use TempMem or TempMemOnStack instance to create proper local pool otherwise.
+	*** Only implemented in the Pico version.
+*/
+struct TempMemSave
+{
+	uint16 avail;
+	TempMemSave() noexcept;
+	~TempMemSave() noexcept;
+};
+
 } // namespace kio
 
 
