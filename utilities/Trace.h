@@ -41,8 +41,6 @@ public:
 
   #define trace(func) Trace _trace(func)
 
-extern int sm_print_trace() noexcept;
-
 } // namespace kio
 
 #else
@@ -50,7 +48,6 @@ extern int sm_print_trace() noexcept;
 namespace kio
 {
 inline void trace(cstr) {}
-inline int	sm_print_trace() noexcept { return 0; }
 } // namespace kio
 
 #endif

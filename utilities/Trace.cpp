@@ -7,12 +7,11 @@
 
   #include "Trace.h"
   #include "basic_math.h"
-  #include "sm_macros.h"
   #include <stdio.h>
+
 
 namespace kio
 {
-
 
 Trace::Path Trace::path[2];
 
@@ -24,22 +23,6 @@ void Trace::print(uint core)
 		printf("core%u: %u: %s\n", core, i, stack.procs[i]); //
 	}
 }
-
-int sm_print_trace() noexcept
-{
-	BEGIN
-	{
-		static uint32 timeout = time_us_32();
-
-		for (;;)
-		{
-			Trace::print(1);
-			SLEEP_MS(10 * 1000);
-		}
-	}
-	FINISH
-}
-
 
 } // namespace kio
 
