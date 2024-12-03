@@ -20,8 +20,6 @@ add_library(kilipili_devices STATIC
 	internal/FatFS.cpp
 	internal/FatDir.h 
 	internal/FatDir.cpp
-	internal/RamFile.cpp 
-	internal/RamFile.h
 	internal/RsrcFile.h 
 	internal/RsrcFile.cpp
 	internal/RsrcFS.h 
@@ -32,6 +30,8 @@ add_library(kilipili_devices STATIC
 	internal/ff15/source/diskio.h
 	internal/ff15/source/ffunicode.c
 
+	RamFile.cpp 
+	RamFile.h
 	DevNull.cpp
 	DevNull.h
 	BlockDevice.h
