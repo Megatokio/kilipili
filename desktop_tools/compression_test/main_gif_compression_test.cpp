@@ -1,6 +1,6 @@
+#include "Devices/StdFile.h"
 #include "Graphics/Pixmap.h"
 #include "Graphics/gif/GifDecoder.h"
-#include "StdFile.h"
 #include "common/Array.h"
 #include "common/cdefs.h"
 #include "common/standard_types.h"
