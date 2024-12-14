@@ -35,26 +35,24 @@ struct Color
 	// video output may be monochrome, possibly even 1 bit b&w only
 
 	// xbits  = number of bits for component
-	// xmask  = bitmask for component shifted in place in Color::raw.
-	// xshift = number of bits to shift left from int0 position (all bits outside) to it's place in Color::raw.
-	//          you must subtract the number of bits your source value has.
-	//			if xshift-N becomes negative then you must shift right.
+	// xshift = number of bits the component is shifted left in Color::raw.
+	// xmask  = bitmask for component in Color::raw.
 
 	static constexpr int rbits	= VIDEO_PIXEL_RCOUNT;
-	static constexpr int rmask	= ((1 << VIDEO_PIXEL_RCOUNT) - 1) << VIDEO_PIXEL_RSHIFT;
-	static constexpr int rshift = VIDEO_PIXEL_RCOUNT + VIDEO_PIXEL_RSHIFT;
+	static constexpr int rshift = VIDEO_PIXEL_RSHIFT;
+	static constexpr int rmask	= ((1 << rbits) - 1) << rshift;
 
 	static constexpr int gbits	= VIDEO_PIXEL_GCOUNT;
-	static constexpr int gmask	= ((1 << VIDEO_PIXEL_GCOUNT) - 1) << VIDEO_PIXEL_GSHIFT;
-	static constexpr int gshift = VIDEO_PIXEL_GCOUNT + VIDEO_PIXEL_GSHIFT;
+	static constexpr int gshift = VIDEO_PIXEL_GSHIFT;
+	static constexpr int gmask	= ((1 << gbits) - 1) << gshift;
 
 	static constexpr int bbits	= VIDEO_PIXEL_BCOUNT;
-	static constexpr int bmask	= ((1 << VIDEO_PIXEL_BCOUNT) - 1) << VIDEO_PIXEL_BSHIFT;
-	static constexpr int bshift = VIDEO_PIXEL_BCOUNT + VIDEO_PIXEL_BSHIFT;
+	static constexpr int bshift = VIDEO_PIXEL_BSHIFT;
+	static constexpr int bmask	= ((1 << bbits) - 1) << bshift;
 
 	static constexpr int ibits	= VIDEO_PIXEL_ICOUNT;
-	static constexpr int imask	= ((1 << VIDEO_PIXEL_ICOUNT) - 1) << VIDEO_PIXEL_ISHIFT;
-	static constexpr int ishift = VIDEO_PIXEL_ICOUNT + VIDEO_PIXEL_ISHIFT;
+	static constexpr int ishift = VIDEO_PIXEL_ISHIFT;
+	static constexpr int imask	= ((1 << ibits) - 1) << ishift;
 
 	static constexpr uint total_colorbits = rbits + gbits + bbits + ibits;
 	static constexpr uint total_colormask = rmask | gmask | bmask | imask;
@@ -73,14 +71,15 @@ struct Color
 	// low-level ctor, implicit casts:
 	constexpr Color() noexcept : raw(0) {}
 	constexpr Color(uint raw) noexcept : raw(uRGB(raw)) {} // raw value
+	constexpr Color(int raw) noexcept : raw(uRGB(raw)) {}  // raw value
 	constexpr operator uRGB() const noexcept { return raw; }
 
 	// high-level factory methods:
-	static constexpr Color fromRGB8(uint8 r, uint8 g, uint8 b) noexcept;
-	static constexpr Color fromRGB4(uint8 r, uint8 g, uint8 b) noexcept;
+	static constexpr Color fromRGB8(int r, int g, int b) noexcept;
+	static constexpr Color fromRGB4(int r, int g, int b) noexcept;
 	static constexpr Color fromRGB8(uint rgb) noexcept;
 	static constexpr Color fromRGB4(uint rgb) noexcept;
-	static constexpr Color fromGrey8(uint8 grey) noexcept;
+	static constexpr Color fromGrey8(int grey) noexcept;
 
 	// blend this color with another. used for semi-transparency:
 	constexpr void blend_with(const Color b) noexcept;
@@ -88,41 +87,29 @@ struct Color
 	constexpr int distance(const Color& b) const noexcept;
 	constexpr int brightness() const noexcept; // distance to black
 
-	// components scaled to n bit:
-	constexpr uint8 red(uint b = 8) const noexcept
-	{
-		return rshift >= b ? uint8((raw & rmask) >> (rshift - b)) : uint8((raw & rmask) << (b - rshift));
-	}
-	constexpr uint8 green(uint b = 8) const noexcept
-	{
-		return gshift >= b ? uint8((raw & gmask) >> (gshift - b)) : uint8((raw & gmask) << (b - gshift));
-	}
-	constexpr uint8 blue(uint n = 8) const noexcept
-	{
-		return bshift >= n ? uint8((raw & bmask) >> (bshift - n)) : uint8((raw & bmask) << (n - bshift));
-	}
-	constexpr uint8 grey(uint b = 8) const noexcept
-	{
-		return ishift >= b ? uint8((raw & imask) >> (ishift - b)) : uint8((raw & imask) << (b - ishift));
-	}
+	// get the component value:
+	constexpr uint8 red() const noexcept { return (raw & rmask) >> rshift; }
+	constexpr uint8 green() const noexcept { return (raw & gmask) >> gshift; }
+	constexpr uint8 blue() const noexcept { return (raw & bmask) >> bshift; }
+	constexpr uint8 grey() const noexcept { return (raw & imask) >> ishift; }
 
-	// helper to calculate raw bits from components with n bits:
-	static constexpr uRGB mkred(uint n, uint b = 8)
-	{
-		return (rshift >= b ? n << (rshift - b) : n >> (b - rshift)) & rmask;
-	}
-	static constexpr uRGB mkgreen(uint n, uint b = 8)
-	{
-		return (gshift >= b ? n << (gshift - b) : n >> (b - gshift)) & gmask;
-	}
-	static constexpr uRGB mkblue(uint n, uint b = 8)
-	{
-		return (bshift >= b ? n << (bshift - b) : n >> (b - bshift)) & bmask;
-	}
-	static constexpr uRGB mkgrey(uint n, uint b = 8)
-	{
-		return (ishift >= b ? n << (ishift - b) : n >> (b - ishift)) & imask;
-	}
+	// shift component value into place for .raw:
+	static constexpr uRGB mkred(int n) { return (n << rshift) & rmask; }
+	static constexpr uRGB mkgreen(int n) { return (n << gshift) & gmask; }
+	static constexpr uRGB mkblue(int n) { return (n << bshift) & bmask; }
+	static constexpr uRGB mkgrey(int n) { return (n << ishift) & imask; }
+
+	// get the component value scaled to bits:
+	constexpr uint8 red(int bits) const noexcept;
+	constexpr uint8 green(int bits) const noexcept;
+	constexpr uint8 blue(int bits) const noexcept;
+	constexpr uint8 grey(int bits) const noexcept;
+
+	// calculate raw bits from component n with bits:
+	static constexpr uRGB mkred(int n, int bits);
+	static constexpr uRGB mkgreen(int n, int bits);
+	static constexpr uRGB mkblue(int n, int bits);
+	static constexpr uRGB mkgrey(int n, int bits);
 };
 
 static_assert(sizeof(Color) == sizeof(Color::uRGB));
@@ -130,10 +117,52 @@ static_assert(sizeof(Color) == sizeof(Color::uRGB));
 
 // =========================== Implementations ================================
 
-constexpr Color Color::fromRGB8(uint8 r, uint8 g, uint8 b) noexcept
+constexpr uint8 Color::red(int bits) const noexcept
+{
+	int d = rshift + rbits - bits;
+	return uint8(d >= 0 ? (raw & rmask) >> d : (raw & rmask) << -d);
+}
+constexpr uint8 Color::green(int bits) const noexcept
+{
+	int d = gshift + gbits - bits;
+	return uint8(d >= 0 ? (raw & gmask) >> d : (raw & gmask) << -d);
+}
+constexpr uint8 Color::blue(int bits) const noexcept
+{
+	int d = bshift + bbits - bits;
+	return uint8(d >= 0 ? (raw & bmask) >> d : (raw & bmask) << -d);
+}
+constexpr uint8 Color::grey(int bits) const noexcept
+{
+	int d = ishift + ibits - bits;
+	return uint8(d >= 0 ? (raw & imask) >> d : (raw & imask) << -d);
+}
+
+constexpr Color::uRGB Color::mkred(int n, int bits)
+{
+	int d = rshift + rbits - bits;
+	return (d >= 0 ? n << d : n >> -d) & rmask;
+}
+constexpr Color::uRGB Color::mkgreen(int n, int bits)
+{
+	int d = gshift + gbits - bits;
+	return (d >= 0 ? n << d : n >> d) & gmask;
+}
+constexpr Color::uRGB Color::mkblue(int n, int bits)
+{
+	int d = bshift + bbits - bits;
+	return (d >= 0 ? n << d : n >> d) & bmask;
+}
+constexpr Color::uRGB Color::mkgrey(int n, int bits)
+{
+	int d = ishift + ibits - bits;
+	return (d >= 0 ? n << d : n >> d) & imask;
+}
+
+constexpr Color Color::fromRGB8(int r, int g, int b) noexcept
 {
 	if constexpr (ORDER_GREY) { return Color(r * 85 + g * 107 + b * 64) >> (16 - ibits); }
-	if constexpr (ORDER_RGB) { return Color(mkred(r) + mkgreen(g) + mkblue(b)); }
+	if constexpr (ORDER_RGB) { return Color(mkred(r, 8) + mkgreen(g, 8) + mkblue(b, 8)); }
 	if constexpr (ORDER_RGBI)
 	{
 		// faster: take the common low bits only from the green value
@@ -143,11 +172,11 @@ constexpr Color Color::fromRGB8(uint8 r, uint8 g, uint8 b) noexcept
 		uint8 grey = faster ? uint8(g << (gbits + 8)) :
 							  (uint8(r << rbits) * 85 + uint8(g << gbits) * 107 + uint8(b << bbits) * 64);
 
-		return Color(mkred(r) + mkgreen(g) + mkblue(b) + mkgrey(grey, 16));
+		return Color(mkred(r, 8) + mkgreen(g, 8) + mkblue(b, 8) + mkgrey(grey, 16));
 	}
 }
 
-constexpr Color Color::fromRGB4(uint8 r, uint8 g, uint8 b) noexcept
+constexpr Color Color::fromRGB4(int r, int g, int b) noexcept
 {
 	if constexpr (ORDER_GREY) { return Color(r * 85 + g * 107 + b * 64) >> (12 - ibits); }
 	if constexpr (ORDER_RGB) { return Color(mkred(r, 4) + mkgreen(g, 4) + mkblue(b, 4)); }
@@ -164,7 +193,7 @@ constexpr Color Color::fromRGB4(uint8 r, uint8 g, uint8 b) noexcept
 		}
 		else
 		{
-			uint grey = uint8(r << rbits) * 85 + uint8(g << gbits) * 107 + uint8(b << bbits) * 64;
+			int grey = uint8(r << rbits) * 85 + uint8(g << gbits) * 107 + uint8(b << bbits) * 64;
 			return Color(mkred(r, 4) + mkgreen(g, 4) + mkblue(b, 4) + mkgrey(grey, 12));
 		}
 	}
@@ -180,11 +209,14 @@ constexpr Color Color::fromRGB4(uint rgb) noexcept // e.g. rgb = 0x0ffa
 	return fromRGB4((rgb >> 8) & 0xf, (rgb >> 4) & 0xf, rgb & 0xf);
 }
 
-constexpr Color Color::fromGrey8(uint8 grey) noexcept
+constexpr Color Color::fromGrey8(int grey) noexcept
 {
 	if constexpr (ORDER_GREY) { return Color(grey >> (8 - ibits)); }
-	if constexpr (ORDER_RGB) { return Color(mkred(grey) + mkgreen(grey) + mkblue(grey)); }
-	if constexpr (ORDER_RGBI) { return Color(mkred(grey) + mkgreen(grey) + mkblue(grey) + mkgrey(grey, 8 - bbits)); }
+	if constexpr (ORDER_RGB) { return Color(mkred(grey, 8) + mkgreen(grey, 8) + mkblue(grey, 8)); }
+	if constexpr (ORDER_RGBI)
+	{
+		return Color(mkred(grey, 8) + mkgreen(grey, 8) + mkblue(grey, 8) + mkgrey(grey, 8 - bbits));
+	}
 }
 
 constexpr void Color::blend_with(const Color b) noexcept
@@ -196,8 +228,7 @@ constexpr void Color::blend_with(const Color b) noexcept
 	{
 		constexpr uint lsb = 1 << VIDEO_PIXEL_RSHIFT | 1 << VIDEO_PIXEL_GSHIFT | 1 << VIDEO_PIXEL_BSHIFT |
 							 (ORDER_RGBI << VIDEO_PIXEL_ISHIFT);
-		constexpr uint allbits = rmask + gmask + bmask + imask;
-		constexpr uint mask	   = allbits - lsb;
+		constexpr uint mask = total_colormask - lsb;
 
 		uRGB cy = (raw | b.raw) & lsb;
 		raw		= (((raw & mask) + (b.raw & mask)) >> 1) + cy;
@@ -208,8 +239,8 @@ inline constexpr int Color::brightness() const noexcept
 {
 	// distance to black
 	// color components are weighted r=4, g=5, b=3
-	
-	if constexpr (ORDER_GREY) { return raw&imask; }
+
+	if constexpr (ORDER_GREY) { return raw & imask; }
 	if constexpr (ORDER_RGB) { return red(8) * 4 + green(8) * 5 + blue(8) * 3; }
 	if constexpr (ORDER_RGBI) { return grey(8 - gbits) * (4 + 5 + 3) + red(8) * 4 + green(8) * 5 + blue(8) * 3; }
 }
@@ -221,9 +252,10 @@ inline constexpr int Color::distance(const Color& b) const noexcept
 	if constexpr (ORDER_GREY) { return abs(raw - b.raw); }
 	if constexpr (ORDER_RGB)
 	{
-		int delta = abs(red(rshift) - b.red(rshift)) * (4 << (16 - rshift));
-		delta += abs(green(gshift) - b.green(gshift)) * (5 << (16 - gshift));
-		delta += abs(blue(bshift) - b.blue(bshift)) * (3 << (16 - bshift));
+		static_assert(gbits >= rbits && gbits >= bbits);
+		int delta = abs(red() - b.red()) * (4 << (gbits - rbits));
+		delta += abs(green() - b.green()) * (5 << (gbits - gbits));
+		delta += abs(blue() - b.blue()) * (3 << (gbits - bbits));
 		return delta;
 	}
 	if constexpr (ORDER_RGBI)
@@ -296,11 +328,11 @@ inline cstr tostr(kio::Graphics::Color c)
 #if (ORDER_GREY)
 	snprintf(bu, 20, "grey=%02x", c.grey());
 #elif (ORDER_RGB)
-	snprintf(bu, 20, "rgb=%02x,%02x,%02x", c.red(), c.green(), c.blue());
+	snprintf(bu, 20, "rgb=%02x,%02x,%02x", c.red(8), c.green(8), c.blue(8));
 #elif (ORDER_RGBI)
 	snprintf(
-		bu, 20, "rgb=%02x,%02x,%02x", c.red() + c.grey(8u - Color::rbits), c.green() + c.grey(8u - Color::gbits),
-		c.blue() + c.grey(8u - Color::bbits));
+		bu, 20, "rgb=%02x,%02x,%02x", c.red(8) + c.grey(8 - Color::rbits), c.green(8) + c.grey(8 - Color::gbits),
+		c.blue(8) + c.grey(8 - Color::bbits));
 #endif
 
 	return kio::dupstr(bu);
