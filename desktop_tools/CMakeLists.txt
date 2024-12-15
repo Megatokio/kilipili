@@ -28,6 +28,7 @@ set(MAKE_TOOLS ON)
 add_subdirectory(kilipili/common)
 add_subdirectory(kilipili/Graphics)
 add_subdirectory(kilipili/USBHost)
+add_subdirectory(kilipili/Devices)
 
 
 add_executable(RsrcFileWriter
@@ -36,21 +37,9 @@ add_executable(RsrcFileWriter
 	rsrc_writer/RsrcFileEncoder.h
 	rsrc_writer/YMFileConverter.cpp
 	rsrc_writer/YMFileConverter.h
-	rsrc_writer/StdFile.cpp
-	rsrc_writer/StdFile.h
 	kilipili/common/Array.h
 	kilipili/Graphics/color_options.h
 	kilipili/Graphics/Color.h
-	kilipili/Devices/SerialDevice.h
-	kilipili/Devices/SerialDevice.cpp
-	kilipili/Devices/File.h
-	kilipili/Devices/File.cpp
-	kilipili/Devices/HeatShrinkDecoder.cpp
-	kilipili/Devices/HeatShrinkDecoder.h
-	kilipili/Devices/HeatShrinkEncoder.cpp
-	kilipili/Devices/HeatShrinkEncoder.h
-	kilipili/Devices/LzhDecoder.cpp
-	kilipili/Devices/LzhDecoder.h
 	kilipili/Audio/AudioSource.h
 	kilipili/Audio/audio_options.h
 	kilipili/Audio/AudioSample.h
@@ -91,6 +80,7 @@ target_include_directories(RsrcFileWriter PUBLIC
 # dependencies. this also adds the include paths:
 target_link_libraries(RsrcFileWriter PUBLIC
 	kilipili_common 
+	kilipili_devices
 	z
 	)
 
