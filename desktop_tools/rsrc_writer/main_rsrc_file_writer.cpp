@@ -4,6 +4,7 @@
 #include "Devices/HeatShrinkEncoder.h"
 #include "Devices/LzhDecoder.h"
 #include "ImageFileWriter.h"
+#include "RgbImageCompressor.h"
 #include "RsrcFileEncoder.h"
 #include "YMFileConverter.h"
 #include "common/Array.h"
@@ -11,6 +12,12 @@
 #include "common/standard_types.h"
 #include "exportStSoundWavFile.h"
 #include <dirent.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_FAILURE_USERMSG 1
+#include "extern/stb/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "extern/stb/stb_image_write.h"
 
 namespace kio::Audio
 {
@@ -37,13 +44,21 @@ static Array<cstr> rsrc_files;
 using namespace Audio;
 using namespace Devices;
 
-enum FType : uint8 { UNSET, AS_IS, STSOUND_WAV, WAV, YMM, IMG, SKIP };
+enum FType : uint8 { UNSET, AS_IS, STSOUND_WAV, WAV, YMM, IMG, SKIP, RGB8 };
 struct Info
 {
-	cstr  pattern = nullptr;
-	FType format  = UNSET;
-	uint8 w = 0, l = 0;
-	bool  noalpha = false, hwcolor = false, _padding[3];
+	cstr	   pattern = nullptr;
+	FType	   format  = UNSET;
+	uint8	   w = 0, l = 0;									   // compression
+	DitherMode dithermode				  = DitherMode::Diffusion; // rgb8
+	uint8	   passes					  = 8;					   // rgb8
+	bool	   noalpha				  : 1 = false;				   // img
+	bool	   hwcolor				  : 1 = false;				   // img
+	bool	   also_create_ref_image  : 1 = false;				   // rgb8
+	bool	   also_create_diff_image : 1 = false;				   // rgb8
+	bool	   also_write_stats_file  : 1 = false;				   // rgb8
+	bool	   _padding2			  : 3;
+	char	   _padding[2];
 
 	Info(cstr s);
 };
@@ -81,10 +96,24 @@ Info::Info(cstr _s)
 		else if (eq(s, "stsound_wav")) format = STSOUND_WAV;
 		else if (eq(s, "ymm")) format = YMM;
 		else if (eq(s, "img")) format = IMG;
+		else if (eq(s, "rgb8")) format = RGB8;
 		else if (eq(s, "as_is")) format = AS_IS;
 		else if (eq(s, "skip")) format = SKIP;
 		else if (eq(s, "noalpha")) noalpha = true;
 		else if (eq(s, "hwcolor")) hwcolor = true;
+		else if (eq(s, "pattern")) dithermode = DitherMode::Pattern;
+		else if (eq(s, "none")) dithermode = DitherMode::None;
+		else if (eq(s, "noise")) dithermode = DitherMode::Noise;
+		else if (eq(s, "diffusion")) dithermode = DitherMode::Diffusion;
+		else if (eq(s, "diff_img")) also_create_diff_image = true;
+		else if (eq(s, "ref_img")) also_create_ref_image = true;
+		else if (eq(s, "stats")) also_write_stats_file = true;
+		else if (startswith(s, "passes="))
+		{
+			uint n = 0;
+			for (uint i = 7; is_decimal_digit(s[i]); i++) n = n * 10 + dec_digit_value(s[i]);
+			passes = uint8(n);
+		}
 		else if (startswith(s, "W"))
 		{
 			uint n = 0;
@@ -195,6 +224,33 @@ static void copy_as_img(cstr indir, cstr outdir, cstr infile, const Info& info)
 	}
 }
 
+static void copy_as_rgb8(cstr indir, cstr outdir, cstr infile, const Info& info)
+{
+	RgbImageCompressor encoder;
+	encoder.write_diff_image = info.also_create_diff_image;
+	encoder.write_ref_image	 = info.also_create_ref_image;
+	encoder.write_stats_file = info.also_write_stats_file;
+
+	//printf("indir: %s\n", indir);
+	//printf("outdir: %s\n", outdir);
+	//printf("file: %s\n", infile);
+
+	if (verbose) {}
+	if (write_rsrc) TODO();
+
+	encoder.encodeImage(indir, outdir, infile, verbose, info.dithermode, info.passes);
+	//if (verbose)
+	//{
+	//	printf("image size: %u * %u\n", encoder.image_width(), encoder.image_height());
+	//	printf("number of colors: %u\n", encoder.num_colors());
+	//	printf("num abs codes: %u\n", encoder.num_abs_codes());
+	//	printf("num rel codes: %u\n", encoder.num_rel_codes());
+	//	printf("total deviation: %u\n", encoder.total_deviation());
+	//	printf("average deviation: %f\n", encoder.average_deviation());
+	//}
+	if (verbose) printf("\n");
+}
+
 static void copy_as_is(cstr indir, cstr outdir, cstr infile, const Info& info)
 {
 	// copy "as is", but:
@@ -293,6 +349,7 @@ static void convert_file(cstr indir, cstr outdir, cstr infile)
 			case STSOUND_WAV: copy_as_StSound_wav(indir, outdir, infile); return;
 			case YMM: copy_as_ymm(indir, outdir, infile, info); return;
 			case IMG: copy_as_img(indir, outdir, infile, info); return;
+			case RGB8: copy_as_rgb8(indir, outdir, infile, info); return;
 			case SKIP: return;
 			default: IERR();
 			}
@@ -301,15 +358,15 @@ static void convert_file(cstr indir, cstr outdir, cstr infile)
 	}
 	catch (Error e)
 	{
-		printf("*** %s\n", e);
+		fprintf(stderr, "*** %s\n", e);
 	}
 	catch (std::exception& e)
 	{
-		printf("*** %s\n", e.what());
+		fprintf(stderr, "*** %s\n", e.what());
 	}
 	catch (...)
 	{
-		printf("*** unknown exception\n");
+		fprintf(stderr, "*** unknown exception\n");
 	}
 }
 
@@ -342,14 +399,15 @@ int main(int argc, cstr argv[])
 
 	using namespace kio;
 
+	if (argc >= 2 && eq(argv[1], "-v"))
+	{
+		argv += 1;
+		argc -= 1;
+		verbose = true;
+	}
+
 	try
 	{
-		if (argc == 3 && eq(argv[2], "-v"))
-		{
-			argc	= 2;
-			verbose = true;
-		}
-
 		if (argc == 1)
 		{
 			puts(
@@ -419,9 +477,15 @@ int main(int argc, cstr argv[])
 	}
 	catch (cstr e)
 	{
-		printf("error: %s\n", e);
+		fprintf(stderr, "error: %s\n", e);
 		return 1;
 	}
+	catch (...)
+	{
+		fprintf(stderr, "unknown exception\n");
+		return 1;
+	}
+
 	puts("all done.\n");
 	return 0;
 }
