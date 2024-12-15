@@ -130,4 +130,31 @@ target_link_libraries(UnitTest PUBLIC
 
 
 
+add_executable(GifCompressionTest
+	compression_test/main_gif_compression_test.cpp
+	kilipili/Graphics/color_options.h
+	kilipili/Graphics/Color.h
+	)
+
+target_compile_definitions(GifCompressionTest PUBLIC
+	MAKE_TOOLS=1
+	PICO_BOARD="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
+	)
+
+# add current dir to 'include search path':
+target_include_directories(GifCompressionTest PUBLIC
+	${CMAKE_CURRENT_LIST_DIR}/kilipili
+	${CMAKE_CURRENT_LIST_DIR}/compression_test
+	${CMAKE_CURRENT_LIST_DIR}/rsrc_writer
+	)
+
+# dependencies. this also adds the include paths:
+target_link_libraries(GifCompressionTest PUBLIC
+	kilipili_common
+	kilipili_graphics
+	kilipili_devices
+	z
+	)
+
+
 
