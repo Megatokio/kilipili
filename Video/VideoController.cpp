@@ -201,7 +201,7 @@ inline void RAM VideoController::call_vblank_actions() noexcept
 	}
 }
 
-void RAM VideoController::video_runner()
+inline void RAM VideoController::video_runner()
 {
 	trace(__func__);
 	print_stack_free();
