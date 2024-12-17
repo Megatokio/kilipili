@@ -29,8 +29,15 @@ StdFile::StdFile(cstr fpath, FileOpenMode mode) : File(mode)
 	if (!file) throw "could not open file";
 }
 
+StdFile::StdFile(FILE* file, Flags flags) : //
+	File(flags | Flags::dont_close),
+	file(file)
+{}
+
 StdFile::~StdFile()
 {
+	if (flags & dont_close) return; // stdin, out, err
+	
 	while (file)
 	{
 		if (fclose(file) == 0) break;
@@ -39,7 +46,7 @@ StdFile::~StdFile()
 		break;
 	}
 }
-
+ 
 uint32 StdFile::ioctl(IoCtl cmd, void* arg1, void* arg2)
 {
 	return File::ioctl(cmd, arg1, arg2); //
