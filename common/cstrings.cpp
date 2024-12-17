@@ -1553,6 +1553,14 @@ cstr basename_from_path(cstr path)
 	return substr(path, extension_from_path(path));
 }
 
+cstr directory_and_basename_from_path(cstr path)
+{
+	// remove the filename extension (incl. dot)
+	// returns string in cstring pool
+
+	return substr(path, extension_from_path(path));
+}
+
 cstr directory_from_path(cstr path)
 {
 	// separate directory path from path

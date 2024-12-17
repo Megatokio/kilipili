@@ -212,6 +212,7 @@ str join(const Array<cstr>& q, cstr, bool final = false) throws;
 cstr filename_from_path(cstr path) noexcept;	   // "…/name.ext" --> "name.ext"	"…/" -> ""
 cstr extension_from_path(cstr path) noexcept;	   // "….ext"		--> ".ext"		"…"  -> ""
 cstr basename_from_path(cstr path);				   // "…/name.ext"	--> "name"
+cstr directory_and_basename_from_path(cstr path);  // "…/name.ext"	--> "…/name"
 cstr directory_from_path(cstr path);			   // "path/…"		--> "path/"		"…"	 -> "./"
 cstr parent_directory_from_path(cstr path);		   // "path/name/" -> "path/";  "path/name" -> "path/"; "…" -> "./"
 cstr last_component_from_path(cstr path) noexcept; // "…/name.ext"	--> "name.ext"	"…/dir/" -> "dir/"
