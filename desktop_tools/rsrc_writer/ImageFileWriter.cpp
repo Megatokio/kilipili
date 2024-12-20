@@ -11,7 +11,6 @@
 #include "RsrcFileEncoder.h"
 #include "common/Array.h"
 
-#define STB_IMAGE_IMPLEMENTATION
 #define STBI_FAILURE_USERMSG 1
 #include "extern/stb/stb_image.h"
 
