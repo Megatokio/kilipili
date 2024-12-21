@@ -22,7 +22,16 @@ protected:
 public:
 	virtual ~VideoPlane() noexcept override = default;
 
-	virtual void setup(coord width)	 = 0;
+	/*
+		Initialize this VideoPlane after construction.
+		The VideoPlane can be constructed on core 0, but setup() is always called on core 1.
+	*/
+	virtual void setup(coord width) = 0;
+
+	/*
+		Tear down this VideoPlane before destruction.
+		The VideoPlane can be deleted on core 0, but teardown() is always called on core 1.
+	*/
 	virtual void teardown() noexcept = 0;
 
 	/*

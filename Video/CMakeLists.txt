@@ -43,6 +43,8 @@ add_library(kilipili_video STATIC
 	MultiSpritesPlane.h
 	UniColorBackdrop.h
 	Frames.h
+	HoldAndModifyVideoPlane.h 
+	HoldAndModifyVideoPlane.cpp
 )
 
 target_compile_definitions(kilipili_video PUBLIC
