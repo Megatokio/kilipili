@@ -77,9 +77,9 @@ using Pool = TPool<4>;
 static Pool* pools[2] = {reinterpret_cast<Pool*>(&pool0), reinterpret_cast<Pool*>(&pool1)};
 
 
-Pool* newPool(uint size, Pool* prev)
+static Pool* newPool(uint size, Pool* prev)
 {
-	assert(size == uint16(size));
+	assert(size >= 40 && size == uint16(size));
 
 	void* p = malloc(sizeof(Pool) - sizeof(Pool::data) + size);
 	if unlikely (!p) throw OUT_OF_MEMORY;
@@ -97,7 +97,8 @@ TempMem::TempMem(uint size)
 	// the TempMem object itself contains no data.
 	// the local pool with all required data is 'static pools[core]'
 
-	uint core	= get_core_num();
+	uint core = get_core_num();
+	if (size == 0) size = core == 0 ? TEMPMEM_SIZE0 : TEMPMEM_SIZE1;
 	pools[core] = newPool(size, pools[core]);
 }
 
