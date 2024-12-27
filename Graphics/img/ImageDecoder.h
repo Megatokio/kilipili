@@ -66,7 +66,7 @@ public:
 	enum ColorModel : uint8 { grey, rgb, hw_color, no_img_file };
 	ColorModel colormodel = no_img_file;
 
-	bool has_transparency = false; // transparent pixels are 0xff or 0xffff
+	bool has_transparency = false; // transparent pixels are 0x00 or 0x0000
 	bool has_cmap		  = false;
 
 	int image_width	 = 0;

@@ -4,6 +4,7 @@
 #include "Devices/HeatShrinkEncoder.h"
 #include "Devices/LzhDecoder.h"
 #include "ImageFileWriter.h"
+#include "RgbImageCompressor.h"
 #include "RsrcFileEncoder.h"
 #include "YMFileConverter.h"
 #include "common/Array.h"
@@ -11,6 +12,12 @@
 #include "common/standard_types.h"
 #include "exportStSoundWavFile.h"
 #include <dirent.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_FAILURE_USERMSG 1
+#include "extern/stb/stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "extern/stb/stb_image_write.h"
 
 namespace kio::Audio
 {
@@ -37,13 +44,20 @@ static Array<cstr> rsrc_files;
 using namespace Audio;
 using namespace Devices;
 
-enum FType : uint8 { UNSET, AS_IS, STSOUND_WAV, WAV, YMM, IMG, SKIP };
+enum FType : uint8 { UNSET, COPY, STSOUND_WAV, WAV, YMM, IMG, SKIP, HAM_IMG };
 struct Info
 {
-	cstr  pattern = nullptr;
-	FType format  = UNSET;
-	uint8 w = 0, l = 0;
-	bool  noalpha = false, hwcolor = false, _padding[3];
+	cstr	   pattern = nullptr;
+	FType	   format  = UNSET;
+	uint8	   w = 0, l = 0;									   // compression
+	DitherMode dithermode				  = DitherMode::Diffusion; // rgb8
+	bool	   noalpha				  : 1 = false;				   // img
+	bool	   hwcolor				  : 1 = false;				   // img
+	bool	   also_create_ref_image  : 1 = false;				   // rgb8
+	bool	   also_create_diff_image : 1 = false;				   // rgb8
+	bool	   also_write_stats_file  : 1 = false;				   // rgb8
+	bool	   _padding2			  : 3;
+	char	   _padding[3];
 
 	Info(cstr s);
 };
@@ -81,10 +95,17 @@ Info::Info(cstr _s)
 		else if (eq(s, "stsound_wav")) format = STSOUND_WAV;
 		else if (eq(s, "ymm")) format = YMM;
 		else if (eq(s, "img")) format = IMG;
-		else if (eq(s, "as_is")) format = AS_IS;
+		else if (eq(s, "ham")) format = HAM_IMG;
+		else if (eq(s, "copy")) format = COPY;
 		else if (eq(s, "skip")) format = SKIP;
 		else if (eq(s, "noalpha")) noalpha = true;
 		else if (eq(s, "hwcolor")) hwcolor = true;
+		else if (eq(s, "pattern")) dithermode = DitherMode::Pattern;
+		else if (eq(s, "none")) dithermode = DitherMode::None;
+		else if (eq(s, "diffusion")) dithermode = DitherMode::Diffusion;
+		else if (eq(s, "diff_img")) also_create_diff_image = true;
+		else if (eq(s, "ref_img")) also_create_ref_image = true;
+		else if (eq(s, "stats")) also_write_stats_file = true;
 		else if (startswith(s, "W"))
 		{
 			uint n = 0;
@@ -129,7 +150,7 @@ static void copy_as_wav(cstr indir, cstr outdir, cstr infile)
 	converter.importFile(catstr(indir, infile), verbose);
 	cstr   ext	= extension_from_path(infile); // points to '.' in infile
 	uint32 size = converter.exportWavFile(catstr(outdir, substr(infile, ext), ".wav"));
-	if (verbose) printf("  .wav file size = %d\n", size);
+	if (verbose) printf("  .wav file size = %u\n", size);
 }
 
 static void copy_as_ymm(cstr indir, cstr outdir, cstr infile, const Info& info)
@@ -148,15 +169,15 @@ static void copy_as_ymm(cstr indir, cstr outdir, cstr infile, const Info& info)
 		cstr   dest_fname	 = catstr(outdir, include_fname); // file written to
 		cstr   rsrc_fname	 = catstr(basename, ".ymm");	  // fname inside rsrc filesystem
 		uint32 zsize		 = converter.exportRsrcFile(dest_fname, rsrc_fname, info.w, info.l);
-		if (verbose) printf("  .ym input file size = %d \n", qsize);
-		if (verbose) printf("  .ymm output file size = %d \n", zsize);
+		if (verbose) printf("  .ym input file size = %u\n", qsize);
+		if (verbose) printf("  .ymm output file size = %u\n", zsize);
 		rsrc_files.append(include_fname);
 	}
 	else
 	{
 		uint32 zsize = converter.exportYMMFile(catstr(outdir, basename, ".ymm"), info.w, info.l);
-		if (verbose) printf("  .ym input file size = %d \n", qsize);
-		if (verbose) printf("  .ymm output file size = %d \n", zsize);
+		if (verbose) printf("  .ym input file size = %u\n", qsize);
+		if (verbose) printf("  .ymm output file size = %u\n", zsize);
 	}
 }
 
@@ -172,7 +193,7 @@ static void copy_as_img(cstr indir, cstr outdir, cstr infile, const Info& info)
 	{
 		printf("  size = %i*%i\n", converter.image_width, converter.image_height);
 		printf("  colors = %s\n", tostr(converter.colormodel));
-		if (converter.has_cmap) printf("  cmap size = %i\n", converter.cmap.count());
+		if (converter.has_cmap) printf("  cmap size = %u\n", converter.cmap.count());
 		if (converter.has_transparency) printf("  has transparency\n");
 	}
 
@@ -185,13 +206,42 @@ static void copy_as_img(cstr indir, cstr outdir, cstr infile, const Info& info)
 		cstr   dest_fname	 = catstr(outdir, include_fname); // file written to
 		cstr   rsrc_fname	 = catstr(basename, ".img");	  // fname inside rsrc filesystem
 		uint32 size			 = converter.exportRsrcFile(dest_fname, rsrc_fname, info.w, info.l);
-		if (verbose) printf("  .img file size = %d\n", size);
+		if (verbose) printf("  .img file size = %u\n", size);
 		rsrc_files.append(include_fname);
 	}
 	else
 	{
 		uint32 size = converter.exportImgFile(catstr(outdir, basename, ".img"), info.w, info.l);
-		if (verbose) printf("  .img file size = %d\n", size);
+		if (verbose) printf("  .img file size = %u\n", size);
+	}
+}
+
+static void copy_as_ham_image(cstr indir, cstr outdir, cstr infile, const Info& info)
+{
+	RgbImageCompressor encoder;
+	encoder.write_diff_image = info.also_create_diff_image;
+	encoder.write_ref_image	 = info.also_create_ref_image;
+	encoder.write_stats_file = info.also_write_stats_file;
+
+	if (verbose) {}
+	if (write_rsrc)
+	{
+		cstr	ext			  = extension_from_path(infile); // points to '.' in infile
+		cstr	basename	  = substr(infile, ext);
+		cstr	include_fname = catstr(infile, ".rsrc");	   // file for #include
+		cstr	dest_fname	  = catstr(outdir, include_fname); // file written to
+		cstr	rsrc_fname	  = catstr(basename, ".ham");	   // fname inside rsrc filesystem
+		FilePtr outfile		  = new StdFile(dest_fname, FileOpenMode::WRITE);
+		outfile				  = new RsrcFileEncoder(outfile, rsrc_fname);
+		if (info.w) outfile = new HeatShrinkEncoder(outfile, info.w, info.l, false);
+		uint32 size = encoder.encodeImage(catstr(indir, infile), outfile, verbose, info.dithermode);
+		if (verbose) printf("  .img file size = %u\n", size);
+		rsrc_files.append(include_fname);
+	}
+	else
+	{
+		encoder.encodeImage(indir, outdir, infile, verbose, info.dithermode);
+		if (verbose) printf("\n");
 	}
 }
 
@@ -217,9 +267,9 @@ static void copy_as_is(cstr indir, cstr outdir, cstr infile, const Info& info)
 	std::unique_ptr<char> data {new char[fsize]};
 	file->read(data.get(), fsize);
 
-	if (verbose && !compressed) printf("  file size = %d\n", fsize);
-	if (verbose && compressed) printf("  compressed file size = %d\n", csize);
-	if (verbose && compressed) printf("  uncompressed file size = %d\n", fsize);
+	if (verbose && !compressed) printf("  file size = %u\n", fsize);
+	if (verbose && compressed) printf("  compressed file size = %u\n", csize);
+	if (verbose && compressed) printf("  uncompressed file size = %u\n", fsize);
 
 	if (!write_rsrc) // write plain file:
 	{
@@ -230,7 +280,7 @@ static void copy_as_is(cstr indir, cstr outdir, cstr infile, const Info& info)
 			cfile->write(data.get(), fsize);
 			cfile->close();
 			assert(fsize == cfile->usize);
-			if (verbose) printf("  compressed size = %d\n", cfile->csize + 12);
+			if (verbose) printf("  compressed size = %u\n", cfile->csize + 12);
 			if (cfile->csize + 12 < fsize) return;
 			if (verbose) puts("*** compression increased size -> store uncompressed\n");
 		}
@@ -253,7 +303,7 @@ static void copy_as_is(cstr indir, cstr outdir, cstr infile, const Info& info)
 			cfile->write(data.get(), fsize);
 			cfile->close();
 			assert(fsize == cfile->usize);
-			if (verbose) printf("  compressed size = %d\n", cfile->csize + 4);
+			if (verbose) printf("  compressed size = %u\n", cfile->csize + 4);
 
 			if (cfile->csize + 4 < fsize)
 			{
@@ -279,7 +329,7 @@ static void convert_file(cstr indir, cstr outdir, cstr infile)
 {
 	try
 	{
-		if (verbose) printf("processing %s\n", infile);
+		if (verbose) printf("\nprocessing %s\n", infile);
 
 		for (uint i = 0; i < infos.count(); i++)
 		{
@@ -288,11 +338,12 @@ static void convert_file(cstr indir, cstr outdir, cstr infile)
 
 			switch (int(info.format))
 			{
-			case AS_IS: copy_as_is(indir, outdir, infile, info); return;
+			case COPY: copy_as_is(indir, outdir, infile, info); return;
 			case WAV: copy_as_wav(indir, outdir, infile); return;
 			case STSOUND_WAV: copy_as_StSound_wav(indir, outdir, infile); return;
 			case YMM: copy_as_ymm(indir, outdir, infile, info); return;
 			case IMG: copy_as_img(indir, outdir, infile, info); return;
+			case HAM_IMG: copy_as_ham_image(indir, outdir, infile, info); return;
 			case SKIP: return;
 			default: IERR();
 			}
@@ -301,15 +352,15 @@ static void convert_file(cstr indir, cstr outdir, cstr infile)
 	}
 	catch (Error e)
 	{
-		printf("*** %s\n", e);
+		fprintf(stderr, "*** %s\n", e);
 	}
 	catch (std::exception& e)
 	{
-		printf("*** %s\n", e.what());
+		fprintf(stderr, "*** %s\n", e.what());
 	}
 	catch (...)
 	{
-		printf("*** unknown exception\n");
+		fprintf(stderr, "*** unknown exception\n");
 	}
 }
 
@@ -342,14 +393,15 @@ int main(int argc, cstr argv[])
 
 	using namespace kio;
 
+	if (argc >= 2 && eq(argv[1], "-v"))
+	{
+		argv += 1;
+		argc -= 1;
+		verbose = true;
+	}
+
 	try
 	{
-		if (argc == 3 && eq(argv[2], "-v"))
-		{
-			argc	= 2;
-			verbose = true;
-		}
-
 		if (argc == 1)
 		{
 			puts(
@@ -419,9 +471,37 @@ int main(int argc, cstr argv[])
 	}
 	catch (cstr e)
 	{
-		printf("error: %s\n", e);
+		fprintf(stderr, "error: %s\n", e);
 		return 1;
 	}
+	catch (...)
+	{
+		fprintf(stderr, "unknown exception\n");
+		return 1;
+	}
+
+	if (int cnt = RgbImageCompressor::total_num_images)
+	{
+		printf("\nGRANDE TOTAL RgbImageCompressor SUMMARY:\n");
+		bool f = RgbImageCompressor::deviation_linear();
+		printf("  deviation handling = %s\n", f ? "linear" : "quadratic");
+		if (f) printf("  - max. deviation   = %i\n", RgbImageCompressor::deviation_max());
+		if (f) printf("  - factor above max = %i\n", RgbImageCompressor::deviation_factor());
+		//printf("  high deviation boost = %s\n", RgbImageCompressor::high_deviation_other_boost() ? "enabled" : "disabled");
+		printf("  num images: %i\n", cnt);
+		printf("  average num_abs_codes: %2.2f\n", double(RgbImageCompressor::total_num_abs_codes) / cnt);
+		printf("  average num_rel_codes: %2.2f\n", double(RgbImageCompressor::total_num_rel_codes) / cnt);
+		printf("  total deviation: %.0f\n", RgbImageCompressor::total_total_deviation);
+		printf("  average deviation: %f\n", RgbImageCompressor::total_average_deviation / cnt);
+		printf("Deviation Map:\n");
+		for (uint i = 0; i < NELEM(RgbImageCompressor::total_deviations); i++)
+		{
+			uint n = RgbImageCompressor::total_deviations[i];
+			if (n) printf("%4u: %u\n", i, n);
+		}
+		printf("\n");
+	}
+
 	puts("all done.\n");
 	return 0;
 }

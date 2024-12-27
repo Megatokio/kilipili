@@ -64,6 +64,8 @@ add_executable(RsrcFileWriter
 	rsrc_writer/ImageFileWriter.cpp
 	rsrc_writer/exportStSoundWavFile.cpp
 	rsrc_writer/exportStSoundWavFile.h
+	rsrc_writer/RgbImageCompressor.cpp
+	rsrc_writer/RgbImageCompressor.h
 	)
 
 target_compile_definitions(RsrcFileWriter PUBLIC
@@ -155,6 +157,60 @@ target_link_libraries(GifCompressionTest PUBLIC
 	kilipili_devices
 	z
 	)
+
+
+
+add_executable(RGBCompressionTest
+	kilipili/Graphics/color_options.h
+	kilipili/Graphics/Color.h
+	compression_test/main_rgb_compression_test.cpp
+	rsrc_writer/RgbImageCompressor.cpp
+	rsrc_writer/RgbImageCompressor.h
+	)
+
+target_compile_definitions(RGBCompressionTest PUBLIC
+	MAKE_TOOLS=1
+	PICO_BOARD="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
+	)
+
+# add current dir to 'include search path':
+target_include_directories(RGBCompressionTest PUBLIC
+	${CMAKE_CURRENT_LIST_DIR}/kilipili
+	${CMAKE_CURRENT_LIST_DIR}/compression_test
+	${CMAKE_CURRENT_LIST_DIR}/rsrc_writer
+	)
+
+# dependencies. this also adds the include paths:
+target_link_libraries(RGBCompressionTest PUBLIC
+	kilipili_common
+	kilipili_graphics
+	kilipili_devices
+	z
+	)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
