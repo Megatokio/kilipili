@@ -5,8 +5,10 @@
 #include "RsrcFS.h"
 #include "HeatShrinkDecoder.h"
 #include "RsrcFile.h"
+#include "Trace.h"
 #include "cstrings.h"
 #include <cstring>
+
 
 namespace kio ::Devices
 {
@@ -57,12 +59,14 @@ inline cuptr next_entry(cuptr p)
 
 inline const uint8* next_direntry(cuptr p)
 {
+	trace(__func__);
 	p = next_entry(p);
 	return p && *p ? p : nullptr;
 }
 
 static const uint8* next_direntry(cuptr p, cstr pattern)
 {
+	trace(__func__);
 	while (p && !fnmatch(pattern, cptr(p), true)) { p = next_direntry(p); }
 	return p;
 }
@@ -86,6 +90,8 @@ ADDR RsrcFS::getSize()
 {
 	// get size of the file system
 
+	trace(__func__);
+
 	if (!resource_file_data) return 0;
 	cuptr p = resource_file_data;
 	while (*p) { p = next_entry(p); }
@@ -94,7 +100,9 @@ ADDR RsrcFS::getSize()
 
 DirectoryPtr RsrcFS::openDir(cstr path)
 {
+	trace(__func__);
 	assert(path);
+
 	path		 = makeAbsolutePath(path);
 	cstr pattern = eq(path, "/") ? "*" : catstr(path + 1, "/*");
 	if (next_direntry(resource_file_data, pattern)) return new RsrcDir(this, path);
@@ -115,7 +123,9 @@ FilePtr RsrcFS::openFile(cstr path, FileOpenMode mode)
 		  uint8  flags		wbits<<4 + lbits
 		  char[] data       compressed file data
 	*/
+	trace(__func__);
 	assert(path);
+
 	path = makeAbsolutePath(path);
 	if (mode & ~READ) throw NOT_WRITABLE;
 	cuint8* p = next_direntry(resource_file_data, path + 1);
@@ -138,16 +148,44 @@ RsrcDir::RsrcDir(RCPtr<RsrcFS> fs, cstr path) : //
 
 void RsrcDir::rewind() throws
 {
+	trace(__func__);
 	dpos = resource_file_data;
 	subdirs.purge();
 }
 
+
+bool is_in_ram(const void* p) { return uint32(p) >= SRAM_STRIPED_BASE && uint32(p) < SRAM_STRIPED_END; }
+bool is_in_flash(const void* p) { return uint32(p) >= XIP_BASE && uint32(p) < XIP_BASE + PICO_FLASH_SIZE_BYTES; }
+
+void dump_memory(cstr title, cptr p, uint sz)
+{
+	printf("%s\n", title);
+	for (uint i = 0; i < sz; i += 32)
+	{
+		printf("0x%08x: ", uint32(p));
+		for (uint j = i; j < i + 32; j++) printf("%02x ", p[j]);
+		for (uint j = i; j < i + 32; j++) printf("%c", is_printable(p[j]) ? p[j] : '_');
+		printf("\n");
+	}
+}
+
 bool RsrcDir::is_in_subdirs(cstr path, cptr sep)
 {
+	trace(__func__);
+	assert(path);
+	assert(sep);
+	assert(is_in_ram(path) || is_in_flash(path));
+
 	uint len = uint(sep - path) + 1;
+	assert(len <= 256);
+	assert(is_in_ram(subdirs.getData()) || (subdirs.count() == 0 && subdirs.getData() == nullptr));
 
 	for (uint i = 0; i < subdirs.count(); i++)
 	{
+		if (!is_in_flash(subdirs[i]))
+			dump_memory(usingstr("subdirs.data[%u]", subdirs.count()), cptr(subdirs.getData()), 256);
+
+		assert(is_in_flash(subdirs[i]));
 		if (memcmp(path, subdirs[i], len) == 0) return true;
 	}
 	return false;
@@ -155,7 +193,9 @@ bool RsrcDir::is_in_subdirs(cstr path, cptr sep)
 
 FileInfo RsrcDir::next(cstr pattern) throws
 {
-	assert(path[0] == '/');
+	trace(__func__);
+	assert(path && path[0] == '/');
+
 	uint					  dpathlen = strlen(path) - 1;
 	static constexpr DateTime notime; // all-zero
 
@@ -175,7 +215,6 @@ FileInfo RsrcDir::next(cstr pattern) throws
 		}
 
 		cstr fname = cptr(dpos);
-
 		if (cptr sep = strchr(fname, '/')) // this is a subdir
 		{
 			if (is_in_subdirs(fname, sep)) continue; // already returned
@@ -184,22 +223,24 @@ FileInfo RsrcDir::next(cstr pattern) throws
 			if (!fnmatch(pattern, fname, true)) continue;
 			else return FileInfo(fname, 0 /*size*/, notime, DirectoryFile, WriteProtected);
 		}
-
 		if (!fnmatch(pattern, fname, true)) continue;
 		else return FileInfo(fname, get_fsize(dpos), notime, RegularFile, WriteProtected);
 	}
-
 	return FileInfo(nullptr, 0, notime, NoFile, WriteProtected);
 }
 
 FilePtr RsrcDir::openFile(cstr fpath, FileOpenMode fmode) throws
 {
+	trace(__func__);
+
 	fpath = makeAbsolutePath(fpath);
 	return fs->openFile(fpath, fmode);
 }
 
 DirectoryPtr RsrcDir::openDir(cstr dpath) throws
 {
+	trace(__func__);
+
 	dpath = makeAbsolutePath(dpath);
 	return fs->openDir(dpath);
 }
