@@ -3,7 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include <cstdlib>
+#include <stdint.h>
+#include <stdlib.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -15,8 +16,11 @@ extern void* calloc(size_t count, size_t size);
 extern void* realloc(void* mem, size_t size);
 extern void	 free(void* mem);
 
+using dump_heap_print_fu = void(void* data, uint32_t* addr, int sz, int free0_used1_invalid2);
+
 extern const char* check_heap(); // returns nullptr or error text
 extern void		   dump_heap();	 // dump to stdout
+extern void		   dump_heap_to_fu(dump_heap_print_fu*, void* data);
 
 #ifdef __cplusplus
 }

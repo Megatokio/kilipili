@@ -268,17 +268,17 @@ Error check_heap()
 	return nullptr;
 }
 
-static inline uint min(uint a, uint b) { return a <= b ? a : b; }
+static inline int min(int a, int b) { return a <= b ? a : b; }
 
-static void dump_memory(cptr p, uint sz)
+static void dump_memory(cptr p, int sz)
 {
-	for (uint i = 0; i < sz; i += 32)
+	for (int i = 0; i < sz; i += 32)
 	{
 		printf("  ");
-		uint n = min(32u, sz - i);
-		for (uint j = i; j < i + n; j++) printf("%02x ", p[j]);
-		for (uint j = i + n; j < i + 32; j++) printf("   ");
-		for (uint j = i; j < i + n; j++) printf("%c", p[j] >= 32 && p[j] < 127 ? p[j] : '_');
+		int n = min(32, sz - i);
+		for (int j = i; j < i + n; j++) printf("%02x ", p[j]);
+		for (int j = i + n; j < i + 32; j++) printf("   ");
+		for (int j = i; j < i + n; j++) printf("%c", p[j] >= 32 && p[j] < 127 ? p[j] : '_');
 		printf("\n");
 	}
 }
@@ -291,19 +291,20 @@ void dump_heap()
 	{
 		if (is_valid_free(p))
 		{
-			printf("0x%08x: free, sz=%u\n", uint32(p + 1), *p * 4 - 4);
-			p += *p;
+			int sz = skip_free(p) - p;
+			printf("0x%08x: free, sz=%i\n", uint32(p + 1), sz * 4 - 4);
+			p += sz;
 		}
 		else if (is_valid_used(p))
 		{
-			uint sz = (*p & size_mask) * 4 - 4;
-			printf("0x%08x: used, sz=%u\n", uint32(p + 1), sz);
-			dump_memory(cptr(p) + 4, min(256u, sz));
-			p += *p & size_mask;
+			int sz = *p & size_mask;
+			printf("0x%08x: used, sz=%i\n", uint32(p + 1), sz * 4 - 4);
+			dump_memory(cptr(p) + 4, min(256, sz * 4 - 4));
+			p += sz;
 		}
 		else
 		{
-			printf("0x%08x: invalid block\n", uint32(p + 1));
+			printf("0x%08x: invalid data\n", uint32(p));
 			printf("note: dump starts with the void heap link\n");
 			dump_memory(cptr(p), 256);
 			break;
@@ -311,3 +312,63 @@ void dump_heap()
 	}
 	if (p > heap_end) printf("error: last block extends beyond heap end\n");
 }
+
+
+void dump_heap_to_fu(dump_heap_print_fu* print_fu, void* data)
+{
+	for (uint32* p = heap_start; p < heap_end;)
+	{
+		if (is_valid_free(p))
+		{
+			int sz = skip_free(p) - p;
+			print_fu(data, p + 1, sz * 4 - 4, 0);
+			p += sz;
+		}
+		else if (is_valid_used(p))
+		{
+			int sz = *p & size_mask;
+			print_fu(data, p + 1, sz * 4 - 4, 1);
+			p += sz;
+		}
+		else
+		{
+			print_fu(data, p, 256, 2);
+			break;
+		}
+	}
+}
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
