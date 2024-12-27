@@ -2,6 +2,8 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
+#include "malloc.h"
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <new>
@@ -50,6 +52,8 @@ void		operator delete[](void* p, __unused size_t n) noexcept { free(p); }
 #define unlikely(x) __builtin_expect(!!(x), 0)
 using uint32 = uint32_t;
 using int32	 = int32_t;
+using cptr	 = const char*;
+using Error	 = const char*;
 
 // defined by linker:
 extern uint32 end;
@@ -208,10 +212,10 @@ void* realloc(void* mem, size_t size)
 		size_t avail = uint32(skip_free(p + old_size) - p);
 		if (avail >= size)
 		{
+			if (first_free == p + old_size) first_free = p + size;
 			*p = size | flag_used;
 			p += size;
 			if (avail > size) *p = (avail - size) | flag_free;
-			if (p < first_free) first_free = p;
 			return mem;
 		}
 
@@ -245,4 +249,65 @@ void free(void* mem)
 		*p = (*p & size_mask) | flag_free;
 		if (p < first_free) first_free = p;
 	}
+}
+
+Error check_heap()
+{
+	bool	first_free_seen = first_free == nullptr;
+	uint32* p				= heap_start;
+
+	while (p < heap_end)
+	{
+		if (p == first_free) first_free_seen = true;
+		if (is_valid_used(p)) p += *p & size_mask;
+		else if (is_valid_free(p)) p += *p;
+		else return "heap: invalid block found";
+	}
+	if (p > heap_end) return "heap: last block extends beyond heap end";
+	if (!first_free_seen) return "heap: 'first_free' not seen";
+	return nullptr;
+}
+
+static inline uint min(uint a, uint b) { return a <= b ? a : b; }
+
+static void dump_memory(cptr p, uint sz)
+{
+	for (uint i = 0; i < sz; i += 32)
+	{
+		printf("  ");
+		uint n = min(32u, sz - i);
+		for (uint j = i; j < i + n; j++) printf("%02x ", p[j]);
+		for (uint j = i + n; j < i + 32; j++) printf("   ");
+		for (uint j = i; j < i + n; j++) printf("%c", p[j] >= 32 && p[j] < 127 ? p[j] : '_');
+		printf("\n");
+	}
+}
+
+void dump_heap()
+{
+	uint32* p = heap_start;
+
+	while (p < heap_end)
+	{
+		if (is_valid_free(p))
+		{
+			printf("0x%08x: free, sz=%u\n", uint32(p + 1), *p * 4 - 4);
+			p += *p;
+		}
+		else if (is_valid_used(p))
+		{
+			uint sz = (*p & size_mask) * 4 - 4;
+			printf("0x%08x: used, sz=%u\n", uint32(p + 1), sz);
+			dump_memory(cptr(p) + 4, min(256u, sz));
+			p += *p & size_mask;
+		}
+		else
+		{
+			printf("0x%08x: invalid block\n", uint32(p + 1));
+			printf("note: dump starts with the void heap link\n");
+			dump_memory(cptr(p), 256);
+			break;
+		}
+	}
+	if (p > heap_end) printf("error: last block extends beyond heap end\n");
 }

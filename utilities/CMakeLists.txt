@@ -20,6 +20,7 @@ add_library(kilipili_utilities STATIC
 	stack_guard.h stack_guard.cpp
 	system_clock.h system_clock.cpp
 	Dispatcher.h Dispatcher.cpp
+	malloc.h
 	)
 
 target_compile_definitions(kilipili_utilities PUBLIC 
