@@ -273,7 +273,16 @@ void unmount(FileSystemPtr fs)
 
 extern void unmountAll()
 {
-	cwd = nullptr; //
+	cwd = nullptr;
+
+#ifdef DEBUG
+	for (uint i = 0; i < NELEM(file_systems); i++)
+	{
+		if (FileSystem* fs = file_systems[i])
+			if (fs != RsrcFS::getInstance() || fs->rc > 1)
+				printf("*** unmountAll: \"%s\" still mounted (rc=%i)\n", fs->name, fs->rc);
+	}
+#endif
 }
 
 } // namespace kio::Devices
