@@ -49,7 +49,7 @@ void		operator delete[](void* p, __unused size_t n) noexcept { free(p); }
 */
 
 
-#define unlikely(x) __builtin_expect(!!(x), 0)
+#define unlikely(x) (__builtin_expect(!!(x), 0))
 using uint32 = uint32_t;
 using int32	 = int32_t;
 using cptr	 = const char*;
@@ -68,10 +68,6 @@ extern uint32 __StackTop;
 	Each chunk is preceeded by a uint32 size, which is the size in uint32 words incl. this size itself.
 	Therefore the next chunk after uint32* p can be reached by p += *p.
 
-	The variable `first_free` points to the first free chunk or a used chunk before that.
-	Malloc starts searching for a free gap at this address. Malloc tries to update this variable
-	where possible to eliminate skipping over the first used chunks in every call.
-
 	The upper bits of the `size` word are used to indicate used or free and to provide minimal validation.
 
 	note: The pico_sdk uses wrapper around malloc library calls.
@@ -82,14 +78,13 @@ extern uint32 __StackTop;
 constexpr uint32* heap_start = &end;
 constexpr uint32* heap_end	 = &__StackLimit;
 
-static uint32* first_free = nullptr; // (before) first free chunk
+constexpr uint32 sram_size = SRAM_STRIPED_END - SRAM_STRIPED_BASE;
+static_assert((sram_size & (sram_size - 1)) == 0);
 
-
-// Values for Raspberry Pico RP2040:
-constexpr uint32 size_mask = 0x0000ffff; // uint32 words
-constexpr uint32 flag_mask = 0xffff0000; // the other bits
-constexpr uint32 flag_used = 0xA53C0000; // magic number, msb set
-constexpr uint32 flag_free = 0x00000000; // all bits cleared
+constexpr uint32 size_mask = sram_size / 4 - 1;		 // 0x0000ffff  - uint32 words
+constexpr uint32 flag_mask = ~size_mask;			 // 0xffff0000  - the other bits
+constexpr uint32 flag_used = 0xA53C0000 & flag_mask; // magic number, msb set
+constexpr uint32 flag_free = 0x00000000;			 // all bits cleared
 
 constexpr size_t max_size = (size_mask << 2) - 4; // bytes
 
@@ -121,20 +116,21 @@ void* malloc(size_t size)
 	// or a unique pointer value that can later be successfully passed to free().
 
 	// initialize in first call:
-	if (unlikely(first_free == nullptr))
+	static char initialized = 0;
+	if unlikely (!initialized)
 	{
+		initialized		 = 1;
 		uint32 free_size = uint32(heap_end - heap_start);
 		assert(free_size <= size_mask);
 
-		first_free	= heap_start;
-		*first_free = free_size | flag_free; // define one big free chunk
+		*heap_start = free_size | flag_free; // define one big free chunk
 	}
 
 	// calc. required size in words, incl. header:
-	if (unlikely(size > max_size)) return nullptr;
+	if unlikely (size > max_size) return nullptr;
 	size = (size + 7) >> 2;
 
-	uint32* p = first_free = skip_used(first_free); // find 1st free chunk
+	uint32* p = skip_used(heap_start); // find 1st free chunk
 
 	while (p < heap_end)
 	{
@@ -162,7 +158,7 @@ void* calloc(size_t count, size_t size)
 	// If nmemb or size is 0, then calloc() returns either NULL, or a unique pointer value
 	// that can later be successfully passed to free().
 
-	if (unlikely(__builtin_clz(count | 1) + __builtin_clz(size | 1) < 38))
+	if unlikely (__builtin_clz(count | 1) + __builtin_clz(size | 1) < 38)
 		return nullptr; // size has 25 or 26 bits => more than 24 bits => size > 0x00ff.ffff
 
 	size *= count;
@@ -203,7 +199,6 @@ void* realloc(void* mem, size_t size)
 		*p = size | flag_used;
 		p += size;
 		*p = (old_size - size) | flag_free;
-		if (p < first_free) first_free = p;
 		return mem;
 	}
 
@@ -212,7 +207,6 @@ void* realloc(void* mem, size_t size)
 		size_t avail = uint32(skip_free(p + old_size) - p);
 		if (avail >= size)
 		{
-			if (first_free == p + old_size) first_free = p + size;
 			*p = size | flag_used;
 			p += size;
 			if (avail > size) *p = (avail - size) | flag_free;
@@ -247,28 +241,25 @@ void free(void* mem)
 		uint32* p = reinterpret_cast<uint32*>(mem) - 1;
 		assert(is_valid_used(p));
 		*p = (*p & size_mask) | flag_free;
-		if (p < first_free) first_free = p;
 	}
 }
 
 Error check_heap()
 {
-	bool	first_free_seen = first_free == nullptr;
-	uint32* p				= heap_start;
+	uint32* p = heap_start;
 
 	while (p < heap_end)
 	{
-		if (p == first_free) first_free_seen = true;
 		if (is_valid_used(p)) p += *p & size_mask;
 		else if (is_valid_free(p)) p += *p;
 		else return "heap: invalid block found";
 	}
 	if (p > heap_end) return "heap: last block extends beyond heap end";
-	if (!first_free_seen) return "heap: 'first_free' not seen";
 	return nullptr;
 }
 
 static inline int min(int a, int b) { return a <= b ? a : b; }
+static inline int max(int a, int b) { return a >= b ? a : b; }
 
 static void dump_memory(cptr p, int sz)
 {
@@ -336,6 +327,30 @@ void dump_heap_to_fu(dump_heap_print_fu* print_fu, void* data)
 			break;
 		}
 	}
+}
+
+size_t heap_total_size()
+{
+	return size_t(heap_end) - size_t(heap_start); //
+}
+
+size_t heap_largest_free_block()
+{
+	int maxfree = 0 + 1;
+
+	for (uint32* p = heap_start; p < heap_end;)
+	{
+		if (is_valid_used(p)) { p += *p & size_mask; }
+		else if (is_valid_free(p))
+		{
+			int sz	= skip_free(p) - p;
+			maxfree = max(maxfree, sz);
+			p += sz;
+		}
+		else { return 0; }
+	}
+
+	return uint(maxfree - 1) * 4;
 }
 
 

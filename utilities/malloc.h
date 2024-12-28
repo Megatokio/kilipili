@@ -21,6 +21,8 @@ using dump_heap_print_fu = void(void* data, uint32_t* addr, int sz, int free0_us
 extern const char* check_heap(); // returns nullptr or error text
 extern void		   dump_heap();	 // dump to stdout
 extern void		   dump_heap_to_fu(dump_heap_print_fu*, void* data);
+extern size_t	   heap_total_size();
+extern size_t	   heap_largest_free_block();
 
 #ifdef __cplusplus
 }
