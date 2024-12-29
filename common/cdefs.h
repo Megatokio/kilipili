@@ -70,9 +70,9 @@ __unused static constexpr const char* filenamefrompath(const char* path)
 }
 
 extern "C" __printflike(1, 2) __noreturn void panic(const char* fmt, ...);
-#define IERR() panic("IERR: %s:%u", filenamefrompath(__FILE__), __LINE__)
-#define TODO() panic("TODO: %s:%u", filenamefrompath(__FILE__), __LINE__)
-#define OMEM() panic("OMEM: %s:%u", filenamefrompath(__FILE__), __LINE__)
+#define IERR() panic("IERR: %s:%i", filenamefrompath(__FILE__), __LINE__)
+#define TODO() panic("TODO: %s:%i", filenamefrompath(__FILE__), __LINE__)
+#define OMEM() panic("OMEM: %s:%i", filenamefrompath(__FILE__), __LINE__)
 
 #undef assert
 #ifdef DEBUG
