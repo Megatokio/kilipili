@@ -16,22 +16,21 @@ namespace kio::Audio
 class YMFileConverter
 {
 public:
+	using File	  = Devices::File;
 	using FilePtr = Devices::FilePtr;
 
 	enum FType { UNSET = 0, YM2, YM3, YM3b, YM5, YM6 };
 	enum Attributes { NotInterleaved = 1 };
 
-	YMFileConverter() noexcept {}
+	YMFileConverter(FilePtr, cstr fname, bool verbose = false); // fname = default title
+	YMFileConverter(cstr fpath, bool verbose = false);
 	~YMFileConverter();
 
-	uint32 importFile(FilePtr, cstr fname, bool verbose = false);
 	uint32 exportYMMFile(FilePtr);
 	uint32 exportWavFile(FilePtr, float sample_rate = 44100);
 
-	uint32 importFile(cstr fpath, bool verbose = false);
-	uint32 exportYMMFile(cstr fpath, uint8 wbits, uint8 lbits);
-	uint32 exportWavFile(cstr fpath, float sample_rate = 44100);
-	uint32 exportRsrcFile(cstr fpath, cstr rsrc_fpath, uint8 wbits, uint8 lbits);
+	uint32 csize; // the compressed input file size (if it was compressed)
+	uint32 usize; // the uncompressed input file size
 
 	FType  file_type  = UNSET;
 	uint   frame_size = 0;
@@ -49,6 +48,7 @@ public:
 	uint8* register_data = nullptr;
 
 private:
+	void   import_file(File*, cstr fname, bool verbose);
 	uint32 write_raw_audio_file(FilePtr, float sample_rate);
 	void   interleave_registers();
 };

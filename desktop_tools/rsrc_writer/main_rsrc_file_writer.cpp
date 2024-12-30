@@ -146,39 +146,52 @@ static void copy_as_wav(cstr indir, cstr outdir, cstr infile)
 	if (write_rsrc && verbose) puts("  skipped\n"); // don't copy wav into rsrc
 	if (write_rsrc) return;
 
-	YMFileConverter converter;
-	converter.importFile(catstr(indir, infile), verbose);
-	cstr   ext	= extension_from_path(infile); // points to '.' in infile
-	uint32 size = converter.exportWavFile(catstr(outdir, substr(infile, ext), ".wav"));
+	YMFileConverter converter(catstr(indir, infile), verbose);
+	cstr			ext	 = extension_from_path(infile); // points to '.' in infile
+	FilePtr			file = new StdFile(catstr(outdir, substr(infile, ext), ".wav"), WRITE | TRUNCATE);
+	uint32			size = converter.exportWavFile(file);
 	if (verbose) printf("  .wav file size = %u\n", size);
 }
 
 static void copy_as_ymm(cstr indir, cstr outdir, cstr infile, const Info& info)
 {
-	// convert ym file to ymm file:
-	// rsrc is always compressed
+	// convert YM file to YMM file:
 
-	YMFileConverter converter;
-	uint32			qsize	 = converter.importFile(catstr(indir, infile), verbose);
+	YMFileConverter converter(catstr(indir, infile), verbose);
+	uint32			qsize	 = converter.csize;
 	cstr			ext		 = extension_from_path(infile); // points to '.' in infile
 	cstr			basename = substr(infile, ext);
 
+	uint8  w		  = info.w;
+	uint8  l		  = info.l;
+	bool   compressed = w == 0 || l == 0;
+	uint32 zsize	  = 0;
+
 	if (write_rsrc)
 	{
-		cstr   include_fname = catstr(infile, ".rsrc");		  // file for #include
-		cstr   dest_fname	 = catstr(outdir, include_fname); // file written to
-		cstr   rsrc_fname	 = catstr(basename, ".ymm");	  // fname inside rsrc filesystem
-		uint32 zsize		 = converter.exportRsrcFile(dest_fname, rsrc_fname, info.w, info.l);
-		if (verbose) printf("  .ym input file size = %u\n", qsize);
-		if (verbose) printf("  .ymm output file size = %u\n", zsize);
+		cstr include_fname = catstr(infile, ".rsrc");		// file for #include
+		cstr hdr_fpath	   = catstr(outdir, include_fname); // file written to
+		cstr rsrc_fpath	   = catstr(basename, ".ymm");		// fname inside rsrc filesystem
+
+		FilePtr hfile = new StdFile(hdr_fpath, WRITE | TRUNCATE);						// the header file
+		FilePtr rfile = new RsrcFileEncoder(hfile, rsrc_fpath, !compressed);			// rsrc file encoder
+		FilePtr cfile = compressed ? new HeatShrinkEncoder(rfile, w, l, false) : rfile; // compressor
+		converter.exportYMMFile(cfile);
+		if (compressed) cfile->close(); // flush compressor
+		zsize = rfile->getSize();
 		rsrc_files.append(include_fname);
 	}
 	else
 	{
-		uint32 zsize = converter.exportYMMFile(catstr(outdir, basename, ".ymm"), info.w, info.l);
-		if (verbose) printf("  .ym input file size = %u\n", qsize);
-		if (verbose) printf("  .ymm output file size = %u\n", zsize);
+		FilePtr rfile = new StdFile(catstr(outdir, basename, ".ymm"), WRITE | TRUNCATE);
+		FilePtr cfile = compressed ? new HeatShrinkEncoder(rfile, w, l, false) : rfile; // compressor
+		converter.exportYMMFile(cfile);
+		if (compressed) cfile->close(); // flush compressor
+		zsize = rfile->getSize();
 	}
+
+	if (verbose) printf("  .ym input file size = %u\n", qsize);
+	if (verbose) printf("  .ymm output file size = %u\n", zsize);
 }
 
 static void copy_as_img(cstr indir, cstr outdir, cstr infile, const Info& info)

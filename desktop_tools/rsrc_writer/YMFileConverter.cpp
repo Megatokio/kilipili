@@ -18,7 +18,6 @@
 #include "Audio/Ay38912.h"
 #include "Devices/HeatShrinkEncoder.h"
 #include "Devices/LzhDecoder.h"
-#include "RsrcFileEncoder.h"
 #include "cdefs.h"
 #include "cstrings.h"
 #include "standard_types.h"
@@ -31,15 +30,6 @@ using namespace kio::Devices;
 
 namespace kio::Audio
 {
-
-//constexpr uint8 ayRegisterBits[] = {8, 4, 8, 4, 8, 4, 5, 8, 5, 5, 5, 8, 8, 4, 0, 0};
-
-//constexpr uint8 ayRegisterBitMasks[] = {0xff, 0x0f, 0xff, 0x0f, 0xff, 0x0f, 0x1f, 0xff,
-//										0x1f, 0x1f, 0x1f, 0xff, 0xff, 0x0f, 0xff, 0xff};
-//
-//constexpr uint8 ayRegisterResetValues[] = {0xff, 0x0f, 0xff, 0x0f, 0xff, 0x0f, 0x1f, 0x3f,
-//										   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
-
 
 YMFileConverter::~YMFileConverter() { delete[] register_data; }
 
@@ -205,7 +195,7 @@ uint32 YMFileConverter::exportYMMFile(FilePtr file)
 	return uint32(file->getSize());
 }
 
-uint32 YMFileConverter::importFile(FilePtr file, cstr fname, bool v)
+void YMFileConverter::import_file(File* file, cstr fname, bool v)
 {
 	delete[] register_data;
 	register_data = nullptr;
@@ -221,11 +211,11 @@ uint32 YMFileConverter::importFile(FilePtr file, cstr fname, bool v)
 	author	   = "unknown";
 	comment	   = "converted by lib kilipili";
 
-	uint32 csize = file->getSize();
+	csize = file->getSize();
 	if (isLzhEncoded(file)) file = new LzhDecoder(file);
 	else if (isHeatShrinkEncoded(file)) file = new HeatShrinkDecoder(file);
 
-	uint32 fsize = uint32(file->getSize());
+	usize = uint32(file->getSize());
 
 	char magic[8];
 	file->read(magic, 4);
@@ -238,7 +228,7 @@ uint32 YMFileConverter::importFile(FilePtr file, cstr fname, bool v)
 	else throw "not a YM music file";
 
 	if (v) printf("importing: %s\n", fname);
-	if (v) printf("file size = %d\n", csize);
+	if (v) printf("file size = %u\n", csize);
 	if (v) printf("  version = %.4s\n", magic);
 
 	switch (int(file_type))
@@ -247,19 +237,19 @@ uint32 YMFileConverter::importFile(FilePtr file, cstr fname, bool v)
 	case YM3: // Standard Atari:
 	{
 		frame_size = 14;
-		num_frames = (fsize - 4) / 14;
+		num_frames = (usize - 4) / 14;
 
-		if (v) printf("   frames = %d\n", num_frames);
+		if (v) printf("   frames = %u\n", num_frames);
 		break;
 	}
 	case YM3b: // standard Atari + Loop Info:
 	{
 		loop_frame = file->read_BE<uint32>();
 		frame_size = 14;
-		num_frames = (fsize - 8) / 14;
+		num_frames = (usize - 8) / 14;
 
-		if (v) printf("   frames = %d\n", num_frames);
-		if (v) printf("  loop to = %d\n", loop_frame);
+		if (v) printf("   frames = %u\n", num_frames);
+		if (v) printf("  loop to = %u\n", loop_frame);
 		break;
 	}
 	case YM5:
@@ -281,11 +271,11 @@ uint32 YMFileConverter::importFile(FilePtr file, cstr fname, bool v)
 		comment	   = file->gets(1 << 0); // 0-terminated only
 		frame_size = 16;
 
-		if (v) printf("   frames = %d\n", num_frames);
+		if (v) printf("   frames = %u\n", num_frames);
 		if (v) printf("   attrib = %#.4x (%s)\n", attributes, attributes & 1 ? "not interleaved" : "interleaved!");
-		if (v) printf("    clock = %d Hz\n", ay_clock);
+		if (v) printf("    clock = %u Hz\n", ay_clock);
 		if (v) printf("     rate = %d Hz\n", frame_rate);
-		if (v) printf("  loop to = %d\n", loop_frame);
+		if (v) printf("  loop to = %u\n", loop_frame);
 		if (v) printf("    title = %s\n", title);
 		if (v) printf("   author = %s\n", author);
 		if (v) printf("  comment = %s\n", comment);
@@ -298,50 +288,19 @@ uint32 YMFileConverter::importFile(FilePtr file, cstr fname, bool v)
 	file->read(register_data, num_frames * frame_size);
 	//file->close();
 	//file = nullptr;
-	return fsize;
+	//return usize;
 }
 
-uint32 YMFileConverter::importFile(cstr fpath, bool verbose)
+YMFileConverter::YMFileConverter(FilePtr file, cstr fname, bool v)
+{
+	import_file(file, fname, v); //
+}
+
+YMFileConverter::YMFileConverter(cstr fpath, bool verbose)
 {
 	FilePtr file = new StdFile(fpath);
-	return importFile(file, fpath, verbose);
+	import_file(file, fpath, verbose);
 }
-
-uint32 YMFileConverter::exportYMMFile(cstr fpath, uint8 w, uint8 l)
-{
-	FilePtr file = new StdFile(fpath, WRITE | TRUNCATE);
-	if (w && l)
-	{
-		RCPtr<HeatShrinkEncoder> cfile = new HeatShrinkEncoder(file, w, l);
-		exportYMMFile(cfile);
-		cfile->close();
-		return cfile->csize + 12;
-	}
-	else return exportYMMFile(file);
-}
-
-uint32 YMFileConverter::exportWavFile(cstr fpath, float sample_rate)
-{
-	FilePtr file = new StdFile(fpath, WRITE | TRUNCATE);
-	return exportWavFile(file, sample_rate);
-}
-
-uint32 YMFileConverter::exportRsrcFile(cstr hdr_fpath, cstr rsrc_fpath, uint8 w, uint8 l)
-{
-	// create header file with array data for a compressed resource file
-	// for a YM register file in flash resource file system.
-
-	if (w == 0) w = 12;
-	if (l == 0) l = 8;
-
-	FilePtr					 hfile = new StdFile(hdr_fpath, WRITE | TRUNCATE);	// the header file
-	RCPtr<RsrcFileEncoder>	 rfile = new RsrcFileEncoder(hfile, rsrc_fpath);	// rsrc file encoder
-	RCPtr<HeatShrinkEncoder> cfile = new HeatShrinkEncoder(rfile, w, l, false); // compressor
-	exportYMMFile(cfile);
-	cfile->close();
-	return cfile->csize + 8;
-}
-
 
 } // namespace kio::Audio
 
