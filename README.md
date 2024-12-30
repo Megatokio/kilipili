@@ -18,7 +18,8 @@ The video engine provides many video modes with indexed or true color up to high
 - `[done]` Automatically sets the required system clock.  
 - `[test]` Run entirely in RAM: video output while writing to the internal flash.
 - `[test]` Sprites.
-- `[test]` Tiled background. 
+- `[test]` Tiled background.
+- `[done]` Variant of hold-and-modify framebuffer to display true color images up to 600x400 without the limitation of attributes. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
 
 ## USB Host
 The USB host mode currently supports keyboards and pointer devices (aka 'Mouse'). 
@@ -75,11 +76,20 @@ The audio interface automatically adjusts to a changed system clock when switchi
 - `[done]` sample rate adapter, misc. mono <-> stereo adapters
 - `[done]` low latency of as little as 1ms
 
+## Resource File System
+Lib kilipili provides a compressed resource file system with files linked into the binary and written to the program flash. This can be compiled using the RsrcFileWriter in the desktop_tools/ directory. See below. The RsrcFileWriter creates a file `rsrc.cpp` which must be linked into the program. See Wiki page.
+
 ## SDCard support
 The SDcard Interface accesses the SD card via it's SPI interface.  
 
 - `[test]` Access SC card in SPI mode
 - `[test]` FAT file system support 
+
+## Desktop Tools
+There are some tools for the desktop (not run on the Pico) which are built by the *CMakeLists.txt* in directory *desktop_tools/*. If you want to convert images to native color depth of your board then make sure to add -DPICO_BOARD=your_board to the cmake command line.  
+The following utilities are built by *desktop_tools/CmakeLists.txt*:
+- `[done]` UnitTest
+- `[done]` RsrcFileWriter: read and convert a directory for use with the resource file system or to write to an SDcard. See Wiki page.
 
 ## Other
 - `[done]` cpu load sensor
