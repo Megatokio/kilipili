@@ -232,7 +232,7 @@ static void copy_as_ham_image(cstr indir, cstr outdir, cstr infile, const Info& 
 		cstr	dest_fname	  = catstr(outdir, include_fname); // file written to
 		cstr	rsrc_fname	  = catstr(basename, ".ham");	   // fname inside rsrc filesystem
 		FilePtr outfile		  = new StdFile(dest_fname, FileOpenMode::WRITE);
-		outfile				  = new RsrcFileEncoder(outfile, rsrc_fname);
+		outfile				  = new RsrcFileEncoder(outfile, rsrc_fname, info.w == 0);
 		if (info.w) outfile = new HeatShrinkEncoder(outfile, info.w, info.l, false);
 		uint32 size = encoder.encodeImage(catstr(indir, infile), outfile, verbose, info.dithermode);
 		if (verbose) printf("  .img file size = %u\n", size);
@@ -298,7 +298,7 @@ static void copy_as_is(cstr indir, cstr outdir, cstr infile, const Info& info)
 		if (info.w && info.l) // compressed resource file
 		{
 			file						   = new StdFile(dest_fpath, WRITE);
-			file						   = new RsrcFileEncoder(file, rsrc_fname);
+			file						   = new RsrcFileEncoder(file, rsrc_fname, false);
 			RCPtr<HeatShrinkEncoder> cfile = new HeatShrinkEncoder(file, info.w, info.l, false);
 			cfile->write(data.get(), fsize);
 			cfile->close();
@@ -317,7 +317,7 @@ static void copy_as_is(cstr indir, cstr outdir, cstr infile, const Info& info)
 		// uncompressed resource file
 
 		file = new StdFile(dest_fpath, WRITE);
-		file = new RsrcFileEncoder(file, rsrc_fname);
+		file = new RsrcFileEncoder(file, rsrc_fname, false);
 		file->write_LE(fsize);
 		file->write(data.get(), fsize);
 		file->close();

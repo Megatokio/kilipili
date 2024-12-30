@@ -161,7 +161,7 @@ uint32 ImageFileWriter::exportRsrcFile(cstr hdr_fpath, cstr rsrc_fpath, uint8 w,
 	if (l == 0) l = 8;
 
 	FilePtr file				   = new StdFile(hdr_fpath, WRITE | TRUNCATE);
-	file						   = new RsrcFileEncoder(file, rsrc_fpath);
+	file						   = new RsrcFileEncoder(file, rsrc_fpath, false);
 	RCPtr<HeatShrinkEncoder> cfile = new HeatShrinkEncoder(file, w, l, false);
 	exportImgFile(cfile);
 	cfile->close();

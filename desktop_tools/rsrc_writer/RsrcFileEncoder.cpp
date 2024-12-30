@@ -8,9 +8,10 @@
 namespace kio::Devices
 {
 
-RsrcFileEncoder::RsrcFileEncoder(FilePtr file, cstr rsrc_fname) : //
+RsrcFileEncoder::RsrcFileEncoder(FilePtr file, cstr rsrc_fname, bool write_fsize) :
 	File(Flags::writable),
-	file(file)
+	file(file),
+	write_fsize(write_fsize)
 {
 	assert(file != nullptr);
 
@@ -21,9 +22,23 @@ RsrcFileEncoder::RsrcFileEncoder(FilePtr file, cstr rsrc_fname) : //
 	write(rsrc_fname, strlen(rsrc_fname) + 1);
 	file->putc('\n');
 
+	// reserve space for fsize:
+	if (write_fsize) file->puts(spaces(4 * 4 + 1));
+
 	// now the data written by caller follows
 	fpos0 = uint32(file->getFpos());
 	fpos  = 0;
+}
+
+void RsrcFileEncoder::finalize()
+{
+	if (fpos >= fsize) file->puts("\n");
+	if (write_fsize)
+	{
+		file->setFpos(fpos0 - (4 * 4 + 1));
+		uint32 sz = getSize();
+		file->printf("%3u,%3u,%3u,%3u,\n", uchar(sz), uchar(sz >> 8), uchar(sz >> 16), uchar(sz >> 24));
+	}
 }
 
 RsrcFileEncoder::~RsrcFileEncoder() noexcept
@@ -34,7 +49,7 @@ RsrcFileEncoder::~RsrcFileEncoder() noexcept
 	if (file == nullptr) return;
 	try
 	{
-		if (fpos >= fsize) file->puts("\n");
+		finalize();
 	}
 	catch (...)
 	{
@@ -57,7 +72,7 @@ SIZE RsrcFileEncoder::write(const void* q, SIZE len, bool)
 void RsrcFileEncoder::close()
 {
 	if (!file) return;
-	if (fpos >= fsize) file->puts("\n");
+	finalize();
 	file->close();
 	file = nullptr;
 }

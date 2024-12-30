@@ -11,7 +11,7 @@ namespace kio::Devices
 
 /*	the RsrcFileEncoder encodes the input data into comma separated ascii encoded values.
 	The user file data is preceded by the (encoded) 0-terminated file name.
-	The stored file name is not accounted in fsize or fpos.
+	The stored file name and the optional fsize are not accounted in fsize or fpos.
 
 	data written by the RsrcFileEncoder:
 	  char[] filename   0-terminated string
@@ -34,7 +34,7 @@ namespace kio::Devices
 class RsrcFileEncoder : public File
 {
 public:
-	RsrcFileEncoder(FilePtr file, cstr rsrc_fname);
+	RsrcFileEncoder(FilePtr file, cstr rsrc_fname, bool write_fsize = true);
 	~RsrcFileEncoder() noexcept override;
 
 	virtual SIZE write(const void* data, SIZE, bool partial = false) override;
@@ -45,10 +45,11 @@ public:
 
 private:
 	FilePtr file;
-	uint32	fpos0	 = 0; // start of file data
-	uint32	fsize	 = 0; // size of file data
-	uint32	fpos	 = 0; // write position in file data
-	uint32	_padding = 0;
+	uint32	fpos0 = 0; // start of file data
+	uint32	fsize = 0; // size of file data
+	uint32	fpos  = 0; // write position in file data
+	bool	write_fsize;
+	void	finalize();
 };
 
 
