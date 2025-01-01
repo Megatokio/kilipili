@@ -66,6 +66,8 @@ add_executable(RsrcFileWriter
 	rsrc_writer/exportStSoundWavFile.h
 	rsrc_writer/RgbImageCompressor.cpp
 	rsrc_writer/RgbImageCompressor.h
+	rsrc_writer/YMMFileConverter.h 
+	rsrc_writer/YMMFileConverter.cpp
 	)
 
 target_compile_definitions(RsrcFileWriter PUBLIC

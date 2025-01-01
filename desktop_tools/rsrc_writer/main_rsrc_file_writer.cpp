@@ -3,10 +3,12 @@
 #include "Audio/Ay38912.h"
 #include "Devices/HeatShrinkEncoder.h"
 #include "Devices/LzhDecoder.h"
+#include "Devices/StdFile.h"
 #include "ImageFileWriter.h"
 #include "RgbImageCompressor.h"
 #include "RsrcFileEncoder.h"
 #include "YMFileConverter.h"
+#include "YMMFileConverter.h"
 #include "common/Array.h"
 #include "common/cdefs.h"
 #include "common/standard_types.h"
@@ -123,7 +125,12 @@ Info::Info(cstr _s)
 
 	if (format == UNSET) throw usingstr("no format option in: %s", _s);
 
-	if (w && l)
+	if (format == YMM)
+	{
+		if (!w) w = 10;
+		if (w < 8 || w > 14) throw "size W oorange";
+	}
+	else if (w && l)
 	{
 		if (w < 6 || w > 14) throw "size W oorange";
 		if (l < 4 || l > 10) throw "size L oorange";
@@ -157,15 +164,10 @@ static void copy_as_ymm(cstr indir, cstr outdir, cstr infile, const Info& info)
 {
 	// convert YM file to YMM file:
 
-	YMFileConverter converter(catstr(indir, infile), verbose);
-	uint32			qsize	 = converter.csize;
-	cstr			ext		 = extension_from_path(infile); // points to '.' in infile
-	cstr			basename = substr(infile, ext);
-
-	uint8  w		  = info.w;
-	uint8  l		  = info.l;
-	bool   compressed = w == 0 || l == 0;
-	uint32 zsize	  = 0;
+	YMMFileConverter converter;
+	cstr		   ext		= extension_from_path(infile); // points to '.' in infile
+	cstr		   basename = substr(infile, ext);
+	uint32		   zsize	= 0;
 
 	if (write_rsrc)
 	{
@@ -173,23 +175,19 @@ static void copy_as_ymm(cstr indir, cstr outdir, cstr infile, const Info& info)
 		cstr hdr_fpath	   = catstr(outdir, include_fname); // file written to
 		cstr rsrc_fpath	   = catstr(basename, ".ymm");		// fname inside rsrc filesystem
 
-		FilePtr hfile = new StdFile(hdr_fpath, WRITE | TRUNCATE);						// the header file
-		FilePtr rfile = new RsrcFileEncoder(hfile, rsrc_fpath, !compressed);			// rsrc file encoder
-		FilePtr cfile = compressed ? new HeatShrinkEncoder(rfile, w, l, false) : rfile; // compressor
-		converter.exportYMMFile(cfile);
-		if (compressed) cfile->close(); // flush compressor
-		zsize = rfile->getSize();
+		FilePtr hfile = new StdFile(hdr_fpath, WRITE | TRUNCATE); // the header file
+		FilePtr rfile = new RsrcFileEncoder(hfile, rsrc_fpath);	  // rsrc file encoder
+		zsize		  = converter.convertFile(catstr(indir, infile), rfile, verbose, info.w);
+
 		rsrc_files.append(include_fname);
 	}
 	else
 	{
 		FilePtr rfile = new StdFile(catstr(outdir, basename, ".ymm"), WRITE | TRUNCATE);
-		FilePtr cfile = compressed ? new HeatShrinkEncoder(rfile, w, l, false) : rfile; // compressor
-		converter.exportYMMFile(cfile);
-		if (compressed) cfile->close(); // flush compressor
-		zsize = rfile->getSize();
+		zsize		  = converter.convertFile(catstr(indir, infile), rfile, verbose, info.w);
 	}
 
+	uint32 qsize = converter.csize;
 	if (verbose) printf("  .ym input file size = %u\n", qsize);
 	if (verbose) printf("  .ymm output file size = %u\n", zsize);
 }

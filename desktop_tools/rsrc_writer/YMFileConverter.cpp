@@ -18,9 +18,12 @@
 #include "Audio/Ay38912.h"
 #include "Devices/HeatShrinkEncoder.h"
 #include "Devices/LzhDecoder.h"
+#include "Devices/StdFile.h"
 #include "cdefs.h"
 #include "cstrings.h"
 #include "standard_types.h"
+#include <common/Array.h>
+#include <common/basic_math.h>
 #include <cstring>
 #include <dirent.h>
 #include <stdio.h>
@@ -150,49 +153,6 @@ uint32 YMFileConverter::exportWavFile(FilePtr file, float sample_rate)
 	header.FileLength  = htole32(num_samples * (16 / 8) + sizeof(WAVHeader) - 8);
 	file->write(&header, sizeof(WAVHeader));
 	return fsize;
-}
-
-uint32 YMFileConverter::exportYMMFile(FilePtr file)
-{
-	// write uncompressed YM Music register file
-	// registers per frame = 14
-	// the register data is segmented into segments of 100 frames (2 seconds).
-	// the register data within a segment is not interleaved, that is:
-	// segment_data[] = reg0[100], reg1[100], ... reg13[100]
-	// this is a compromise between compressibility
-	// and the need to read the file sequentially for play back.
-
-	file->puts("ymm!");			  // file ID
-	file->putc(0);				  // variant
-	file->putc(0);				  // flags
-	file->putc(char(frame_rate)); //
-	file->putc(14);				  // registers per frame
-	file->write_LE(num_frames);
-	file->write_LE(loop_frame);
-	file->write_LE(ay_clock);
-	file->write(title, strlen(title) + 1);
-	file->write(author, strlen(author) + 1);
-	file->write(comment, strlen(comment) + 1);
-
-	// f=0: interleaved: register_data[r * 1 + frame * 16]
-	// f=1: sequential:  register_data[r * num_frames + frame * 1]
-	bool f	= attributes & NotInterleaved;
-	uint rf = f ? num_frames : 1;
-	uint ff = f ? 1 : frame_size;
-
-	for (uint32 frame0 = 0; frame0 < num_frames; frame0 += 100)
-	{
-		uint end = min(num_frames, frame0 + 100);
-		for (uint reg = 0; reg < 14; reg++)
-		{
-			for (uint32 frame = frame0; frame < end; frame++)
-			{
-				file->write<uint8>(register_data[reg * rf + frame * ff]);
-			}
-		}
-	}
-
-	return uint32(file->getSize());
 }
 
 void YMFileConverter::import_file(File* file, cstr fname, bool v)

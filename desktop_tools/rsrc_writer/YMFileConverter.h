@@ -3,8 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Devices/StdFile.h"
 #include "standard_types.h"
+#include <Devices/File.h>
+#include <common/Array.h>
 #include <cstdio>
 
 namespace kio::Audio
@@ -26,7 +27,6 @@ public:
 	YMFileConverter(cstr fpath, bool verbose = false);
 	~YMFileConverter();
 
-	uint32 exportYMMFile(FilePtr);
 	uint32 exportWavFile(FilePtr, float sample_rate = 44100);
 
 	uint32 csize; // the compressed input file size (if it was compressed)
