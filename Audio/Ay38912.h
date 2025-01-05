@@ -14,6 +14,8 @@ namespace kio::Audio
 extern float hw_sample_frequency;
 
 
+constexpr uint8 ayRegisterNumBits[] = {8, 4, 8, 4, 8, 4, 5, 8, 5, 5, 5, 8, 8, 4, 8, 8};
+
 constexpr uint8 ayRegisterBitMasks[] = {0xff, 0x0f, 0xff, 0x0f, 0xff, 0x0f, 0x1f, 0xff,
 										0x1f, 0x1f, 0x1f, 0xff, 0xff, 0x0f, 0xff, 0xff};
 
