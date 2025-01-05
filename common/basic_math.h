@@ -87,6 +87,8 @@ inline constexpr float map_range(float value, float qmax, float zmax)
 template<typename T>
 inline constexpr uint msbit(T n) noexcept
 {
+	if (n < 0) return sizeof(T) * CHAR_BIT - 1;
+	
 	uint b = 0;
 	for (uint i = sizeof(T) << 2; i; i >>= 1)
 	{
