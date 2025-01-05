@@ -6,6 +6,11 @@
 ***This is work in progress***   
 *Anybody who runs into a bug is welcome to file a bug report or a merge request.*
 
+## Latest Additions
+- Display true color images up to 600x400 pixels with a *HoldAndModifyVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
+- AY-3-8912 sound chip emulation and *.ym* audio file playback. See Wiki page about *.ymm* files.
+
+
 ## Video 
 The video engine provides many video modes with indexed or true color up to highest resolution by use of attributes. It provides sprites and a mouse pointer.
 
@@ -19,7 +24,8 @@ The video engine provides many video modes with indexed or true color up to high
 - `[test]` Run entirely in RAM: video output while writing to the internal flash.
 - `[test]` Sprites.
 - `[test]` Tiled background.
-- `[done]` Variant of hold-and-modify framebuffer to display true color images up to 600x400 without the limitation of attributes. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
+- `[done]` Display true color images up to 600x400 pixels with a *HoldAndModifyVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
+
 
 ## USB Host
 The USB host mode currently supports keyboards and pointer devices (aka 'Mouse'). 
@@ -28,6 +34,7 @@ The USB host mode currently supports keyboards and pointer devices (aka 'Mouse')
 - `[done]` English and German key translation tables
 - `[todo]` more key translation tables
 - `[done]` USB mouse support
+
 
 ## Graphics
 The Graphics engine supports pixmaps with many modes which are supported by the video engine. It provides some graphics primitives, but here is some work to go. Does someone want to help?
@@ -46,6 +53,7 @@ The Graphics engine supports pixmaps with many modes which are supported by the 
 - `[done]` Text output
 - `[todo]` Graphics still lack some functionality.
 
+
 ## Ansi Terminal
 The Graphics engine contains a class which provides a wannabe-ANSI-compliant text terminal. See `Graphics/ANSITerm` for feature list.  
 The ANSITerm can be used with any Pixmap size and should be used with colormode_a1w8_rgb for the colors. The number of actual colors displayed depends on your video hardware setup.  
@@ -56,6 +64,7 @@ The ANSITerm can be used with any Pixmap size and should be used with colormode_
 - `[done]` Latin-1 character set, one Graphics character set
 - `[done]` optional utf-8 encoding
 - `[done]` US and German keyboard (you are welcomed to add your nationality!)
+
 
 ## Audio
 The audio sub system supports no audio and I2S and PWM audio with 1 or 2 channels.
@@ -75,9 +84,12 @@ The audio interface automatically adjusts to a changed system clock when switchi
 - `[done]` sinus and square wave generators
 - `[done]` sample rate adapter, misc. mono <-> stereo adapters
 - `[done]` low latency of as little as 1ms
+- `[done]` AY-3-8912 sound chip emulation and *.ym* audio file playback. See Wiki page about *.ymm* files.
+
 
 ## Resource File System
 Lib kilipili provides a compressed resource file system with files linked into the binary and written to the program flash. This can be compiled using the RsrcFileWriter in the desktop_tools/ directory. See below. The RsrcFileWriter creates a file `rsrc.cpp` which must be linked into the program. See Wiki page.
+
 
 ## SDCard support
 The SDcard Interface accesses the SD card via it's SPI interface.  
@@ -85,11 +97,13 @@ The SDcard Interface accesses the SD card via it's SPI interface.
 - `[test]` Access SC card in SPI mode
 - `[test]` FAT file system support 
 
+
 ## Desktop Tools
 There are some tools for the desktop (not run on the Pico) which are built by the *CMakeLists.txt* in directory *desktop_tools/*. If you want to convert images to native color depth of your board then make sure to add -DPICO_BOARD=your_board to the cmake command line.  
 The following utilities are built by *desktop_tools/CmakeLists.txt*:
 - `[done]` UnitTest
 - `[done]` RsrcFileWriter: read and convert a directory for use with the resource file system or to write to an SDcard. See Wiki page.
+
 
 ## Other
 - `[done]` cpu load sensor
@@ -97,12 +111,14 @@ The following utilities are built by *desktop_tools/CmakeLists.txt*:
 - `[test]` I2C BlockDevice
 - `[test]` QSPI flash BlockDevice
 
+
 ## Resources & restrictions
 - Uses CPU core 1, 3 DMA channels and 2 state machines in PIO 1 for video.  
   Upt to 2 DMA channels and the other state machines are used for audio.
 - Some video modes require excessive high system clock in high screen resolutions.
 - Pixel clock restricted to full MHz.
 - System clock must be a multiple of the pixel clock.
+
 
 ## Example
 
