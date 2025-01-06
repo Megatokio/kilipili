@@ -43,11 +43,8 @@ static inline void remove(int i)
 	for (num_tasks--; i < num_tasks; i++) { tasks[i] = tasks[i + 1]; }
 }
 
-void Dispatcher::addWithDelay(Handler* handler, void* data, int32 delay) { addAtTime(handler, data, now() + delay); }
-
-void Dispatcher::addAtTime(Handler* handler, void* data, CC when)
+static void add(Handler* handler, void* data, CC when)
 {
-	Lock _;
 	assert(num_tasks < NELEM(tasks));
 	int i = num_tasks++;
 	for (; i - 1 >= 0 && tasks[i - 1].when < when; i--) { tasks[i] = tasks[i - 1]; }
@@ -55,48 +52,48 @@ void Dispatcher::addAtTime(Handler* handler, void* data, CC when)
 	task.handler = handler;
 	task.data	 = data;
 	task.when	 = when;
+	//__sev();  may be triggered by caller if needed <hardware/sync.h>
+}
+
+static int index_of(Handler* handler, void* data)
+{
+	int i = num_tasks;
+	while (--i >= 0)
+	{
+		if (tasks[i].handler == handler && tasks[i].data == data) break;
+	}
+	return i;
+}
+
+void Dispatcher::addWithDelay(Handler* handler, void* data, int32 delay)
+{
+	Lock _;
+	add(handler, data, now() + delay);
+}
+
+void Dispatcher::addAtTime(Handler* handler, void* data, CC when)
+{
+	Lock _;
+	add(handler, data, when);
 }
 
 void Dispatcher::addHandler(Handler* handler, void* data)
 {
-	// add task at the end of the list with when = now
-
 	Lock _;
-	assert(num_tasks < NELEM(tasks));
-	Task& task	 = tasks[num_tasks++];
-	task.handler = handler;
-	task.data	 = data;
-	task.when	 = now();
-	//__sev();  may be triggered by caller if needed <hardware/sync.h>
+	add(handler, data, now());
 }
 
 void Dispatcher::addIfNew(Handler* handler, void* data)
 {
 	Lock _;
-	for (int i = num_tasks; --i >= 0;)
-	{
-		if (tasks[i].handler != handler) continue;
-		if (tasks[i].data != data) continue;
-		return;
-	}
-
-	assert(num_tasks < NELEM(tasks));
-	Task& task	 = tasks[num_tasks++];
-	task.handler = handler;
-	task.data	 = data;
-	task.when	 = now();
+	if (index_of(handler, data) < 0) add(handler, data, now());
 }
 
 void Dispatcher::removeHandler(Handler* handler, void* data)
 {
 	Lock _;
-	for (int i = num_tasks; --i >= 0;)
-	{
-		if (tasks[i].handler != handler) continue;
-		if (tasks[i].data != data) continue;
-		remove(i);
-		break;
-	}
+	int	 i = index_of(handler, data);
+	if (i >= 0) remove(i);
 }
 
 void Dispatcher::run(int timeout) noexcept
@@ -105,51 +102,34 @@ void Dispatcher::run(int timeout) noexcept
 
 	if (timeout)
 	{
-		int i = num_tasks - 1;
-		if unlikely (i < 0) return;
-		wfe_or_timeout(min(timeout, tasks[i].when - now()));
+		uint8 n = num_tasks;
+		wfe_or_timeout(n ? min(timeout, tasks[n - 1].when - now()) : timeout);
 	}
 
-	int i = num_tasks - 1;
-	if unlikely (i < 0) return;
-	if (tasks[i].when > now()) return;
+	uint8 n = const_cast<volatile uint8&>(num_tasks);
+	if (n == 0) return;
+	if (tasks[n - 1].when > now()) return;
 
 	uint zz = lock();
 
-	i = num_tasks - 1;
-	if (i >= 0)
+	if (uint8 n = const_cast<volatile uint8&>(num_tasks))
 	{
-		Task&	 task	 = tasks[i];
+		Task&	 task	 = tasks[--n];
 		Handler* handler = task.handler;
 		void*	 data	 = task.data;
 		CC		 when	 = task.when;
 
 		if (now() >= when)
 		{
+			num_tasks = n;
 			unlock(zz);
 			int delay = handler(data);
 			zz		  = lock();
 
-			for (i = num_tasks; --i >= 0;) // find again
+			if (delay) // reschedule
 			{
-				if (tasks[i].handler != handler) continue;
-				if (tasks[i].data != data) continue;
-				break;
-			}
-
-			if (i >= 0) // still there?
-			{
-				if (delay == 0) { remove(i); }
-				else // reschedule
-				{
-					when = delay >= 0 ? now() + delay : when - delay;
-					for (; i - 1 >= 0 && tasks[i - 1].when < when; i--) { tasks[i] = tasks[i - 1]; }
-
-					Task& task	 = tasks[i];
-					task.handler = handler;
-					task.data	 = data;
-					task.when	 = when;
-				}
+				when = delay >= 0 ? now() + delay : when - delay;
+				add(handler, data, when);
 			}
 		}
 	}

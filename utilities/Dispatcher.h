@@ -9,7 +9,7 @@
 /*
 	The Dispatcher allows you to run state machines in parallel to the main program
 	and to convert interrupts into synchronous events.
-	The Dispatcher only has static functions and requires no real instance.
+	The Dispatcher has only static functions and requires no real instance.
 */
 
 namespace kio
@@ -51,12 +51,21 @@ public:
 		If timeout>0 then wait for timeout or the next scheduled time. ("idle")
 	***	Returns quickly if timeout==0 and no handler needs to run  
 		to allow frequent polling by the main program.
+	*** The currently executed handler is removed from the dispatcher list.
+		=> a handler which discovers it has to do a longish job can recursively
+		   call Dispatcher::run() to keep the rest of the system happy.
+		=> a handler cannot be removed from within and not safely from the other core.
+		   to remove a handler from within the handler can simply return 0.
 	*/
 	static void run(int timeout = 0) noexcept;
 
 private:
 	Dispatcher() noexcept = default;
 };
+
+
+// short name:
+inline void disp(int timeout = 0) noexcept { Dispatcher::run(timeout); }
 
 
 // A Handler which blinks the on-board LED of the Pico board
