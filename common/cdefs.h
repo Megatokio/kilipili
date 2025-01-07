@@ -71,21 +71,25 @@ __unused static constexpr const char* filenamefrompath(const char* path)
 	return path;
 }
 
-extern "C" __printflike(1, 2) __noreturn void panic(const char* fmt, ...);
-#define IERR() panic("IERR: %s:%i", filenamefrompath(__FILE__), __LINE__)
-#define TODO() panic("TODO: %s:%i", filenamefrompath(__FILE__), __LINE__)
-#define OMEM() panic("OMEM: %s:%i", filenamefrompath(__FILE__), __LINE__)
+//extern "C" __printflike(1, 2) __noreturn void panic(const char* fmt, ...);
+namespace kio
+{
+extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
+};
+#define IERR() kio::panic("IERR: %s:%i", filenamefrompath(__FILE__), __LINE__)
+#define TODO() kio::panic("TODO: %s:%i", filenamefrompath(__FILE__), __LINE__)
+#define OMEM() kio::panic("OMEM: %s:%i", filenamefrompath(__FILE__), __LINE__)
 
 #undef assert
 #ifdef DEBUG
 // clang-format off
-  #define assert(COND) ((COND) ? (void)0 : panic("assert: %s:%i", filenamefrompath(__FILE__), __LINE__))
-  #define assert_eq(A, B) ((A) == (B) ? (void)0 : panic("failed: %s:%i: (%li) == (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
-  #define assert_ne(A, B) ((A) != (B) ? (void)0 : panic("failed: %s:%i: (%li) != (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
-  #define assert_lt(A, B) ((A) <  (B) ? (void)0 : panic("failed: %s:%i: (%li) < (%li)",  filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
-  #define assert_le(A, B) ((A) <= (B) ? (void)0 : panic("failed: %s:%i: (%li) <= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
-  #define assert_gt(A, B) ((A) >  (B) ? (void)0 : panic("failed: %s:%i: (%li) > (%li)",  filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
-  #define assert_ge(A, B) ((A) >= (B) ? (void)0 : panic("failed: %s:%i: (%li) >= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert(COND) ((COND) ? (void)0 : kio::panic("assert: %s:%i", filenamefrompath(__FILE__), __LINE__))
+  #define assert_eq(A, B) ((A) == (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) == (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert_ne(A, B) ((A) != (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) != (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert_lt(A, B) ((A) <  (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) < (%li)",  filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert_le(A, B) ((A) <= (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) <= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert_gt(A, B) ((A) >  (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) > (%li)",  filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+  #define assert_ge(A, B) ((A) >= (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) >= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
 // clang-format on
 #else
   #define assert(...)	  ((void)0)

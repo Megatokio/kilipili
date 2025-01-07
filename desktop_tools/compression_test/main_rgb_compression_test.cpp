@@ -14,6 +14,8 @@
 #include "extern/stb/stb_image_write.h"
 
 
+namespace kio
+{
 void panic(const char* fmt, ...)
 {
 	va_list va;
@@ -23,8 +25,6 @@ void panic(const char* fmt, ...)
 	exit(2);
 }
 
-namespace kio
-{
 //static bool  	   write_rsrc = false;	 // will be enabled if no other is set
 static cstr indir	  = nullptr; // must be set
 static cstr outdir	  = nullptr; // will be set to indir if not set

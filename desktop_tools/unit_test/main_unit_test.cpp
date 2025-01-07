@@ -12,6 +12,8 @@
 #include "common/cdefs.h"
 
 
+namespace kio
+{
 void panic(const char* fmt, ...)
 {
 	va_list va;
@@ -20,8 +22,6 @@ void panic(const char* fmt, ...)
 	exit(2);
 }
 
-namespace kio
-{
 doctest::String toString(Array<cstr> log)
 {
 	if (log.count() == 0) return "{<empty>}";

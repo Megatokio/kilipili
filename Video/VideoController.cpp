@@ -7,12 +7,12 @@
 
 #include "VideoController.h"
 #include "ScanlineBuffer.h"
-#include "Trace.h"
 #include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "cdefs.h"
 #include "tempmem.h"
 #include "utilities/LoadSensor.h"
+#include "utilities/Trace.h"
 #include "utilities/stack_guard.h"
 #include "utilities/utilities.h"
 #include <cstdio>
@@ -106,11 +106,7 @@ void VideoController::core1_runner() noexcept
 	trace(__func__);
 	exception_set_exclusive_handler(HARDFAULT_EXCEPTION, [] {
 		// contraire to documentation, this sets the handler for both cores:
-		printf("CORE%i: HARD FAULT\n", get_core_num());
-#ifdef DEBUG
-		Trace::print(get_core_num());
-#endif
-		panic("halted");
+		panic("HARDFAULT_EXCEPTION");
 	});
 
 	try

@@ -2,11 +2,16 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
+extern "C" __attribute__((__weak__)) const char* check_heap(); // returns nullptr or error text
+
 #include "utilities.h"
+#include "Trace.h"
 #include "cdefs.h"
+#include "malloc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/unistd.h>
 
 // defined by linker:
 extern char end;
@@ -188,5 +193,65 @@ void wfe_or_timeout(int timeout_usec) noexcept
 	}
 }
 
+void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
+{
+	puts("\n*** <PANIC> ***\n");
+
+	if (fmt)
+	{
+		va_list args;
+		va_start(args, fmt);
+		vprintf(fmt, args);
+		va_end(args);
+		puts("\n");
+	}
+
+	printf("core: %u\n", get_core_num());
+	printf("stack free = %i\n", int(stack_free()));
+	if (check_heap)
+	{
+		cstr s = check_heap();
+		printf("heap: %s\n", s ? s : "valid");
+	}
+	Trace::print(get_core_num());
+
+	_exit(1);
+}
+
 
 } // namespace kio
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

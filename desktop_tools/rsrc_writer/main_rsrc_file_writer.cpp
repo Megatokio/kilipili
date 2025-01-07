@@ -26,6 +26,8 @@ namespace kio::Audio
 float hw_sample_frequency; // normally in AudioController.cpp
 }
 
+namespace kio
+{
 void panic(const char* fmt, ...)
 {
 	va_list va;
@@ -34,8 +36,6 @@ void panic(const char* fmt, ...)
 	exit(2);
 }
 
-namespace kio
-{
 static bool		   write_rsrc = false;	 // will be enabled if no other is set
 static cstr		   indir	  = nullptr; // must be set
 static cstr		   outdir	  = nullptr; // will be set to indir if not set
@@ -165,9 +165,9 @@ static void copy_as_ymm(cstr indir, cstr outdir, cstr infile, const Info& info)
 	// convert YM file to YMM file:
 
 	YMMFileConverter converter;
-	cstr		   ext		= extension_from_path(infile); // points to '.' in infile
-	cstr		   basename = substr(infile, ext);
-	uint32		   zsize	= 0;
+	cstr			 ext	  = extension_from_path(infile); // points to '.' in infile
+	cstr			 basename = substr(infile, ext);
+	uint32			 zsize	  = 0;
 
 	if (write_rsrc)
 	{
