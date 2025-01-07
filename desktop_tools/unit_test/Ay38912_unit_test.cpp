@@ -405,7 +405,7 @@ TEST_CASE("Audio::Ay38912 shiftTimebase, resetTimebase")
 		ay.audioBufferEnd();
 
 		end = ay2.audioBufferStart(bu2, 20);
-		ay.setRegister(end - 888, 14, 0xff);
+		ay2.setRegister(end - 888, 14, 0xff);
 		//ay2.shiftTimebase(5999);
 		ay2.resetTimebase();
 		ay2.audioBufferEnd();
@@ -507,6 +507,8 @@ TEST_CASE("Audio::Ay38912 readRegister(CC)")
 	CHECK_EQ(portccs[0].value, 140);
 	CHECK_EQ(portccs[1].value, 150);
 
+	ay.resetTimebase();
+	ay.audioBufferStart(bu, 100);
 	ay.setRegister(7, 0x3f); // set ports to input
 
 	for (uint8 r = 0; r <= 15; r++)
