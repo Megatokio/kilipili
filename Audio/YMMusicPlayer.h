@@ -22,7 +22,7 @@ public:
 	YMMusicPlayer();
 	~YMMusicPlayer() override;
 
-	int	 run();
+	int	 run() noexcept;
 	uint getAudio(AudioSample<hw_num_channels>* buffer, uint num_frames) noexcept override;
 	void setSampleRate(float /*new_sample_frequency*/) noexcept override;
 
