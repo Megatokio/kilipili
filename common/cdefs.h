@@ -13,9 +13,11 @@
   #undef RELEASE
   #define NDEBUG  1
   #define RELEASE 1
+constexpr bool debug = false;
 #else
   #undef DEBUG
   #define DEBUG 1
+constexpr bool debug = true;
 #endif
 
 
@@ -112,7 +114,7 @@ extern "C" __printflike(1, 2) __noreturn void panic(const char* fmt, ...);
 
 #define LOL                                                     \
   do {                                                          \
-	::printf("@%s:%u\n", filenamefrompath(__FILE__), __LINE__); \
+	::printf("@%s:%i\n", filenamefrompath(__FILE__), __LINE__); \
 	stdio_flush();                                              \
   }                                                             \
   while (0);
