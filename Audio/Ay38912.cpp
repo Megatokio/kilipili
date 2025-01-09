@@ -458,7 +458,7 @@ void Ay38912<nc>::shiftTimebase(int delta_cc) noexcept
 template<uint nc>
 void Ay38912<nc>::resetTimebase() noexcept
 {
-	shift_timebase(ccx_now.value); //
+	shift_timebase(int(ccx_now)); //
 }
 
 

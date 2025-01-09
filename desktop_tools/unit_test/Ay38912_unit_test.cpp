@@ -436,8 +436,8 @@ TEST_CASE("Audio::Ay38912 setRegister(CC)")
 	ay.audioBufferEnd();
 	CHECK_EQ(ports[0], 14);
 	CHECK_EQ(ports[1], 15);
-	CHECK_EQ(portccs[0].value, 140);
-	CHECK_EQ(portccs[1].value, 150);
+	CHECK_EQ(int(portccs[0]), 140);
+	CHECK_EQ(int(portccs[1]), 150);
 }
 
 TEST_CASE("Audio::Ay38912 writeRegister(CC)")
@@ -458,8 +458,8 @@ TEST_CASE("Audio::Ay38912 writeRegister(CC)")
 	ay.audioBufferEnd();
 	CHECK_EQ(ports[0], 114);
 	CHECK_EQ(ports[1], 115);
-	CHECK_EQ(portccs[0].value, 140);
-	CHECK_EQ(portccs[1].value, 150);
+	CHECK_EQ(int(portccs[0]), 140);
+	CHECK_EQ(int(portccs[1]), 150);
 
 	rv[7] = 0x3f; // set ports to input
 
@@ -472,8 +472,8 @@ TEST_CASE("Audio::Ay38912 writeRegister(CC)")
 	ay.audioBufferEnd();
 	CHECK_EQ(ports[0], 0xff); // callback called when ports set to input
 	CHECK_EQ(ports[1], 0xff);
-	CHECK_EQ(portccs[0].value, 7 * 9); // when reg 7 is changed
-	CHECK_EQ(portccs[1].value, 7 * 9);
+	CHECK_EQ(int(portccs[0]), 7 * 9); // when reg 7 is changed
+	CHECK_EQ(int(portccs[1]), 7 * 9);
 }
 
 TEST_CASE("Audio::Ay38912 readRegister(CC)")
@@ -504,8 +504,8 @@ TEST_CASE("Audio::Ay38912 readRegister(CC)")
 	ay.audioBufferEnd();
 	CHECK_EQ(ports[0], 50 & 214); // ports were set to output
 	CHECK_EQ(ports[1], 51 & 215);
-	CHECK_EQ(portccs[0].value, 140);
-	CHECK_EQ(portccs[1].value, 150);
+	CHECK_EQ(int(portccs[0]), 140);
+	CHECK_EQ(int(portccs[1]), 150);
 
 	ay.resetTimebase();
 	ay.audioBufferStart(bu, 100);
@@ -526,8 +526,8 @@ TEST_CASE("Audio::Ay38912 readRegister(CC)")
 	ay.audioBufferEnd();
 	CHECK_EQ(ports[0], 50);
 	CHECK_EQ(ports[1], 51);
-	CHECK_EQ(portccs[0].value, 140);
-	CHECK_EQ(portccs[1].value, 150);
+	CHECK_EQ(int(portccs[0]), 140);
+	CHECK_EQ(int(portccs[1]), 150);
 }
 
 TEST_CASE("Audio::Ay38912 audioBufferStart, audioBufferEnd")
@@ -1124,8 +1124,8 @@ TEST_CASE("Audio::Ay38912 noise")
 		}
 		uint csize = compressor.finish();
 		uint usize = 1024 * 256 / 8;
-		printf("uncompressed size = %i\n", usize);	 // => 32768
-		printf("compressed lzh size = %i\n", csize); // => 45527 ((whow!))
+		printf("uncompressed size = %u\n", usize);	 // => 32768
+		printf("compressed lzh size = %u\n", csize); // => 45527 ((whow!))
 		CHECK_GT(csize * 8, usize * 10);
 
 		uint8 cbu[40000];

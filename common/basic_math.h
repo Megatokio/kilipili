@@ -88,7 +88,7 @@ template<typename T>
 inline constexpr uint msbit(T n) noexcept
 {
 	if (n < 0) return sizeof(T) * CHAR_BIT - 1;
-	
+
 	uint b = 0;
 	for (uint i = sizeof(T) << 2; i; i >>= 1)
 	{
@@ -124,29 +124,40 @@ static_assert(msbit(~0u >> 1) == 30);
 	c_int - c_int = int			distance between two points
 	c_int << int = c_int		e.g. scale int to fixed point
 	c_int >> int = c_int		makes sense but is not possible because we don't know the msbits.
+
+	ATTN:  int(a)-int(b)  !=  int(uint(a)-uint(b))  !!!  thanks god we have the C++ committee!
 */
 struct CC
 {
-	int value = 0;
 	CC() noexcept {}
-	constexpr explicit CC(int n) noexcept : value(n) {}
-	constexpr explicit CC(uint32_t n) noexcept : value(int(n)) {} // just for time_us_32()
-	constexpr explicit operator int() const noexcept { return value; }
+	template<typename T>
+	constexpr explicit CC(T n) noexcept : value(uint(n))
+	{}
 
-	constexpr void operator+=(int o) noexcept { value += o; }
-	constexpr void operator-=(int o) noexcept { value -= o; }
+	constexpr explicit operator uint() const noexcept { return value; }
+	constexpr explicit operator int() const noexcept { return int(value); }
 
-	constexpr CC  operator+(int d) const noexcept { return CC(value + d); }
-	constexpr CC  operator-(int d) const noexcept { return CC(value - d); }
-	constexpr int operator-(CC d) const noexcept { return value - d.value; }
+	constexpr void operator+=(int o) noexcept { value += uint(o); }
+	constexpr void operator-=(int o) noexcept { value -= uint(o); }
+	constexpr void operator+=(uint o) noexcept { value += o; }
+	constexpr void operator-=(uint o) noexcept { value -= o; }
+
+	constexpr CC  operator+(int d) const noexcept { return CC(value + uint(d)); }
+	constexpr CC  operator-(int d) const noexcept { return CC(value - uint(d)); }
+	constexpr CC  operator+(uint d) const noexcept { return CC(value + d); }
+	constexpr CC  operator-(uint d) const noexcept { return CC(value - d); }
+	constexpr int operator-(CC d) const noexcept { return int(value - d.value); }
 	constexpr CC  operator<<(int d) const noexcept { return CC(value << d); }
 
 	constexpr bool operator==(CC o) const noexcept { return value - o.value == 0; }
 	constexpr bool operator!=(CC o) const noexcept { return value - o.value != 0; }
-	constexpr bool operator>(CC o) const noexcept { return value - o.value > 0; }
-	constexpr bool operator>=(CC o) const noexcept { return value - o.value >= 0; }
-	constexpr bool operator<(CC o) const noexcept { return value - o.value < 0; }
-	constexpr bool operator<=(CC o) const noexcept { return value - o.value <= 0; }
+	constexpr bool operator>(CC o) const noexcept { return int(value - o.value) > 0; }
+	constexpr bool operator>=(CC o) const noexcept { return int(value - o.value) >= 0; }
+	constexpr bool operator<(CC o) const noexcept { return int(value - o.value) < 0; }
+	constexpr bool operator<=(CC o) const noexcept { return int(value - o.value) <= 0; }
+
+private:
+	uint value = 0;
 };
 
 } // namespace kio
