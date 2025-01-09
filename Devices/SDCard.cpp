@@ -1,4 +1,4 @@
-// Copyright (c) 2021 - 2024 kio@little-bat.de
+// Copyright (c) 2021 - 2025 kio@little-bat.de
 // BSD 2-clause license
 // https://spdx.org/licenses/BSD-2-Clause.html
 

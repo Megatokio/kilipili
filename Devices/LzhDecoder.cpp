@@ -9,7 +9,7 @@
 
 -3-	kio 2024: rework as a File wrapper.
 	I presume there is nothing much left from Arnaud's changes.
-	Copyright (c) 2024 - 2024 kio@little-bat.de
+	Copyright (c) 2024 - 2025 kio@little-bat.de
 	BSD-2-Clause license
 	https://opensource.org/licenses/BSD-2-Clause	
 */

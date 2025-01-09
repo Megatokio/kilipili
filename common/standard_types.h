@@ -1,4 +1,4 @@
-// Copyright (c) 1999 - 2024 kio@little-bat.de
+// Copyright (c) 1999 - 2025 kio@little-bat.de
 // BSD 2-clause license
 // https://spdx.org/licenses/BSD-2-Clause.html
 
