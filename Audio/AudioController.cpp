@@ -369,6 +369,8 @@ static void dma_buffer_write(const AudioSample<hw_num_channels, int>* source, ui
 	}
 	if constexpr (audio_hw == PWM && dma_num_channels == 1)
 	{
+		assert(wi >= 0 && wi + num_frames <= NELEM(dma_buffer[0]));
+
 		uint32* dest = &dma_buffer[0][wi];
 		for (uint i = 0; i < num_frames; i++)
 		{
@@ -378,6 +380,8 @@ static void dma_buffer_write(const AudioSample<hw_num_channels, int>* source, ui
 	}
 	if constexpr (audio_hw == PWM && dma_num_channels == 2)
 	{
+		assert(wi >= 0 && wi + num_frames <= NELEM(dma_buffer[0]));
+
 		uint32* l = &dma_buffer[0][wi];
 		uint32* r = &dma_buffer[1][wi];
 		for (uint i = 0; i < num_frames; i++)
@@ -437,6 +441,8 @@ static uint dma_frames_avail() noexcept
 	uint read_offset = dma_channel_hw_addr(dma_channel[0])->read_addr - uint32(dma_buffer[0]);
 	uint ri			 = read_offset / dma_buffer_frame_size;
 	uint wi			 = dma_wi;
+	assert_le(ri, dma_buffer_num_frames);
+	assert_le(wi, dma_buffer_num_frames);
 
 	return (wi - ri) & dma_buffermask;
 }
