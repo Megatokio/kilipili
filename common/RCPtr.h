@@ -60,8 +60,14 @@ namespace kio
 class RCObject
 {
 public:
-	mutable int rc = 0;
-	virtual ~RCObject() noexcept { assert(rc == 0); }
+	alignas(4) mutable int16_t rc = 0;
+	uint16_t rc_magic			  = 37465;
+	virtual ~RCObject() noexcept
+	{
+		assert(rc == 0);
+		assert(rc_magic == 37465);
+		if constexpr (debug) rc_magic = 0;
+	}
 };
 
 
