@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Dispatcher.h"
+#include "Trace.h"
 #include "cdefs.h"
 #include "utilities.h"
 #include <pico/sync.h>
@@ -100,6 +101,8 @@ void Dispatcher::removeHandler(Handler* handler, void* data)
 
 void Dispatcher::run(int timeout) noexcept
 {
+	trace(__func__);
+
 	if (timeout)
 	{
 		int i = num_tasks - 1;
@@ -156,6 +159,8 @@ void Dispatcher::run(int timeout) noexcept
 
 int blinkOnboardLed(void*) noexcept
 {
+	trace(__func__);
+
 #ifdef PICO_DEFAULT_LED_PIN
 	static constexpr uint pin = PICO_DEFAULT_LED_PIN;
 	static struct Init

@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #undef stackinfo
-#if defined DEBUG && !defined MAKE_TOOLS
+#if !defined MAKE_TOOLS
 
   #include "Trace.h"
   #include "basic_math.h"

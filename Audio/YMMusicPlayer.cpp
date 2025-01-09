@@ -5,6 +5,7 @@
 #include "YMMusicPlayer.h"
 #include "Devices/Directory.h"
 #include "Devices/FileSystem.h"
+#include "Trace.h"
 #include "common/cdefs.h"
 #include "cstrings.h"
 #include "utilities/Logger.h"
@@ -125,12 +126,16 @@ void YMMusicPlayer::setSampleRate(float new_sample_frequency) noexcept
 {
 	// callback by the AudioController
 
+	trace(__func__);
+
 	ay.setSampleRate(new_sample_frequency);
 }
 
 uint YMMusicPlayer::getAudio(AudioSample<hw_num_channels>* buffer, uint num_frames) noexcept
 {
 	// callback by the AudioController
+
+	trace(__func__);
 
 	if (queue.avail())
 	{
@@ -183,6 +188,8 @@ void YMMusicPlayer::read_frame(QueueData& d)
 
 int YMMusicPlayer::run()
 {
+	trace("YMMusicPlayer::run");
+
 	if (queue.free() == 0) return 10 * 1000;
 
 	if (bitstream.infile)
@@ -191,7 +198,7 @@ int YMMusicPlayer::run()
 
 		if (paused) return 100 * 1000; // we are not..
 
-		read_frame(queue[queue.wi]);
+		read_frame(queue[queue.wi]); // throws at eof
 		__dmb();
 		queue.wi++;
 
@@ -286,7 +293,6 @@ int YMMusicPlayer::run()
 			}
 		}
 		if (p != allocated_buffer + (1 << buffer_bits)) throw "illegal buffer assignment";
-
 
 		// start playing by sending the reset register values:
 		frames_played	 = 0;

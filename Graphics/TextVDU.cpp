@@ -5,6 +5,7 @@
 #include "TextVDU.h"
 #include "USBHost/USBKeyboard.h"
 #include "cstrings.h"
+#include "utilities/Trace.h"
 #include <memory>
 #include <stdarg.h>
 #include <string.h>
@@ -769,6 +770,7 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 	// returns a tempstr
 
 	using namespace USB;
+	trace(__func__);
 
 	enum {
 		BACKSPACE = 8,

@@ -4,9 +4,9 @@
 
 #include "Ay38912.h"
 #include "common/cdefs.h"
+#include "utilities/Trace.h"
 #include <cmath>
 #include <cstring>
-
 
 /*
 	AY-3-8912 sound chip emulation
@@ -337,6 +337,8 @@ void Ay38912<nc>::setStereoMix(StereoMix mix) noexcept
 template<uint nc>
 void Ay38912<nc>::setRegister(uint regnr, uint8 newvalue) noexcept
 {
+	trace(__func__);
+
 	regnr &= 0x0F;
 	newvalue &= ayRegisterBitMasks[regnr];
 
@@ -404,6 +406,8 @@ void Ay38912<nc>::reset(CC cc, WritePortProc& callback)
 template<uint nc>
 void Ay38912<nc>::setRegister(CC cc, uint r, uint8 n) noexcept
 {
+	trace(__func__);
+
 	run_up_to_cycle(cc << ccx_fract_bits);
 	setRegister(r, n);
 }
@@ -465,6 +469,8 @@ void Ay38912<nc>::resetTimebase() noexcept
 template<uint nc>
 auto Ay38912<nc>::audioBufferStart(AudioSample<nc>* buffer, uint num_samples) noexcept -> CC
 {
+	trace(__func__);
+
 	output_buffer = buffer;
 	ccx_buffer_end += int(num_samples) * ccx_per_sample;
 	return CC(int(ccx_buffer_end >> ccx_fract_bits));
@@ -473,6 +479,8 @@ auto Ay38912<nc>::audioBufferStart(AudioSample<nc>* buffer, uint num_samples) no
 template<uint nc>
 void Ay38912<nc>::audioBufferEnd() noexcept
 {
+	trace(__func__);
+
 	run_up_to_cycle(CCx(int(ccx_buffer_end)));
 	output_buffer = nullptr;
 }
@@ -480,6 +488,9 @@ void Ay38912<nc>::audioBufferEnd() noexcept
 template<uint nc>
 void Ay38912<nc>::run_up_to_cycle(CCx ccx_end) noexcept
 {
+	trace(__func__);
+	assert(output_buffer != nullptr);
+
 	if (ccx_end > CCx(int(ccx_buffer_end))) ccx_end = CCx(int(ccx_buffer_end));
 
 	while (true)

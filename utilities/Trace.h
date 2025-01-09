@@ -3,10 +3,11 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "standard_types.h"
 
-#if defined DEBUG && !defined MAKE_TOOLS
-  #include <pico.h>
+#if !defined MAKE_TOOLS
+//#if defined DEBUG && !defined MAKE_TOOLS
+
+  #include "standard_types.h"
   #include <pico/sync.h>
 
 namespace kio
