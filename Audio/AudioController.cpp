@@ -497,9 +497,22 @@ static int64 fill_buffer(alarm_id_t, void*) noexcept
 	return -int32(timer_period_us);
 }
 
-void AudioController::fillBuffer() noexcept
+int32 AudioController::fillBuffer(void*) noexcept
 {
-	if (timer_id <= 0 && is_running) fill_buffer(0, nullptr);
+	if (is_running)
+	{
+		if (timer_id <= 0) // no timer used
+		{
+			fill_buffer(0, nullptr);
+			// return slightly less than the time for 64 samples:
+			// (64 = ibu_size in fill_buffer())
+			// => fill_buffer() will normally only loop once
+			//    if fillBuffer() / disp() is called frequently enough.
+			return -63 * 1000000 / int32(hw_sample_frequency);
+		}
+		else return 0; // timer used => remove me
+	}
+	return 1000000 / 25; // 1/25 sec reaction time
 }
 
 void AudioController::startAudio(bool with_timer) noexcept

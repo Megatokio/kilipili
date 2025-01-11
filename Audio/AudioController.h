@@ -109,12 +109,15 @@ public:
 	bool isRunning() noexcept;
 
 	/* _______________________________________________________________________________________
-		callback to be called from your event loop.
-		fillBuffer() calls in return the refill functions of your AudioSources.
-		if you startAudio() with_timer = true then calling fillBuffer() is not needed.
-		silently does nothing if the controller is not running or was started with_timer = true.
+		callback for use in your event loop.
+		fillBuffer() can be added as a handler to the Dispatcher.
+		fillBuffer() calls the refill functions of all added AudioSources.
+		if you startAudio() with_timer = true then calling fillBuffer() is not needed 
+		and fillBuffer() will return 0 to remove itself from the dispatcher.
+		fillBuffer() can be called and does nothing while the AudioController is stopped.
+		Note: prefer startAudio() with_timer = true for reliable refilling of the audio buffer.		
 	*/
-	void fillBuffer() noexcept; // for call by state machine
+	static int32 fillBuffer(void* = nullptr) noexcept;
 
 	/* _______________________________________________________________________________________
 		add an AudioSource to the controller.
