@@ -78,8 +78,6 @@ static int sid_last_sample[hw_num_channels];
 extern int* sid_last_sample; // dummy, syntax only
   #endif
 
-static uint pio_program_entry_point;
-
 static constexpr uint32 dither_table[16] = {
 	0b0000000000000000u << 16, // 0/16
 	0b0000000010000000u << 16, // 1/16
@@ -122,28 +120,30 @@ static void init_pio() noexcept
 {
 	if constexpr (audio_hw == I2S)
 	{
-		uint load_offset		= uint(pio_add_program(audio_pio, &i2s_audio_program));
-		pio_program_entry_point = load_offset + i2s_audio_offset_entry_point;
+		uint load_offset = uint(pio_add_program(audio_pio, &i2s_audio_program));
+		uint entry_point = load_offset + i2s_audio_offset_entry_point;
 
 		pio_sm_config config = i2s_audio_program_get_default_config(load_offset);
 		sm_config_set_out_pins(&config, audio_i2s_data_pin, 1);
 		sm_config_set_sideset_pins(&config, audio_i2s_clock_pin_base);
 		sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
 		sm_config_set_out_shift(&config, false, true, 16 + 16); // shift left, auto pull, 32 bit
-		pio_sm_init(audio_pio, sm[0], pio_program_entry_point, &config);
+		pio_sm_init(audio_pio, sm[0], entry_point, &config);
 
 		constexpr uint pin_mask = (1u << audio_i2s_data_pin) | (3u << audio_i2s_clock_pin_base);
 		pio_sm_set_pindirs_with_mask(audio_pio, sm[0], pin_mask, pin_mask);
 		pio_sm_set_pins(audio_pio, sm[0], 0); // clear pins
+
+		pio_sm_exec(audio_pio, sm[0], pio_encode_jmp(entry_point));
 	}
 	if constexpr (audio_hw == PWM)
 	{
-		uint load_offset		= uint(pio_add_program(audio_pio, &pwm_audio_program));
-		pio_program_entry_point = load_offset + pwm_audio_offset_entry_point;
+		uint load_offset = uint(pio_add_program(audio_pio, &pwm_audio_program));
+		uint entry_point = load_offset + pwm_audio_offset_entry_point;
 
 		pio_sm_config config = pwm_audio_program_get_default_config(load_offset);
 		sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
-		sm_config_set_out_shift(&config, true, false, 8 + 8 + 16); // shift right, no autopull, 31 bits
+		sm_config_set_out_shift(&config, true, false, 8 + 8 + 16); // shift right, no autopull, 32 bits
 		//sm_config_set_clkdiv_int_frac(&config,1,0);
 
 		for (uint i = 0; i < num_sm; i++)
@@ -151,14 +151,15 @@ static void init_pio() noexcept
 			constexpr uint8 pins[2] = {audio_left_pin, audio_right_pin};
 			sm_config_set_out_pins(&config, pins[i], 1);
 			sm_config_set_sideset_pins(&config, pins[i]);
-			pio_sm_init(audio_pio, sm[i], pio_program_entry_point, &config);
+			pio_sm_init(audio_pio, sm[i], entry_point, &config);
 			pio_sm_set_consecutive_pindirs(audio_pio, sm[i], pins[i], 1, true);
+			pio_sm_exec(audio_pio, sm[i], pio_encode_jmp(entry_point));
 		}
 	}
 	if constexpr (audio_hw == SIGMA_DELTA) // TODO
 	{
-		uint load_offset		= uint(pio_add_program(audio_pio, &sid_audio_program));
-		pio_program_entry_point = load_offset + sid_audio_offset_entry_point;
+		uint load_offset = uint(pio_add_program(audio_pio, &sid_audio_program));
+		uint entry_point = load_offset + sid_audio_offset_entry_point;
 
 		pio_sm_config config = sid_audio_program_get_default_config(load_offset);
 		sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
@@ -169,19 +170,21 @@ static void init_pio() noexcept
 			constexpr uint8 pins[2] = {audio_left_pin, audio_right_pin};
 			sm_config_set_out_pins(&config, pins[i], 1);
 			sm_config_set_sideset_pins(&config, pins[i]);
-			pio_sm_init(audio_pio, sm[i], pio_program_entry_point, &config);
+			pio_sm_init(audio_pio, sm[i], entry_point, &config);
 			pio_sm_set_consecutive_pindirs(audio_pio, sm[i], pins[i], 1, true);
 
 			// load the const value '127' into the ISR register:
 			pio_sm_put(audio_pio, sm[i], 127);							// put '127' into the tx fifo
 			pio_sm_exec(audio_pio, sm[i], pio_encode_out(pio_isr, 32)); // load it into isr
+
+			// jump to start
+			pio_sm_exec(audio_pio, sm[i], pio_encode_jmp(entry_point));
 		}
 	}
 }
 
 static void start_pio() noexcept
 {
-	for (uint i = 0; i < num_sm; i++) pio_sm_exec(audio_pio, sm[i], pio_encode_jmp(pio_program_entry_point));
 	uint mask = (1u << sm[0]) | (1u << sm[num_sm - 1]);
 	pio_enable_sm_mask_in_sync(audio_pio, mask);
 }
@@ -200,7 +203,6 @@ static void RAM audio_isr() noexcept
 		{
 			dma_irqn_acknowledge_channel(dma_irqn, dma_channel[i]);
 			dma_channel_hw_addr(dma_channel[i])->al3_read_addr_trig = uint32(dma_buffer[i]);
-			//sm_blink_onboard_led();
 			return;
 		}
 	}
@@ -245,12 +247,11 @@ static void stop_dma() noexcept
 static void update_timing() noexcept
 {
 	float sysclock = float(get_system_clock());
-	// div = sysclock / requested_sample_frequency / cc_per_sample * 256;
 
 	if constexpr (audio_hw == I2S)
 	{
 		uint32 div = uint32(sysclock / (requested_sample_frequency * cc_per_sample_i2s) * 256 + 0.5f);
-		pio_sm_set_clkdiv_int_frac(audio_pio, sm[0], uint16(div / 256), uint8(div));
+		pio_sm_set_clkdiv_int_frac8(audio_pio, sm[0], div / 256, uint8(div));
 		hw_sample_frequency = sysclock / float(div) * 256 / cc_per_sample_i2s;
 	}
 	if constexpr (audio_hw == PWM)
@@ -526,7 +527,7 @@ void AudioController::startAudio(bool with_timer) noexcept
 	}
 }
 
-void AudioController::stopAudio() noexcept
+void AudioController::stopAudio(bool remove_audio_sources) noexcept
 {
 	if (!is_running) return;
 	is_running = false;
@@ -536,6 +537,8 @@ void AudioController::stopAudio() noexcept
 
 	stop_dma();
 	stop_pio();
+
+	if (remove_audio_sources) removeAllAudioSources();
 }
 
 bool AudioController::isRunning() noexcept

@@ -98,10 +98,10 @@ public:
 		stop the audio output.
 		stops the timer, if used.
 		stops the dma.
-		the AudioSources are not deleted!
 		hardware is not unclaimed.
+		remove_audio_sources = true => release all AudioSources 
 	*/
-	void stopAudio() noexcept;
+	void stopAudio(bool remove_audio_sources = false) noexcept;
 
 	/* _______________________________________________________________________________________
 		query whether the AudioController is running.
