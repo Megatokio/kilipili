@@ -9,6 +9,7 @@
 #include "Trace.h"
 #include "basic_math.h"
 #include "cdefs.h"
+#include "cstrings.h"
 #include "devices_types.h"
 #include "ff15/source/diskio.h"
 #include "ff15/source/ffconf.h"
@@ -116,7 +117,7 @@ bool FatFS::mount()
 	debugstr("FatFS::mount\n");
 
 	VolumeStr[volume_idx] = name;
-	FRESULT err			  = f_mount(&fatfs, name, 1 /*mount now*/);
+	FRESULT err			  = f_mount(&fatfs, catstr(name, ":"), 1 /*mount now*/);
 	if (err) VolumeStr[volume_idx] = NoDevice;
 	if (err && err != FR_NO_FILESYSTEM) throw tostr(err);
 	return !err; // ok = true
