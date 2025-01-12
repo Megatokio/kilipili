@@ -269,17 +269,17 @@ static void update_timing() noexcept
 		uint32 div			= uint32(sysclock / (requested_sample_frequency * cc_per_sample_sid) * 256 + 0.5f);
 		uint16 d			= uint16(div / 256);
 		uint8  f			= uint8(div);
-		hw_sample_frequency = sysclock / float(div) * 256;
+		hw_sample_frequency = sysclock / float(div) * 256 / cc_per_sample_sid;
 
 		if constexpr (num_sm == 2)
 		{
 			// keep them synchronized:
 			if (is_running) pio_set_sm_mask_enabled(audio_pio, (1 << sm[0]) | (1 << sm[1]), false);
-			pio_sm_set_clkdiv_int_frac(audio_pio, sm[0], d, f);
-			pio_sm_set_clkdiv_int_frac(audio_pio, sm[1], d, f);
+			pio_sm_set_clkdiv_int_frac8(audio_pio, sm[0], d, f);
+			pio_sm_set_clkdiv_int_frac8(audio_pio, sm[1], d, f);
 			if (is_running) pio_enable_sm_mask_in_sync(audio_pio, (1 << sm[0]) | (1 << sm[1]));
 		}
-		else pio_sm_set_clkdiv_int_frac(audio_pio, sm[0], d, f);
+		else pio_sm_set_clkdiv_int_frac8(audio_pio, sm[0], d, f);
 	}
 
 	// calculate max_frames_ahead:
