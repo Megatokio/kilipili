@@ -117,7 +117,7 @@ FileSystemPtr FileSystem::mount(cstr devicename) throws // static
 	if (idx < 0) throw NO_MOUNTPOINT_FREE;
 
 	FileSystem* fs = nullptr;
-	if (lceq(devicename, "rsrc")) fs = RsrcFS::getInstance();
+	if (lceq(devicename, "rsrc")) fs = new RsrcFS();
 #ifdef PICO_DEFAULT_SPI
 	else if (lceq(devicename, "sdcard")) { fs = new FatFS(devicename, SDCard::defaultInstance(), idx); }
 #endif
@@ -275,14 +275,12 @@ extern void unmountAll()
 {
 	cwd = nullptr;
 
-#ifdef DEBUG
-	for (uint i = 0; i < NELEM(file_systems); i++)
-	{
-		if (FileSystem* fs = file_systems[i])
-			if (fs != RsrcFS::getInstance() || fs->rc > 1)
-				printf("*** unmountAll: \"%s\" still mounted (rc=%i)\n", fs->name, fs->rc);
-	}
-#endif
+	if constexpr (debug)
+		for (uint i = 0; i < NELEM(file_systems); i++)
+		{
+			if (FileSystem* fs = file_systems[i])
+				printf("unmountAll: \"%s\" still mounted (rc=%i)\n", fs->name, fs->rc);
+		}
 }
 
 } // namespace kio::Devices

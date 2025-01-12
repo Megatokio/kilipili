@@ -210,9 +210,8 @@ DSTATUS disk_initialize(BYTE id)
 	// STA_NODISK		0x02	/* No medium in the drive */
 	// STA_PROTECT		0x04	/* Write protected */
 
-	debugstr("***disk_initialize***\n");
-
-	assert(id < FF_VOLUMES && blkdevs[id] != nullptr);
+	assert_lt(id, FF_VOLUMES);
+	assert(blkdevs[id] != nullptr);
 	BlockDevice* blkdev = blkdevs[id];
 
 	try

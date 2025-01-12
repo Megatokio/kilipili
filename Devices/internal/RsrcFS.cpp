@@ -75,17 +75,6 @@ static const uint8* next_direntry(cuptr p, cstr pattern)
 // ***********************************************************************
 // Resource File System
 
-RsrcFS* RsrcFS::getInstance() noexcept
-{
-	static RsrcFS rsfs;
-	return &rsfs;
-}
-
-RsrcFS::RsrcFS() noexcept : FileSystem("rsrc")
-{
-	rc = 1; // never destroy!
-}
-
 ADDR RsrcFS::getSize()
 {
 	// get size of the file system
