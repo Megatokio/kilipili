@@ -1445,11 +1445,12 @@ void RgbImageCompressor::encodeImage(cstr indir, cstr outdir, cstr infile, int v
 	if (!endswith(indir, "/")) indir = catstr(indir, "/");
 	if (!endswith(outdir, "/")) outdir = catstr(outdir, "/");
 
-	cstr basename = catstr(outdir, directory_and_basename_from_path(infile), "-", tostr(dithermode));
+	cstr basename = catstr(outdir, directory_and_basename_from_path(infile));
+	if (enriched_filenames) basename = catstr(basename, "-", tostr(dithermode), "-", rgbstr);
 
 	FilePtr console = new StdFile(stdout, Flags::writable);
 	FilePtr statsfile;
-	if (write_stats_file) statsfile = new StdFile(catstr(basename, "-", rgbstr, ".txt"), Devices::WRITE);
+	if (write_stats_file) statsfile = new StdFile(catstr(basename, ".txt"), Devices::WRITE);
 
 	printf("File: %s\n", filenamefrompath(infile));
 	if (statsfile)
@@ -1465,7 +1466,7 @@ void RgbImageCompressor::encodeImage(cstr indir, cstr outdir, cstr infile, int v
 	image = new RgbImage(catstr(indir, infile), dithermode);
 	if (verbose) image->print_statistics(console);
 	if (statsfile) image->print_statistics(statsfile);
-	if (write_ref_image) image->write_to_file(catstr(basename, "-", rgbstr, "-in.png"));
+	if (write_ref_image) image->write_to_file(catstr(basename, "-in.png"));
 
 	int rounds = encode_image();
 	if (verbose) console->printf("final image in round: %i\n", rounds);
@@ -1473,12 +1474,12 @@ void RgbImageCompressor::encodeImage(cstr indir, cstr outdir, cstr infile, int v
 
 	if (verbose) encoded_image->print_statistics(console);
 	if (statsfile) encoded_image->print_statistics(statsfile);
-	encoded_image->write_to_file(catstr(basename, ".", rgbstr));
+	encoded_image->write_to_file(catstr(basename, ".ham"));
 
 	if (write_diff_image)
 	{
 		RgbImage decoded_image(encoded_image);
-		decoded_image.write_to_file(catstr(basename, "-", rgbstr, "-out.png"));
+		decoded_image.write_to_file(catstr(basename, "-out.png"));
 
 		uint deviation_map[256];
 		decoded_image.calc_deviation_map(image, deviation_map);
@@ -1487,7 +1488,7 @@ void RgbImageCompressor::encodeImage(cstr indir, cstr outdir, cstr infile, int v
 		if (verbose >= 2) decoded_image.print_deviation_map(console, deviation_map);
 		if (statsfile) decoded_image.print_deviation_map(statsfile, deviation_map);
 		decoded_image.make_diff_image(image);
-		decoded_image.write_to_file(catstr(basename, "-", rgbstr, "-diff.png"));
+		decoded_image.write_to_file(catstr(basename, "-diff.png"));
 	}
 
 	if (verbose >= 3) encoded_image->abs_codes.print_color_map(console);

@@ -52,13 +52,14 @@ struct Info
 	cstr	   pattern = nullptr;
 	FType	   format  = UNSET;
 	uint8	   w = 0, l = 0;									   // compression
-	DitherMode dithermode				  = DitherMode::Diffusion; // rgb8
+	DitherMode dithermode				  = DitherMode::Diffusion; // ham
 	bool	   noalpha				  : 1 = false;				   // img
 	bool	   hwcolor				  : 1 = false;				   // img
-	bool	   also_create_ref_image  : 1 = false;				   // rgb8
-	bool	   also_create_diff_image : 1 = false;				   // rgb8
-	bool	   also_write_stats_file  : 1 = false;				   // rgb8
-	bool	   _padding2			  : 3;
+	bool	   also_create_ref_image  : 1 = false;				   // ham
+	bool	   also_create_diff_image : 1 = false;				   // ham
+	bool	   also_write_stats_file  : 1 = false;				   // ham
+	bool	   enriched_filenames	  : 1 = false;				   // ham
+	bool	   _padding2			  : 2;
 	char	   _padding[3];
 
 	Info(cstr s);
@@ -108,6 +109,7 @@ Info::Info(cstr _s)
 		else if (eq(s, "diff_img")) also_create_diff_image = true;
 		else if (eq(s, "ref_img")) also_create_ref_image = true;
 		else if (eq(s, "stats")) also_write_stats_file = true;
+		else if (eq(s, "enriched")) enriched_filenames = true;
 		else if (startswith(s, "W"))
 		{
 			uint n = 0;

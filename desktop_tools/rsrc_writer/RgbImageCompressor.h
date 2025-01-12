@@ -94,9 +94,10 @@ public:
 	void encodeImage(cstr indir, cstr outdir, cstr infile, int verbose = false, DitherMode = DitherMode::Pattern);
 	uint encodeImage(cstr infile, File* outfile, int verbose = false, DitherMode = DitherMode::Pattern);
 
-	bool write_diff_image = false;
-	bool write_ref_image  = false;
-	bool write_stats_file = false;
+	bool write_diff_image	= false;
+	bool write_ref_image	= false;
+	bool write_stats_file	= false;
+	bool enriched_filenames = false;
 
 	RCPtr<struct RgbImage>	   image;		  // image dithered and reduced to native color depth
 	RCPtr<struct EncodedImage> encoded_image; // current / last / best encoded image
