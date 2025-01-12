@@ -16,7 +16,7 @@ namespace kio
 class Trace
 {
 public:
-	static constexpr uint maxdepth = 8;
+	static constexpr uint maxdepth = 10;
 
 	struct Path
 	{

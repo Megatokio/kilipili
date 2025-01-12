@@ -52,7 +52,7 @@ static int index_of(std::nullptr_t)
 
 FileSystem::FileSystem(cstr devname) throws // ctor
 {
-	trace(__func__);
+	trace("FS::ctor");
 
 	if (strlen(devname) >= sizeof(name)) throw NAME_TOO_LONG;
 	memcpy(name, devname, sizeof(name));
@@ -60,7 +60,7 @@ FileSystem::FileSystem(cstr devname) throws // ctor
 
 FileSystem::~FileSystem() noexcept
 {
-	trace(__func__);
+	trace("FS::dtor");
 
 	delete[] workdir;
 
@@ -84,7 +84,7 @@ void FileSystem::makeFS(BlockDevicePtr bdev, cstr type) throws // static
 
 FileSystemPtr FileSystem::mount(cstr devicename, BlockDevicePtr bdev) throws // static
 {
-	trace(__func__);
+	trace("FS::mount(name,bdev)");
 
 	int idx = index_of(devicename);
 	if (idx >= 0) throw DEVICE_IN_USE;
@@ -102,10 +102,10 @@ FileSystemPtr FileSystem::mount(cstr devicename, BlockDevicePtr bdev) throws // 
 
 FileSystemPtr FileSystem::mount(cstr devicename) throws // static
 {
-	trace(__func__);
+	trace("FS::mount(name)");
+	debugstr("FileSystem::mount: \"%s\"\n", devicename);
 
 	assert(devicename);
-	debugstr("FileSystem::mount: \"%s\"\n", devicename);
 
 	cptr p = strchr(devicename, ':');
 	if (p) devicename = substr(devicename, p);
@@ -129,7 +129,7 @@ FileSystemPtr FileSystem::mount(cstr devicename) throws // static
 
 void FileSystem::setWorkDir(cstr path)
 {
-	trace(__func__);
+	trace("FS::setWorkDir");
 
 	path = makeAbsolutePath(path);
 	delete[] workdir;
@@ -172,7 +172,7 @@ static cstr makeCanonicalPath(cstr path)
 
 cstr FileSystem::makeAbsolutePath(cstr path)
 {
-	trace(__func__);
+	trace("FS::makeAbsolutePath");
 
 	if (path[0] == '/') return makeCanonicalPath(path);
 	if (path[0] == 0) return getWorkDir();
@@ -184,7 +184,7 @@ static FileSystemPtr cwd;
 
 DirectoryPtr openDir(cstr path) throws
 {
-	trace(__func__);
+	trace("FS::openDir");
 
 	ptr dp = strchr(path, ':');
 	if (!dp)
@@ -199,7 +199,7 @@ DirectoryPtr openDir(cstr path) throws
 
 FilePtr openFile(cstr path, FileOpenMode flags) throws
 {
-	trace(__func__);
+	trace("FS::openFile");
 
 	ptr dp = strchr(path, ':');
 	if (!dp)
@@ -231,13 +231,15 @@ FileSystemPtr getDevice(cstr name)
 
 cstr getWorkDir()
 {
+	trace("getWorkDir");
+
 	// "A:/", "A:/foo"
 	return cwd ? catstr(cwd->name, ":", cwd->getWorkDir()) : nullptr;
 }
 
 void setWorkDir(cstr path)
 {
-	trace(__func__);
+	trace("setWorkDir");
 
 	// "A:", "A:/foo", "A:foo", "/foo", "foo"
 	if (!path || !*path) return;
