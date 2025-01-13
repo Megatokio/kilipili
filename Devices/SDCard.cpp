@@ -562,7 +562,7 @@ void SDCard::read_single_block(uint32 blkidx, uint8* data) throws
 r:
 	uint8 crc[2];
 	send_cmd(17, ccs ? blkidx : blkidx << 9, no_deselect);
-	uint8 token = receive_byte(10000);
+	uint8 token = receive_byte(100000); // Verbatim 16GB: poor blocks take up to 10msec (<=> 20000 @ 20MHz)
 	if (token != DataToken)
 	{
 		deselect();
@@ -717,77 +717,6 @@ r:
 	write_spi(bu, 2);
 	deselect();
 }
-
-#if 0
-void SDCard::read(ADDR qpos, uint8* data, SIZE size)
-{
-	if (uint(qpos) & 511 || size < 512)
-	{
-		uint8 bu[512];
-		read_single_block(uint32(qpos >> 9), bu);
-		SIZE cnt = min(size, 512u - (SIZE(qpos) & 511));
-		memcpy(data, bu + (qpos & 511), cnt);
-		qpos += cnt;
-		data += cnt;
-		size -= cnt;
-	}
-
-	if (size >= 512)
-	{
-		SIZE cnt = size & ~511u;
-		readSectors(BLKIDX(qpos >> 9), ptr(data), SIZE(cnt >> 9));
-		qpos += cnt;
-		data += cnt;
-		size -= cnt;
-	}
-
-	if (size)
-	{
-		uint8 bu[512];
-		read_single_block(uint32(qpos >> 9), bu);
-		memcpy(data, bu, size);
-	}
-}
-#endif
-
-#if 0
-void SDCard::write(ADDR zpos, const uint8* data, SIZE size)
-{
-	if (uint(zpos) & 511 || size < 512)
-	{
-		uint8 bu[512];
-		read_single_block(uint32(zpos >> 9), bu);
-		SIZE cnt = min(size, 512u - (SIZE(zpos) & 511));
-		if (data)
-		{
-			memcpy(bu + (zpos & 511), data, cnt);
-			data += cnt;
-		}
-		else memset(bu + (zpos & 511), erased_byte, cnt);
-		write_single_block(uint32(zpos >> 9), bu);
-		zpos += cnt;
-		size -= cnt;
-	}
-
-	if (size >= 512)
-	{
-		SIZE cnt = size & ~511u;
-		writeSectors(BLKIDX(zpos >> 9), ptr(data), SIZE(cnt >> 9));
-		zpos += cnt;
-		if (data) data += cnt;
-		size -= cnt;
-	}
-
-	if (size)
-	{
-		uint8 bu[512];
-		read_single_block(uint32(zpos >> 9), bu);
-		if (data) memcpy(bu, data, size);
-		else memset(bu, erased_byte, size);
-		write_single_block(uint32(zpos >> 9), bu);
-	}
-}
-#endif
 
 uint32 SDCard::ioctl(IoCtl ctl, void* a1, void* a2) throws
 {

@@ -73,9 +73,6 @@ public:
 
 	SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) noexcept;
 
-	void connect() throws;
-	void disconnect() noexcept;
-
 	//virtual void read (ADDR q, uint8* bu, SIZE) override;
 	//virtual void write (ADDR z, const uint8* bu, SIZE) override;
 	//virtual void copy_blocks (ADDR z, ADDR q, SIZE sz) override { copy_hd(z,q,sz); }
@@ -92,6 +89,9 @@ public:
 private:
 	SDCard() noexcept;
 	void init_spi() noexcept;
+
+	void connect() throws;
+	void disconnect() noexcept;
 
 	inline void select() const noexcept;
 	inline void deselect() const noexcept;
