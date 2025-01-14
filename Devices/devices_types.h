@@ -181,7 +181,8 @@ enum Flags : uint8 {
 	readable	 = 1,	 //
 	writable	 = 2,	 //
 	overwritable = 4,	 // can overwrite old data without formatting. else eventually 0xff->anyvalue->0x00.
-	dont_close	 = 8,	 // don't close file in dtor (StdFile)
+	removable	 = 8,	 // SDCard
+	dont_close	 = 0x10, // don't close file in dtor (StdFile)
 	partition	 = 0x20, // hint for mkfs: needs partitioning like a HD
 	EOF_PENDING	 = 0x40, // File::read()
 	APPEND_MODE	 = 0x80, // File

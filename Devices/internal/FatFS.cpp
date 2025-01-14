@@ -190,7 +190,7 @@ DSTATUS disk_status(BYTE id)
 
 	if (blkdev->isWritable()) return 0;
 	if (blkdev->isReadable()) return STA_PROTECT;
-	else return STA_NODISK;
+	else return blkdev->isRemovable() ? STA_NODISK | STA_NOINIT : STA_NOINIT;
 }
 
 DSTATUS disk_initialize(BYTE id)
@@ -213,18 +213,16 @@ DSTATUS disk_initialize(BYTE id)
 	try
 	{
 		blkdev->ioctl(IoCtl::CTRL_CONNECT);
-		return disk_status(id);
 	}
 	catch (Error e)
 	{
-		printf("fatfs.disk_initialize: %s\n", e);
-		return STA_NODISK;
+		logline("FatFS::disk_initialize: %s", e);
 	}
 	catch (...)
 	{
-		printf("fatfs.disk_initialize: unknown error\n");
-		return STA_NODISK;
+		logline("FatFS::disk_initialize: unknown error");
 	}
+	return disk_status(id);
 }
 
 DRESULT disk_read(BYTE id, BYTE* buff, LBA_t sector, UINT count)
@@ -255,13 +253,13 @@ DRESULT disk_read(BYTE id, BYTE* buff, LBA_t sector, UINT count)
 	}
 	catch (Error e)
 	{
-		printf("fatfs.disk_read: %s\n", e);
+		logline("FatFS::disk_read: %s", e);
 		if (e == TIMEOUT) return RES_NOTRDY;
 		return RES_ERROR;
 	}
 	catch (...)
 	{
-		printf("fatfs.disk_read: unknown error\n");
+		logline("FatFS::disk_read: unknown error");
 		return RES_ERROR;
 	}
 }
@@ -296,7 +294,7 @@ DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 	}
 	catch (Error e)
 	{
-		printf("fatfs.disk_write: %s\n", e);
+		logline("FatFS::disk_write: %s", e);
 
 		if (e == END_OF_FILE) return RES_PARERR;
 		if (e == TIMEOUT) return RES_NOTRDY;
@@ -304,7 +302,7 @@ DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 	}
 	catch (...)
 	{
-		printf("fatfs.disk_write: unknown error\n");
+		logline("FatFS::disk_write: unknown error");
 		return RES_ERROR;
 	}
 }
@@ -408,7 +406,7 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 	}
 	catch (Error e)
 	{
-		printf("fatfs.ioctl: %s\n", e);
+		logline("FatFS::ioctl: %s", e);
 
 		if (e == INVALID_ARGUMENT) return RES_PARERR;
 		if (e == TIMEOUT) return RES_NOTRDY;
@@ -416,7 +414,7 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 	}
 	catch (...)
 	{
-		printf("fatfs.ioctl: unknown error\n");
+		logline("FatFS::ioctl: unknown error");
 		return RES_ERROR;
 	}
 }

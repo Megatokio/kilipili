@@ -47,6 +47,7 @@ public:
 	bool isReadable() const noexcept { return flags & readable; }
 	bool isWritable() const noexcept { return flags & writable; }
 	bool isOverwritable() const noexcept { return flags & overwritable; }
+	bool isRemovable() const noexcept { return flags & removable; }
 
 protected:
 	BlockDevice(SIZE sectors, uint ss_read, uint ss_write, uint ss_erase, Flags f) noexcept :
