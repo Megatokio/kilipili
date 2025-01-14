@@ -24,7 +24,9 @@ PicoTerm::PicoTerm(RCPtr<TextVDU> text) noexcept : //
 	SerialDevice(writable),
 	text(std::move(text))
 {
-	reset();
+	//auto_crlf = true;
+	//sm_state  = 0;
+	//reset();
 }
 
 void PicoTerm::reset() noexcept
