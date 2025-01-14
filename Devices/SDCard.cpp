@@ -3,16 +3,23 @@
 // https://spdx.org/licenses/BSD-2-Clause.html
 
 #include "SDCard.h"
+#include "Logger.h"
 #include "cdefs.h"
 #include "crc.h"
+#include "utilities/Trace.h"
+#include "utilities/utilities.h"
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
 #include <pico/stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-#undef debugstr
-#define debugstr(...) void(0)
+#ifdef PICO_DEFAULT_SPI_CLOCK
+static constexpr uint32 spi_clock = PICO_DEFAULT_SPI_CLOCK;
+static_assert(spi_clock <= 25 * 1000 * 1000);
+#else
+static constexpr uint32 spi_clock = 10 * 1000 * 1000;
+#endif
 
 // clang-format off
 // assert unchanged definition, then replace c-style casting macros with c++ version:
@@ -74,7 +81,7 @@ inline void SDCard::deselect() const noexcept
 {
 	if (set_disk_light) set_disk_light(off);
 	gpio_put(cs_pin, 1);
-	static uint8 u1;
+	uint8 u1;
 	read_spi(&u1, 1); // flush card's shift register (!SanDisk!)
 }
 
@@ -93,13 +100,16 @@ SDCard::SDCard() noexcept : SDCard(rx, cs, clk, tx)
 }
 
 SDCard::SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) noexcept :
-	BlockDevice(0, 9, 9, 9 /*ss*/, readwrite /*flags*/),
+	BlockDevice(0, 9, 9, 9 /*ss*/, removable /*flags*/),
 	spi(inst_for_pin(rx)),
 	rx_pin(rx),
 	cs_pin(cs),
 	clk_pin(clk),
 	tx_pin(tx)
 {
+	trace(__func__);
+	debugstr("SDCard::SDCard\n");
+
 	assert(inst_for_pin(rx) == inst_for_pin(tx));
 	assert(inst_for_pin(rx) == inst_for_pin(clk));
 	assert(is_rx_pin(rx));
@@ -117,7 +127,7 @@ void SDCard::init_spi() noexcept
 	gpio_set_dir(cs_pin, GPIO_OUT);
 
 	// spi:
-	spi_init(spi, 20 * 1000 * 1000);
+	spi_init(spi, spi_clock);
 	spi_set_format(spi, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
 	gpio_set_function(rx_pin, GPIO_FUNC_SPI);
 	gpio_pull_up(rx_pin);
@@ -127,10 +137,12 @@ void SDCard::init_spi() noexcept
 
 void SDCard::disconnect() noexcept
 {
+	trace(__func__);
+	debugstr("SDCard::disconnect\n");
+
 	deselect();
-	//spi_deinit(spi);
 	sector_count = 0;
-	flags		 = Flags(0);
+	flags		 = removable;
 	card_type	 = SD_unknown;
 }
 
@@ -167,18 +179,32 @@ enum ReadDataErrorToken {
 	CardIsLocked = 0b00010000,
 };
 
-static void __attribute__((noreturn)) throwWriteDataErrorToken(uint8 n)
+void __attribute__((noreturn)) SDCard::throwDeviceNotResponding()
 {
-	if (n == 0xff) throw DEVICE_NOT_RESPONDING;
+	disconnect();
+	throw DEVICE_NOT_RESPONDING;
+}
+
+void __attribute__((noreturn)) SDCard::throwWriteDataErrorToken(uint8 n)
+{
+	if constexpr (debug) printf("SDCard::throwWriteDataErrorToken 0x%02x\n", n);
+	if constexpr (debug) Trace::print(get_core_num());
+
+	if (n == 0xff) throwDeviceNotResponding();
+	deselect();
 	n &= DataResponseMask;
 	if (n == DataCrcError) throw CRC_ERROR;
 	if (n == DataWriteError) throw HARD_WRITE_ERROR;
 	throw DEVICE_INVALID_RESPONSE;
 }
 
-static void __attribute__((noreturn)) throwReadDataErrorToken(uint8 n)
+void __attribute__((noreturn)) SDCard::throwReadDataErrorToken(uint8 n)
 {
-	if (n == 0xff) throw DEVICE_NOT_RESPONDING;
+	if constexpr (debug) printf("SDCard::throwReadDataErrorToken 0x%02x\n", n);
+	if constexpr (debug) Trace::print(get_core_num());
+
+	if (n == 0xff) throwDeviceNotResponding();
+	deselect();
 	if (n == RangeError) throw INVALID_ARGUMENT;
 	if (n == ECC_Failed) throw HARD_READ_ERROR;
 	if (n == CC_Error) throw CONTROLLER_FAILURE;
@@ -187,9 +213,13 @@ static void __attribute__((noreturn)) throwReadDataErrorToken(uint8 n)
 	throw DEVICE_INVALID_RESPONSE;
 }
 
-void __attribute__((noreturn)) throwR1ResponseError(uint8 r1)
+void __attribute__((noreturn)) SDCard::throwR1ResponseError(uint8 r1)
 {
-	if (r1 == 0xff) throw DEVICE_NOT_RESPONDING;
+	if constexpr (debug) printf("SDCard::throwR1ResponseError 0x%02x\n", r1);
+	if constexpr (debug) Trace::print(get_core_num());
+
+	if (r1 == 0xff) throwDeviceNotResponding();
+	deselect();
 	r1 &= ~IdleState;
 	if (r1 == IllegalCommand) throw ILLEGAL_COMMAND;
 	if (r1 == CommandCrcError) throw CRC_ERROR;
@@ -221,40 +251,49 @@ inline uint8 SDCard::read_byte() noexcept
 	return byte;
 }
 
-uint8 SDCard::receive_byte(uint retry) noexcept
+uint8 SDCard::receive_byte_or_throw(int timeout_us) throws
 {
-	// receive byte with retry count
-	// for 10MHz retry count ~ timeout in µs.
+	// wait to receive byte != 0xff
 
 	uint8 byte;
-	do {
-		read_spi(&byte, 1);
-	}
-	while (byte == 0xff && retry--);
+	int	  delay = 0;
+	CC	  start = now();
+	while ((byte = read_byte()) == 0xff && (delay = now() - start) < timeout_us) {}
+	if (byte == 0xff) throwDeviceNotResponding();
+	if (debug && delay >= 10000) logline("SDCard: lame response after %i usec", delay);
 	return byte;
 }
 
-bool SDCard::wait_ready(uint retry) noexcept
+void SDCard::wait_ready_or_throw() throws
 {
-	// wait for card.DO = 1 with timeout
-	// uses timeout value as retry count. for 10MHz this is similar to µs.
+	// wait while data.DO = 0:
+	// if D0 is pulled low there must be a card in the slot.
+	// therefore we use only a safety timeout after 1 second.
 
-	do {
-		if (read_byte() == 0xff) return true;
+	for (int r = spi_clock / 10; --r;)
+	{
+		if (read_byte() == 0xff) return;
 	}
-	while (--retry);
-	deselect();
-	return false; // not ready
+	throwDeviceNotResponding();
 }
 
-void SDCard::select_and_wait_ready(uint __unused retry) throws
+uint16 SDCard::read_status(bool keep_selected) noexcept // not used
 {
-	// wait for card.DO = 1 with timeout
-	// uses timeout value as retry count. for 10MHz this is similar to µs.
+	// CMD13 returns R2 response
+	// note: R1 is in the LSB, the 2nd byte is in the MSB
+	// cmd13 can be issued while card is holding DO low
+	// => i think the card must respond immediately, no 0xff fill byte allowed.
 
+	trace(__func__);
+	debugstr("SDCard::%s\n", __func__);
+
+	constexpr uint8 cmd13[6] {0x40 | 13, 0, 0, 0, 0, 0x0D};
 	select();
-	if (wait_ready()) return;
-	else throw TIMEOUT;
+	write_spi(cmd13, 6);
+	uint8 r1 = read_byte();
+	uint8 r2 = read_byte();
+	if (!keep_selected) deselect();
+	return r1 + r2 * 256;
 }
 
 uint8 SDCard::send_cmd(uint8 cmd, uint32 arg, uint flags) throws
@@ -264,12 +303,11 @@ uint8 SDCard::send_cmd(uint8 cmd, uint32 arg, uint flags) throws
 	// SanDisk loses byte synchronization in acmd
 	// therefore it is essential to always deselect + select before sending commands
 
+	trace(__func__);
+
 	bool  is_acmd = flags & f_acmd;
 	bool  keep_on = flags & no_deselect;
 	uint8 r1_mask = flags & f_idle ? 0xff - IdleState : 0xff;
-
-	if (arg) debugstr("{%scmd%u %08x} ", is_acmd ? "a" : "", cmd, arg);
-	else debugstr("{%scmd%u} ", is_acmd ? "a" : "", cmd);
 
 	uint8 bu2[6];
 	bu2[0] = 0x40 | cmd;
@@ -278,28 +316,32 @@ uint8 SDCard::send_cmd(uint8 cmd, uint32 arg, uint flags) throws
 
 	uint8 retry = 1;
 a:
-	select_and_wait_ready();
+	select();
+	wait_ready_or_throw();
 	uint8 r1;
 	if (is_acmd)
 	{
-		static const uint8 bu1[6] {0x40 | 55, 0, 0, 0, 0, 0x65}; // CMD55
+		constexpr uint8 bu1[6] {0x40 | 55, 0, 0, 0, 0, 0x65}; // CMD55
 		write_spi(bu1, 6);
-		r1 = receive_byte();
-		deselect(); // <-- required for SanDisk ... don't buy again.
+		r1 = receive_byte_or_throw(100);
+		deselect(); // <-- (!SanDisk!)
 		if ((r1 & r1_mask) != 0) goto x;
 		select();
 	}
 	write_spi(bu2, 6);
-	r1 = receive_byte();
+	r1 = receive_byte_or_throw(100);
 
 	if (!keep_on || (r1 & r1_mask) != 0) deselect();
 	if ((r1 & r1_mask) == 0) return r1;
 x:
 	if ((r1 & r1_mask) == CommandCrcError && retry--) goto a;
+
+	if (arg) debugstr("SDCard::send_cmd(%scmd %u, 0x%08x)\n", is_acmd ? "a" : "", cmd, arg);
+	else debugstr("SDCard::send_cmd(%scmd %u)\n", is_acmd ? "a" : "", cmd);
 	throwR1ResponseError(r1);
 }
 
-void SDCard::initialize_card_and_wait_ready() throws
+void SDCard::initialize_card_and_wait_ready() throws // part of connect()
 {
 	// ACMD41: send host supports SDHC and wait card ready
 	// must be sent after CMD8 which enabled SDHC support in the card itself.
@@ -311,32 +353,19 @@ void SDCard::initialize_card_and_wait_ready() throws
 	// For SDUC cards (>2TB), card may indicate that the card is still initializing in the
 	// R3 response of ACMD41 continuously to let host know SDUC card cannot use SPI mode.
 
-	for (uint start = time_us_32(); time_us_32() - start < 5 * 1000 * 1000;)
+	trace(__func__);
+	debugstr("SDCard::%s\n", __func__);
+
+	for (CC end = now() + 5 * 1000000; now() < end;)
 	{
 		uint8 r1 = send_acmd(41, 0x40000000, f_idle);
 		if (r1 == 0) return;
-		sleep_ms(5);
+		sleep_us(5 * 1000);
 	}
 	throw TIMEOUT;
 }
 
-uint16 SDCard::read_status(bool keep_selected) noexcept
-{
-	// CMD13 returns R2 response
-	// note: R1 is in the LSB, the 2nd byte is in the MSB
-	// cmd13 can be issued while card is holding DO low
-
-	debugstr("{CMD13} ");
-	static const uint8 cmd13[6] {0x40 | 13, 0, 0, 0, 0, 0x0D};
-	select();
-	write_spi(cmd13, 6);
-	uint8 r1 = receive_byte(100);
-	uint8 r2 = receive_byte(0);
-	if (!keep_selected) deselect();
-	return r1 + r2 * 256;
-}
-
-void SDCard::read_ocr() throws
+void SDCard::read_ocr() throws // part of connect()
 {
 	// READ_OCR (CMD58): After initialization is completed, the host should get
 	// CCS information in the response of CMD58. CCS is valid when the card accepted CMD8
@@ -348,6 +377,9 @@ void SDCard::read_ocr() throws
 	// if CCS bit in OCR == 1: => SD v2+ with block addresses, block size = 512 fixed
 	// if CCS bit in OCR == 0: => SD v1 or v2+ with byte addresses
 
+	trace(__func__);
+	debugstr("SDCard::%s\n", __func__);
+
 	uint8 bu[4];
 	send_cmd(58, 0, no_deselect);
 	read_spi(bu, 4);
@@ -355,52 +387,50 @@ void SDCard::read_ocr() throws
 	ocr = peek_u32(bu);
 }
 
-void SDCard::read_scr()
+void SDCard::read_scr() // part of connect()
 {
 	// ACMD51
 	// the only interesting data in here is the value of erased bits
 
+	trace(__func__);
+	debugstr("SDCard::%s\n", __func__);
+
 	send_acmd(51, 0, no_deselect);
 	uint8 bu[10];
-	uint8 token = receive_byte(10000);
+	uint8 token = receive_byte_or_throw(10000);
 	read_spi(bu, 10);
 	deselect();
 	if (token != DataToken) throwReadDataErrorToken(token);
-	if (crc16(bu, 8) != peek_u16(bu + 8)) debugstr("crc_error "); //xxx throw CRC_ERROR;
+	if (peek_u16(bu + 8) != (no_crc ? 0 : crc16(bu, 8))) throw CRC_ERROR; // TODO: retry once
 	erased_byte = bu[1] & 0x80 ? 0xff : 0x00;
 }
 
-void SDCard::read_card_info(uint8 cmd) throws
+void SDCard::read_card_info(uint8 cmd) throws // part of connect()
 {
-	assert(cmd == 9 || cmd == 10);
-
 	// Reading CSD (CMD9) and CID (CMD10)
 	// These are same as Single Block Read except for the data block length.
 	// The CSD and CID are sent to the host as 16 byte data block.
 
+	trace(__func__);
+	debugstr("SDCard::%s\n", __func__);
+
+	assert(cmd == 9 || cmd == 10);
+
 	send_cmd(cmd, 0, no_deselect);
-	uint8 token = receive_byte();
-	if (token != DataToken)
-	{
-		deselect();
-		throwReadDataErrorToken(token);
-	}
+	uint8 token = receive_byte_or_throw(1000);
+	if (token != DataToken) throwReadDataErrorToken(token);
 	uint8 bu[18];
 	read_spi(bu, 18);
 	deselect();
 
-	if (crc16(bu, 16) != peek_u16(bu + 16))
+	no_crc = peek_u16(bu + 16) == 0 && bu[15] == 0;
+	if (no_crc)
 	{
-		// attn: intenso year 2023 4GB sdcards return crc = 0x00 and 0x0000
-		debugstr("crc16 failed (%04x != %04x)\n", crc16(bu, 16), peek_u16(bu + 16));
-		if (peek_u16(bu + 16) || bu[15]) throw CRC_ERROR; // TODO: retry once
+		// attn: some 2023 intenso 4GB sdcards returned crc7 = 0x00 and crc16 = 0x0000
+		logline("Warning: SDCard did not enable CRC");
 	}
-	if (crc7(bu, 15) != bu[15])
-	{
-		// attn: intenso year 2023 4GB sdcards return crc = 0x00 and 0x0000
-		debugstr("crc7 failed (%02x != %02x)", crc7(bu, 15), bu[15]);
-		if (peek_u16(bu + 16) || bu[15]) throw CRC_ERROR; // TODO: retry once
-	}
+	else if (crc16(bu, 16) != peek_u16(bu + 16)) throw CRC_ERROR; // TODO: retry once
+	else if (crc7(bu, 15) != bu[15]) throw CRC_ERROR;			  // TODO: retry once
 
 	// store data but take care for our little Endian:
 	if (cmd == 9)
@@ -412,15 +442,18 @@ void SDCard::read_card_info(uint8 cmd) throws
 
 void SDCard::connect() throws
 {
-	printf("SDCard::connect\n");
+	trace("SDCard::connect");
+	debugstr("%s\n", "SDCard::connect");
 
 	// attach to a card
 	// connect() may take several seconds if called directly after inserting the card
 
-	//while (time_us_32() < 1000) {}		// delay after power-up
-
+	// disconnect:
 	//deselect();
-	//spi_set_baudrate(spi, 400*1000); // MMC=400kHz, SDCard=25MHz, cable length~10MHz
+	//spi_set_baudrate(spi, 400*1000); // MMC=400kHz, SDCard=25MHz, lengthy cable ~10MHz
+	sector_count = 0;
+	flags		 = removable;
+	card_type	 = SD_unknown;
 
 	try
 	{
@@ -430,7 +463,7 @@ void SDCard::connect() throws
 		deselect();
 		if (retry-- == 0)
 		{
-			debugstr("r1=%02x ", r1);
+			debugstr("  r1=%02x\n", r1);
 			if (r1 == 0xff) throw DEVICE_NOT_RESPONDING;
 			throw DEVICE_INVALID_RESPONSE;
 		}
@@ -445,6 +478,7 @@ void SDCard::connect() throws
 		// The SD Card will enter SPI mode if the CS signal is asserted during this command.
 		// expected response: R1 = 0x01 = IdleState
 
+		debugstr("  cmd0\n");
 		r1 = send_cmd(0x00, 0, f_idle);
 		if (r1 != IdleState) goto retry;
 
@@ -456,24 +490,24 @@ void SDCard::connect() throws
 		//           [7:0]  check pattern: 0xAA
 		// expected response: R7 = R1 + 0x000001AA = same as sent
 
-		debugstr("{cmd8} ");
+		debugstr("  cmd8\n");
 		select();
-		//wait_ready(1000);
-		static const uint8 cmd8[6] {8 | 0x40, 0, 0, 1, 0xAA, 0x87};
+		wait_ready_or_throw();
+		constexpr uint8 cmd8[6] {8 | 0x40, 0, 0, 1, 0xAA, 0x87};
 		write_spi(cmd8, 6);
-		r1 = receive_byte();
+		r1 = receive_byte_or_throw(100); ///!
 		if (r1 == IdleState)
 		{
 			read_spi(bu, 4);
 			if (bu[3] != 0xAA || bu[2] != 1) goto retry;
 			deselect();
-			debugstr("SD_2x ");
+			debugstr("  SD_2x\n");
 			card_type = SD_v2;
 		}
 		else if (r1 == IdleState + IllegalCommand)
 		{
 			deselect();
-			debugstr("SD_1x ");
+			debugstr("  SD_1x\n");
 			card_type = SD_v1;
 		}
 		else goto retry;
@@ -485,11 +519,13 @@ void SDCard::connect() throws
 
 		// CMD59 CRC_ON_OFF:
 		// enable CRC
+		debugstr("  cmd59\n");
 		send_cmd(59, 0, f_idle);
 
 		// ACMD41 SD_SEND_OP_COND, wait until card left IdleState:
-		debugstr("\nwait_ready ");
 		initialize_card_and_wait_ready();
+
+		send_cmd(59, 0);
 
 		// CMD58 READ_OCR:
 		// read OCR to get CCS "Card Capacity Status".
@@ -499,7 +535,7 @@ void SDCard::connect() throws
 		{
 			if (card_type == SD_v1) throw DEVICE_INVALID_RESPONSE;
 			card_type = SDHC_v2;
-			debugstr("SDHC_2x ");
+			debugstr("  SDHC_2x\n");
 		}
 		else
 		{
@@ -513,36 +549,35 @@ void SDCard::connect() throws
 
 		// set spi to higher speed
 		// high speed not guaranteed in SPI mode: => 25MHz max
-		// but use 10MHz wg. cable anyway
+		// limit to 10MHz for breadboard type wiring
 		//spi_set_baudrate(spi,10*1000*1000);
 
-		// get card identification CID and test working at baudrate:
+		// get card identification CID:
 		read_card_info(10);
 
 		// get value of erased bits
 		read_scr();
 
-		ss_read = ss_write = 9;
-		if (1 << ss_read != csd.erase_sector_size()) throw DEVICE_NOT_SUPPORTED;
-		//if (ss != csd.read_bl_bits()) throw DEVICE_NOT_SUPPORTED;
-		//if (ss != csd.write_bl_bits()) throw DEVICE_NOT_SUPPORTED;
-		flags = csd.write_prot() ? partition | readable : partition | readwrite | overwritable;
+		//ss_read = ss_write = ss_erase = 9;
+		if (1 << ss_erase != csd.erase_sector_size()) throw DEVICE_NOT_SUPPORTED;
+		if (ss_read != csd.read_bl_bits()) throw DEVICE_NOT_SUPPORTED;
+		if (ss_write != csd.write_bl_bits()) throw DEVICE_NOT_SUPPORTED;
+		flags = csd.write_prot() ? removable | partition | readable : removable | partition | readwrite;
 
-		debugstr("\n");
 		uint64 total_size = csd.disk_size();
 		sector_count	  = SIZE(total_size >> ss_write);
-		if (ADDR(total_size) != total_size) debugstr("WARNING: disk size >= 4GB\n");
-		debugstr("ready\n");
+		if (ADDR(total_size) != total_size) logline("Warning: SDCard size >= 4GB");
+		debugstr("SDCard:: ready\n");
 	}
 	catch (cstr& e)
 	{
-		printf("exception: %s\n", e);
+		debugstr("  %s\n", e);
 		disconnect();
 		throw e;
 	}
 	catch (...)
 	{
-		printf("other exception\n");
+		debugstr("  unknown exception\n");
 		disconnect();
 		throw;
 	}
@@ -551,6 +586,10 @@ void SDCard::connect() throws
 void SDCard::set_blocklen(uint blen) throws
 {
 	// CMD16
+
+	trace("SDCard::set_blocklen");
+	debugstr("%s\n", "SDCard::set_blocklen");
+
 	send_cmd(16, blen);
 }
 
@@ -558,22 +597,21 @@ void SDCard::read_single_block(uint32 blkidx, uint8* data) throws
 {
 	// CMD17: read single block
 
-	uint retry = 1;
-r:
-	uint8 crc[2];
-	send_cmd(17, ccs ? blkidx : blkidx << 9, no_deselect);
-	uint8 token = receive_byte(100000); // Verbatim 16GB: poor blocks take up to 10msec (<=> 20000 @ 20MHz)
-	if (token != DataToken)
+	trace("SDCard::read_single_block");
+	debugstr("%s\n", "SDCard::read_single_block");
+
+	for (uint retry = 0; retry <= 1; retry++)
 	{
+		uint8 crc[2];
+		send_cmd(17, ccs ? blkidx : blkidx << 9, no_deselect);
+		uint8 token = receive_byte_or_throw(100000); // 2024: Verbatim 16GB: poor blocks take up to 10msec
+		if (token != DataToken) throwReadDataErrorToken(token);
+		read_spi(data, 512);
+		read_spi(crc, 2);
 		deselect();
-		throwReadDataErrorToken(token);
+		if (peek_u16(crc) == (no_crc ? 0 : crc16(data, 512))) return;
+		else if (retry == 0) logline("crc_error");
 	}
-	read_spi(data, 512);
-	read_spi(crc, 2);
-	deselect();
-	if (crc16(data, 512) == peek_u16(crc)) return;
-	debugstr("crc_error ");
-	if (retry--) goto r;
 	throw CRC_ERROR;
 }
 
@@ -581,25 +619,34 @@ void SDCard::write_single_block(uint32 blkidx, const uint8* data) throws
 {
 	// CMD24: write single block
 
-	uint retry = 1;
-r:
-	uint8 crc[2];
-	uint8 token = DataToken;
-	poke_u16(crc, crc16(data, 512));
-	send_cmd(24, ccs ? blkidx : blkidx << 9, no_deselect);
-	wait_ready();
-	write_spi(&token, 1);
-	write_spi(data, 512);
-	write_spi(crc, 2);
-	token = receive_byte(10000) & DataResponseMask;
-	deselect();
-	if (token == DataAccepted) return;
-	if (token == DataCrcError && retry--) goto r;
-	throwWriteDataErrorToken(token);
+	trace("SDCard::write_single_block");
+	debugstr("%s\n", "SDCard::write_single_block");
+
+	for (uint retry = 0; retry <= 1; retry++)
+	{
+		uint8 crc[2];
+		poke_u16(crc, crc16(data, 512));
+		send_cmd(24, ccs ? blkidx : blkidx << 9, no_deselect);
+		wait_ready_or_throw();
+		uint8 token = DataToken;
+		write_spi(&token, 1);
+		write_spi(data, 512);
+		write_spi(crc, 2);
+		token = receive_byte_or_throw(100000) & DataResponseMask;
+		deselect();
+		if (token == DataAccepted) return;
+		if (token != DataCrcError) throwWriteDataErrorToken(token);
+		else if (retry == 0) logline("crc_error");
+	}
+
+	throwWriteDataErrorToken(DataCrcError);
 }
 
 void SDCard::stop_transmission() noexcept
 {
+	trace("SDCard::stop_transmission");
+	debugstr("%s\n", "SDCard::stop_transmission");
+
 	// CMD12
 	// The received byte immediately following CMD12 is a stuff byte,
 	// it should be discarded prior to receive the response of the CMD12.
@@ -607,20 +654,22 @@ void SDCard::stop_transmission() noexcept
 	// the read transaction is initiated as a pre-defined multiple block transfer
 	// and the read operation is terminated at last block transfer.
 
-	debugstr("{cmd12} ");
 	//select();
-	static const uint8 cmd[8] = {12 | 0x40, 0, 0, 0, 0, 0x61, 0xff, 0xff};
-	uint8			   rx[8];
+	constexpr uint8 cmd[8] = {12 | 0x40, 0, 0, 0, 0, 0x61, 0xff, 0xff};
+	uint8			rx[8];
 	spi_write_read_blocking(spi, cmd, rx, 8);
 	deselect();
 	//dump(rx,8);	// -> FExxxxxxxxxx7F00	(xx = data from sector)
 	uint8 r1 = rx[7];
-	if (r1 != 0) printf("\nERROR: cmd12 r1=0x%02x  ", r1);
+	if (r1 != 0) debugstr("\nERROR: cmd12 r1=0x%02x  ", r1);
 }
 
 void SDCard::readSectors(LBA blkidx, void* data, SIZE blkcnt) throws
 {
 	// CMD18: read multiple blocks
+
+	trace("SDCard::readSectors");
+	debugstr("%s\n", "SDCard::readSectors");
 
 	uchar* udata = reinterpret_cast<uchar*>(data);
 	if (blkcnt == 1) return read_single_block(blkidx, udata);
@@ -632,7 +681,7 @@ r:
 	while (blkcnt)
 	{
 		uint8 crc[2];
-		uint8 token = receive_byte(10000);
+		uint8 token = receive_byte_or_throw(100000);
 		if (token != DataToken)
 		{
 			stop_transmission();
@@ -640,7 +689,7 @@ r:
 		}
 		read_spi(udata, 512);
 		read_spi(crc, 2);
-		if (crc16(udata, 512) == peek_u16(crc))
+		if ((no_crc ? 0 : crc16(udata, 512)) == peek_u16(crc))
 		{
 			blkidx++;
 			udata += 512;
@@ -648,7 +697,7 @@ r:
 			continue;
 		}
 		stop_transmission();
-		debugstr("crc_error ");
+		if (retry) logline("crc_error");
 		if (retry--) goto r;
 		else throw CRC_ERROR;
 	}
@@ -659,6 +708,9 @@ r:
 void SDCard::writeSectors(LBA blkidx, const void* data, SIZE blkcnt) throws
 {
 	// CMD25: write multiple blocks
+
+	trace("SDCard::writeSectors");
+	debugstr("%s\n", "SDCard::writeSectors");
 
 	//  For MMC, the number of blocks to write can be pre-defined by CMD23 prior to CMD25
 	// and the write transaction is terminated at last data block.
@@ -692,12 +744,12 @@ r:
 		uint8 token = DataToken25;
 		poke_u16(crc, crc16(udata, 512));
 
-		wait_ready();
+		wait_ready_or_throw();
 		write_spi(&token, 1);
 		write_spi(udata, 512);
 		write_spi(crc, 2);
 
-		token = receive_byte(10000) & DataResponseMask;
+		token = receive_byte_or_throw(100000) & DataResponseMask;
 		if (token == DataAccepted)
 		{
 			blkidx++;
@@ -720,11 +772,13 @@ r:
 
 uint32 SDCard::ioctl(IoCtl ctl, void* a1, void* a2) throws
 {
+	trace("SDCard::ioctl");
+	debugstr("%s\n", "SDCard::ioctl");
+
 	switch (ctl.cmd)
 	{
 	case IoCtl::CTRL_CONNECT: // connect to hardware, load removable disk
 		connect();			  // throws
-		print_card_info();
 		return 0;
 	case IoCtl::CTRL_DISCONNECT: // disconnect from hardware, unload removable disk
 		disconnect();
@@ -742,7 +796,7 @@ static inline char hexchar(uint8 n)
 }
 static inline cstr tostr(bool f) { return f ? "YES" : "NO"; }
 
-void SDCard::print_scr(uint /*verbose*/)
+void SDCard::printSCR(SerialDevice* sio, bool /*verbose*/)
 {
 	// SCR Structure				     4  [63:60]  all 0
 	// SD Memory Card - Spec. Version    4  [59:56]  all 2
@@ -762,12 +816,13 @@ void SDCard::print_scr(uint /*verbose*/)
 	// SanDisk 16GB: 02358003 00000000
 	// Kingston 4GB: 02358000 00000000
 
-	printf("\nSCR: SD Card Configuration Register\n");
+	sio->printf("\nSCR: SD Card Configuration Register\n");
+	read_scr(); // => don't print data from a previous card
 	//if (verbose) printf("%08X\n",scr);
-	printf("  Erased data value:  0x%02X\n", erased_byte);
+	sio->printf("  Erased data value:  0x%02X\n", erased_byte);
 }
 
-void SDCard::print_ocr(uint v)
+void SDCard::printOCR(SerialDevice* sio, bool v)
 {
 	/* OCR Register
 	The 32-bit Operation Conditions Register stores the V DD voltage profile and 2 status bits.
@@ -790,29 +845,30 @@ void SDCard::print_ocr(uint v)
 		31: Card power up status: set if the card power up procedure has been finished.
 	*/
 
-	printf("\nOCR: Operation Condition Register\n");
+	sio->printf("\nOCR: Operation Condition Register\n");
+	read_ocr(); // => don't print data from a previous card
 
-	if (v) printf("%08X\n", ocr);
+	if (v) sio->printf("%08X\n", ocr);
 
-	if ((ocr & 0x00ff8000) == 0) { printf("  Voltage range 2.7 .. 3.6V: not supported %%-)\n"); }
+	if ((ocr & 0x00ff8000) == 0) { sio->printf("  Voltage range 2.7 .. 3.6V: not supported %%-)\n"); }
 	else
 	{
-		static const char v[10][4] = {"2.7", "2.8", "2.9", "3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6"};
-		uint			  a		   = 15;
+		constexpr char v[10][4] = {"2.7", "2.8", "2.9", "3.0", "3.1", "3.2", "3.3", "3.4", "3.5", "3.6"};
+		uint		   a		= 15;
 		while ((ocr & (1 << a)) == 0) a++;
 		uint e = 23;
 		while ((ocr & (1 << e)) == 0) e--;
-		printf("  Voltage range: %s .. %sV\n", v[a - 15], v[e - 14]);
+		sio->printf("  Voltage range: %s .. %sV\n", v[a - 15], v[e - 14]);
 	}
-	printf("  Switching to 1.8V accepted: %s\n", ocr & (1 << 24) ? "YES" : "NO");
-	printf("  Over 2TB support:           %s\n", ocr & (1 << 27) ? "YES" : "NO");
-	if (v || ocr & (1 << 29)) printf("  UHS-II Card Status:         %s\n", ocr & (1 << 29) ? "YES" : "NO");
-	printf(
+	sio->printf("  Switching to 1.8V accepted: %s\n", ocr & (1 << 24) ? "YES" : "NO");
+	sio->printf("  Over 2TB support:           %s\n", ocr & (1 << 27) ? "YES" : "NO");
+	if (v || ocr & (1 << 29)) sio->printf("  UHS-II Card Status:         %s\n", ocr & (1 << 29) ? "YES" : "NO");
+	sio->printf(
 		"  Card Capacity Status CCS:   %s\n", ocr & (1 << 30) ? "YES (block address mode)" : "NO (byte address mode)");
-	if (v || !ocr >> 31) printf("  Card powered up:            %s\n", ocr >> 31 ? "YES" : "NO");
+	if (v || !ocr >> 31) sio->printf("  Card powered up:            %s\n", ocr >> 31 ? "YES" : "NO");
 }
 
-void SDCard::print_cid(uint v)
+void SDCard::printCID(SerialDevice* sio, bool v)
 {
 	/* CID Register
 	The Card IDentification Register is 128 bits wide. It contains the card identification
@@ -829,13 +885,14 @@ void SDCard::print_cid(uint v)
 		[0:0]     1       always 1
 	*/
 
-	printf("\nCID: Card Identification\n");
+	sio->printf("\nCID: Card Identification\n");
+	read_card_info(10); // => don't print data from a previous card
 
 	if (v)
 	{
 		uint8* p = uint8ptr(&cid);
-		for (uint i = 0; i < 16; i++) { printf("%02X", *p++); }
-		printf("\n");
+		for (uint i = 0; i < 16; i++) { sio->printf("%02X", *p++); }
+		sio->putc('\n');
 	}
 
 	char pnm[6] = "?????";
@@ -855,15 +912,15 @@ void SDCard::print_cid(uint v)
 	uint y	 = uint8(mdt >> 4);
 	uint m	 = mdt & 15;
 
-	printf("  MID: Manufacturer     %u\n", cid.mid);
-	printf("  OID: OEM/Application  %u\n", peek_u16(cid.oid));
-	printf("  PNM: Product Name     %s\n", pnm);
-	printf("  PRV: Product Revision %s\n", prv);
-	printf("  PSN: Prod. Serial No. %u\n", peek_u32(cid.psn));
-	printf("  MDT: Manufactured     20%02u/%02u (0x%03x)\n", y, m, mdt & 0xfff);
+	sio->printf("  MID: Manufacturer     %u\n", cid.mid);
+	sio->printf("  OID: OEM/Application  %u\n", peek_u16(cid.oid));
+	sio->printf("  PNM: Product Name     %s\n", pnm);
+	sio->printf("  PRV: Product Revision %s\n", prv);
+	sio->printf("  PSN: Prod. Serial No. %u\n", peek_u32(cid.psn));
+	sio->printf("  MDT: Manufactured     20%02u/%02u (0x%03x)\n", y, m, mdt & 0xfff);
 }
 
-void SDCard::print_csd(uint v)
+void SDCard::printCSD(SerialDevice* sio, bool v)
 {
 	/* CSD Register
 	The Card-Specific Data register provides information regarding access to the card contents.
@@ -879,15 +936,16 @@ void SDCard::print_csd(uint v)
 		3    reserved
 	*/
 
-	printf("\nCSD: Card-Specific Data\n");
+	sio->printf("\nCSD: Card-Specific Data\n");
+	read_card_info(9); // => don't print data from a previous card
 
 	if (v)
 	{
-		for (uint i = 0; i < 4; i++) printf("%08X", csd.data[i]);
-		printf("\n");
+		for (uint i = 0; i < 4; i++) sio->printf("%08X", csd.data[i]);
+		sio->putc('\n');
 	}
 
-	static const cstr cccs[12] = {
+	constexpr cstr cccs[12] = {
 		"Basic",	 "Comm and Queue",		 "Block read", "res.",	 "Block write", "Erase", "Write protection",
 		"Lock card", "Application specific", "I/O mode",   "Switch", "Extension"};
 
@@ -895,38 +953,38 @@ void SDCard::print_csd(uint v)
 	uint ccc		 = csd.ccc();
 	uint csd_version = csd.csd_structure() + 1;
 
-	printf("  CSD Structure:             Version %u\n", csd_version);
-	printf("  Disk size                  %u MB\n", uint(csd.disk_size() / 1000000));
-	printf("  max. data clock:           %u MHz\n", csd.max_clock() / 1000000);
-	printf("  read access time at 10MHz: %u ms\n", rat10us / 1000);
-	printf("  r2w time factor:           %u\n", csd.r2w_factor());
-	printf("  supported card command classes:\n");
+	sio->printf("  CSD Structure:             Version %u\n", csd_version);
+	sio->printf("  Disk size                  %u MB\n", uint(csd.disk_size() / 1000000));
+	sio->printf("  max. data clock:           %u MHz\n", csd.max_clock() / 1000000);
+	sio->printf("  read access time at 10MHz: %u ms\n", rat10us / 1000);
+	sio->printf("  r2w time factor:           %u\n", csd.r2w_factor());
+	sio->printf("  supported card command classes:\n");
 	for (uint i = 0; i < 12; i++)
 	{
-		if (ccc & (1 << i)) printf("     %2u: %s\n", i, cccs[i]);
+		if (ccc & (1 << i)) sio->printf("     %2u: %s\n", i, cccs[i]);
 	}
-	printf("  DSR implemented            %s\n", tostr(csd.dsr_imp()));
+	sio->printf("  DSR implemented            %s\n", tostr(csd.dsr_imp()));
 
-	printf("  read block length:         %u\n", 1 << csd.read_bl_bits());
-	printf("  write block length:        %u\n", 1 << csd.write_bl_bits());
-	printf("  read block partial:        %s\n", tostr(csd.read_bl_partial()));
-	printf("  write block partial:       %s\n", tostr(csd.write_bl_partial()));
-	printf("  read accross block bounds  %s\n", tostr(csd.read_bl_misalign()));
-	printf("  write accross block bounds %s\n", tostr(csd.write_bl_misalign()));
-	printf("  erase per block enabled    %s\n", tostr(csd.erase_blk_en()));
-	printf("  erase sector size          %u\n", csd.erase_sector_size());
+	sio->printf("  read block length:         %i\n", 1 << csd.read_bl_bits());
+	sio->printf("  write block length:        %i\n", 1 << csd.write_bl_bits());
+	sio->printf("  read block partial:        %s\n", tostr(csd.read_bl_partial()));
+	sio->printf("  write block partial:       %s\n", tostr(csd.write_bl_partial()));
+	sio->printf("  read accross block bounds  %s\n", tostr(csd.read_bl_misalign()));
+	sio->printf("  write accross block bounds %s\n", tostr(csd.write_bl_misalign()));
+	sio->printf("  erase per block enabled    %s\n", tostr(csd.erase_blk_en()));
+	sio->printf("  erase sector size          %u\n", csd.erase_sector_size());
 	if (csd_version == 1)
 	{
-		printf("  wprot group size           %u\n", reinterpret_cast<CSDv1&>(csd).wp_grp_size());
-		printf("  wprot groups enabled       %s\n", tostr(reinterpret_cast<CSDv1&>(csd).wp_grp_enable()));
+		sio->printf("  wprot group size           %u\n", reinterpret_cast<CSDv1&>(csd).wp_grp_size());
+		sio->printf("  wprot groups enabled       %s\n", tostr(reinterpret_cast<CSDv1&>(csd).wp_grp_enable()));
 	}
 
-	printf("  this disk is a copy        %s\n", tostr(csd.copy()));
-	printf("  permanent write protection %s\n", tostr(csd.perm_write_prot()));
-	printf("  temporary write protection %s\n", tostr(csd.tmp_write_prot()));
+	sio->printf("  this disk is a copy        %s\n", tostr(csd.copy()));
+	sio->printf("  permanent write protection %s\n", tostr(csd.perm_write_prot()));
+	sio->printf("  temporary write protection %s\n", tostr(csd.tmp_write_prot()));
 }
 
-void SDCard::print_card_info(uint v)
+void SDCard::printCardInfo(SerialDevice* sio, bool v)
 {
 	//	SD_unknown,
 	//	SD_v1,		// standard capacity SD card (16MB..2GB)
@@ -935,7 +993,7 @@ void SDCard::print_card_info(uint v)
 	//	SDUC_v3,	// SDUC ultra capacity SD card (2TB..128TB) (no SPI support!)
 	//	MMC,		// need 400kHz for initialization, different CSD and CID
 
-	static const cstr card_type_str[] = {
+	constexpr cstr card_type_str[] = {
 		"no card",
 		"SCSD standard capacity card, CSDv1",
 		"SCSD standard capacity card, CSDv2",
@@ -943,12 +1001,12 @@ void SDCard::print_card_info(uint v)
 		"SDUC ultra capacity card, CSDv3 (no SPI - not supported!)",
 		"MMC Multimedia card - not supported"};
 
-	printf("\nCard type = %s\n", card_type_str[card_type]);
-	print_ocr(v);
-	print_cid(v);
-	print_csd(v);
-	print_scr(v);
-	printf("\n");
+	sio->printf("Card type = %s\n", card_type_str[card_type]);
+	if (card_type == 0) return;
+	printOCR(sio, v);
+	printCID(sio, v);
+	printCSD(sio, v);
+	printSCR(sio, v);
 }
 
 } // namespace kio::Devices

@@ -4,11 +4,11 @@
 
 #pragma once
 #include "BlockDevice.h"
-#include <hardware/spi.h>
-//#include "errors.h"
 #include "CSD.h"
+#include "SerialDevice.h"
 #include "cdefs.h"
 #include "standard_types.h"
+#include <hardware/spi.h>
 
 
 // you may define this symbol to get a disk activity light:
@@ -64,7 +64,7 @@ public:
 	CardType card_type	 = SD_unknown;
 	bool	 ccs		 = false; // 1 = SDHC or SDXC: uses sector addresses
 	uint8	 erased_byte = 0xff;
-	char	 _padding;
+	bool	 no_crc		 = false;
 	CSD		 csd;
 	CID		 cid;
 	uint32	 ocr = 0;
@@ -80,11 +80,11 @@ public:
 	virtual void   writeSectors(LBA, const void* bu, SIZE) throws override;
 	virtual uint32 ioctl(IoCtl, void* arg1 = nullptr, void* arg2 = nullptr) throws override;
 
-	void print_scr(uint v = 1);
-	void print_cid(uint v = 1);
-	void print_csd(uint v = 1);
-	void print_ocr(uint v = 1);
-	void print_card_info(uint v = 1);
+	void printSCR(SerialDevice*, bool v = 1);
+	void printCID(SerialDevice*, bool v = 1);
+	void printCSD(SerialDevice*, bool v = 1);
+	void printOCR(SerialDevice*, bool v = 1);
+	void printCardInfo(SerialDevice*, bool v = 1);
 
 private:
 	SDCard() noexcept;
@@ -99,9 +99,8 @@ private:
 	inline void write_spi(const uint8*, uint32) const noexcept;
 
 	uint8  read_byte() noexcept;
-	uint8  receive_byte(uint retry_count = 100) noexcept;
-	bool   wait_ready(uint retry_count = 100000) noexcept;
-	void   select_and_wait_ready(uint retry_count = 100000);
+	uint8  receive_byte_or_throw(int timeout_us) throws;
+	void   wait_ready_or_throw() throws;
 	void   stop_transmission() noexcept;					 // CMD12
 	uint16 read_status(bool keep_selected = false) noexcept; // CMD13
 
@@ -117,6 +116,11 @@ private:
 	void set_blocklen(uint);								   // CMD16
 	void read_single_block(uint32 blkidx, uint8* data);		   // CMD17
 	void write_single_block(uint32 blkidx, const uint8* data); // CMD24
+
+	void __attribute__((noreturn)) throwDeviceNotResponding();
+	void __attribute__((noreturn)) throwWriteDataErrorToken(uint8 n);
+	void __attribute__((noreturn)) throwReadDataErrorToken(uint8 n);
+	void __attribute__((noreturn)) throwR1ResponseError(uint8 r1);
 };
 
 } // namespace kio::Devices
