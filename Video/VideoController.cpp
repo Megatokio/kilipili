@@ -96,6 +96,7 @@ void VideoController::stopVideo() noexcept
 	requested_state = STOPPED;
 	__sev();
 	while (state != STOPPED) { wfe(); }
+	onetime_action = nullptr; // if planes were added but the VideoController was never started
 }
 
 __attribute((noreturn)) //
@@ -279,13 +280,13 @@ inline void RAM VideoController::video_runner()
 void VideoController::addPlane(VideoPlanePtr plane)
 {
 	assert(plane != nullptr);
-	assert(num_planes < count_of(planes));
+	assert_lt(num_planes, count_of(planes));
 
 	// plane must be added by core1 because plane->setup() may initialize the hw interp:
 
 	addOneTimeAction([this, plane] {
 		locker();
-		assert(num_planes < max_planes);
+		assert_lt(num_planes, max_planes);
 		plane->setup(vga_mode.width); // throws
 		planes[num_planes++] = plane;
 	});
