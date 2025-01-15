@@ -45,15 +45,12 @@ ALT	compressed[] =
 class RsrcFS : public FileSystem
 {
 public:
-	RsrcFS() noexcept : FileSystem("rsrc") {}
+	RsrcFS(cstr name = "rsrc") noexcept : FileSystem(name) {}
 
 	virtual ADDR		 getFree() override { return 0; }
 	virtual ADDR		 getSize() override;
 	virtual DirectoryPtr openDir(cstr path) override;
 	virtual FilePtr		 openFile(cstr path, FileOpenMode mode = READ) override;
-
-private:
-	virtual bool mount() throws override { return true; } // always present, maybe empty
 };
 
 

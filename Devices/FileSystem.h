@@ -25,6 +25,12 @@ namespace kio::Devices
 */
 extern FileSystemPtr mount(cstr devicename);
 
+/*	Mount supplied device and register it as device `name`.
+	Normally not needed but may be used to check FS beforehand
+	or to keep it in memory to prevent repeated unmount-mount cycles.
+*/
+extern FileSystemPtr mount(cstr name, BlockDevicePtr device) throws;
+
 /*	Unmount the device with name `devicename`.
 	Basically this clears the current work device, if it is this device:
 	the file system has no other locks on a FileSystem.
@@ -32,6 +38,13 @@ extern FileSystemPtr mount(cstr devicename);
 	To see how many locks there are on a FileSystem inspect the reference count FileSystem->rc. 
 */
 extern void unmount(FileSystemPtr);
+
+/*	Create filesystem on the supplied BlockDevice.
+		Type "FAT" creates the default variant of FAT for the disk size.
+		Other filesystems are TODO.
+		The BlockDevice should not be in use by a FileSystem.
+	*/
+extern void makeFS(BlockDevicePtr, cstr type = "FAT") throws;
 
 /* 	Open a file or directory.
 	If the path starts with a device name followed by a colon then the path is searched on
@@ -66,6 +79,9 @@ extern cstr getWorkDir();
 extern cstr makeAbsolutePath(cstr path);
 extern void unmountAll();
 
+// for FatFS:
+extern int index_of(FileSystem*);
+
 /*	openDir(path) and openFile(path):
 		path must start with "someDevice:"
 		the path without the device is used for the FileSystem function.
@@ -83,26 +99,6 @@ class FileSystem : public RCObject
 {
 public:
 	virtual ~FileSystem() noexcept override;
-
-	/*	Mount supplied device and register it as device `name`.
-		Normally not needed but may be used to check FS beforehand
-		or to keep it in memory to prevent repeated unmount-mount cycles.
-	*/
-	static FileSystemPtr mount(cstr name, BlockDevicePtr device) throws;
-
-	/*	Mount the well-known named device.
-		well-known are currently:
-		- "sdcard"  the default SDCard
-		- "rsrc"    the resource file system
-	*/
-	static FileSystemPtr mount(cstr devicename) throws;
-
-	/*	Create filesystem on the supplied BlockDevice.
-		Type "FAT" creates the default variant of FAT for the disk size.
-		Other filesystems are TODO.
-		The BlockDevice should not be in use by a FileSystem.
-	*/
-	static void makeFS(BlockDevicePtr, cstr type = "FAT") throws;
 
 	/*	Get total size and free space.
 		If exact calculation of free space is expensive return a lower limit.
@@ -128,9 +124,6 @@ public:
 
 protected:
 	FileSystem(cstr name) throws;
-
-private:
-	virtual bool mount() throws = 0;
 };
 
 

@@ -17,7 +17,7 @@
 
 // volume names as required by FatFS:
 constexpr char NoDevice[]			 = "";
-cstr		   VolumeStr[FF_VOLUMES] = {"", "", "", ""};
+cstr		   VolumeStr[FF_VOLUMES] = {NoDevice, NoDevice, NoDevice, NoDevice};
 
 static const cstr ff_errors[] = {
 	/*  FR_OK,					*/ "Success",
@@ -56,17 +56,24 @@ namespace kio::Devices
 static RCPtr<BlockDevice> blkdevs[FF_VOLUMES];
 
 
-FatFS::FatFS(cstr name, BlockDevicePtr bdev, int idx) throws : // ctor
-	FileSystem(name),
-	volume_idx(idx)
+FatFS::FatFS(cstr name, BlockDevicePtr bdev) throws : // ctor
+	FileSystem(name)
 {
 	trace("FatFS::FatFS");
-	debugstr("FatFS(%s,%i)\n", name, idx);
+	debugstr("FatFS(%s)\n", name);
 
+	int idx = index_of(this);
 	assert(uint(idx) <= FF_VOLUMES);
 	assert(bdev != nullptr);
 
-	blkdevs[idx] = bdev;
+	blkdevs[idx]   = bdev;
+	VolumeStr[idx] = this->name;
+	if (FRESULT err = f_mount(&fatfs, catstr(name, ":"), 1 /*mount now*/))
+	{
+		VolumeStr[idx] = NoDevice; // dtor not called
+		blkdevs[idx]   = nullptr;  // if we throw!
+		throw tostr(err);
+	}
 }
 
 FatFS::~FatFS() // dtor
@@ -74,10 +81,16 @@ FatFS::~FatFS() // dtor
 	trace("FatFS::~FatFS");
 	debugstr("~FatFS\n");
 
-	FRESULT err			  = f_mount(nullptr, name, 0); // unmount, unregister buffers
-	VolumeStr[volume_idx] = NoDevice;
-	blkdevs[volume_idx]	  = nullptr;
-	if (err) logline("unmount error: %s", tostr(err));
+	int idx = index_of(this);
+	assert(uint(idx) <= FF_VOLUMES);
+
+	if (VolumeStr[idx] == name)
+	{
+		FRESULT err = f_mount(nullptr, name, 0); // unmount, unregister buffers
+		if (err) logline("unmount error: %s", tostr(err));
+	}
+	VolumeStr[idx] = NoDevice;
+	blkdevs[idx]   = nullptr;
 }
 
 ADDR FatFS::getFree()
@@ -105,18 +118,6 @@ ADDR FatFS::getSize()
 	if (total_size == ADDR(total_size)) return ADDR(total_size);
 	debugstr("FatFS: total size exceeds 4GB\n");
 	return 0xffffffffu & ~(uint(fatfs.csize << 9) - 1);
-}
-
-bool FatFS::mount()
-{
-	trace("FatFS::mount");
-	debugstr("FatFS::mount\n");
-
-	VolumeStr[volume_idx] = name;
-	FRESULT err			  = f_mount(&fatfs, catstr(name, ":"), 1 /*mount now*/);
-	if (err) VolumeStr[volume_idx] = NoDevice;
-	if (err && err != FR_NO_FILESYSTEM) throw tostr(err);
-	return !err; // ok = true
 }
 
 DirectoryPtr FatFS::openDir(cstr path)

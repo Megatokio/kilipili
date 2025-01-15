@@ -18,18 +18,19 @@ public:
 	virtual FilePtr		 openFile(cstr path, FileOpenMode flags = READ) override;
 
 private:
-	int	  volume_idx;
 	FATFS fatfs;
 
 	friend class FileSystem;
 	friend class FatDir;
 	friend class FatFile;
 	friend class RCPtr<FatFS>;
+	friend FileSystemPtr mount(cstr, BlockDevicePtr);
+	friend FileSystemPtr mount(cstr);
+	friend void			 makeFS(BlockDevicePtr, cstr);
 
 	static void mkfs(BlockDevice*, int volume_idx, cstr type = "FAT");
-	FatFS(cstr name, BlockDevicePtr, int volume_idx) throws;
+	FatFS(cstr name, BlockDevicePtr) throws;
 	virtual ~FatFS() override;
-	virtual bool mount() override;
 };
 
 using FatFSPtr = RCPtr<FatFS>;

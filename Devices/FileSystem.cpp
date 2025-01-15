@@ -23,6 +23,9 @@ static constexpr char NO_MOUNTPOINT_FREE[] = "no mountpoint free";
 static constexpr char NO_WORKING_DEVICE[]  = "no working device";
 static constexpr char NAME_TOO_LONG[]	   = "name too long";
 
+// current working device
+static FileSystemPtr cwd;
+
 
 // ====================================================
 
@@ -36,7 +39,7 @@ static int index_of(cstr name)
 	return -1;
 }
 
-static int index_of(FileSystem* fs)
+int index_of(FileSystem* fs)
 {
 	for (int i = 0; i < FF_VOLUMES; i++)
 		if (fs == file_systems[i]) return i;
@@ -50,25 +53,7 @@ static int index_of(std::nullptr_t)
 	return -1;
 }
 
-FileSystem::FileSystem(cstr devname) throws // ctor
-{
-	trace("FS::ctor");
-
-	if (strlen(devname) >= sizeof(name)) throw NAME_TOO_LONG;
-	memcpy(name, devname, sizeof(name));
-}
-
-FileSystem::~FileSystem() noexcept
-{
-	trace("FS::dtor");
-
-	delete[] workdir;
-
-	int idx = index_of(this);
-	if (idx >= 0) file_systems[idx] = nullptr;
-}
-
-void FileSystem::makeFS(BlockDevicePtr bdev, cstr type) throws // static
+void makeFS(BlockDevicePtr bdev, cstr type) throws // static
 {
 	trace(__func__);
 
@@ -82,61 +67,63 @@ void FileSystem::makeFS(BlockDevicePtr bdev, cstr type) throws // static
 	else throw UNKNOWN_FILESYSTEM;
 }
 
-FileSystemPtr FileSystem::mount(cstr devicename, BlockDevicePtr bdev) throws // static
+FileSystemPtr mount(cstr devicename, BlockDevicePtr bdev) throws // static
 {
 	trace("FS::mount(name,bdev)");
+	debugstr("FileSystem::mount: \"%s\"\n", devicename);
 
-	int idx = index_of(devicename);
-	if (idx >= 0) throw DEVICE_IN_USE;
+	assert(devicename && *devicename);
+	assert(bdev);
 
-	idx = index_of(nullptr);
-	if (idx < 0) throw NO_MOUNTPOINT_FREE;
+	// check if the device is readable by reading some random bytes:
+	char bu[8];
+	bdev->readData(0, bu, 8); // throws
 
 	// try to mount with all FileSystems we know:
 	// (not that many, right now :-)
-	FileSystemPtr fs = new FatFS(devicename, bdev, idx);
-
-	if (fs->mount()) return file_systems[idx] = fs;
-	else throw UNKNOWN_FILESYSTEM;
+	for (uint i = 0;; i++)
+	{
+		try
+		{
+			if (i == 0) return new FatFS(devicename, bdev);
+			if (i == 1) {} //etc.
+			break;
+		}
+		catch (...)
+		{}
+	}
+	throw UNKNOWN_FILESYSTEM;
 }
 
-FileSystemPtr FileSystem::mount(cstr devicename) throws // static
+FileSystemPtr mount(cstr devicename) throws // static
 {
 	trace("FS::mount(name)");
 	debugstr("FileSystem::mount: \"%s\"\n", devicename);
 
-	assert(devicename);
+	assert(devicename && *devicename);
 
-	cptr p = strchr(devicename, ':');
-	if (p) devicename = substr(devicename, p);
-
-	int idx = index_of(devicename);
-	if (idx >= 0) return file_systems[idx];
-
-	idx = index_of(nullptr);
-	if (idx < 0) throw NO_MOUNTPOINT_FREE;
-
-	FileSystem* fs = nullptr;
-	if (lceq(devicename, "rsrc")) fs = new RsrcFS();
+	if (lceq(devicename, "rsrc")) return new RsrcFS(devicename);
 #ifdef PICO_DEFAULT_SPI
-	else if (lceq(devicename, "sdcard")) { fs = new FatFS(devicename, SDCard::defaultInstance(), idx); }
+	if (lceq(devicename, "sdcard")) return new FatFS(devicename, SDCard::defaultInstance());
 #endif
-	else throw UNKNOWN_DEVICE;
-
-	if (fs->mount()) return file_systems[idx] = fs;
-	else throw UNKNOWN_FILESYSTEM;
+	throw UNKNOWN_DEVICE;
 }
 
-void FileSystem::setWorkDir(cstr path)
+void unmount(FileSystemPtr fs)
 {
-	trace("FS::setWorkDir");
+	if (fs == cwd) cwd = nullptr;
+}
 
-	path = makeAbsolutePath(path);
-	delete[] workdir;
-	workdir = nullptr;
+void unmountAll()
+{
+	cwd = nullptr;
 
-	DirectoryPtr p = openDir(path); // does it mount?
-	workdir		   = newcopy(path);
+	if constexpr (debug)
+		for (uint i = 0; i < NELEM(file_systems); i++)
+		{
+			if (FileSystem* fs = file_systems[i])
+				printf("unmountAll: \"%s\" still mounted (rc=%i)\n", fs->name, fs->rc);
+		}
 }
 
 static cstr makeCanonicalPath(cstr path)
@@ -170,18 +157,6 @@ static cstr makeCanonicalPath(cstr path)
 	return path[0] != 0 ? path : "/";
 }
 
-cstr FileSystem::makeAbsolutePath(cstr path)
-{
-	trace("FS::makeAbsolutePath");
-
-	if (path[0] == '/') return makeCanonicalPath(path);
-	if (path[0] == 0) return getWorkDir();
-	else return makeCanonicalPath(catstr(getWorkDir(), "/", path));
-}
-
-// current working device
-static FileSystemPtr cwd;
-
 DirectoryPtr openDir(cstr path) throws
 {
 	trace("FS::openDir");
@@ -194,7 +169,7 @@ DirectoryPtr openDir(cstr path) throws
 	}
 
 	cstr devname = substr(path, dp);
-	return FileSystem::mount(devname)->openDir(dp + 1);
+	return mount(devname)->openDir(dp + 1);
 }
 
 FilePtr openFile(cstr path, FileOpenMode flags) throws
@@ -209,7 +184,7 @@ FilePtr openFile(cstr path, FileOpenMode flags) throws
 	}
 
 	cstr devname = substr(path, dp);
-	return FileSystem::mount(devname)->openFile(dp + 1, flags);
+	return mount(devname)->openFile(dp + 1, flags);
 }
 
 
@@ -246,7 +221,7 @@ void setWorkDir(cstr path)
 
 	if (ptr dp = strchr(path, ':'))
 	{
-		cwd	 = FileSystem::mount(substr(path, dp));
+		cwd	 = mount(substr(path, dp));
 		path = dp + 1;
 	}
 
@@ -257,33 +232,61 @@ void setWorkDir(cstr path)
 cstr makeAbsolutePath(cstr path)
 {
 	ptr dp = strchr(path, ':');
-	if (dp) return FileSystem::mount(substr(path, dp))->makeAbsolutePath(dp + 1);
+	if (dp) return mount(substr(path, dp))->makeAbsolutePath(dp + 1);
 	else if (cwd) return cwd->makeAbsolutePath(path);
 	else throw NO_WORKING_DEVICE;
 }
 
-FileSystemPtr mount(cstr devicename)
+
+// ===========================================================
+
+FileSystem::FileSystem(cstr devname) throws // ctor
 {
-	// "rsrc:", "sdcard:"
-	return FileSystem::mount(devicename);
+	trace("FS::ctor");
+
+	if (strlen(devname) + 1 >= sizeof(name)) throw NAME_TOO_LONG;
+	strcpy(name, devname);
+
+	int idx = index_of(devname);
+	if (idx >= 0) throw DEVICE_IN_USE;
+
+	idx = index_of(nullptr);
+	if (idx < 0) throw NO_MOUNTPOINT_FREE;
+
+	file_systems[idx] = this;
 }
 
-void unmount(FileSystemPtr fs)
+FileSystem::~FileSystem() noexcept
 {
-	if (fs == cwd) cwd = nullptr;
+	trace("FS::dtor");
+
+	delete[] workdir;
+
+	int idx = index_of(this);
+	if (idx >= 0) file_systems[idx] = nullptr;
 }
 
-extern void unmountAll()
+cstr FileSystem::makeAbsolutePath(cstr path)
 {
-	cwd = nullptr;
+	trace("FS::makeAbsolutePath");
 
-	if constexpr (debug)
-		for (uint i = 0; i < NELEM(file_systems); i++)
-		{
-			if (FileSystem* fs = file_systems[i])
-				printf("unmountAll: \"%s\" still mounted (rc=%i)\n", fs->name, fs->rc);
-		}
+	if (path[0] == '/') return makeCanonicalPath(path);
+	if (path[0] == 0) return getWorkDir();
+	return makeCanonicalPath(catstr(getWorkDir(), "/", path));
 }
+
+void FileSystem::setWorkDir(cstr path)
+{
+	trace("FS::setWorkDir");
+
+	path = makeAbsolutePath(path);
+	(void)openDir(path); // does it mount?
+
+	delete[] workdir;
+	workdir = nullptr;
+	workdir = newcopy(path);
+}
+
 
 } // namespace kio::Devices
 
