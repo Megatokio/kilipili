@@ -20,6 +20,8 @@ protected:
 	VideoPlane() noexcept {}
 
 public:
+	Id("VideoPlane");
+
 	virtual ~VideoPlane() noexcept override = default;
 
 	/*

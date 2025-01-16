@@ -32,6 +32,8 @@ template<ColorMode CM>
 class FrameBuffer<CM, std::enable_if_t<is_direct_color(CM)>> final : public VideoPlane
 {
 public:
+	Id("FrameBuffer");
+
 	using Pixmap   = Graphics::Pixmap<CM>;
 	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
 	using Canvas   = Graphics::Canvas;

@@ -19,6 +19,8 @@ namespace kio::Devices
 class Directory : public RCObject
 {
 public:
+	Id("Directory");
+
 	virtual ~Directory() noexcept override { delete[] path; }
 
 	/* ————————————————————————————————————————

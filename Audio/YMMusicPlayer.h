@@ -15,6 +15,8 @@ namespace kio::Audio
 class YMMusicPlayer : public AudioSource<hw_num_channels>
 {
 public:
+	Id("YMMusicPlayer");
+
 	using FilePtr	   = Devices::FilePtr;
 	using DirectoryPtr = Devices::DirectoryPtr;
 	using AyPlayer	   = Ay38912<hw_num_channels>;

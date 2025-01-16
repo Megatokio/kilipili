@@ -16,6 +16,8 @@ namespace kio::Graphics
 class TextVDU : public RCObject
 {
 public:
+	Id("TextVDU");
+
 	static constexpr int CHAR_WIDTH	 = 8;
 	static constexpr int CHAR_HEIGHT = 12;
 

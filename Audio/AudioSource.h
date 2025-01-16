@@ -27,6 +27,8 @@ class AudioSource : public RCObject
 	NO_COPY_MOVE(AudioSource);
 
 public:
+	Id("AudioSource");
+
 	virtual ~AudioSource() override = default;
 
 	/* callback from the AudioController:

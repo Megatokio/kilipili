@@ -42,6 +42,8 @@ protected:
 	constexpr Canvas(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept;
 
 public:
+	Id("Canvas ");
+
 	union
 	{
 		const Size size;

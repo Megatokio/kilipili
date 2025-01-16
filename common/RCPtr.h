@@ -61,11 +61,11 @@ class RCObject
 {
 public:
 	alignas(4) mutable int16_t rc = 0;
-	uint16_t rc_magic			  = 37465;
+	uint16_t rc_magic			  = 0x55AA;
 	virtual ~RCObject() noexcept
 	{
 		assert(rc == 0);
-		assert(rc_magic == 37465);
+		assert(rc_magic == 0x55AA);
 		if constexpr (debug) rc_magic = 0;
 	}
 };

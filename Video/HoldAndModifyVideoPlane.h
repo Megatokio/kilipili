@@ -19,6 +19,8 @@ namespace kio::Video
 class HoldAndModifyVideoPlane : public VideoPlane
 {
 public:
+	Id("HoldAndModify");
+
 	using Pixmap   = Graphics::Pixmap<Graphics::colormode_i8>;
 	using Color	   = Graphics::Color;
 	using ColorMap = Graphics::ColorMap<Graphics::colordepth_8bpp>;
@@ -37,7 +39,7 @@ public:
 
 	Color		 first_color;
 	Color		 border_color;
-	const uint8* pixels; // next position
+	const uint8* pixels;	 // next position
 	int			 next_row;	 // expected next row
 	int			 vga_width;	 // of display/framebuffer, as set with setup()
 	int			 vga_height; // of display

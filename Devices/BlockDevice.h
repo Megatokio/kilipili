@@ -18,6 +18,8 @@ class BlockDevice : public RCObject
 public:
 	NO_COPY_MOVE(BlockDevice);
 
+	Id("BlockDevice");
+
 	SIZE  sector_count;
 	uint8 ss_read;	// log2 of physical read sector size, 0 = 1 byte
 	uint8 ss_write; // log2 of physical write sector size, 0 = 1 byte

@@ -5,6 +5,7 @@
 #pragma once
 #include "AudioSample.h"
 #include "common/basic_math.h"
+#include "common/cdefs.h"
 #include <functional>
 
 namespace kio::Audio
@@ -44,6 +45,8 @@ template<uint num_channels>
 class Ay38912
 {
 public:
+	Id("Ay38912");
+
 	using WritePortProc = const std::function<void(CC, bool, uint8)>;
 	using ReadPortProc	= const std::function<uint8(CC, bool)>;
 

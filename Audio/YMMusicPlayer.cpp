@@ -109,8 +109,8 @@ uint8 YMMusicPlayer::BackrefBuffer::next_value(BitStream& instream)
 // ###################################################################
 
 
-// size is close to 600 bytes:
-static_assert(sizeof(YMMusicPlayer) <= 600);
+// size is close to 600 bytes plus 3 memory Ids:
+static_assert(sizeof(YMMusicPlayer) <= 624);
 
 
 YMMusicPlayer::YMMusicPlayer() : ay(2000000, AyPlayer::mono, 0.2f) {}

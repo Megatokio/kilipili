@@ -24,6 +24,8 @@ namespace kio::Devices
 class File : public SerialDevice
 {
 protected:
+	Id("File   ");
+
 	File(Flags flags) noexcept : SerialDevice(flags) {}
 	File(FileOpenMode mode) noexcept : SerialDevice(flags_for_mode(mode)) {}
 

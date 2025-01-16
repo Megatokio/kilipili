@@ -98,6 +98,8 @@ extern int index_of(FileSystem*);
 class FileSystem : public RCObject
 {
 public:
+	Id("FileSystem");
+
 	virtual ~FileSystem() noexcept override;
 
 	/*	Get total size and free space.

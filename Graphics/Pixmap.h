@@ -52,6 +52,7 @@ template<ColorMode CM>
 class DirectColorPixmap : public Canvas
 {
 public:
+	Id("Pixmap ");
 	const int	 row_offset; // in pixmap[]
 	uint8* const pixmap;
 
