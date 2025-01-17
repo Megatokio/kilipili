@@ -115,7 +115,7 @@ extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
 
 #if defined DEBUG || defined MEMORY_ID
   #define Id(n)                                      \
-	const char _id[8]                                \
+	char _id[8]                                      \
 	{                                                \
 	  n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7] \
 	}
