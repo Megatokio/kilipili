@@ -3,19 +3,31 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "ColorMap.h"
+#include <string.h>
+
+#if !defined GRAPHICS_SYSTEM_COLORMAP_IN_XRAM || GRAPHICS_SYSTEM_COLORMAP_IN_XRAM
+  #define WRAP(X)  #X
+  #define XWRAP(X) WRAP(X)
+  #define XRAM	   __attribute__((section(".scratch_x.SRFu" XWRAP(__LINE__))))	   // the 4k page with the core1 stack
+  #define RAM	   __attribute__((section(".time_critical.SRFu" XWRAP(__LINE__)))) // general ram
+#else
+  #define XRAM
+  #define RAM
+#endif
+
 
 namespace kio::Graphics
 {
 
 // clang-format off
 
-constexpr Color default_colormap_i1[2] =
+constexpr Color default_i1_colors[2] =
 {
 	bright_green,
 	Color::fromRGB8(15, 15, 15),
 };
 
-constexpr Color default_colormap_i2[4] =
+constexpr Color default_i2_colors[4] =
 {
 	vga::black,
 	vga::dark_grey,
@@ -23,7 +35,7 @@ constexpr Color default_colormap_i2[4] =
 	vga::bright_white,
 };
 
-constexpr Color default_colormap_i4[16] =
+constexpr Color default_i4_colors[16] =
 {
 // table[%rgbc] -> r(rrcc0)+g(ggcc0)+b(bbcc0)
 
@@ -41,7 +53,7 @@ constexpr Color default_colormap_i4[16] =
 #undef RGBC
 };
 
-constexpr Color default_colormap_i8[256] =
+constexpr Color default_i8_colors[256] =
 {
 // table[%rrggbbcc] -> r(rrcc0)+g(ggcc0)+b(bbcc0)
 
@@ -150,15 +162,98 @@ constexpr Color vga8_colors[256] =
 #undef W
 };
 
-constexpr const Color* const default_colormaps[5]
+constexpr const Color* const default_colors[5]
 {
-	default_colormap_i1,
-	default_colormap_i2,
-	default_colormap_i4,
-	default_colormap_i8,
+	default_i1_colors,
+	default_i2_colors,
+	default_i4_colors,
+	default_i8_colors,
 	nullptr
 };
 
 // clang-format on
 
+void ColorMap<colordepth_1bpp>::reset(const Color* q) noexcept { memcpy(colors, q, sizeof(Color) * 2); }
+void ColorMap<colordepth_2bpp>::reset(const Color* q) noexcept { memcpy(colors, q, sizeof(Color) * 4); }
+void ColorMap<colordepth_4bpp>::reset(const Color* q) noexcept { memcpy(colors, q, sizeof(Color) * 16); }
+void ColorMap<colordepth_8bpp>::reset(const Color* q) noexcept { memcpy(colors, q, sizeof(Color) * 256); }
+
+ColorMap<colordepth_1bpp>::ColorMap(const Color* src) noexcept
+{
+	if (src) reset(src); //
+}
+
+ColorMap<colordepth_2bpp>::ColorMap(const Color* src) noexcept : ColorMap<colordepth_1bpp>(nullptr)
+{
+	if (src) reset(src); //
+}
+
+ColorMap<colordepth_4bpp>::ColorMap(const Color* src) noexcept : ColorMap<colordepth_2bpp>(nullptr)
+{
+	if (src) reset(src); //
+}
+
+ColorMap<colordepth_8bpp>::ColorMap(const Color* src) noexcept : ColorMap<colordepth_4bpp>(nullptr)
+{
+	if (src) reset(src); //
+}
+
+
+// The system_colormap is intended to be used by the frame buffer:
+ColorMap<colordepth_8bpp> XRAM system_colormap(vga8_colors);
+
+
+static struct OnInit
+{
+	OnInit() { system_colormap.rc = 1; } // must never be `delete`ed
+} _;
+
 } // namespace kio::Graphics
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

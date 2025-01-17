@@ -5,13 +5,18 @@
 #include "HoldAndModifyVideoPlane.h"
 #include "ScanlineRenderFu.h"
 #include "VideoBackend.h"
+#include "common/cdefs.h"
 #include <hardware/interp.h>
 
 
 #define WRAP(X)	 #X
 #define XWRAP(X) WRAP(X)
-#define XRAM	 __attribute__((section(".scratch_x." XWRAP(__LINE__))))	 // the 4k page with the core1 stack
 #define RAM		 __attribute__((section(".time_critical." XWRAP(__LINE__)))) // general ram
+#if !defined VIDEO_HAM_RENDER_FUNCTION_IN_XRAM || VIDEO_HAM_RENDER_FUNCTION_IN_XRAM
+  #define XRAM __attribute__((section(".scratch_x." XWRAP(__LINE__)))) // the 4k page with the core1 stack
+#else
+  #define XRAM RAM
+#endif
 
 
 namespace kio::Video
@@ -29,7 +34,7 @@ static inline const Color* next_color(interp_hw_t* interp)
 }
 
 
-HoldAndModifyVideoPlane::HoldAndModifyVideoPlane(Pixmap* pm, const ColorMap cm, uint first_rel_code) :
+HoldAndModifyVideoPlane::HoldAndModifyVideoPlane(const Pixmap* pm, const ColorMap* cm, uint first_rel_code) :
 	pixmap(pm),
 	colormap(cm),
 	first_rel_code(first_rel_code)
@@ -37,7 +42,7 @@ HoldAndModifyVideoPlane::HoldAndModifyVideoPlane(Pixmap* pm, const ColorMap cm, 
 
 void HoldAndModifyVideoPlane::setup(coord width)
 {
-	assert(width == vga_mode.width);
+	assert_eq(width, vga_mode.width);
 
 	vga_width	 = vga_mode.width;
 	vga_height	 = vga_mode.height;
@@ -48,7 +53,7 @@ void HoldAndModifyVideoPlane::setup(coord width)
 	left_border	 = max(0, (vga_width - image_width) / 2) & 0xfffe;
 	right_border = max(0, vga_width - image_width - left_border);
 
-	setupScanlineRenderer<colormode_i8>(colormap);
+	setupScanlineRenderer<colormode_i8>(colormap->colors);
 	HoldAndModifyVideoPlane::vblank();
 }
 
@@ -66,20 +71,20 @@ inline Color operator+(Color a, Color b)
 	return Color(a.raw + b.raw); //
 }
 
-void RAM HoldAndModifyVideoPlane::renderScanline(int current_row, uint32* framebuffer) noexcept
+void XRAM HoldAndModifyVideoPlane::renderScanline(int current_row, uint32* framebuffer) noexcept
 {
 	// increment row and catch up when we missed some rows
 	while (unlikely(++next_row <= current_row))
 	{
 		uint8 code	= *pixels;
-		Color color = colormap[code];
+		Color color = colormap->colors[code];
 		first_color = code >= first_rel_code ? first_color + color : color;
 		if (next_row > top_border) pixels += pixmap->row_offset;
 	}
 
 	if (uint(current_row - top_border) < uint(image_height))
 	{
-		const Color*  first_rel_color = &colormap[first_rel_code];
+		const Color*  first_rel_color = &colormap->colors[first_rel_code];
 		Color		  current_color	  = first_color;
 		const uint16* pixels		  = reinterpret_cast<const uint16*>(this->pixels);
 		this->pixels += pixmap->row_offset;

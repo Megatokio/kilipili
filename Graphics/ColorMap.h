@@ -4,84 +4,128 @@
 
 #pragma once
 #include "graphics_types.h"
-#include <string.h>
 
 namespace kio::Graphics
 {
 
-template<ColorDepth CD>
-using ColorMap = Color[1 << (1 << CD)];
+// ---------------------- system Color tables --------------------------
 
-extern const ColorMap<colordepth_4bpp> zx_colors;
-extern const ColorMap<colordepth_4bpp> vga4_colors;
-extern const ColorMap<colordepth_8bpp> vga8_colors;
-extern const ColorMap<colordepth_1bpp> default_colormap_i1;
-extern const ColorMap<colordepth_2bpp> default_colormap_i2;
-extern const ColorMap<colordepth_4bpp> default_colormap_i4;
-extern const ColorMap<colordepth_8bpp> default_colormap_i8;
+extern const Color zx_colors[16];
+extern const Color vga4_colors[16];
+extern const Color vga8_colors[256];
+extern const Color default_i1_colors[2];
+extern const Color default_i2_colors[4];
+extern const Color default_i4_colors[16];
+extern const Color default_i8_colors[256];
 
-extern const Color* const default_colormaps[5]; // ColorMode -> colormap
-
-
-// ---------------------- inline functions --------------------------
-
-inline const Color* getDefaultColorMap(ColorDepth CD) noexcept
-{
-	return default_colormaps[CD]; //
-}
-
-inline const Color* getDefaultColorMap(ColorMode CM) noexcept
-{
-	return getDefaultColorMap(get_colordepth(CM)); //
-}
-
-inline Color* newColorMap(ColorDepth CD) throws
-{
-	if (is_true_color(CD)) return nullptr;
-	Color* table = new Color[1 << (1 << CD)];
-	memcpy(table, default_colormaps[CD], sizeof(Color) << (1 << CD));
-	return table;
-}
-
-inline Color* newColorMap(ColorMode CM) throws
-{
-	return newColorMap(get_colordepth(CM)); //
-}
-
-inline void resetColorMap(ColorDepth CD, Color* table) noexcept
-{
-	if (is_indexed_color(CD))
-	{
-		assert(table);
-		memcpy(table, default_colormaps[CD], sizeof(Color) << (1 << CD));
-	}
-}
-
-
-// ------------------- templates -------------------------------
-
-template<ColorDepth CD>
-const Color* getDefaultColorMap() noexcept
-{
-	return default_colormaps[CD];
-}
+extern const Color* const default_colors[5]; // ColorMode -> Color[]
 
 template<ColorMode CM>
-const Color* getDefaultColorMap() noexcept
-{
-	return getDefaultColorMap<get_colordepth(CM)>();
-}
+extern const Color* const system_colors = default_colors[CM];
 
+
+// ---------------------- struct ColorMap --------------------------
 
 template<ColorDepth CD>
-void resetColorMap(Color* table) noexcept
-{
-	memcpy(table, default_colormaps[CD], sizeof(Color) << (1 << CD));
-}
+struct ColorMap;
 
 template<>
-inline void resetColorMap<colordepth_16bpp>(Color*) noexcept
-{}
+struct ColorMap<colordepth_16bpp>
+{
+	mutable uint16 rc = 0;
+	Id("ColorMap");
+	static constexpr Color* colors = nullptr;
+
+	ColorMap(const Color* = nullptr) noexcept {}
+	void reset(const Color* = nullptr) noexcept {}
+};
+
+template<>
+struct ColorMap<colordepth_1bpp> : public ColorMap<colordepth_16bpp>
+{
+	Color  colors[2];
+	Color& operator[](int i) { return colors[i]; }
+	Color  operator[](int i) const { return colors[i]; }
+
+	ColorMap(const Color* colors = default_i1_colors) noexcept;
+	void reset(const Color* = default_i1_colors) noexcept;
+};
+
+template<>
+struct ColorMap<colordepth_2bpp> : public ColorMap<colordepth_1bpp>
+{
+	Color more_colors[4 - 2];
+
+	ColorMap(const Color* colors = default_i2_colors) noexcept;
+	void reset(const Color* = default_i2_colors) noexcept;
+};
+
+template<>
+struct ColorMap<colordepth_4bpp> : public ColorMap<colordepth_2bpp>
+{
+	Color more_colors[16 - 4];
+
+	ColorMap(const Color* colors = default_i4_colors) noexcept;
+	void reset(const Color* = default_i4_colors) noexcept;
+};
+
+template<>
+struct ColorMap<colordepth_8bpp> : public ColorMap<colordepth_4bpp>
+{
+	Color more_colors[256 - 16];
+
+	ColorMap(const Color* colors = default_i8_colors) noexcept;
+	void reset(const Color* = default_i8_colors) noexcept;
+
+	template<ColorDepth CD2>
+	ColorMap<CD2>* as() noexcept // easy access system_colormap as smaller cmap
+	{
+		return this;
+	}
+	template<ColorMode CM2>
+	ColorMap<get_colordepth(CM2)>* as() noexcept // easy access system_colormap as smaller cmap
+	{
+		return this;
+	}
+};
+
+extern ColorMap<colordepth_8bpp> system_colormap;
 
 
 } // namespace kio::Graphics
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

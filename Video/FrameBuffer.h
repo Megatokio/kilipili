@@ -38,32 +38,28 @@ public:
 	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
 	using Canvas   = Graphics::Canvas;
 
-	RCPtr<Pixmap>	   pixmap;
-	const Color* const colormap;
-	uint8*			   pixels; // next position
-	int				   row;	   // expected next row
-	uint			   width;
+	RCPtr<const Pixmap>	  pixmap;
+	RCPtr<const ColorMap> colormap;
+	uint8*				  pixels; // next position
+	int					  row;	  // expected next row
+	uint				  width;
 
-	FrameBuffer(Pixmap* px, const ColorMap cm) noexcept : FrameBuffer(RCPtr<Pixmap>(px), cm) {}
-	FrameBuffer(RCPtr<Pixmap> px, const ColorMap colormap) noexcept : pixmap(px), colormap(colormap)
-	{
-		assert(is_true_color(CM) || colormap != nullptr);
-	}
-	FrameBuffer(RCPtr<Canvas> px, const ColorMap colormap) noexcept :
-		pixmap(static_cast<Pixmap*>(px.ptr())),
-		colormap(colormap)
+	FrameBuffer(const Pixmap* px, const ColorMap* cm = &Graphics::system_colormap) noexcept : pixmap(px), colormap(cm)
 	{
 		assert(px->colormode == CM);
-		assert(is_true_color(CM) || colormap != nullptr);
+		assert(is_true_color(CM) || cm != nullptr);
 	}
+	FrameBuffer(const Canvas* px, const ColorMap* cmap = &Graphics::system_colormap) noexcept :
+		FrameBuffer(static_cast<const Pixmap*>(px), cmap)
+	{}
 
 	virtual ~FrameBuffer() noexcept override = default;
 
 	virtual void setup(coord width) throws override
 	{
 		this->width = width;
-		setupScanlineRenderer<CM>(colormap); // setup render function
-		FrameBuffer::vblank();				 // reset state variables
+		setupScanlineRenderer<CM>(colormap->colors); // setup render function
+		FrameBuffer::vblank();						 // reset state variables
 	}
 
 	virtual void teardown() noexcept override
@@ -104,42 +100,36 @@ public:
 	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
 	using Canvas   = Graphics::Canvas;
 
-	RCPtr<Pixmap>	   pixmap;
-	const Color* const colormap;
-	uint8*			   pixels; // next position
-	int				   row;	   // expected next row
-	uint8*			   attributes;
-	int				   arow;
-	uint			   width;
-	int				   row_offset;
-	int				   attrheight;
+	RCPtr<const Pixmap>	  pixmap;
+	RCPtr<const ColorMap> colormap;
+	uint8*				  pixels; // next position
+	int					  row;	  // expected next row
+	uint8*				  attributes;
+	int					  arow;
+	uint				  width;
+	int					  row_offset;
+	int					  attrheight;
 
-	FrameBuffer(Pixmap* px, const ColorMap cm) noexcept : FrameBuffer(RCPtr<Pixmap>(px), cm) {}
-	FrameBuffer(RCPtr<Pixmap> px, const ColorMap cm) noexcept :
+	FrameBuffer(const Pixmap* px, const ColorMap* cm = &Graphics::system_colormap) noexcept :
 		pixmap(px),
 		colormap(cm),
 		row_offset(px->row_offset),
 		attrheight(px->attrheight)
 	{
-		assert(is_true_color(CM) || colormap != nullptr);
-	}
-	FrameBuffer(RCPtr<Canvas> px, const ColorMap colormap) noexcept :
-		pixmap(static_cast<Pixmap*>(px.ptr())),
-		colormap(colormap),
-		row_offset(pixmap->row_offset),
-		attrheight(px->attrheight)
-	{
 		assert(px->colormode == CM);
 		assert(is_true_color(CM) || colormap != nullptr);
 	}
+	FrameBuffer(const Canvas* px, const ColorMap* cm = &Graphics::system_colormap) noexcept :
+		FrameBuffer(static_cast<const Pixmap*>(px), cm)
+	{}
 
 	virtual ~FrameBuffer() noexcept override = default;
 
 	virtual void setup(coord width) throws override
 	{
 		this->width = width;
-		setupScanlineRenderer<CM>(colormap); // setup render function
-		FrameBuffer::vblank();				 // reset state variables
+		setupScanlineRenderer<CM>(colormap->colors); // setup render function
+		FrameBuffer::vblank();						 // reset state variables
 	}
 
 	virtual void teardown() noexcept override
@@ -181,9 +171,9 @@ public:
 // deduction guides:
 
 template<ColorMode CM>
-FrameBuffer(Graphics::Pixmap<CM>*, const Graphics::ColorMap<get_colordepth(CM)>) -> FrameBuffer<CM>;
+FrameBuffer(Graphics::Pixmap<CM>*, const Graphics::ColorMap<get_colordepth(CM)>*) -> FrameBuffer<CM>;
 
 template<ColorMode CM>
-FrameBuffer(RCPtr<Graphics::Pixmap<CM>>, const Graphics::ColorMap<get_colordepth(CM)>) -> FrameBuffer<CM>;
+FrameBuffer(RCPtr<Graphics::Pixmap<CM>>, const Graphics::ColorMap<get_colordepth(CM)>*) -> FrameBuffer<CM>;
 
 } // namespace kio::Video

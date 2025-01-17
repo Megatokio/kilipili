@@ -25,7 +25,7 @@ public:
 	using Color	   = Graphics::Color;
 	using ColorMap = Graphics::ColorMap<Graphics::colordepth_8bpp>;
 
-	HoldAndModifyVideoPlane(Pixmap*, const ColorMap, uint first_rel_code);
+	HoldAndModifyVideoPlane(const Pixmap*, const ColorMap*, uint first_rel_code);
 	virtual ~HoldAndModifyVideoPlane() noexcept override = default;
 
 	virtual void setup(coord _width) override;
@@ -33,9 +33,9 @@ public:
 	virtual void vblank() noexcept override;
 	virtual void renderScanline(int row, uint32* framebuffer) noexcept override;
 
-	RCPtr<Pixmap> pixmap;
-	const Color*  colormap;
-	uint		  first_rel_code;
+	RCPtr<const Pixmap>	  pixmap;
+	RCPtr<const ColorMap> colormap;
+	uint				  first_rel_code;
 
 	Color		 first_color;
 	Color		 border_color;
