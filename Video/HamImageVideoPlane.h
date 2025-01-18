@@ -16,7 +16,7 @@ namespace kio::Video
 	This is only a useful mode if sizeof(Color) != 1.
 	RGB images can be encoded for this color mode with desktop_tools/rsrc_writer.
 */
-class HoldAndModifyVideoPlane : public VideoPlane
+class HamImageVideoPlane : public VideoPlane
 {
 public:
 	Id("HoldAndModify");
@@ -25,13 +25,15 @@ public:
 	using Color	   = Graphics::Color;
 	using ColorMap = Graphics::ColorMap<Graphics::colordepth_8bpp>;
 
-	HoldAndModifyVideoPlane(const Pixmap*, const ColorMap*, uint first_rel_code);
-	virtual ~HoldAndModifyVideoPlane() noexcept override = default;
+	HamImageVideoPlane(const Pixmap*, const ColorMap*, uint first_rel_code);
+	virtual ~HamImageVideoPlane() noexcept override = default;
 
 	virtual void setup(coord _width) override;
 	virtual void teardown() noexcept override;
 	virtual void vblank() noexcept override;
 	virtual void renderScanline(int row, uint32* framebuffer) noexcept override;
+
+	void setupNextImage(int width, int height, uint first_rel_code);
 
 	RCPtr<const Pixmap>	  pixmap;
 	RCPtr<const ColorMap> colormap;
@@ -46,9 +48,13 @@ public:
 
 	int image_height = 999;
 	int image_width; // displayed pixels
+	int row_offset;
 	int top_border	= 0;
 	int left_border = 0;
 	int right_border;
+
+private:
+	void _setup(int w, int h, uint num_abs_codes);
 };
 
 

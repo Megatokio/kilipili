@@ -2,12 +2,12 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "HoldAndModifyVideoPlane.h"
+#include "HamImageVideoPlane.h"
 #include "ScanlineRenderFu.h"
 #include "VideoBackend.h"
+#include "VideoController.h"
 #include "common/cdefs.h"
 #include <hardware/interp.h>
-
 
 #define WRAP(X)	 #X
 #define XWRAP(X) WRAP(X)
@@ -34,32 +34,58 @@ static inline const Color* next_color(interp_hw_t* interp)
 }
 
 
-HoldAndModifyVideoPlane::HoldAndModifyVideoPlane(const Pixmap* pm, const ColorMap* cm, uint first_rel_code) :
+HamImageVideoPlane::HamImageVideoPlane(const Pixmap* pm, const ColorMap* cm, uint first_rel_code) :
 	pixmap(pm),
 	colormap(cm),
 	first_rel_code(first_rel_code)
-{}
+{
+	if (pm->width & 1) throw "ham image: odd row offset not supported";
+}
 
-void HoldAndModifyVideoPlane::setup(coord width)
+void HamImageVideoPlane::_setup(int w, int h, uint n)
+{
+	first_rel_code = n;
+	image_width	   = w & 0xfffc; // for renderScanline() optimizations
+	image_height   = h;
+	row_offset	   = w;
+
+	top_border	 = max(0, (vga_height - h) / 2);
+	left_border	 = max(0, (vga_width - w) / 2) & 0xfffe;
+	right_border = max(0, vga_width - w - left_border);
+}
+
+void HamImageVideoPlane::setup(coord width)
 {
 	assert_eq(width, vga_mode.width);
 
-	vga_width	 = vga_mode.width;
-	vga_height	 = vga_mode.height;
-	image_width	 = pixmap->width & 0xfffc; // for renderScanline() optimizations
-	image_height = pixmap->height;
+	vga_width  = vga_mode.width;
+	vga_height = vga_mode.height;
 
-	top_border	 = max(0, (vga_height - image_height) / 2);
-	left_border	 = max(0, (vga_width - image_width) / 2) & 0xfffe;
-	right_border = max(0, vga_width - image_width - left_border);
+	_setup(pixmap->width, pixmap->height, first_rel_code);
 
 	setupScanlineRenderer<colormode_i8>(colormap->colors);
-	HoldAndModifyVideoPlane::vblank();
+	HamImageVideoPlane::vblank();
 }
 
-void HoldAndModifyVideoPlane::teardown() noexcept { teardownScanlineRenderer<colormode_i8>(); }
+void HamImageVideoPlane::setupNextImage(int width, int height, uint first_rel_code)
+{
+	// set width, height and first_rel_code on the next vblank.
+	// it is assumed that the caller updates the contents of the pixmap and the colormap.
+	// it is not neccessary to modify the pixmap width etc., they are not used.
+	//
+	// suggested sequence:
+	// 1. setupNextImage
+	// 2. copy cmap
+	// 3. read pixels from file
 
-void RAM HoldAndModifyVideoPlane::vblank() noexcept
+	if (width & 1) throw "ham image: odd row offset not supported";
+	top_border = vga_height; // prevent further display
+	VideoController::getRef().addOneTimeAction([=, this]() { _setup(width, height, first_rel_code); });
+}
+
+void HamImageVideoPlane::teardown() noexcept { teardownScanlineRenderer<colormode_i8>(); }
+
+void RAM HamImageVideoPlane::vblank() noexcept
 {
 	pixels		= pixmap->pixmap;
 	next_row	= 0;
@@ -71,7 +97,7 @@ inline Color operator+(Color a, Color b)
 	return Color(a.raw + b.raw); //
 }
 
-void XRAM HoldAndModifyVideoPlane::renderScanline(int current_row, uint32* framebuffer) noexcept
+void XRAM HamImageVideoPlane::renderScanline(int current_row, uint32* framebuffer) noexcept
 {
 	// increment row and catch up when we missed some rows
 	while (unlikely(++next_row <= current_row))
@@ -79,7 +105,7 @@ void XRAM HoldAndModifyVideoPlane::renderScanline(int current_row, uint32* frame
 		uint8 code	= *pixels;
 		Color color = colormap->colors[code];
 		first_color = code >= first_rel_code ? first_color + color : color;
-		if (next_row > top_border) pixels += pixmap->row_offset;
+		if (next_row > top_border) pixels += row_offset;
 	}
 
 	if (uint(current_row - top_border) < uint(image_height))
@@ -87,7 +113,7 @@ void XRAM HoldAndModifyVideoPlane::renderScanline(int current_row, uint32* frame
 		const Color*  first_rel_color = &colormap->colors[first_rel_code];
 		Color		  current_color	  = first_color;
 		const uint16* pixels		  = reinterpret_cast<const uint16*>(this->pixels);
-		this->pixels += pixmap->row_offset;
+		this->pixels += row_offset;
 
 		Color* dest = reinterpret_cast<Color*>(framebuffer);
 		for (int i = 0; i < left_border; i++) *dest++ = border_color;
