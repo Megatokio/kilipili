@@ -77,10 +77,7 @@ FilePtr FatDir::openFile(cstr path, FileOpenMode mode)
 	trace(__func__);
 
 	path = makeAbsolutePath(path);
-	FatFilePtr file(new FatFile(device, path, mode));
-	FRESULT	   err = f_open(&file->fatfile, path, mode);
-	if (err != FR_OK) throw tostr(err);
-	return std::move(file);
+	return new FatFile(device, path, mode);
 }
 
 DirectoryPtr FatDir::openDir(cstr path)
