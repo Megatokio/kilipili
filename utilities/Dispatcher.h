@@ -34,17 +34,17 @@ public:
 		addHandler() is ideal for converting interrupts into synchronous events.
 		addWithDelay() and addAtTime() are ideal for one-shot or repeating timers.
 	*/
-	static void addHandler(Handler*, void* data = nullptr);
-	static void addIfNew(Handler*, void* data = nullptr);
-	static void addWithDelay(Handler*, void* data, int32 delay);
-	static void addAtTime(Handler*, void* data, CC when);
+	static void addHandler(Handler*, const void* data = nullptr);
+	static void addIfNew(Handler*, const void* data = nullptr);
+	static void addWithDelay(Handler*, const void* data, int32 delay);
+	static void addAtTime(Handler*, const void* data, CC when);
 
 	/*	Remove a handler, either identified by the function or if needed by function and data.
 		Be cautious if you remove a handler from an interrupt or from core 1:
 		In a race condition the handler may be still executed while or after you removed it.
 		(Removing the handler from a synchronous event or telling it to return 0 may help.)
 	*/
-	static void removeHandler(Handler*, void* data = nullptr);
+	static void removeHandler(Handler*, const void* data = nullptr);
 
 	/*	Run the next handler if scheduled time is reached.
 		Always calls only one handler at a time.

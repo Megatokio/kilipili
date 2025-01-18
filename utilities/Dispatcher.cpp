@@ -6,6 +6,7 @@
 #include "Trace.h"
 #include "cdefs.h"
 #include "utilities.h"
+#include <cstdio>
 #include <pico/sync.h>
 
 #ifndef DISPATCHER_MAX_TASKS
@@ -43,19 +44,19 @@ static inline void remove(int i)
 	for (num_tasks--; i < num_tasks; i++) { tasks[i] = tasks[i + 1]; }
 }
 
-static void add(Handler* handler, void* data, CC when)
+static void add(Handler* handler, const void* data, CC when)
 {
 	assert(num_tasks < NELEM(tasks));
 	int i = num_tasks++;
 	for (; i - 1 >= 0 && tasks[i - 1].when < when; i--) { tasks[i] = tasks[i - 1]; }
 	Task& task	 = tasks[i];
 	task.handler = handler;
-	task.data	 = data;
+	task.data	 = const_cast<void*>(data);
 	task.when	 = when;
 	//__sev();  may be triggered by caller if needed <hardware/sync.h>
 }
 
-static int index_of(Handler* handler, void* data)
+static int index_of(Handler* handler, const void* data)
 {
 	int i = num_tasks;
 	while (--i >= 0)
@@ -65,31 +66,31 @@ static int index_of(Handler* handler, void* data)
 	return i;
 }
 
-void Dispatcher::addWithDelay(Handler* handler, void* data, int32 delay)
+void Dispatcher::addWithDelay(Handler* handler, const void* data, int32 delay)
 {
 	Lock _;
 	add(handler, data, now() + delay);
 }
 
-void Dispatcher::addAtTime(Handler* handler, void* data, CC when)
+void Dispatcher::addAtTime(Handler* handler, const void* data, CC when)
 {
 	Lock _;
 	add(handler, data, when);
 }
 
-void Dispatcher::addHandler(Handler* handler, void* data)
+void Dispatcher::addHandler(Handler* handler, const void* data)
 {
 	Lock _;
 	add(handler, data, now());
 }
 
-void Dispatcher::addIfNew(Handler* handler, void* data)
+void Dispatcher::addIfNew(Handler* handler, const void* data)
 {
 	Lock _;
 	if (index_of(handler, data) < 0) add(handler, data, now());
 }
 
-void Dispatcher::removeHandler(Handler* handler, void* data)
+void Dispatcher::removeHandler(Handler* handler, const void* data)
 {
 	Lock _;
 	int	 i = index_of(handler, data);
@@ -123,6 +124,7 @@ void Dispatcher::run(int timeout) noexcept
 		{
 			num_tasks = n;
 			unlock(zz);
+			//printf("call %s\n", cstr(data));
 			int delay = handler(data);
 			zz		  = lock();
 
