@@ -93,8 +93,14 @@ constexpr size_t max_size = (size_mask << 2) - 4; // bytes
 static inline bool is_used(uint32* p) { return int32(*p) < 0; }
 static inline bool is_free(uint32* p) { return int32(*p) >= 0; }
 
-[[maybe_unused]] static inline bool is_valid_used(uint32* p) { return (*p & flag_mask) == flag_used; }
-[[maybe_unused]] static inline bool is_valid_free(uint32* p) { return (*p & flag_mask) == flag_free; }
+[[maybe_unused]] static inline bool is_valid_used(uint32* p)
+{
+	return (*p & flag_mask) == flag_used && *p != flag_used;
+}
+[[maybe_unused]] static inline bool is_valid_free(uint32* p)
+{
+	return (*p & flag_mask) == flag_free && *p != flag_free;
+}
 
 static inline uint32* skip_free(uint32* p)
 {
