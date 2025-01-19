@@ -14,6 +14,7 @@
 #include "common/standard_types.h"
 #include "exportStSoundWavFile.h"
 #include <dirent.h>
+#include <sys/stat.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_FAILURE_USERMSG 1
@@ -385,6 +386,9 @@ static void convert_dir(cstr indir, cstr outdir, cstr subdir)
 
 	DIR* dir = opendir(catstr(indir, subdir));
 	if (!dir) throw strerror(errno);
+
+	int err = mkdir(catstr(outdir, subdir), 0777);
+	if (err && errno != EEXIST) throw strerror(errno);
 
 	while (dirent* de = readdir(dir))
 	{
