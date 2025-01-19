@@ -33,7 +33,7 @@ public:
 	MousePointer(const Shape& s);
 	~MousePointer() noexcept override = default;
 
-	virtual void setup(coord width) override;
+	virtual void setup() override;
 	//virtual void teardown() noexcept override;
 	virtual void vblank() noexcept override;
 	//virtual void renderScanline(int row, uint32* scanline) noexcept override;

@@ -6,6 +6,7 @@
 #include "ColorMap.h"
 #include "Pixmap.h"
 #include "ScanlineRenderFu.h"
+#include "VideoBackend.h"
 #include "VideoPlane.h"
 
 
@@ -42,7 +43,6 @@ public:
 	RCPtr<const ColorMap> colormap;
 	uint8*				  pixels; // next position
 	int					  row;	  // expected next row
-	uint				  width;
 
 	FrameBuffer(const Pixmap* px, const ColorMap* cm = &Graphics::system_colormap) noexcept : pixmap(px), colormap(cm)
 	{
@@ -55,9 +55,8 @@ public:
 
 	virtual ~FrameBuffer() noexcept override = default;
 
-	virtual void setup(coord width) throws override
+	virtual void setup() throws override
 	{
-		this->width = width;
 		setupScanlineRenderer<CM>(colormap->colors); // setup render function
 		FrameBuffer::vblank();						 // reset state variables
 	}
@@ -74,7 +73,7 @@ public:
 			pixels += pixmap->row_offset;
 		}
 
-		scanlineRenderFunction<CM>(plane_data, width, pixels);
+		scanlineRenderFunction<CM>(plane_data, vga_mode.width, pixels);
 
 		pixels += pixmap->row_offset;
 	}
@@ -106,7 +105,6 @@ public:
 	int					  row;	  // expected next row
 	uint8*				  attributes;
 	int					  arow;
-	uint				  width;
 	int					  row_offset;
 	int					  attrheight;
 
@@ -125,9 +123,8 @@ public:
 
 	virtual ~FrameBuffer() noexcept override = default;
 
-	virtual void setup(coord width) throws override
+	virtual void setup() throws override
 	{
-		this->width = width;
 		setupScanlineRenderer<CM>(colormap->colors); // setup render function
 		FrameBuffer::vblank();						 // reset state variables
 	}
@@ -149,7 +146,7 @@ public:
 			}
 		}
 
-		scanlineRenderFunction<CM>(plane_data, width, pixels, attributes);
+		scanlineRenderFunction<CM>(plane_data, vga_mode.width, pixels, attributes);
 
 		pixels += row_offset;
 		if unlikely (++arow == attrheight)

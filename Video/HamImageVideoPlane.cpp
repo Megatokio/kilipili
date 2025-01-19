@@ -49,18 +49,13 @@ void HamImageVideoPlane::_setup(int w, int h, uint n)
 	image_height   = h;
 	row_offset	   = w;
 
-	top_border	 = max(0, (vga_height - h) / 2);
-	left_border	 = max(0, (vga_width - w) / 2) & 0xfffe;
-	right_border = max(0, vga_width - w - left_border);
+	top_border	 = max(0, (vga_mode.height - h) / 2);
+	left_border	 = max(0, (vga_mode.width - w) / 2) & 0xfffe;
+	right_border = max(0, vga_mode.width - w - left_border);
 }
 
-void HamImageVideoPlane::setup(coord width)
+void HamImageVideoPlane::setup()
 {
-	assert_eq(width, vga_mode.width);
-
-	vga_width  = vga_mode.width;
-	vga_height = vga_mode.height;
-
 	_setup(pixmap->width, pixmap->height, first_rel_code);
 
 	setupScanlineRenderer<colormode_i8>(colormap->colors);
@@ -79,7 +74,7 @@ void HamImageVideoPlane::setupNextImage(int width, int height, uint first_rel_co
 	// 3. read pixels from file
 
 	if (width & 1) throw "ham image: odd row offset not supported";
-	top_border = vga_height; // prevent further display
+	top_border = vga_mode.height; // prevent further display
 	VideoController::getRef().addOneTimeAction([=, this]() { _setup(width, height, first_rel_code); });
 }
 
@@ -142,7 +137,7 @@ void XRAM HamImageVideoPlane::renderScanline(int current_row, uint32* framebuffe
 	else
 	{
 		Color* dest = reinterpret_cast<Color*>(framebuffer);
-		for (int i = 0; i < vga_width; i++) *dest++ = border_color;
+		for (int i = 0; i < vga_mode.width; i++) *dest++ = border_color;
 	}
 }
 

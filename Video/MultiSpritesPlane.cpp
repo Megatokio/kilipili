@@ -30,7 +30,7 @@ bool hotlist_overflow = false; // set by add_to_hotlist()
 
 
 template<typename Sprite, ZPlane WZ>
-void MultiSpritesPlane<Sprite, WZ>::setup(coord __unused width)
+void MultiSpritesPlane<Sprite, WZ>::setup()
 {
 	// called by VideoController before first vblank()
 	// we don't clear the displaylist and keep all sprites if there are already any
@@ -246,7 +246,7 @@ void RAM MultiSpritesPlane<Sprite, WZ>::add_to_hotlist(const Sprite* sprite) noe
 	}
 
 	HotShape& hot_shape = hotlist[idx];
-	sprite->template start(hot_shape);
+	sprite->start(hot_shape);
 	if constexpr (WZ) hot_shape.z = sprite->z;
 
 	if unlikely (sprite->pos.y < hot_row)

@@ -287,7 +287,7 @@ void VideoController::addPlane(VideoPlanePtr plane)
 	addOneTimeAction([this, plane] {
 		locker();
 		assert_lt(num_planes, max_planes);
-		plane->setup(vga_mode.width); // throws
+		plane->setup(); // throws
 		planes[num_planes++] = plane;
 	});
 }

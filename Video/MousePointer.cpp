@@ -268,9 +268,9 @@ void MousePointer<Shape>::vblank() noexcept
 }
 
 template<typename Sprite>
-void MousePointer<Sprite>::setup(coord width)
+void MousePointer<Sprite>::setup()
 {
-	USB::setScreenSize(width, screen_height());
+	USB::setScreenSize(screen_width(), screen_height());
 }
 
 

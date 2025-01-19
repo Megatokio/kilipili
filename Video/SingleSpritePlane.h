@@ -35,7 +35,7 @@ public:
 	SingleSpritePlane(const Shape& s, const Point& position);
 	SingleSpritePlane(Frames&& frames, const Point& position);
 
-	virtual void setup(coord width) override;
+	virtual void setup() override;
 	virtual void teardown() noexcept override {}
 	virtual void vblank() noexcept override;
 	virtual void renderScanline(int row, uint32* scanline) noexcept override;
@@ -145,7 +145,7 @@ void SingleSpritePlane<Sprite>::replace(const Shape* shapes, const uint16* dur, 
 // ============================================================================
 
 template<typename Sprite>
-void SingleSpritePlane<Sprite>::SingleSpritePlane::setup(coord __unused width)
+void SingleSpritePlane<Sprite>::SingleSpritePlane::setup()
 {
 	is_hot = false;
 

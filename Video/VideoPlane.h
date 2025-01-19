@@ -4,7 +4,8 @@
 
 #pragma once
 #include "RCPtr.h"
-#include "geometry.h"
+#include "standard_types.h"
+
 
 namespace kio::Video
 {
@@ -28,7 +29,7 @@ public:
 		Initialize this VideoPlane after construction.
 		The VideoPlane can be constructed on core 0, but setup() is always called on core 1.
 	*/
-	virtual void setup(coord width) = 0;
+	virtual void setup() = 0;
 
 	/*
 		Tear down this VideoPlane before destruction.

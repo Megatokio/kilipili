@@ -28,7 +28,7 @@ public:
 	HamImageVideoPlane(const Pixmap*, const ColorMap*, uint first_rel_code);
 	virtual ~HamImageVideoPlane() noexcept override = default;
 
-	virtual void setup(coord _width) override;
+	virtual void setup() override;
 	virtual void teardown() noexcept override;
 	virtual void vblank() noexcept override;
 	virtual void renderScanline(int row, uint32* framebuffer) noexcept override;
@@ -41,10 +41,8 @@ public:
 
 	Color		 first_color;
 	Color		 border_color;
-	const uint8* pixels;	 // next position
-	int			 next_row;	 // expected next row
-	int			 vga_width;	 // of display/framebuffer, as set with setup()
-	int			 vga_height; // of display
+	const uint8* pixels;   // next position
+	int			 next_row; // expected next row
 
 	int image_height = 999;
 	int image_width; // displayed pixels
