@@ -145,7 +145,7 @@ static cstr makeCanonicalPath(cstr path)
 	for (int i = 0; path[i] != 0; i++)
 	{
 		if (path[i] != '/') continue;
-		else if (path[i + 1] == '/') path = i == 0 ? path + 1 : catstr(substr(path, path + i), path + i + 1);
+		else if (path[i + 1] == '/') path = catstr(substr(path, path + i), path + i + 1);
 		else if (path[i + 1] != '.') continue;
 		else if (path[i + 2] == 0) return i == 0 ? "/" : substr(path, path + i);
 		else if (path[i + 2] == '/') path = catstr(substr(path, path + i), path + i + 2);
