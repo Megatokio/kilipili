@@ -11,7 +11,7 @@ namespace kio::Devices
 BlockDeviceFile::BlockDeviceFile(RCPtr<BlockDevice> bdev) noexcept :
 	File(bdev->flags),
 	bdev(std::move(bdev)),
-	fsize(bdev->totalSize())
+	fsize(this->bdev->totalSize())
 {}
 
 
