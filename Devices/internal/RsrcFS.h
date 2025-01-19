@@ -42,10 +42,10 @@ ALT	compressed[] =
 	  char[] data       compressed file data
 */
 
-class RsrcFS : public FileSystem
+class RsrcFS final : public FileSystem
 {
 public:
-	RsrcFS(cstr name = "rsrc") noexcept : FileSystem(name) {}
+	RsrcFS(cstr name = "rsrc") throws : FileSystem(name) {}
 
 	virtual ADDR		 getFree() override { return 0; }
 	virtual ADDR		 getSize() override;
