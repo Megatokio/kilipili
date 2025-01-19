@@ -69,11 +69,17 @@ void makeFS(BlockDevicePtr bdev, cstr type) throws // static
 
 FileSystemPtr mount(cstr devicename, BlockDevicePtr bdev) throws // static
 {
+	// discover the FileSystem on the BlockDevice and mount it with the given name.
+	// throws if a FS with that name is already mounted.
+
 	trace("FS::mount(name,bdev)");
-	debugstr("FileSystem::mount: \"%s\"\n", devicename);
+	debugstr("FS::mount: \"%s\", bdev\n", devicename);
 
 	assert(devicename && *devicename);
 	assert(bdev);
+
+	// TODO: we could dynamic_cast the already mounted FS and check whether it's on the same bdev:
+	if (index_of(devicename) >= 0) throw DEVICE_IN_USE;
 
 	// check if the device is readable by reading some random bytes:
 	char bu[8];
@@ -97,12 +103,18 @@ FileSystemPtr mount(cstr devicename, BlockDevicePtr bdev) throws // static
 
 FileSystemPtr mount(cstr devicename) throws // static
 {
+	// mount the FileSystem on the well-known BlockDevice with the given name.
+	// returns the already mounted FS if it is mounted.
+
 	trace("FS::mount(name)");
-	debugstr("FileSystem::mount: \"%s\"\n", devicename);
+	debugstr("FS::mount: \"%s\"\n", devicename);
 
 	assert(devicename && *devicename);
 
-	if (lceq(devicename, "rsrc")) return new RsrcFS(devicename);
+	int idx = index_of(devicename);
+	if (idx >= 0) return file_systems[idx];
+
+	if (lceq(devicename, "rsrc")) { return new RsrcFS(devicename); }
 #ifdef PICO_DEFAULT_SPI
 	if (lceq(devicename, "sdcard")) return new FatFS(devicename, SDCard::defaultInstance());
 #endif
