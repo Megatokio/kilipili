@@ -75,17 +75,17 @@ str SerialDevice::gets(uint line_ends)
 	return s;
 }
 
-SIZE SerialDevice::putc(char c)
+void SerialDevice::putc(char c)
 {
-	return write(&c, 1); //
+	write(&c, 1); //
 }
 
-SIZE SerialDevice::puts(cstr s)
+void SerialDevice::puts(cstr s)
 {
-	return s ? write(s, strlen(s)) : 0; //
+	if (s) write(s, strlen(s)); //
 }
 
-SIZE SerialDevice::printf(cstr fmt, ...)
+void SerialDevice::printf(cstr fmt, ...)
 {
 	char bu[256];
 
@@ -96,17 +96,17 @@ SIZE SerialDevice::printf(cstr fmt, ...)
 
 	assert(n >= 0);
 	SIZE size = uint(n);
-	if (size <= 255) return write(bu, size);
+	if (size <= 255) return (void)write(bu, size);
 
 	std::unique_ptr<char[]> bp {new (std::nothrow) char[size + 1]};
 
-	if (!bp) return write(bu, 256); // desperately short of memory
+	if (!bp) return (void)write(bu, 256); // desperately short of memory
 
 	va_start(va, fmt);
 	vsnprintf(bp.get(), size + 1, fmt, va);
 	va_end(va);
 
-	return write(bp.get(), size);
+	return (void)write(bp.get(), size);
 }
 
 

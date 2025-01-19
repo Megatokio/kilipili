@@ -18,9 +18,9 @@ public:
 	virtual int	 getc(uint timeout_us) override;
 	virtual char getc() override;
 	//virtual str gets(char* buffer, uint sz) = default
-	virtual SIZE putc(char) override;
-	virtual SIZE puts(cstr) override;
-	virtual SIZE printf(cstr fmt, ...) override __printflike(2, 3);
+	virtual void putc(char) override;
+	virtual void puts(cstr) override;
+	virtual void printf(cstr fmt, ...) override __printflike(2, 3);
 };
 
 } // namespace kio::Devices

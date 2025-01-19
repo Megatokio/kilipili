@@ -41,9 +41,9 @@ public:
 	virtual int	 getc(uint timeout_us) override;
 	virtual char getc() override;
 	// virtual str	gets();
-	// virtual SIZE putc(char);
-	// virtual SIZE puts(cstr);
-	// virtual SIZE printf(cstr fmt, ...) __printflike(2, 3);
+	// virtual void putc(char);
+	// virtual void puts(cstr);
+	// virtual void printf(cstr fmt, ...) __printflike(2, 3);
 
 	// close()    close the file even if a file error occurs.
 	// set_fpos() may set fpos beyond file end if this is possible.

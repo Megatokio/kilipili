@@ -28,7 +28,7 @@ public:
 	virtual int	 getc(uint timeout_us) override;
 	virtual char getc() override;
 	// virtual str	gets();
-	virtual SIZE putc(char) override;
+	virtual void putc(char) override;
 	// virtual SIZE puts(cstr)override;
 	// virtual SIZE printf(cstr fmt, ...) __printflike(2, 3);
 

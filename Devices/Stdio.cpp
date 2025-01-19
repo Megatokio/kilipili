@@ -74,16 +74,15 @@ SIZE Stdio::write(const void* _data, SIZE sz, __unused bool partial)
 	return sz;
 }
 
-SIZE Stdio::putc(char c)
+void Stdio::putc(char c)
 {
 	// TODO putchar() probably inserts cr before any nl.
 	// add a binary setting?
 
 	putchar_raw(c);
-	return 1;
 }
 
-SIZE Stdio::puts(cstr s)
+void Stdio::puts(cstr s)
 {
 	// the unix puts() always appends a line end.
 	// TODO perhaps extend puts by taking a flag?
@@ -91,10 +90,10 @@ SIZE Stdio::puts(cstr s)
 	// printf probably inserts cr before any nl.
 	// TODO add a binary setting?
 
-	return printf("%s", s);
+	printf("%s", s);
 }
 
-SIZE Stdio::printf(cstr fmt, ...)
+void Stdio::printf(cstr fmt, ...)
 {
 	// printf probably inserts cr before nl.
 	// TODO add a binary setting?
@@ -104,7 +103,6 @@ SIZE Stdio::printf(cstr fmt, ...)
 	int n = vprintf(fmt, va);
 	assert(n >= 0);
 	va_end(va);
-	return SIZE(n);
 }
 
 

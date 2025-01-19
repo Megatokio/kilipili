@@ -28,10 +28,10 @@ public:
 
 	virtual int	 getc(uint timeout_us) override;
 	virtual char getc() override;
-	virtual SIZE putc(char) override;
+	virtual void putc(char) override;
 	//virtual str  gets() override;
-	//virtual SIZE puts(cstr) override;
-	//virtual SIZE printf(cstr fmt, ...) override __printflike(2, 3);
+	//virtual void puts(cstr) override;
+	//virtual void printf(cstr fmt, ...) override __printflike(2, 3);
 
 	virtual ADDR getSize() const noexcept override;
 	virtual ADDR getFpos() const noexcept override;

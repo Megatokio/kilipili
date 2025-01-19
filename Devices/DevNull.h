@@ -15,9 +15,9 @@ public:
 	DevNull() noexcept;
 
 	virtual SIZE write(const void*, SIZE size, bool) override { return size; }
-	virtual SIZE putc(char) override { return 1; }
-	virtual SIZE puts(cstr s) override;
-	virtual SIZE printf(cstr, ...) override __printflike(2, 3);
+	virtual void putc(char) override {}
+	virtual void puts(cstr) override {}
+	virtual void printf(cstr, ...) override __printflike(2, 3) {}
 };
 
 extern DevNull dev_null;

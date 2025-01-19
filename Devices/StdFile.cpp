@@ -37,7 +37,7 @@ StdFile::StdFile(FILE* file, Flags flags) : //
 StdFile::~StdFile()
 {
 	if (flags & dont_close) return; // stdin, out, err
-	
+
 	while (file)
 	{
 		if (fclose(file) == 0) break;
@@ -46,7 +46,7 @@ StdFile::~StdFile()
 		break;
 	}
 }
- 
+
 uint32 StdFile::ioctl(IoCtl cmd, void* arg1, void* arg2)
 {
 	return File::ioctl(cmd, arg1, arg2); //
@@ -93,11 +93,9 @@ SIZE StdFile::write(const void* data, SIZE size, bool partial)
 	throw_error();
 }
 
-SIZE StdFile::putc(char c)
+void StdFile::putc(char c)
 {
-	int rval = fputc(c, file);
-	if (rval >= 0) return 1;
-	throw_error();
+	if (fputc(c, file) < 0) throw_error(); //
 }
 
 ADDR StdFile::getSize() const noexcept

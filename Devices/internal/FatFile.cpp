@@ -114,7 +114,7 @@ char FatFile::getc()
 	return last_char;
 }
 
-SIZE FatFile::putc(char c)
+void FatFile::putc(char c)
 {
 	trace(__func__);
 
@@ -122,7 +122,6 @@ SIZE FatFile::putc(char c)
 	FRESULT err	  = f_write(&fatfile, &c, 1, &count);
 	if unlikely (err) throw tostr(err);
 	if unlikely (count < 1) throw END_OF_FILE;
-	return count;
 }
 
 ADDR FatFile::getSize() const noexcept

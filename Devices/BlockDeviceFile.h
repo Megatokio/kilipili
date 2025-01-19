@@ -37,10 +37,10 @@ public:
 
 	// virtual int  getc(uint timeout_us) override;
 	// virtual char getc() override;
-	// virtual SIZE putc(char) override;
 	// virtual str	gets() override;
-	// virtual SIZE puts(cstr);
-	// virtual SIZE printf(cstr fmt, ...) __printflike(2, 3);
+	// virtual void putc(char) override;
+	// virtual void puts(cstr);
+	// virtual void printf(cstr fmt, ...) __printflike(2, 3);
 
 	// File:
 

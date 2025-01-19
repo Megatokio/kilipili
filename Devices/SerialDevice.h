@@ -41,9 +41,9 @@ public:
 	virtual int	 getc(uint timeout_us);
 	virtual char getc();
 	virtual str	 gets(uint line_ends = (1 << 0) + (1 << 10) + (1 << 13));
-	virtual SIZE putc(char);
-	virtual SIZE puts(cstr);
-	virtual SIZE printf(cstr fmt, ...) __printflike(2, 3);
+	virtual void putc(char);
+	virtual void puts(cstr);
+	virtual void printf(cstr fmt, ...) __printflike(2, 3);
 
 	void flushOut() { ioctl(IoCtl::FLUSH_OUT); }
 	bool is_readable() const noexcept { return flags & readable; }
@@ -60,15 +60,15 @@ public:
 	}
 
 	template<typename T>
-	SIZE read(T& n)
+	void read(T& n)
 	{
-		return read(&n, sizeof(T));
+		read(&n, sizeof(T));
 	}
 
 	template<typename T>
-	SIZE write(const T& n)
+	void write(const T& n)
 	{
-		return write(&n, sizeof(T));
+		write(&n, sizeof(T));
 	}
 
 	template<typename T, bool LE>
@@ -90,17 +90,15 @@ public:
 	}
 
 	template<typename T>
-	SIZE read_BE(T& n)
+	void read_BE(T& n)
 	{
-		SIZE d = read(n);
-		n	   = reverted<T, 0>(n);
-		return d;
+		n = read_BE<T>();
 	}
 
 	template<typename T>
-	SIZE write_BE(const T& n)
+	void write_BE(const T& n)
 	{
-		return write<T>(reverted<T, 0>(n));
+		write<T>(reverted<T, 0>(n));
 	}
 
 	template<typename T>
@@ -110,17 +108,15 @@ public:
 	}
 
 	template<typename T>
-	SIZE read_LE(T& n)
+	void read_LE(T& n)
 	{
-		SIZE d = read(n);
-		n	   = reverted<T, 1>(n);
-		return d;
+		n = read_LE<T>(n);
 	}
 
 	template<typename T>
-	SIZE write_LE(const T& n)
+	void write_LE(const T& n)
 	{
-		return write<T>(reverted<T, 1>(n));
+		write<T>(reverted<T, 1>(n));
 	}
 };
 
