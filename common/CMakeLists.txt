@@ -11,6 +11,7 @@ if(${MAKE_TOOLS})
 		linux/little_big_endian.h
 		linux/glue.cpp
 		linux/glue.h
+		linux/LockoutCore1.h
 		linux/tempmem.cpp)
 	set(distinct_headers 
 		${CMAKE_CURRENT_LIST_DIR}/linux)
@@ -20,6 +21,7 @@ else()
 		pico/little_big_endian.h
 		pico/glue.cpp
 		pico/glue.h
+		pico/LockoutCore1.h
 		pico/tempmem.cpp)
 	set(distinct_headers 
 		${CMAKE_CURRENT_LIST_DIR}/pico)
