@@ -79,6 +79,8 @@ add_library(kilipili_devices STATIC
 	LzhDecoder.h
 	QspiFlash.cpp 
 	QspiFlash.h
+	QspiFlashDevice.h 
+	QspiFlashDevice.cpp
 	${distinct_sources}
 )
 
