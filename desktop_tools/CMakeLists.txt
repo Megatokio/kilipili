@@ -104,12 +104,19 @@ add_executable(UnitTest
 	unit_test/relational_operators.test.cpp
 	unit_test/Array.test.cpp
 	unit_test/Ay38912_unit_test.cpp
+	unit_test/QspiFlash_unit_test.cpp
+	kilipili/Devices/BlockDevice.cpp
+	kilipili/Devices/QspiFlash.cpp
+	kilipili/Devices/QspiFlashDevice.cpp
+	kilipili/Devices/QspiFlashDevice.h
 	kilipili/Audio/AudioSource.h
 	kilipili/Audio/AudioSource.cpp
 	kilipili/Audio/audio_options.h
 	kilipili/Audio/AudioSample.h
 	kilipili/Audio/Ay38912.cpp
 	kilipili/Audio/Ay38912.h
+	unit_test/Mock/MockFlash.h
+	unit_test/Mock/MockFlash.cpp
 	)
 
 target_compile_definitions(UnitTest PUBLIC
