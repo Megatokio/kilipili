@@ -26,8 +26,42 @@ namespace kio
 inline void sleep_us(int usec) noexcept { (void)usec; }
 inline void wfe() noexcept {}
 
+// these are defined in the unit test:
+extern void flash_range_erase(uint32 flash_offs, uint32 count);
+extern void flash_range_program(uint32 flash_offs, const uint8* data, uint32 count);
+
 } // namespace kio
 
 
 #define kilipili_lock_spinlock()   (void)0
 #define kilipili_unlock_spinlock() (void)0
+
+#define save_and_disable_interrupts() 0
+#define restore_interrupts(o)		  (void)o
+#define get_core_num()				  0
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

@@ -48,6 +48,7 @@ else()
 		pico_stdlib
 		pico_stdio
 		hardware_spi
+		hardware_flash
 		kilipili_utilities)
 endif()
 
@@ -76,6 +77,8 @@ add_library(kilipili_devices STATIC
 	HeatShrinkEncoder.cpp
 	LzhDecoder.cpp
 	LzhDecoder.h
+	QspiFlash.cpp 
+	QspiFlash.h
 	${distinct_sources}
 )
 
