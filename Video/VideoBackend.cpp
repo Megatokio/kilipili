@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 
-namespace kio ::Video
+namespace kio::Video
 {
 
 // clang-format off
@@ -71,8 +71,9 @@ volatile int	line_at_frame_start;
 volatile uint32 time_us_at_frame_start; // timestamp of start of active screen lines (updated ~1 scanline early)
 volatile int	current_frame = 0;
 
-static uint cc_per_frame_fract;
-static uint cc_per_frame_rest;
+static uint us_per_frame;		// integer part of fractional value!
+static uint cc_per_frame_fract; // the fractional part [cc]
+static uint cc_per_frame_rest;	// accumulator in ISR
 
 
 alignas(16) static uint32 prog_active[4];
@@ -101,6 +102,34 @@ static uint8		  timing_program_load_offset;
 
 // =========================================================
 
+static __always_inline bool dma_irqn_get_channel_status(uint irq_index, uint channel)
+{
+	//invalid_params_if(HARDWARE_DMA, irq_index >= NUM_DMA_IRQS);
+	//check_dma_channel_param(channel);
+	return dma_hw->irq_ctrl[irq_index].ints & (1u << channel);
+}
+static __always_inline void dma_irqn_acknowledge_channel(uint irq_index, uint channel)
+{
+	//invalid_params_if(HARDWARE_DMA, irq_index >= NUM_DMA_IRQS);
+	//check_dma_channel_param(channel);
+	dma_hw->irq_ctrl[irq_index].ints = 1u << channel;
+}
+
+static __always_inline dma_channel_hw_t* dma_channel_hw_addr(uint channel)
+{
+	//check_dma_channel_param(channel);
+	return &dma_hw->ch[channel];
+}
+
+static __always_inline void
+dma_channel_transfer_from_buffer_now(uint channel, const volatile void* read_addr, uint32_t transfer_count)
+{
+	//check_dma_channel_param(channel);
+	dma_channel_hw_t* hw		= dma_channel_hw_addr(channel);
+	hw->read_addr				= uintptr_t(read_addr);
+	hw->al1_transfer_count_trig = transfer_count;
+}
+
 static void RAM timing_isr() noexcept
 {
 	// DMA complete
@@ -127,7 +156,7 @@ static void RAM timing_isr() noexcept
 			in_vblank			= false;
 			line_at_frame_start = line_at_frame_start + vga_mode.height;
 
-			time_us_at_frame_start = time_us_at_frame_start + cc_per_frame / cc_per_us;
+			time_us_at_frame_start = time_us_at_frame_start + us_per_frame;
 			if ((cc_per_frame_rest += cc_per_frame_fract) >= cc_per_us)
 			{
 				cc_per_frame_rest -= cc_per_us;
@@ -402,7 +431,7 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 	cc_per_scanline		   = cc_per_px * px_per_scanline;			  // non fract
 	cc_per_frame		   = cc_per_px * px_per_frame;				  // non fract
 	cc_per_us			   = get_system_clock() / 1000000;			  // non fract
-	uint32 us_per_frame	   = cc_per_frame / cc_per_us;				  // fract
+	us_per_frame		   = cc_per_frame / cc_per_us;				  // fract
 	cc_per_frame_fract	   = cc_per_frame % cc_per_us;				  // remainder
 	cc_per_frame_rest	   = 0;										  // correction counter
 	line_at_frame_start	   = 0;		// line number where scanline dma starts reading from scanline_buffer[]
@@ -476,7 +505,7 @@ void VideoBackend::initialize() noexcept
 
 	initialize_gpio_pins();
 	initialize_state_machines();
-	irq_add_shared_handler(DMA_IRQ_0 + TIMING_DMA_IRQ_IDX, timing_isr, PICO_SHARED_IRQ_HANDLER_DEFAULT_ORDER_PRIORITY);
+	irq_set_exclusive_handler(DMA_IRQ_0 + TIMING_DMA_IRQ_IDX, timing_isr);
 	state = not_started;
 }
 
