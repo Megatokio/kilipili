@@ -72,6 +72,9 @@ public:
 	*/
 	void stopVideo() noexcept;
 
+	void suspendVideo() noexcept;
+	void resumeVideo() noexcept;
+
 	/*
 		add a plane to the video output.
 		the plane will be added by core1 on the next vblank.
@@ -94,12 +97,6 @@ public:
 	void setVBlankAction(const VBlankAction& fu) noexcept;
 
 	/*
-		register a function to be called whenever core1 has some spare time.
-		this function must be a short runner!
-	*/
-	void setIdleAction(const IdleAction& fu) noexcept;
-
-	/*
 		register a function to be called during next vblank.
 		multiple onetime actions can be registered in the same frame. 
 	*/
@@ -111,7 +108,6 @@ public:
 	State getState() const noexcept { return state; }
 
 private:
-	static Error		  core1_error;
 	static constexpr uint max_planes = 8;
 
 	uint		  num_planes		 = 0;
@@ -120,19 +116,19 @@ private:
 	VBlankAction  vblank_action		 = nullptr;
 	OneTimeAction onetime_action	 = nullptr;
 
-	volatile State state		   = STOPPED;
-	volatile State requested_state = STOPPED;
-	uint8		   _padding[2];
+	volatile State state			 = STOPPED;
+	volatile State requested_state	 = STOPPED;
+	volatile bool  lockout_requested = false;
+	volatile bool  locked_out		 = false;
 	uint32		   requested_system_clock;
-
 
 	VideoController() noexcept;
 
 	void core1_runner() noexcept;
 	void video_runner();
 
-	void wait_for_event() noexcept;
-	void call_vblank_actions() noexcept;
+	void		wait_while_lockout() noexcept;
+	static void poll_isr(volatile bool&) noexcept;
 };
 
 

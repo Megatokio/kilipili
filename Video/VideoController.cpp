@@ -1,43 +1,42 @@
-/*
- * Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
- * SPDX-License-Identifier: BSD-3-Clause
- * Copyright (c) 2022 - 2025 kio@little-bat.de
- * SPDX-License-Identifier: BSD-2-Clause
- */
+// Copyright (c) 2022 - 2025 kio@little-bat.de
+// BSD 2-clause license
+// https://spdx.org/licenses/BSD-2-Clause.html
 
 #include "VideoController.h"
+#include "LockoutCore1.h"
 #include "ScanlineBuffer.h"
 #include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "cdefs.h"
+#include "system_clock.h"
 #include "tempmem.h"
 #include "utilities/LoadSensor.h"
 #include "utilities/Trace.h"
 #include "utilities/stack_guard.h"
 #include "utilities/utilities.h"
 #include <cstdio>
-#include <hardware/clocks.h>
-#include <hardware/dma.h>
 #include <hardware/exception.h>
-#include <hardware/gpio.h>
-#include <hardware/irq.h>
-#include <hardware/pio.h>
 #include <pico/multicore.h>
-#include <pico/platform.h>
-#include <pico/sem.h>
 
 #ifndef VIDEO_RECOVERY_PER_LINE
   #define VIDEO_RECOVERY_PER_LINE OFF
 #endif
 
 
+#define RAM __attribute__((section(".time_critical.VideoController")))
+
+
+using namespace kio::Video;
+
+LockoutCore1::LockoutCore1() { VideoController::getRef().suspendVideo(); }
+
+LockoutCore1::~LockoutCore1() { VideoController::getRef().resumeVideo(); }
+
+
 namespace kio::Video
 {
 
-#define RAM __attribute__((section(".time_critical.VideoController")))
-
-uint  scanlines_missed			   = 0;
-Error VideoController::core1_error = NO_ERROR;
+uint scanlines_missed = 0;
 
 static spin_lock_t* spinlock = nullptr;
 
@@ -78,15 +77,15 @@ void VideoController::startVideo(const VgaMode& mode, uint32 system_clock, uint 
 	assert(get_core_num() == 0);
 	assert(state == STOPPED);
 	assert(requested_state == STOPPED);
+	assert(lockout_requested == false);
+	assert(locked_out == false);
 
 	vga_mode = mode;
 	scanline_buffer.setup(vga_mode, scanline_buffer_count); // throws
-	core1_error			   = NO_ERROR;
 	requested_system_clock = system_clock;
 	requested_state		   = RUNNING;
 	__sev();
-	while (state != RUNNING && core1_error == NO_ERROR) { wfe(); }
-	if (core1_error != NO_ERROR) throw core1_error;
+	while (state != RUNNING) { wfe(); }
 }
 
 void VideoController::stopVideo() noexcept
@@ -99,12 +98,45 @@ void VideoController::stopVideo() noexcept
 	onetime_action = nullptr; // if planes were added but the VideoController was never started
 }
 
+void VideoController::suspendVideo() noexcept
+{
+	assert(lockout_requested == false);
+	while (locked_out) {} // because we don't wait in resumeVideo()
+	lockout_requested = true;
+	__sev();
+	while (!locked_out) wfe();
+}
+
+void VideoController::resumeVideo() noexcept
+{
+	assert(lockout_requested == true);
+	assert(locked_out == true);
+	lockout_requested = false;
+	__sev();
+	//while (locked_out) wfe();
+}
+
+void __noinline __not_in_flash("wait_while_lockout") VideoController::poll_isr(volatile bool& lockout) noexcept
+{
+	while (lockout) { __wfe(); }
+}
+
+void __noinline VideoController::wait_while_lockout() noexcept
+{
+	locked_out = true;
+	__sev();
+	poll_isr(lockout_requested);
+	locked_out = false;
+	__sev();
+}
+
 __attribute((noreturn)) //
 void VideoController::core1_runner() noexcept
 {
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
 	trace(__func__);
+
 	exception_set_exclusive_handler(HARDFAULT_EXCEPTION, [] {
 		// contraire to documentation, this sets the handler for both cores:
 		panic("HARDFAULT_EXCEPTION");
@@ -119,6 +151,7 @@ void VideoController::core1_runner() noexcept
 		while (true)
 		{
 			wfe();
+			if (lockout_requested) wait_while_lockout();
 
 			if (requested_state == RUNNING)
 			{
@@ -155,50 +188,11 @@ void VideoController::core1_runner() noexcept
 	}
 	catch (...)
 	{
-		panic("core1: exception");
+		panic("core1: unknown exception");
 	}
 }
 
-inline void RAM VideoController::wait_for_event() noexcept
-{
-	idle_start();
-	{
-		trace(__func__);
-		if (idle_action) idle_action();
-	}
-	idle_end();
-}
-
-inline void RAM VideoController::call_vblank_actions() noexcept
-{
-	// calls in this sequence:
-	//   onetime_action
-	//   vblank_action
-	//   plane.vblank
-
-	trace(__func__);
-
-	if (onetime_action)
-	{
-		onetime_action();
-		onetime_action = nullptr;
-		__sev();
-	}
-
-	if (vblank_action)
-	{
-		vblank_action(); //
-	}
-
-	locker();
-
-	for (uint i = 0; i < num_planes; i++)
-	{
-		planes[i]->vblank(); //
-	}
-}
-
-inline void RAM VideoController::video_runner()
+void RAM VideoController::video_runner()
 {
 	trace(__func__);
 	print_stack_free();
@@ -209,30 +203,43 @@ inline void RAM VideoController::video_runner()
 	// note: call_vblank_actions() esp. planes[i]->vblank()
 	// is guaranteed to be called before first call to planes[i]->renderScanline()
 
-	for (int row = height;; row++)
+	for (int row = height; requested_state == RUNNING; row++)
 	{
 		if unlikely (in_vblank || row >= height) // next frame
 		{
-			if unlikely (requested_state != RUNNING) break;
-
 			if constexpr (!VIDEO_RECOVERY_PER_LINE)
 			{
 				int missed = current_scanline() - row;
 				if (missed > 0) { scanlines_missed += uint(missed); }
 			}
 
-			call_vblank_actions();
-			purge_tempmem();
+			if unlikely (lockout_requested) wait_while_lockout();
 
+			if (onetime_action)
+			{
+				onetime_action();
+				onetime_action = nullptr;
+				__sev();
+			}
+
+			if (vblank_action) { vblank_action(); }
+
+			{
+				Locker _;
+				for (uint i = 0; i < num_planes; i++) { planes[i]->vblank(); }
+			}
+
+			//idle_start();
 			while (!in_vblank && line_at_frame_start == row0)
 			{
 				// wait until this frame is fully done
 				// ATTN: the timing irpt is actually called ~2 lines early!
-				wait_for_event();
+				if (requested_state != RUNNING) return;
 			}
+			//idle_end();
 
-			row = 0;
-			row0 += height;
+			row	 = 0;
+			row0 = line_at_frame_start;
 
 			for (uint n = 0; n < scanline_buffer.count; n++, row++)
 			{
@@ -245,20 +252,22 @@ inline void RAM VideoController::video_runner()
 				}
 			}
 
+			idle_start();
 			while (in_vblank)
 			{
 				// wait until line_at_frame_start advances to next frame
-				wait_for_event();
+				if (requested_state != RUNNING) return;
 			}
-
-			assert_eq(line_at_frame_start, row0); // TODO: seen: 360 != 240 ((in screensize 160x120)
+			idle_end();
 		}
 
+		idle_start();
 		while (unlikely(row >= current_scanline() + int(scanline_buffer.count)))
 		{
 			// wait until video backend no longer displays from this scanline
-			wait_for_event(); //
+			if (requested_state != RUNNING) return;
 		}
+		idle_end();
 
 		uint32* scanline = scanline_buffer[row0 + row];
 		for (uint i = 0; i < num_planes; i++)
@@ -315,12 +324,6 @@ void VideoController::setVBlankAction(const VBlankAction& fu) noexcept
 {
 	locker();
 	vblank_action = fu;
-}
-
-void VideoController::setIdleAction(const IdleAction& fu) noexcept
-{
-	locker();
-	idle_action = fu;
 }
 
 void VideoController::addOneTimeAction(const std::function<void()>& fu) noexcept
