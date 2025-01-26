@@ -566,7 +566,6 @@ void SDCard::connect() throws
 
 		uint64 total_size = csd.disk_size();
 		sector_count	  = SIZE(total_size >> ss_write);
-		if (ADDR(total_size) != total_size) logline("Warning: SDCard size >= 4GB");
 		debugstr("SDCard:: ready\n");
 	}
 	catch (cstr& e)

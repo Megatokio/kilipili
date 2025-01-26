@@ -3,7 +3,13 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "BlockDeviceFile.h"
-#include "cdefs.h"
+#if defined MAKE_TOOLS && MAKE_TOOLS
+  #define logline(...) (void)0
+#else
+  #include "Logger.h"
+  #include "cdefs.h"
+#endif
+
 
 namespace kio::Devices
 {
@@ -12,7 +18,10 @@ BlockDeviceFile::BlockDeviceFile(RCPtr<BlockDevice> bdev) noexcept :
 	File(bdev->flags),
 	bdev(std::move(bdev)),
 	fsize(this->bdev->totalSize())
-{}
+{
+	if constexpr (sizeof(ADDR) < sizeof(uint64))
+		if (bdev->sector_count >= 4 GB >> bdev->ss_write) logline("Warning: SDCard size >= 4GB");
+}
 
 
 SIZE BlockDeviceFile::read(void* data, SIZE count, bool partial)
