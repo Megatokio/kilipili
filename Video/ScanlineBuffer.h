@@ -20,7 +20,7 @@ struct ScanlineBuffer
 	/*
 		Setup the buffer for VgaMode and buffer size. 
 		The buffer size measured in source bitmap lines. 
-		Valid values are 2 .. 2^N .. 32.
+		Valid values are 2 .. 2^N .. 16.
 		The requested buffer size is silently limited to the available maximum buffer size.
 		Note: scanlines[] stores pointers for each physical scanline. In low-res modes,
 		where scanlines are repeated, the maximum value for buffer_size decreases accordingly.
@@ -48,7 +48,7 @@ struct ScanlineBuffer
 	uint count = 0; // number of scanlines in buffer
 	uint mask  = 0; // count - 1
 
-	static constexpr uint max_count = 32;		// 4 .. 2^N .. 32
+	static constexpr uint max_count = 16;		// 4 .. 2^N .. 16
 	static uint32*		  scanlines[max_count]; // array of pointers to scanlines, ready for fragment dma
 };
 
