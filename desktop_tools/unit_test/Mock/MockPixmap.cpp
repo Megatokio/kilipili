@@ -2,7 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Mock/Pixmap.h"
+#include "MockPixmap.h"
 #include "common/cstrings.h"
 
 namespace kio::Graphics::Mock

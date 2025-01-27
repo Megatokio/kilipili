@@ -12,6 +12,7 @@
 #include "USBHost/USBMouse.h"
 #include "USBHost/hid_handler.h"
 #include "common/cstrings.h"
+#include <memory>
 
 namespace kio::Audio
 {
@@ -1131,7 +1132,7 @@ void AnsiTerm::handle_CsiArgsPending(char c)
 				{
 					// ECMA-48: CPR: cursor position report
 					// -> report cursor at line l, column c: ESC[l;cR
-					put_csi_response("%u;%uR", display->row + 1, display->col + 1);
+					put_csi_response("%i;%iR", display->row + 1, display->col + 1);
 					return;
 				}
 			}
@@ -1436,7 +1437,7 @@ void AnsiTerm::handle_CsiArgsPending(char c)
 				}
 				uint b = buttons_for_buttons(e.buttons);
 
-				put_csi_response("1;%u;%u;%u&w", b, e.y + 1, e.x + 1);
+				put_csi_response("1;%u;%i;%i&w", b, e.y + 1, e.x + 1);
 				return;
 			}
 			break;
@@ -2341,7 +2342,7 @@ int AnsiTerm::getc()
 
 		if (mouse_enabled && mouse_enable_rect && !mouse_rect.contains(Point(x, y)))
 		{
-			put_csi_response("10;%u;%u;%u&w", old_buttons, y + 1, x + 1);
+			put_csi_response("10;%u;%i;%i&w", old_buttons, y + 1, x + 1);
 			mouse_enable_rect = false;
 			mouse_enabled	  = !mouse_enabled_once;
 		}

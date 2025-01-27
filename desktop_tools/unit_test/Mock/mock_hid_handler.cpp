@@ -3,10 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 
-#ifdef UNIT_TEST
-
-  #include "hid_handler.h"
-  #include <common/Queue.h>
+#include "hid_handler.h"
+#include <common/Queue.h>
 
 namespace kio::USB
 {
@@ -71,6 +69,3 @@ void addMouseReport(const HidMouseReport& r) { hid_reports.put(HidReport(r)); }
 } // namespace Mock
 
 } // namespace kio::USB
-
-
-#endif

@@ -2,8 +2,9 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
+#include "common/basic_math.h"
+#include "common/cstrings.h"
 #include "doctest.h"
-#include "kilipili_common.h"
 
 using namespace kio;
 
@@ -18,7 +19,7 @@ TEST_CASE("basic_math: min")
 	static_assert(min(3, 2, 1) == 1);
 }
 
-TEST_CASE("basic_math: min")
+TEST_CASE("basic_math: max")
 {
 	static_assert(max(1, 2) == 2);
 	static_assert(max(2, 1) == 2);
@@ -97,7 +98,7 @@ TEST_CASE("cdefs: filenamefrompath")
 	CHECK(strcmp(filenamefrompath("foo.bar"), "foo.bar") == 0);
 	CHECK(strcmp(filenamefrompath("boo/foo.bar"), "foo.bar") == 0);
 	CHECK(strcmp(filenamefrompath("/pub/dev/foo.bar"), "foo.bar") == 0);
-	CHECK(strcmp(filenamefrompath(__FILE__), "unit_tests.cpp") == 0);
+	CHECK(strcmp(filenamefrompath(__FILE__), "common_unit_test.cpp") == 0);
 }
 
 #if 0

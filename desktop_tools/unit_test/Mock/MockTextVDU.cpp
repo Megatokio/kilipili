@@ -2,7 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Mock/TextVDU.h"
+#include "MockTextVDU.h"
 #include "cstrings.h"
 #include <stdarg.h>
 

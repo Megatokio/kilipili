@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Graphics/Color.h"
-#include "Mock/Pixmap.h"
+#include "Mock/MockPixmap.h"
 #include "Pixmap_wAttr.h"
 #include "TextVDU.h"
 #include "doctest.h"

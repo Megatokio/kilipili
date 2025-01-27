@@ -105,6 +105,7 @@ add_executable(UnitTest
 	unit_test/Array.test.cpp
 	unit_test/Ay38912_unit_test.cpp
 	unit_test/QspiFlash_unit_test.cpp
+	unit_test/common_unit_test.cpp
 	kilipili/Devices/BlockDevice.cpp
 	kilipili/Devices/QspiFlash.cpp
 	kilipili/Devices/QspiFlashDevice.cpp
@@ -117,6 +118,11 @@ add_executable(UnitTest
 	kilipili/Audio/Ay38912.h
 	unit_test/Mock/MockFlash.h
 	unit_test/Mock/MockFlash.cpp
+	unit_test/Mock/MockPixmap.cpp
+	unit_test/Mock/MockPixmap.h
+	unit_test/Mock/MockTextVDU.cpp
+	unit_test/Mock/MockTextVDU.h
+	unit_test/Mock/mock_hid_handler.cpp
 	)
 
 target_compile_definitions(UnitTest PUBLIC
@@ -129,6 +135,7 @@ target_compile_definitions(UnitTest PUBLIC
 target_include_directories(UnitTest PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}/kilipili
 	${CMAKE_CURRENT_LIST_DIR}/unit_test
+	${CMAKE_CURRENT_LIST_DIR}/unit_test/Mock
 	)
 
 # dependencies. this also adds the include paths:

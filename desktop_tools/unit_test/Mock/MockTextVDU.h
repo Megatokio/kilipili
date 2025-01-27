@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "../TextVDU.h"
+#include "TextVDU.h"
 #include "common/Array.h"
 #undef CHAR_WIDTH
 

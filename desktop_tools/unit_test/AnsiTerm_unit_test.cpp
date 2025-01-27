@@ -5,7 +5,7 @@
 #include "AnsiTerm.h"
 #include "Graphics/Color.h"
 #include "Graphics/ColorMap.h"
-#include "Mock/Pixmap.h"
+#include "MockPixmap.h"
 #include "Pixmap_wAttr.h"
 #include "USBHost/HidKeyTables.h"
 #include "USBHost/USBKeyboard.h"
