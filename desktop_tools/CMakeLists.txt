@@ -106,10 +106,13 @@ add_executable(UnitTest
 	unit_test/Ay38912_unit_test.cpp
 	unit_test/QspiFlash_unit_test.cpp
 	unit_test/common_unit_test.cpp
+	kilipili/Devices/Flash.h
+	kilipili/Devices/Flash.cpp
 	kilipili/Devices/BlockDevice.cpp
-	kilipili/Devices/QspiFlash.cpp
 	kilipili/Devices/QspiFlashDevice.cpp
 	kilipili/Devices/QspiFlashDevice.h
+	kilipili/Devices/Preferences.cpp
+	kilipili/Devices/Preferences.h
 	kilipili/Audio/AudioSource.h
 	kilipili/Audio/AudioSource.cpp
 	kilipili/Audio/audio_options.h
@@ -128,6 +131,7 @@ add_executable(UnitTest
 target_compile_definitions(UnitTest PUBLIC
 	MAKE_TOOLS=1
 	UNIT_TEST=1
+	FLASH_PREFERENCES=${FLASH_PREFERENCES}
 	YM_FILE="${CMAKE_CURRENT_LIST_DIR}/test_files/Ninja Spirits  5.ym"
 	)
 

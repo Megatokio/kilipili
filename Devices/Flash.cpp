@@ -1,82 +1,83 @@
-// Copyright (c) 2021 - 2025 kio@little-bat.de
-// BSD 2-clause license
-// https://spdx.org/licenses/BSD-2-Clause.html
+// Copyright (c) 2025 - 2025 kio@little-bat.de
+// BSD-2-Clause license
+// https://opensource.org/licenses/BSD-2-Clause
 
-#include "QspiFlash.h"
-#include "LockoutCore1.h"
-#include "cdefs.h"
+
+#include "Flash.h"
 #include <string.h>
 
 #if defined UNIT_TEST && UNIT_TEST
   #include "glue.h"
 #else
-  #include "utilities.h"
   #include <hardware/flash.h>
   #include <hardware/sync.h>
-  #include <pico/multicore.h>
+extern char __flash_binary_end;
 #endif
 
 
-namespace kio
+namespace kio::Flash
 {
-void flash_erase(uint32 addr, uint32 size) noexcept
-{
-	if (set_disk_light) set_disk_light(on);
-	uint32 o = save_and_disable_interrupts();
-	flash_range_erase(addr, size);
-	restore_interrupts(o);
-	if (set_disk_light) set_disk_light(off);
-}
-
-void flash_program(uint32 addr, cuptr bu, uint32 size) noexcept
-{
-	if (set_disk_light) set_disk_light(on);
-	uint32 o = save_and_disable_interrupts();
-	flash_range_program(addr, bu, size);
-	restore_interrupts(o);
-	if (set_disk_light) set_disk_light(off);
-}
-} // namespace kio
-
-
-namespace kio::Devices
-{
-
-static constexpr uint32 wsize = 1 << QspiFlash::ssw;
-static constexpr uint32 esize = 1 << QspiFlash::sse;
-static constexpr uint32 wmask = wsize - 1;
-static constexpr uint32 emask = esize - 1;
 
 #if defined UNIT_TEST && UNIT_TEST
 
-static cuptr  start_cached;	 // start address in memory for reading
-static cuptr  start_nocache; // start address in memory for reading
-static uint32 QSPI_FLASH_SIZE;
+static cuptr  flash_start;
+static cuptr  flash_start_nocache;
+static uint32 xip_flash_size;
+uint32		  binary_size() noexcept { return xip_flash_size / 8 - 220; } // dummy
 
-QspiFlash::QspiFlash(uint8* flash, uint32 size) noexcept
+void setupMockFlash(uint8* flash, uint32 size) noexcept
 {
-	start_cached	= flash;
-	start_nocache	= flash;
-	QSPI_FLASH_SIZE = size;
+	flash_start			= flash;
+	flash_start_nocache = flash;
+	xip_flash_size		= size;
 }
-uint32 QspiFlash::flash_binary_size() noexcept { return QSPI_FLASH_SIZE / 8 - 220; } // dummy
 
 #else
 
 static_assert(wsize == FLASH_PAGE_SIZE);
 static_assert(esize == FLASH_SECTOR_SIZE);
-static constexpr uint32 QSPI_FLASH_SIZE = PICO_FLASH_SIZE_BYTES;
+static constexpr uint32 xip_flash_size = PICO_FLASH_SIZE_BYTES;
 
-  #define start_cached	cuptr(XIP_BASE)					// cached: used for reading in write()
-  #define start_nocache cuptr(XIP_NOCACHE_NOALLOC_BASE) // uncached: used for reading in read()
+  #define flash_start		  cuptr(XIP_BASE)				  // cached:   used for reading in write()
+  #define flash_start_nocache cuptr(XIP_NOCACHE_NOALLOC_BASE) // uncached: used for reading in read()
 
-uint32 QspiFlash::flash_binary_size() noexcept { return kio::flash_used(); }
+uint32 binary_size() noexcept { return size_t(&__flash_binary_end) - XIP_BASE; }
 
 #endif
 
-cuptr  QspiFlash::flash_base() noexcept { return start_cached; }
-uint32 QspiFlash::flash_size() noexcept { return QSPI_FLASH_SIZE; }
 
+static constexpr uint32 wmask = wsize - 1;
+static constexpr uint32 emask = esize - 1;
+
+
+cuptr  flash_base() noexcept { return flash_start; }
+uint32 flash_size() noexcept { return xip_flash_size; }
+
+void flash_erase(uint32 addr, uint32 size) noexcept
+{
+	assert(get_core_num() == 0);
+
+	if (set_disk_light) set_disk_light(on);
+	if (suspend_core1) suspend_core1();
+	uint32 o = save_and_disable_interrupts();
+	flash_range_erase(addr, size);
+	restore_interrupts(o);
+	if (resume_core1) resume_core1();
+	if (set_disk_light) set_disk_light(off);
+}
+
+void flash_program(uint32 addr, cuptr bu, uint32 size) noexcept
+{
+	assert(get_core_num() == 0);
+
+	if (set_disk_light) set_disk_light(on);
+	if (suspend_core1) suspend_core1();
+	uint32 o = save_and_disable_interrupts();
+	flash_range_program(addr, bu, size);
+	restore_interrupts(o);
+	if (resume_core1) resume_core1();
+	if (set_disk_light) set_disk_light(off);
+}
 
 static constexpr uint	left_fract(uint32 addr, uint mask) { return addr & mask; }
 static constexpr uint	right_fract(uint32 addr, uint mask) { return -addr & mask; }
@@ -107,12 +108,12 @@ static bool is_erased(cuptr z, uint size) noexcept
 
 static bool is_erased(uint32 addr, uint size) noexcept
 {
-	return is_erased(start_cached + addr, size); //
+	return is_erased(flash_start + addr, size); //
 }
 
 static bool is_overwritable_with(uint32 addr, cuptr q, uint size) noexcept
 {
-	cuptr z = start_cached + addr;
+	cuptr z = flash_start + addr;
 	cuptr e = q + size;
 	while (q < e && (*z & *q) == *q) q++, z++;
 	return q == e;
@@ -120,7 +121,7 @@ static bool is_overwritable_with(uint32 addr, cuptr q, uint size) noexcept
 
 static bool is_same_as(uint32 addr, cuptr q, uint size) noexcept
 {
-	cuptr z = start_cached + addr;
+	cuptr z = flash_start + addr;
 	return memcmp(q, z, size) == 0;
 }
 
@@ -139,9 +140,9 @@ static void erase_partial_sector(uint32 addr, uint size)
 	uint8* bu = uptr(malloc(esize));
 	if (!bu) throw OUT_OF_MEMORY;
 
-	memcpy(bu, start_cached + addr, l);
+	memcpy(bu, flash_start + addr, l);
 	memset(bu + l, 0xff, size);
-	memcpy(bu + l + size, start_cached + addr + l + size, r);
+	memcpy(bu + l + size, flash_start + addr + l + size, r);
 	flash_erase(addr, esize);
 
 	for (l = 0; l < esize && is_erased(bu + l, wsize); l += wsize) {}
@@ -161,16 +162,15 @@ static void erase_sectors(uint32 addr, uint size)
 	if (size) flash_erase(addr, size);
 }
 
-void QspiFlash::eraseData(uint32 addr, uint32 size) throws
+void eraseData(uint32 addr, uint32 size) throws
 {
 	// Erase data[size] at address
 
 	if (size == 0) return;
 	assert(get_core_num() == 0);
-	assert(addr <= QSPI_FLASH_SIZE && size <= QSPI_FLASH_SIZE - addr);
+	assert(addr <= xip_flash_size && size <= xip_flash_size - addr);
 
 	if (is_erased(addr, size)) return;
-	LockoutCore1 _;
 
 	if (uint d = right_fract(addr, emask))
 	{
@@ -202,7 +202,7 @@ static void write_partial_sector(uint32 addr, cuptr data, uint size)
 		// no need to save old contents:
 		while (is_same_as(addr, data, wsize)) addr += wsize, data += wsize, size -= wsize;
 		while (is_same_as(addr + size - wsize, data + size - wsize, wsize)) size -= wsize;
-		assert(size != 0 && addr + size <= QSPI_FLASH_SIZE);
+		assert(size != 0 && addr + size <= xip_flash_size);
 		flash_program(addr, data, size);
 	}
 	else
@@ -213,9 +213,9 @@ static void write_partial_sector(uint32 addr, cuptr data, uint size)
 		uint r, l = left_fract(addr, emask); // bytes left of addr
 		addr -= l;							 // aligned address
 
-		memcpy(bu, start_cached + addr, l);
+		memcpy(bu, flash_start + addr, l);
 		memcpy(bu + l, data, size);
-		memcpy(bu + size + l, start_cached + addr + size + l, esize - (size + l));
+		memcpy(bu + size + l, flash_start + addr + size + l, esize - (size + l));
 		if (!is_overwritable) flash_erase(addr, esize);
 
 		for (l = 0; l < esize && is_same_as(addr + l, bu + l, wsize); l += wsize) {}
@@ -237,17 +237,16 @@ static void write_sectors(uint32 addr, cuptr data, uint size)
 	if (size) flash_program(addr, data, size);
 }
 
-void QspiFlash::writeData(uint32 addr, const void* _data, uint32 size) throws
+void writeData(uint32 addr, const void* _data, uint32 size) throws
 {
 	// Write data[size] to address
 
 	if (size == 0) return;
 	assert(get_core_num() == 0);
-	assert(addr <= QSPI_FLASH_SIZE && size <= QSPI_FLASH_SIZE - addr);
+	assert(addr <= xip_flash_size && size <= xip_flash_size - addr);
 
 	cuptr data = cuptr(_data);
 	if (is_same_as(addr, data, size)) return;
-	LockoutCore1 _;
 
 	if (uint d = right_fract(addr, emask))
 	{
@@ -267,41 +266,15 @@ void QspiFlash::writeData(uint32 addr, const void* _data, uint32 size) throws
 	write_sectors(addr, data, size);
 }
 
-void QspiFlash::readData(uint32 addr, void* data, uint32 size) noexcept
+void readData(uint32 addr, void* data, uint32 size) noexcept
 {
 	if (size == 0) return;
-	assert(addr <= QSPI_FLASH_SIZE && size <= QSPI_FLASH_SIZE - addr);
+	assert(addr <= xip_flash_size && size <= xip_flash_size - addr);
 
 	// reading uncached in the hope not to flush the program cache
 	// and in the hope that data is mostly read only once.
-	memcpy(data, start_nocache + uint32(addr), size);
+	memcpy(data, flash_start_nocache + uint32(addr), size);
 }
 
 
-} // namespace kio::Devices
-
-
-/*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-*/
+} // namespace kio::Flash

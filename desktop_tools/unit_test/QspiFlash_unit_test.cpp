@@ -2,7 +2,8 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Devices/QspiFlash.h"
+#include "Devices/Flash.h"
+#include "Devices/Preferences.h"
 #include "Devices/QspiFlashDevice.h"
 #include "Mock/MockFlash.h"
 #include "common/Array.h"
@@ -33,7 +34,6 @@ static Array<cstr>		log;
 static bool				error = 0;
 
 static MockFlash mock_flash(flash, log, error);
-static QspiFlash mock_qspi(&flash[0], flash_size);
 
 #define LOG(...) log.append(usingstr(__VA_ARGS__))
 
@@ -151,6 +151,7 @@ public:
 TEST_CASE("QspiFlash: constructor")
 {
 	for (uint i = 0; i < random_data_size; i++) random_data[i] = uint8(rand() >> 8);
+	Flash::setupMockFlash(&flash[0], flash_size);
 
 	QspiMock q(500 kB, 1 MB);
 	q.writeData(0, nullptr, 0);
@@ -523,6 +524,146 @@ TEST_CASE("QspiFlash: optimizing partially no need writing")
 
 TEST_CASE("QspiFlash: optimizing partially no need erasing") {}
 
+#if !defined FLASH_PREFERENCES
+TEST_CASE("Preferences: ctor" * doctest::skip()) {}
+
+#else
+static constexpr uint prefs_size = FLASH_PREFERENCES;
+
+TEST_CASE("Preferences: ctor")
+{
+	Flash::flash_erase(Flash::flash_size() - prefs_size, prefs_size);
+	Preferences p;
+	CHECK_EQ(p.free(), prefs_size);
+}
+
+TEST_CASE("Preferences")
+{
+	SUBCASE("set and read back")
+	{
+		log.purge();
+		Preferences p;
+		for (uint8 tag = 0; tag < 255; tag++) p.write(tag, uint16(tag * 2));
+		for (uint8 tag = 0; tag < 255; tag++) { CHECK_EQ(p.read(tag, uint16(999)), 2 * tag); }
+		CHECK_EQ(int(prefs_size) - p.free(), 255 * 4);
+		p.sync();
+		CHECK_EQ(int(prefs_size) - p.free(), 255 * 4);
+		for (uint8 tag = 0; tag < 255; tag++) { CHECK_EQ(p.read(tag, uint16(999)), 2 * tag); }
+		printLog(__LINE__);
+	}
+	SUBCASE("erase tag")
+	{
+		log.purge();
+		Preferences p;
+		CHECK_EQ(int(prefs_size) - p.free(), 255 * 4);
+		for (uint8 tag = 0; tag < 255; tag++) { CHECK_EQ(p.read(tag, uint16(999)), 2 * tag); }
+		for (uint tag = 0; tag < 255; tag += 9) p.remove(uint8(tag));
+		for (uint8 tag = 0; tag < 255; tag++) { CHECK_EQ(p.read(tag, uint16(999)), tag % 9 == 0 ? 999 : 2 * tag); }
+		p.sync();
+		for (uint8 tag = 0; tag < 255; tag++) { CHECK_EQ(p.read(tag, uint16(999)), tag % 9 == 0 ? 999 : 2 * tag); }
+		for (uint tag = 0; tag < 255; tag += 9) p.write(uint8(tag), uint16(2 * tag));
+		for (uint8 tag = 0; tag < 255; tag++) { CHECK_EQ(p.read(tag, uint16(999)), 2 * tag); }
+		for (uint8 tag = 0; tag < 255; tag++) p.remove(tag);
+		for (uint8 tag = 0; tag < 255; tag++) { CHECK_EQ(p.read(tag, 99999), 99999); }
+		for (uint8 tag = 0; tag < 255; tag++) { CHECK_EQ(p.read(tag, uint16(999)), uint16(999)); }
+		p.sync();
+		printLog(__LINE__);
+	}
+	SUBCASE("update tag")
+	{
+		log.purge();
+		Preferences p;
+		for (uint tag = 0; tag < 255; tag++) p.write(uint8(tag), tag);
+		p.write(66, 666);
+		p.write(77, 777);
+		p.write(88, 888);
+		CHECK_EQ(p.read(66, 0), 666);
+		CHECK_EQ(p.read(77, 0), 777);
+		CHECK_EQ(p.read(88, 0), 888);
+		p.sync();
+		CHECK_EQ(p.read(66, 0), 666);
+		CHECK_EQ(p.read(77, 0), 777);
+		CHECK_EQ(p.read(88, 0), 888);
+		printLog(__LINE__);
+	}
+	SUBCASE("set and get cstring")
+	{
+		cstr a = "ldhvmariuvaoui ozozuvhm oezvrhoeivum,";
+		cstr b = "7631245821374";
+		cstr c = "";
+		cstr d = nullptr;
+		log.purge();
+		Preferences p;
+		p.write(15, a);
+		p.write(16, b);
+		p.write(17, c);
+		p.write(18, d);
+		CHECK_EQ(std::string(p.read(15, "xxx")), std::string(a));
+		CHECK_EQ(std::string(p.read(16, "xxx")), std::string(b));
+		CHECK_EQ(std::string(p.read(17, "xxx")), std::string(c));
+		CHECK_EQ(std::string(p.read(18, "xxx")), std::string(""));
+		p.sync();
+		CHECK_EQ(std::string(p.read(15, "xxx")), std::string(a));
+		CHECK_EQ(std::string(p.read(16, "xxx")), std::string(b));
+		CHECK_EQ(std::string(p.read(17, "xxx")), std::string(c));
+		CHECK_EQ(std::string(p.read(18, "xxx")), std::string(""));
+		p.remove(10);
+		//p.dump_store();
+		printLog(__LINE__);
+		printf("preferences.free = %i\n", p.free());
+	}
+	SUBCASE("compacting")
+	{
+		log.purge();
+		Preferences p;
+		uint		max = (prefs_size / 255 - 2) / 3;
+		for (uint n = 0; n <= max; n++)
+		{
+			for (uint8 tag = 0; tag < 255; tag += 1)
+			{
+				p.write(tag, 123);
+				p.write(tag, 123ul);
+				p.write(tag, mulstr(numstr(tag), n)); //
+			}
+			p.sync();
+		}
+
+		for (uint8 tag = 0; tag < 255; tag++)
+		{
+			CHECK_EQ(std::string(p.read(tag, "")), std::string(mulstr(numstr(tag), max)));
+		}
+
+		//p.dump_store();
+		printLog(__LINE__);
+	}
+
+	SUBCASE("removing")
+	{
+		log.purge();
+		Preferences p;
+		for (uint8 tag = 0; tag < 255; tag++) p.remove(tag);
+		CHECK_EQ(p.free(), prefs_size);
+		p.sync();
+		CHECK_EQ(p.free(), prefs_size);
+
+		// removed tags should not be included in the compacted store:
+		char bu[] = "93742659234hj3q4875h246246246246246246246246246246ertertwezhww4wrw";
+		cptr s	  = bu + sizeof(bu) - min(sizeof(bu), (prefs_size / 255 - 2));
+		for (uint8 tag = 0; tag < 255; tag++) p.write(tag, s);
+		CHECK_GE(p.free(), 0);
+		p.sync();
+		CHECK_GE(p.free(), 0);
+		for (uint8 tag = 0; tag < 255; tag++) p.remove(tag); // this should be too large
+		p.sync();											 // this should trigger compact
+		CHECK(startswith(log.last(), "erase "));			 // now the store should be empty, no "removed" entries
+		printf("--- there should be no store entries listed below this line ---\n");
+		p.dump_store();
+		printf("--- there should be no store entries listed above this line ---\n");
+		printLog(__LINE__);
+	}
+}
+
+#endif
 
 } // namespace Test
 

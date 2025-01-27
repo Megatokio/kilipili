@@ -12,6 +12,7 @@ set(utilities_sources
 	utilities.h
 	utilities.cpp
 	Led.h
+	malloc.h
 	#malloc.cpp  <-- must be included in add_executable directly
 	Logger.h 
 	Logger.cpp
@@ -20,7 +21,6 @@ set(utilities_sources
 	stack_guard.h stack_guard.cpp
 	system_clock.h system_clock.cpp
 	Dispatcher.h Dispatcher.cpp
-	malloc.h
 )
 
 set(utilities_defines

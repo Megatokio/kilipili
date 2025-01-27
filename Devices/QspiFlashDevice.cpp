@@ -3,35 +3,49 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "QspiFlashDevice.h"
-#include "QspiFlash.h"
+#include "Flash.h"
 
 
 namespace kio::Devices
 {
-static constexpr int sse = QspiFlash::sse;
+
+#if defined FLASH_PREFERENCES && FLASH_PREFERENCES
+static constexpr uint prefs_size = FLASH_PREFERENCES;
+#else
+static constexpr uint prefs_size = 0;
+#endif
+
 
 template<int ssw>
-QspiFlashDevice<ssw>::QspiFlashDevice(uint32 start, uint32 size, Flags flags) noexcept :
-	BlockDevice((size ? size : QspiFlash::flash_size() - start) >> ssw, 0, ssw, sse, flags),
-	first_sector(start >> ssw)
+QspiFlashDevice<ssw>::QspiFlashDevice(uint32 addr, uint32 size, Flags flags) throws :
+	BlockDevice(size >> ssw, 0, ssw, Flash::sse, flags),
+	first_sector(addr >> ssw)
 {
-	if (start % (1 << sse) != 0) panic("QspiFlashDevice@56");				 // must be aligned to erase sector size
-	if (size % (1 << sse) != 0) panic("QspiFlashDevice@57");				 // must be aligned to erase sector size
-	if (QspiFlash::flash_binary_size() > start) panic("QspiFlashDevice@58"); // The program overwrote the flash disk.
+	assert(addr % (1 << Flash::sse) == 0); // must be aligned to erase sector size
+	assert(size % (1 << Flash::sse) == 0); // must be aligned to erase sector size
+
+	if (addr < Flash::binary_size()) throw("program overwrote start of flash disk");
+	if (addr + size > Flash::flash_size()) throw("the flash disk extends beyond flash end");
+	if (addr + size > Flash::flash_size() - prefs_size) throw("the flash disk overwrites the preferences");
 }
+
+template<int ssw>
+QspiFlashDevice<ssw>::QspiFlashDevice(uint32 size, Flags flags) throws :
+	QspiFlashDevice(Flash::flash_size() - size, size - prefs_size, flags)
+{}
 
 template<int ssw>
 void QspiFlashDevice<ssw>::readSectors(LBA block, void* data, SIZE count) throws
 {
 	clamp_blocks(block, count);
-	QspiFlash::readData((first_sector + block) << ssw, data, count << ssw);
+	Flash::readData((first_sector + block) << ssw, data, count << ssw);
 }
 
 template<int ssw>
 void QspiFlashDevice<ssw>::readData(ADDR addr, void* data, SIZE size) throws
 {
 	clamp(addr, size);
-	QspiFlash::readData((first_sector << ssw) + addr, data, size);
+	Flash::readData((first_sector << ssw) + addr, data, size);
 }
 
 template<int ssw>
@@ -39,8 +53,8 @@ void QspiFlashDevice<ssw>::writeSectors(LBA block, const void* data, SIZE count)
 {
 	if (!isWritable()) throw NOT_WRITABLE;
 	clamp_blocks(block, count);
-	if (data) QspiFlash::writeData((first_sector + block) << ssw, data, count << ssw);
-	else QspiFlash::eraseData((first_sector + block) << ssw, count << ssw);
+	if (data) Flash::writeData((first_sector + block) << ssw, data, count << ssw);
+	else Flash::eraseData((first_sector + block) << ssw, count << ssw);
 }
 
 template<int ssw>
@@ -48,8 +62,8 @@ void QspiFlashDevice<ssw>::writeData(ADDR addr, const void* data, SIZE size) thr
 {
 	if (!isWritable()) throw NOT_WRITABLE;
 	clamp(addr, size);
-	if (data) QspiFlash::writeData((first_sector << ssw) + addr, data, size);
-	else QspiFlash::eraseData((first_sector << ssw) + addr, size);
+	if (data) Flash::writeData((first_sector << ssw) + addr, data, size);
+	else Flash::eraseData((first_sector << ssw) + addr, size);
 }
 
 template<int ssw>

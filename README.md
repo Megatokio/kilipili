@@ -10,6 +10,7 @@
 - Display true color images up to 600x400 pixels with a *HoldAndModifyVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
 - AY-3-8912 sound chip emulation and *.ym* audio file playback. See Wiki page about *.ymm* files.
 - Write to internal flash with video enabled.
+- Preferences in program flash
 
 
 ## Video 
@@ -109,8 +110,8 @@ The following utilities are built by *desktop_tools/CmakeLists.txt*:
 ## Other
 - `[done]` cpu load sensor
 - `[done]` **malloc** replacement which doesn't fail to return available memory
-- `[test]` I2C BlockDevice
-- `[done]` QSPI flash BlockDevice
+- `[done]` BlockDevice for the internal program flash
+- `[done]` Preferences in program flash
 
 
 ## Resources & restrictions

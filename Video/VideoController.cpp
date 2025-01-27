@@ -3,12 +3,10 @@
 // https://spdx.org/licenses/BSD-2-Clause.html
 
 #include "VideoController.h"
-#include "LockoutCore1.h"
 #include "ScanlineBuffer.h"
 #include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "cdefs.h"
-#include "system_clock.h"
 #include "tempmem.h"
 #include "utilities/LoadSensor.h"
 #include "utilities/Trace.h"
@@ -28,9 +26,30 @@
 
 using namespace kio::Video;
 
-LockoutCore1::LockoutCore1() { VideoController::getRef().suspendVideo(); }
 
-LockoutCore1::~LockoutCore1() { VideoController::getRef().resumeVideo(); }
+static volatile bool lockout_requested = false;
+static volatile bool locked_out		   = false;
+
+__weak_symbol void suspend_core1() noexcept
+{
+	assert(get_core_num() == 0);
+	assert(lockout_requested == false);
+
+	while (locked_out) kio::wfe(); // because we don't wait in resume_core1()
+	lockout_requested = true;
+	__sev();
+	while (!locked_out) kio::wfe();
+}
+
+__weak_symbol void resume_core1() noexcept
+{
+	assert(get_core_num() == 0);
+	assert(lockout_requested == true);
+	assert(locked_out == true);
+
+	lockout_requested = false;
+	__sev();
+}
 
 
 namespace kio::Video
@@ -96,24 +115,6 @@ void VideoController::stopVideo() noexcept
 	__sev();
 	while (state != STOPPED) { wfe(); }
 	onetime_action = nullptr; // if planes were added but the VideoController was never started
-}
-
-void VideoController::suspendVideo() noexcept
-{
-	assert(lockout_requested == false);
-	while (locked_out) {} // because we don't wait in resumeVideo()
-	lockout_requested = true;
-	__sev();
-	while (!locked_out) wfe();
-}
-
-void VideoController::resumeVideo() noexcept
-{
-	assert(lockout_requested == true);
-	assert(locked_out == true);
-	lockout_requested = false;
-	__sev();
-	//while (locked_out) wfe();
 }
 
 void __noinline __not_in_flash("wait_while_lockout") VideoController::poll_isr(volatile bool& lockout) noexcept

@@ -8,6 +8,9 @@ cmake_minimum_required(VERSION 3.13)
 
 option(DEVICES_LARGE_FILE_SUPPORT "support files larger than 4GB" OFF)
 
+set(FLASH_PREFERENCES "4*1024" CACHE STRING "size of preferences in program flash")
+set_property(CACHE FLASH_PREFERENCES PROPERTY STRINGS "0" "4*1024" "8*1024" "12*1024" "16*1024")
+
 set(devices_sources
 	RamFile.cpp 
 	RamFile.h
@@ -32,15 +35,16 @@ set(devices_sources
 	HeatShrinkEncoder.cpp
 	LzhDecoder.cpp
 	LzhDecoder.h
-	QspiFlash.cpp 
-	QspiFlash.h
 	QspiFlashDevice.h 
 	QspiFlashDevice.cpp
+	Flash.h Flash.cpp	
+	Preferences.h Preferences.cpp
 )
 
 set(devices_defines
 	ON=1 OFF=0
 	DEVICES_LARGE_FILE_SUPPORT=${DEVICES_LARGE_FILE_SUPPORT}
+	FLASH_PREFERENCES=${FLASH_PREFERENCES}
 )
 
 set(devices_headers

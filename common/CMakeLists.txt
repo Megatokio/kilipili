@@ -50,7 +50,6 @@ if(${MAKE_TOOLS})
 		linux/little_big_endian.h
 		linux/glue.cpp
 		linux/glue.h
-		linux/LockoutCore1.h
 		linux/tempmem.cpp)
 	set(common_includes
 		${common_includes}
@@ -61,7 +60,6 @@ else()
 		pico/little_big_endian.h
 		pico/glue.cpp
 		pico/glue.h
-		pico/LockoutCore1.h
 		pico/tempmem.cpp)
 	set(common_includes 
 		${common_includes}

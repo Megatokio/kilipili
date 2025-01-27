@@ -12,6 +12,7 @@
 #include <pico/sem.h>
 #include <pico/types.h>
 
+
 namespace kio::Video
 {
 
@@ -72,9 +73,6 @@ public:
 	*/
 	void stopVideo() noexcept;
 
-	void suspendVideo() noexcept;
-	void resumeVideo() noexcept;
-
 	/*
 		add a plane to the video output.
 		the plane will be added by core1 on the next vblank.
@@ -116,10 +114,8 @@ private:
 	VBlankAction  vblank_action		 = nullptr;
 	OneTimeAction onetime_action	 = nullptr;
 
-	volatile State state			 = STOPPED;
-	volatile State requested_state	 = STOPPED;
-	volatile bool  lockout_requested = false;
-	volatile bool  locked_out		 = false;
+	volatile State state		   = STOPPED;
+	volatile State requested_state = STOPPED;
 	uint32		   requested_system_clock;
 
 	VideoController() noexcept;

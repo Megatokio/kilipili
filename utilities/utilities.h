@@ -47,8 +47,8 @@ extern size_t core1_stack_top() noexcept;
 extern size_t stack_top(uint core) noexcept;
 extern size_t stack_free() noexcept;
 
-extern size_t flash_binary_start() noexcept;
 extern size_t flash_binary_end() noexcept;
+extern size_t flash_binary_size() noexcept;
 extern size_t flash_start() noexcept;
 extern size_t flash_end() noexcept;
 extern size_t flash_size() noexcept;

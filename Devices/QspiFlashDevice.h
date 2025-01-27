@@ -30,10 +30,14 @@ template<int ssw>
 class QspiFlashDevice : BlockDevice
 {
 public:
-	// create BlockDevice at 'offset' with 'size' in program flash.
-	// if size=0 then up to end of flash.
-	QspiFlashDevice(uint32 offset = 512 * 1024, uint32 size = 0, Flags = readable | writable) noexcept;
+	// create BlockDevice at with 'size' at 'offset' in program flash.
+	QspiFlashDevice(uint32 offset, uint32 size, Flags = readable | writable) throws;
 
+	// create BlockDevice at with 'size' at end of program flash.
+	// if FLASH_PREFERENCES is defined then the size is reduced to preserve the preferences.
+	QspiFlashDevice(uint32 size, Flags = readable | writable) throws;
+
+	// BlockDevice interface:
 	virtual void   readSectors(LBA, void* data, SIZE count) throws override;
 	virtual void   writeSectors(LBA, const void* data, SIZE count) throws override;
 	virtual void   readData(ADDR, void* data, SIZE size) throws override;

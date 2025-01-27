@@ -37,7 +37,7 @@ extern void flash_range_program(uint32 flash_offs, const uint8* data, uint32 cou
 #define kilipili_unlock_spinlock() (void)0
 
 #define save_and_disable_interrupts() 0
-#define restore_interrupts(o)		  (void)o
+#define restore_interrupts(o)		  (void)(o)
 #define get_core_num()				  0
 
 /*
