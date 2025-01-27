@@ -6,9 +6,6 @@ cmake_minimum_required(VERSION 3.13)
 # Video/CMakeLists.txt
 
 
-####################################################################
-# OPTIONS:
-
 option(VIDEO_OPTIMISTIC_A1W8_RGB "optimize a1w8_rgb mode for moderate color usage. makes 1280x768 work. poor display of many colors." OFF)
 option(VIDEO_RECOVERY_PER_LINE "check for missed scanlines after every line. failing screens look better. makes 1024x768 fail." OFF)
 option(VIDEO_SUPPORT_200x150_A1W8_RGB "support int8 bitmap width in a1w8_rgb renderer. slightly slower than otherwise." ON)
@@ -16,7 +13,8 @@ option(VIDEO_SUPPORT_400x300_A1W8_RGB "support int16 bitmap width in a1w8_rgb re
 
 set(VIDEO_MAX_SYSCLOCK_MHz "290" CACHE STRING "maximum system clock set by VideoBackend.start()")
 
-add_library(kilipili_video STATIC
+
+set(video_sources
 	FrameBuffer.h
 	MousePointer.cpp
 	MousePointer.h
@@ -49,7 +47,7 @@ add_library(kilipili_video STATIC
 	HamImageInfo.cpp
 )
 
-target_compile_definitions(kilipili_video PUBLIC
+set(video_defines PUBLIC
 	VIDEO_OPTIMISTIC_A1W8_RGB=${VIDEO_OPTIMISTIC_A1W8_RGB}
 	VIDEO_RECOVERY_PER_LINE=${VIDEO_RECOVERY_PER_LINE}
 	VIDEO_SUPPORT_200x150_A1W8_RGB=${VIDEO_SUPPORT_200x150_A1W8_RGB}
@@ -57,17 +55,11 @@ target_compile_definitions(kilipili_video PUBLIC
 	VIDEO_MAX_SYSCLOCK_MHz=${VIDEO_MAX_SYSCLOCK_MHz}
 )
 
-# add current dir to 'include search path':
-target_include_directories(kilipili_video PUBLIC
+set(video_includes PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}
 )
 
-# if there is a PIO assembler file:
-pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/timing.pio)
-pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/scanline.pio)
-
-# dependencies:
-target_link_libraries(kilipili_video PUBLIC 
+set(video_libraries
 	kilipili_common
 	kilipili_utilities
 	kilipili_graphics
@@ -81,7 +73,58 @@ target_link_libraries(kilipili_video PUBLIC
 )
 
 
- 
+if(${MAKE_TOOLS})
+	#set(video_sources)
+	#set(video_headers)
+	#set(video_defines)
+	#set(video_libraries)
+else()
+	#set(video_sources)
+	#set(video_headers)
+	#set(video_defines)
+	#set(video_libraries)	
+endif()
+
+
+add_library               (kilipili_video STATIC  ${video_sources}  )
+target_compile_definitions(kilipili_video PUBLIC  ${video_defines}  )
+target_include_directories(kilipili_video PUBLIC  ${video_includes} )
+target_link_libraries     (kilipili_video PUBLIC  ${video_libraries})
+
+pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/timing.pio)
+pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/scanline.pio)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

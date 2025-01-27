@@ -6,30 +6,7 @@ cmake_minimum_required(VERSION 3.13)
 # common/CMakeLists.txt 
 
 
-if(${MAKE_TOOLS})
-	set(distinct_sources 
-		linux/little_big_endian.h
-		linux/glue.cpp
-		linux/glue.h
-		linux/LockoutCore1.h
-		linux/tempmem.cpp)
-	set(distinct_headers 
-		${CMAKE_CURRENT_LIST_DIR}/linux)
-	set(distinct_libraries )
-else()
-	set(distinct_sources 
-		pico/little_big_endian.h
-		pico/glue.cpp
-		pico/glue.h
-		pico/LockoutCore1.h
-		pico/tempmem.cpp)
-	set(distinct_headers 
-		${CMAKE_CURRENT_LIST_DIR}/pico)
-	set(distinct_libraries 
-		pico_stdlib)
-endif()
-
-add_library(kilipili_common STATIC
+set(common_sources
 	dummy.cpp
 	cdefs.h
 	standard_types.h
@@ -50,26 +27,61 @@ add_library(kilipili_common STATIC
 	sdbm_hash.h
 	LzhDecoder.cpp
 	LzhDecoder.h
-	${distinct_sources}
-	)
+)
 
-target_compile_definitions(kilipili_common PUBLIC
+set(common_defines
 	ON=1 OFF=0
 	PICO_MALLOC_PANIC=0
 	PICO_STDIO_ENABLE_CRLF_SUPPORT=1
-	)
+)
 
-# add current dir to 'include search path':
-target_include_directories(kilipili_common PUBLIC
+set(common_includes
 	${CMAKE_CURRENT_LIST_DIR}
 	${CMAKE_CURRENT_LIST_DIR}/..
-	${distinct_headers}
-	)
+)
 
-# dependencies:
-target_link_libraries(kilipili_common PUBLIC
-	${distinct_libraries}
-	)
+set(common_libraries
+)
+
+
+if(${MAKE_TOOLS})
+	set(common_sources
+		${common_sources}
+		linux/little_big_endian.h
+		linux/glue.cpp
+		linux/glue.h
+		linux/LockoutCore1.h
+		linux/tempmem.cpp)
+	set(common_includes
+		${common_includes}
+		${CMAKE_CURRENT_LIST_DIR}/linux)
+else()
+	set(common_sources 
+		${common_sources}
+		pico/little_big_endian.h
+		pico/glue.cpp
+		pico/glue.h
+		pico/LockoutCore1.h
+		pico/tempmem.cpp)
+	set(common_includes 
+		${common_includes}
+		${CMAKE_CURRENT_LIST_DIR}/pico)
+	set(common_libraries 
+		${common_libraries}
+		pico_stdlib)
+endif()
+
+
+add_library               (kilipili_common STATIC  ${common_sources}  )
+target_compile_definitions(kilipili_common PUBLIC  ${common_defines}  )
+target_include_directories(kilipili_common PUBLIC  ${common_includes} )
+target_link_libraries     (kilipili_common PUBLIC  ${common_libraries})
+
+
+
+
+
+
 
  
  

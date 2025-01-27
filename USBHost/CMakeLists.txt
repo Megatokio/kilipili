@@ -14,28 +14,7 @@ set(USB_DEFAULT_KEYTABLE "key_table_ger" CACHE STRING "USB keyboard: default key
 set_property(CACHE USB_DEFAULT_KEYTABLE PROPERTY STRINGS key_table_us key_table_ger)
 
 
-if(${MAKE_TOOLS})
-	set(USB_ENABLE_HOST OFF)
-	set(more_usb_sources 
-		hid_handler_mock.cpp
-	)
-elseif(${PICO_STDIO_USB}) 
-	# if USB is used for STDIO then we are obviously in Device Mode:	
-	set(USB_ENABLE_HOST OFF)
-	set(more_usb_sources  dummy.cpp) 
-else()
-	set(more_usb_sources 
-		hid_handler.cpp 		
-		msc_handler.cpp
-		cdc_handler.cpp 
-	)
-	set(more_usb_libraries 
-		tinyusb_host 
-	)
-endif()
-
-add_library(kilipili_usb_host STATIC
-	${more_usb_sources}
+set(usb_sources
 	hid_handler.h
 	USBKeyboard.h
 	USBKeyboard.cpp
@@ -47,29 +26,71 @@ add_library(kilipili_usb_host STATIC
 	HidKeys.cpp
 	HidKeyTables.cpp
 	HidKeyTables.h
-	)
-	
-target_compile_definitions(kilipili_usb_host PUBLIC
+)
+
+set(usb_defines
 	ON=1 OFF=0
 	USB_ENABLE_HOST=${USB_ENABLE_HOST}
 	USB_KEY_DELAY1=${USB_KEY_DELAY1}
 	USB_KEY_DELAY=${USB_KEY_DELAY}
 	USB_DEFAULT_KEYTABLE=${USB_DEFAULT_KEYTABLE}
-	)
+)
 
-# Make sure TinyUSB can find tusb_config.h
-target_include_directories(kilipili_usb_host PUBLIC
+set(usb_includes
 	${CMAKE_CURRENT_LIST_DIR}
-	)
+)
 
-# dependencies. this also adds the include paths:
-target_link_libraries(kilipili_usb_host PUBLIC
+set(usb_libraries
 	kilipili_common
-	${more_usb_libraries}
+)
+
+
+if(${MAKE_TOOLS})
+	set(USB_ENABLE_HOST OFF)
+elseif(${PICO_STDIO_USB})    
+	# if USB is used for STDIO then we are obviously in Device Mode:
+	set(USB_ENABLE_HOST OFF)
+else()
+	set(usb_sources
+		${usb_sources}
+		hid_handler.cpp 		
+		msc_handler.cpp
+		cdc_handler.cpp 
 	)
+	set(usb_libraries
+		${usb_libraries}
+		tinyusb_host 
+	)
+endif()
+
+
+add_library               (kilipili_usb_host STATIC  ${usb_sources}  )
+target_compile_definitions(kilipili_usb_host PUBLIC  ${usb_defines}  )
+target_include_directories(kilipili_usb_host PUBLIC  ${usb_includes} )
+target_link_libraries     (kilipili_usb_host PUBLIC  ${usb_libraries})
+
+
+
+
+
+
+
+
+
 
 
 	
+
+
+
+
+
+
+
+
+
+
+
 
 
 
