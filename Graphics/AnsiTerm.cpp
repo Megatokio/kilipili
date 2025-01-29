@@ -113,11 +113,10 @@ static uint buttons_for_buttons(uint usb_buttons) noexcept
 
 // ##########################################################
 
-AnsiTerm::AnsiTerm(CanvasPtr pixmap, Color* colormap) :
+AnsiTerm::AnsiTerm(CanvasPtr pixmap) :
 	import_char(&default_import_char),
 	export_char(&default_export_char),
-	full_pixmap(pixmap),
-	colormap(colormap)
+	full_pixmap(pixmap)
 {
 	USB::setScreenSize(pixmap->width, pixmap->height);
 	display = new TextVDU(pixmap);

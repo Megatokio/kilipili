@@ -53,7 +53,7 @@ static HidMouseReport mouse(uint8 b = 0, int8 dx = 0, int8 dy = 0, int8 w = 0, i
 TEST_CASE("AnsiTerm: constructor")
 {
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 	REQUIRE_EQ(at.display->log, ref);
@@ -61,7 +61,6 @@ TEST_CASE("AnsiTerm: constructor")
 	CHECK_NE(at.import_char, nullptr);
 	CHECK_NE(at.export_char, nullptr);
 	CHECK_EQ(at.full_pixmap, pm);
-	CHECK_EQ(at.colormap, nullptr);
 	CHECK_NE(at.display, nullptr);
 	CHECK_EQ(at.import_char('A'), 'A');
 	CHECK_EQ(at.import_char(220u), char(220));
@@ -112,7 +111,7 @@ TEST_CASE("AnsiTerm: constructor")
 TEST_CASE("AnsiTerm: reset(soft)")
 {
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 	REQUIRE_EQ(at.display->log, ref);
@@ -152,7 +151,7 @@ TEST_CASE("AnsiTerm: reset(soft)")
 TEST_CASE("AnsiTerm: reset(hard)")
 {
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 	REQUIRE_EQ(at.display->log, ref);
@@ -183,7 +182,7 @@ TEST_CASE("AnsiTerm: reset(hard)")
 TEST_CASE("AnsiTerm: putc()")
 {
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 
@@ -196,7 +195,7 @@ TEST_CASE("AnsiTerm: putc()")
 TEST_CASE("AnsiTerm: write()")
 {
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -214,7 +213,7 @@ TEST_CASE("AnsiTerm: write()")
 TEST_CASE("AnsiTerm: read()")
 {
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	auto response = [&]() {
 		char bu[80];
@@ -237,7 +236,7 @@ TEST_CASE("AnsiTerm: read()")
 TEST_CASE("AnsiTerm: getc()")
 {
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	using namespace USB;
 	using namespace USB::Mock;
@@ -307,7 +306,7 @@ TEST_CASE("AnsiTerm: getc()")
 TEST_CASE("log unknown & errors")
 {
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv	 = at.display;
 	at.log_unhandled = true;
 	Array<cstr> ref;
@@ -360,7 +359,7 @@ TEST_CASE("log unknown & errors")
 TEST_CASE("0x07 BELL")
 {
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 	CHECK(1 == 1); // TODO : audio out
@@ -370,7 +369,7 @@ TEST_CASE("0x08 BS")
 {
 	// move the cursor left, may wrap (data)
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -418,7 +417,7 @@ TEST_CASE("0x09 TAB")
 	// move cursor to next programmed tab position (dflt=N*8) (display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -447,7 +446,7 @@ TEST_CASE("0x0A LF")
 	// Linefeed or new line depending on newline_mode.
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	at.newline_mode = true;
@@ -485,7 +484,7 @@ TEST_CASE("0x0B  VT")
 {
 	// same as LF
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	at.newline_mode = false;
@@ -505,7 +504,7 @@ TEST_CASE("0x0C FF")
 {
 	// same as LF
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	at.newline_mode = true;
@@ -520,7 +519,7 @@ TEST_CASE("0x0D CR")
 	// carriage return (display|data)
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	at.putc(13);
@@ -551,7 +550,7 @@ TEST_CASE("0x0E LS1  and  0x0F LS0")
 
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	at.putc(0x0e);
@@ -569,7 +568,7 @@ TEST_CASE("ESC SPC F  S7C1T  and  ESC SPC G  S8C1T")
 	// so in effect what is set here is never used.
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	CHECK_EQ(at.c1_codes_8bit, false);
 	at.puts("\x1b G");
@@ -582,7 +581,7 @@ TEST_CASE("ESC # 8  DECALN")
 {
 	// DEC video alignment test: fill screen with 'E'
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -605,7 +604,7 @@ TEST_CASE("ESC % @  and  ESC % G")
 	// ESC % G: Select utf-8 character set (ISO 2022)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -650,7 +649,7 @@ TEST_CASE("ESC 6  DECBI")
 {
 	// back index: cursor left else scroll screen right
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -686,7 +685,7 @@ TEST_CASE("ESC 9  DECFI")
 {
 	// forward index: cursor right else scroll screen left
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -724,7 +723,7 @@ TEST_CASE("ESC =  DECKPAM  and  ESC >  DECKPNM")
 	// DECKPNM: normal keypad
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	CHECK_EQ(at.application_mode, false);
 	at.puts("\x1b=");
@@ -739,7 +738,7 @@ TEST_CASE("ESC D  IND")
 {
 	// C1: index (cursor down) scrolls
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -809,7 +808,7 @@ TEST_CASE("ESC E  NEL")
 	// C1: next line (data|display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -842,7 +841,7 @@ TEST_CASE("ESC H  HTS")
 	// C1: horizontal tab set at cursor position
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	at.utf8_mode = false;
@@ -873,7 +872,7 @@ TEST_CASE("ESC M  RI")
 	// C1: reverse line feed, scrolls
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -915,7 +914,7 @@ TEST_CASE("ESC Z  DECID  and  CSI 0 c  DA")
 	// DA:	  send device attributes
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	at.c1_codes_8bit = false;
 	at.utf8_mode	 = false;
@@ -974,7 +973,7 @@ TEST_CASE("ESC \\  ST")
 	// all use cases of ST are not supported => always log
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1009,7 +1008,7 @@ TEST_CASE("ESC c  RIS")
 	// calls hardReset() which is tested separately
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1043,7 +1042,7 @@ TEST_CASE("CSI n @  ICH")
 	// insert blank characters (data|display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1070,7 +1069,7 @@ TEST_CASE("CSI n SPC @  SL")
 	// scroll left n columns (display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1096,7 +1095,7 @@ TEST_CASE("CSI n A  CUU  and  CSI n k  VPB")
 	// VPB: line position backward (data)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1154,7 +1153,7 @@ TEST_CASE("CSI n SPC A  SR")
 	// scroll right n columns (display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1180,7 +1179,7 @@ TEST_CASE("CSI n B  CUD  and  CSI n e  VPR")
 	// VPR: vertical position forward
 
 	CanvasPtr	pm = new Pixmap(400, 300); // 50*25
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1239,7 +1238,7 @@ TEST_CASE("CSI n C  CUF  and  CSI n a  HPR")
 	// HPR: character position forward (data)
 
 	CanvasPtr	pm = new Pixmap(400, 300); // 50*25
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1309,7 +1308,7 @@ TEST_CASE("CSI n D  CUB  and  CSI n j  HPB")
 	// HPB: character position backward
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1376,7 +1375,7 @@ TEST_CASE("CSI n E  CNL")
 	// cursor next line (display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1427,7 +1426,7 @@ TEST_CASE("CSI n F  CPL")
 	// cursor previous line (display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1479,7 +1478,7 @@ TEST_CASE("CSI n G  CHA  and  CSI n `  HPA")
 	// HPA: horizontal position absolute (data)
 
 	CanvasPtr	pm = new Pixmap(400, 300); // 50*25
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1532,7 +1531,7 @@ TEST_CASE("CSI l,c H  CUP  and  CSI l,c f  HVP")
 	// HVP: cursor position (data)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1593,7 +1592,7 @@ TEST_CASE("CSI n I  CHT")
 	// Cursor Forward Tabulation n tab stops (display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1632,7 +1631,7 @@ TEST_CASE("CSI n J  ED")
 	// 3 all screen (and scroll back buffer)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1676,7 +1675,7 @@ TEST_CASE("CSI n K  EL")
 	// 2 whole line
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1717,7 +1716,7 @@ TEST_CASE("CSI n L 	IL")
 	// insert lines (data|display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1754,7 +1753,7 @@ TEST_CASE("CSI n M  DL")
 	// delete lines (data|display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1791,7 +1790,7 @@ TEST_CASE("CSI n P  DCH")
 	// delete characters (display|data)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1825,7 +1824,7 @@ TEST_CASE("CSI n S  SU")
 	// scroll up n lines (display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1861,7 +1860,7 @@ TEST_CASE("CSI n T  and  CSI n ^  SD")
 	// CSI n ^: scroll down n lines, same as CSI T	 (erronously)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1899,7 +1898,7 @@ TEST_CASE("CSI n X  ECH")
 	// erase characters (data|display)
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -1946,7 +1945,7 @@ TEST_CASE("CSI n Z  CBT")
 	// cursor backward tabulation  n tabs
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	at.cursor_visible = false;
@@ -1990,7 +1989,7 @@ TEST_CASE("CSI n d  VPA")
 	// vertical position absolute
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	tv->col = 33;
@@ -2030,7 +2029,7 @@ TEST_CASE("CSI 0 g  TBC")
 	// clear tab at current col
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	CHECK_EQ(at.htabs[1], 0x01);
@@ -2047,7 +2046,7 @@ TEST_CASE("CSI 3 g  TBC")
 	// clear all tabs
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	at.puts("\x1b[3g");
 	constexpr uint size = NELEM(at.htabs);
@@ -2066,7 +2065,7 @@ TEST_CASE("CSI n… h  SM  and  CSI n… l  RM")
 	// CSI	20 h 	LNM newline mode:	h = 1 = automatic newline
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	at.insert_mode	= false;
 	at.local_echo	= false;
@@ -2106,7 +2105,7 @@ TEST_CASE("CSI ? n… h  DECSET  and  CSI ? n… l  DECRST")
 	// DECRST: reset modes
 
 	CanvasPtr	   pm = new Pixmap(400, 300);
-	AnsiTerm	   at(pm, nullptr);
+	AnsiTerm	   at(pm);
 	RCPtr<TextVDU> tv = at.display;
 
 	at.application_mode	  = false;
@@ -2201,7 +2200,7 @@ TEST_CASE("CSI 5 n  DSR")
 {
 	// device status report
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	at.puts("\x1b[5n");
 	char response[] = "\x1b[0n"; // no malfunction
@@ -2213,7 +2212,7 @@ TEST_CASE("CSI 6 n  CPR")
 {
 	// report cursor position -> CSI r ; c R
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	tv->col = 3;
@@ -2235,7 +2234,7 @@ TEST_CASE("CSI ! p  DECSTR")
 {
 	// DEC soft terminal reset
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
 
@@ -2274,7 +2273,7 @@ TEST_CASE("CSI ? 5 W  DECST8C")
 	// reset tab stops to every 8 columns
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	at.puts("\x1b[?5W");
 	constexpr uint size = NELEM(at.htabs);
@@ -2288,7 +2287,7 @@ TEST_CASE("CSI n ' }  DECIC")
 	// DEC insert columns
 
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -2317,7 +2316,7 @@ TEST_CASE("CSI n ' ~  DECDC")
 {
 	// DEC delete columns
 	CanvasPtr	pm = new Pixmap(400, 300);
-	AnsiTerm	at(pm, nullptr);
+	AnsiTerm	at(pm);
 	TextVDU*	tv = at.display;
 	Array<cstr> ref;
 	ref << "TextVDU(pixmap)";
@@ -2347,7 +2346,7 @@ TEST_CASE("CSI n… m  SGR")
 	// set character attributes.
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	//	0  	Normal (default)
@@ -2547,7 +2546,7 @@ TEST_CASE("ESC 7  DECSC  and  ESC 8  DECRC")
 	// DECRC: DEC restore cursor
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 	TextVDU*  tv = at.display;
 
 	CHECK_EQ(tv->pixmap, pm);
@@ -2650,7 +2649,7 @@ TEST_CASE("CSI s  SCOSC  and  CSI u  SCORC")
 	// SCORC: SCO restore cursor
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	// the functionality of push / pop cursor was already tested for DECSC and DECRC
 
@@ -2680,7 +2679,7 @@ TEST_CASE("CSI n ; m r  DECSTBM")
 	// DEC set top and bottom margin of scroll region
 
 	CanvasPtr	   pm = new Pixmap(400, 300);
-	AnsiTerm	   at(pm, nullptr);
+	AnsiTerm	   at(pm);
 	RCPtr<TextVDU> tv = at.display;
 
 	tv->col = 10;
@@ -2823,7 +2822,7 @@ TEST_CASE("CSI n ; m r  DECSTBM")
 	{
 		using Pixmap	 = Graphics::Pixmap<colormode_a1w8_rgb>;
 		RCPtr<Pixmap> pm = new Pixmap(80, 72, attrheight_12px); // 10*6
-		AnsiTerm	  at(pm, nullptr);
+		AnsiTerm	  at(pm);
 		tv = at.display;
 
 		// print s.th. and use the scroll region:
@@ -2890,7 +2889,7 @@ TEST_CASE("CSI n;n;n;n r  DECSTBM")
 	// DEC set top, bottom, left and right margins	NON-STANDARD EXTENSION
 
 	CanvasPtr	   pm = new Pixmap(400, 300);
-	AnsiTerm	   at(pm, nullptr);
+	AnsiTerm	   at(pm);
 	RCPtr<TextVDU> tv = at.display;
 
 	tv->col = 10;
@@ -3166,7 +3165,7 @@ TEST_CASE("CSI n;n;n;n r  DECSTBM")
 	{
 		using Pixmap	 = Graphics::Pixmap<colormode_a1w8_rgb>;
 		RCPtr<Pixmap> pm = new Pixmap(80, 72, attrheight_12px); // 10*6
-		AnsiTerm	  at(pm, nullptr);
+		AnsiTerm	  at(pm);
 		tv = at.display;
 
 		// print s.th. and use the scroll region:
@@ -3233,7 +3232,7 @@ TEST_CASE("CSI n ; m s  DECSLRM")
 	// DEC set left and right margins
 
 	CanvasPtr	   pm = new Pixmap(400, 300);
-	AnsiTerm	   at(pm, nullptr);
+	AnsiTerm	   at(pm);
 	RCPtr<TextVDU> tv = at.display;
 
 	tv->col = 10;
@@ -3376,7 +3375,7 @@ TEST_CASE("CSI n ; m s  DECSLRM")
 	{
 		using Pixmap	 = Graphics::Pixmap<colormode_a1w8_rgb>;
 		RCPtr<Pixmap> pm = new Pixmap(80, 72, attrheight_12px); // 10*6
-		AnsiTerm	  at(pm, nullptr);
+		AnsiTerm	  at(pm);
 		tv = at.display;
 
 		// print s.th. and use the scroll region:
@@ -3451,7 +3450,7 @@ TEST_CASE("CSI	n… ' w  DECEFR")
 	// DEC enable filter rectangle (mouse fence)
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	CHECK_EQ(at.mouse_enable_rect, false);
 	at.puts("\x1b[10;5;20;40'w");
@@ -3504,7 +3503,7 @@ TEST_CASE("CSI	n;m ' z  DECELR")
 	//    = 2  ⇒  character cells.
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	using namespace USB;
 	using namespace USB::Mock;
@@ -3551,7 +3550,7 @@ TEST_CASE("CSI n… ' {  DECSLE")
 	//     4  ⇒  do not report button up transitions.
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	using namespace USB;
 	using namespace USB::Mock;
@@ -3595,7 +3594,7 @@ TEST_CASE("CSI n ' |  DECRQLP")
 	// 	   event = 1: response to a DECRQLP request.
 
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	using namespace USB;
 	using namespace USB::Mock;
@@ -3631,7 +3630,7 @@ TEST_CASE("CSI n ' |  DECRQLP")
 TEST_CASE("AnsiTerm: getc() special keys")
 {
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	auto response = [&]() {
 		char bu[80];
@@ -3879,7 +3878,7 @@ TEST_CASE("AnsiTerm: getc() special keys")
 TEST_CASE("AnsiTerm: getc() mouse reports")
 {
 	CanvasPtr pm = new Pixmap(400, 300);
-	AnsiTerm  at(pm, nullptr);
+	AnsiTerm  at(pm);
 
 	auto response = [&]() {
 		char bu[80];

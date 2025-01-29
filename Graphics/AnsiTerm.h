@@ -86,7 +86,7 @@ public:
 	using ExportChar	   = uint(char) noexcept;
 	using RunStateMachines = void() noexcept;
 
-	AnsiTerm(CanvasPtr, Color*);
+	AnsiTerm(CanvasPtr);
 
 	void reset(bool hard = false) noexcept;
 	int	 getc();					  // non blocking
@@ -104,7 +104,6 @@ public:
 	ExportChar* export_char;
 
 	CanvasPtr	   full_pixmap;
-	Color*		   colormap;
 	RCPtr<TextVDU> display;
 
 	// settings:
@@ -126,6 +125,7 @@ public:
 	bool  sgr_cumulative	  = ANSITERM_DEFAULT_SGR_CUMULATIVE;
 	bool  auto_wrap			  = ANSITERM_DEFAULT_AUTO_WRAP;
 	bool  lr_ever_set_by_csis = false;
+	char  _padding[3];
 	uchar htabs[160 / 8];
 
 	Rect mouse_rect				   = {0, 0, 0, 0};
