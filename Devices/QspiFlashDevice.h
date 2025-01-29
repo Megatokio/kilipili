@@ -27,7 +27,7 @@ namespace kio::Devices
 	  - 12/4096 bytes: this is the erase sector size of the program flash.
 */
 template<int ssw>
-class QspiFlashDevice : BlockDevice
+class QspiFlashDevice : public BlockDevice
 {
 public:
 	// create BlockDevice at with 'size' at 'offset' in program flash.

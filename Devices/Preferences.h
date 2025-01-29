@@ -11,6 +11,10 @@
 namespace kio
 {
 
+// preference IDs used by lib kilipili itself are assigned from max downwards:
+static constexpr uint8 tag_flashdisk_size = 254; // makeFS(devicename,type)
+
+
 /*
 	Tagged data store for the internal program flash on the Raspberry Pico / RP2040
 	probably usable for any RP2040 board as long as the pico-sdk is used.

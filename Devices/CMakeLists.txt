@@ -11,6 +11,9 @@ option(DEVICES_LARGE_FILE_SUPPORT "support files larger than 4GB" OFF)
 set(FLASH_PREFERENCES "4*1024" CACHE STRING "size of preferences in program flash")
 set_property(CACHE FLASH_PREFERENCES PROPERTY STRINGS "0" "4*1024" "8*1024" "12*1024" "16*1024")
 
+set(FLASH_BLOCKDEVICE "300*1024" CACHE STRING "size of flash disk in program flash")
+set_property(CACHE FLASH_BLOCKDEVICE PROPERTY STRINGS "0" "300*1024" "500*1024" "720*1024" "1000*1024" "1400*1024")
+
 set(devices_sources
 	RamFile.cpp 
 	RamFile.h
@@ -45,6 +48,7 @@ set(devices_defines
 	ON=1 OFF=0
 	DEVICES_LARGE_FILE_SUPPORT=${DEVICES_LARGE_FILE_SUPPORT}
 	FLASH_PREFERENCES=${FLASH_PREFERENCES}
+	FLASH_BLOCKDEVICE=${FLASH_BLOCKDEVICE}
 )
 
 set(devices_headers

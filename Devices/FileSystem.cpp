@@ -5,11 +5,19 @@
 #include "FileSystem.h"
 #include "FatFS.h"
 #include "File.h"
+#include "Preferences.h"
+#include "QspiFlashDevice.h"
 #include "RsrcFS.h"
 #include "SDCard.h"
 #include "Trace.h"
 #include "cstrings.h"
 #include "ff15/source/ffconf.h"
+
+#if defined FLASH_PREFERENCES && FLASH_PREFERENCES
+static constexpr uint prefs_size = FLASH_PREFERENCES;
+#else
+static constexpr uint prefs_size = 0;
+#endif
 
 namespace kio::Devices
 {
@@ -56,6 +64,7 @@ static int index_of(std::nullptr_t)
 void makeFS(BlockDevicePtr bdev, cstr type) throws // static
 {
 	trace(__func__);
+	debugstr("FS::makeFS(bdev,type)\n");
 
 	type = lowerstr(type);
 	if (startswith(type, "fat"))
@@ -67,7 +76,30 @@ void makeFS(BlockDevicePtr bdev, cstr type) throws // static
 	else throw UNKNOWN_FILESYSTEM;
 }
 
-FileSystemPtr mount(cstr devicename, BlockDevicePtr bdev) throws // static
+void makeFS(cstr devicename, cstr type) throws
+{
+	trace(__func__);
+	debugstr("FS::makeFS(%s,%s)\n", devicename, type);
+	assert(devicename && *devicename && !strchr(devicename, ':'));
+
+	if (index_of(devicename) >= 0) throw DEVICE_IN_USE;
+
+#if defined FLASH_BLOCKDEVICE && FLASH_BLOCKDEVICE
+	if (lceq(devicename, "flash"))
+	{
+		makeFS(new QspiFlashDevice<9>(FLASH_BLOCKDEVICE), type);
+		if constexpr (prefs_size) Preferences().write(tag_flashdisk_size, uint32(FLASH_BLOCKDEVICE));
+		return;
+	}
+#endif
+#ifdef PICO_DEFAULT_SPI
+	if (lceq(devicename, "sdcard")) { makeFS(SDCard::defaultInstance(), type); }
+#endif
+	if (lceq(devicename, "rsrc")) throw NOT_WRITABLE;
+	else throw UNKNOWN_DEVICE;
+}
+
+FileSystemPtr mount(cstr devicename, BlockDevicePtr bdev) throws
 {
 	// discover the FileSystem on the BlockDevice and mount it with the given name.
 	// throws if a FS with that name is already mounted.
@@ -101,14 +133,13 @@ FileSystemPtr mount(cstr devicename, BlockDevicePtr bdev) throws // static
 	throw UNKNOWN_FILESYSTEM;
 }
 
-FileSystemPtr mount(cstr devicename) throws // static
+FileSystemPtr mount(cstr devicename) throws
 {
 	// mount the FileSystem on the well-known BlockDevice with the given name.
 	// returns the already mounted FS if it is mounted.
 
 	trace("FS::mount(name)");
 	debugstr("FS::mount: \"%s\"\n", devicename);
-
 	assert(devicename && *devicename);
 
 	int idx = index_of(devicename);
@@ -117,6 +148,14 @@ FileSystemPtr mount(cstr devicename) throws // static
 	if (lceq(devicename, "rsrc")) { return new RsrcFS(devicename); }
 #ifdef PICO_DEFAULT_SPI
 	if (lceq(devicename, "sdcard")) return new FatFS(devicename, SDCard::defaultInstance());
+#endif
+#if defined FLASH_BLOCKDEVICE && FLASH_BLOCKDEVICE
+	if (lceq(devicename, "flash"))
+	{
+		uint32 size = FLASH_BLOCKDEVICE;
+		if constexpr (prefs_size) size = Preferences().read<uint32>(tag_flashdisk_size, size);
+		return new FatFS(devicename, new QspiFlashDevice<9>(size));
+	}
 #endif
 	throw UNKNOWN_DEVICE;
 }

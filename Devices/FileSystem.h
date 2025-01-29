@@ -45,6 +45,7 @@ extern void unmount(FileSystemPtr);
 		The BlockDevice should not be in use by a FileSystem.
 	*/
 extern void makeFS(BlockDevicePtr, cstr type = "FAT") throws;
+extern void makeFS(cstr devname, cstr type = "FAT") throws;
 
 /* 	Open a file or directory.
 	If the path starts with a device name followed by a colon then the path is searched on
