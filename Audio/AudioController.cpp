@@ -404,10 +404,8 @@ static void dma_buffer_write(const AudioSample<hw_num_channels, int>* source, ui
 	}
 	if constexpr (audio_hw == SIGMA_DELTA && dma_num_channels == 2)
 	{
-		// the dma sends 32 bit words to each channel,
-		// => 4 left samples to one SM then 4 right samples to the other SM.
-		// also the SM shifts the OSR left to get the sigma bit first => first sample is in high byte at high address.
-		// we could set the dma to transfer only bytes instead or we handle this here:
+		// Each dma sends 32 bit words to it's pio which contain 4 samples.
+		// The SM shifts the OSR left to get the sigma bit first => first sample is in high byte at high address.
 
 		assert(num_frames % 4 == 0);
 		int&  current_left_sample  = sid_last_sample[0];
@@ -418,13 +416,13 @@ static void dma_buffer_write(const AudioSample<hw_num_channels, int>* source, ui
 		for (uint i = 0; i < num_frames / 4; i++)
 		{
 			l[3] = sid_sample(current_left_sample, source[0].left());
-			r[7] = sid_sample(current_right_sample, source[0].right());
 			l[2] = sid_sample(current_left_sample, source[1].left());
-			r[6] = sid_sample(current_right_sample, source[1].right());
 			l[1] = sid_sample(current_left_sample, source[2].left());
-			r[5] = sid_sample(current_right_sample, source[2].right());
 			l[0] = sid_sample(current_left_sample, source[3].left());
-			r[4] = sid_sample(current_right_sample, source[3].right());
+			r[3] = sid_sample(current_right_sample, source[0].right());
+			r[2] = sid_sample(current_right_sample, source[1].right());
+			r[1] = sid_sample(current_right_sample, source[2].right());
+			r[0] = sid_sample(current_right_sample, source[3].right());
 			l += 4;
 			r += 4;
 			source += 4;
