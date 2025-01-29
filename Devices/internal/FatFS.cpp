@@ -140,6 +140,8 @@ void FatFS::mkfs(BlockDevice* blkdev, int idx, cstr /*type*/)
 {
 	trace("FatFS::mkfs");
 
+	if (blkdevs[idx]) throw DEVICE_IN_USE;
+
 	const uint	ssx	   = max(9u, blkdev->ss_erase);
 	const uint	align  = 1 << (ssx - 9);
 	const uint8 fmtopt = blkdev->flags & partition ? FM_ANY | FM_SFD : FM_ANY;
@@ -154,12 +156,24 @@ void FatFS::mkfs(BlockDevice* blkdev, int idx, cstr /*type*/)
 		.au_size = 0	   // Cluster size (byte): 0=default
 	};
 
-	char  name[2] = {char('0' + idx), 0};
+	debugstr("mkfs fmt    = %i\n", options.fmt);
+	debugstr("mkfs n_fat  = %i\n", options.n_fat);
+	debugstr("mkfs align  = %u\n", options.align);
+	debugstr("mkfs n_root = %u\n", options.n_root);
+	debugstr("mkfs au_siz = %u\n", options.au_size);
+
 	uint  bu_size = 64 kB;
 	void* buffer;
 	while (!(buffer = malloc(bu_size)) && (bu_size /= 2) >= FF_MAX_SS) {}
 	if (!buffer) throw OUT_OF_MEMORY;
-	FRESULT err = f_mkfs(name, &options, buffer, bu_size);
+
+	char name[2]   = {char('0' + idx), 0};
+	VolumeStr[idx] = name;
+	blkdevs[idx]   = blkdev;
+	FRESULT err	   = f_mkfs(catstr(name, ":"), &options, buffer, bu_size);
+	VolumeStr[idx] = NoDevice;
+	blkdevs[idx]   = nullptr;
+
 	free(buffer);
 	if (err) throw tostr(err);
 }

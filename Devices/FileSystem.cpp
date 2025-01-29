@@ -24,13 +24,6 @@ namespace kio::Devices
 
 static FileSystem* file_systems[FF_VOLUMES] = {}; // all NULL
 
-static constexpr char UNKNOWN_FILESYSTEM[] = "unknown file system";
-static constexpr char UNKNOWN_DEVICE[]	   = "unknown device";
-static constexpr char DEVICE_IN_USE[]	   = "device in use";
-static constexpr char NO_MOUNTPOINT_FREE[] = "no mountpoint free";
-static constexpr char NO_WORKING_DEVICE[]  = "no working device";
-static constexpr char NAME_TOO_LONG[]	   = "name too long";
-
 // current working device
 static FileSystemPtr cwd;
 

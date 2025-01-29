@@ -39,6 +39,12 @@ constexpr char HARD_WRITE_ERROR[]	   = "Hard write error";	  // block devices
 constexpr char HARD_READ_ERROR[]	   = "Hard read error";		  // block devices
 constexpr char FILE_NOT_FOUND[]		   = "File not found";
 constexpr char DIRECTORY_NOT_FOUND[]   = "Directory not found";
+constexpr char UNKNOWN_FILESYSTEM[]	   = "unknown file system";
+constexpr char UNKNOWN_DEVICE[]		   = "unknown device";
+constexpr char DEVICE_IN_USE[]		   = "device in use";
+constexpr char NO_MOUNTPOINT_FREE[]	   = "no mountpoint free";
+constexpr char NO_WORKING_DEVICE[]	   = "no working device";
+constexpr char NAME_TOO_LONG[]		   = "name too long";
 
 
 enum FileOpenMode : uint8 {
