@@ -4,8 +4,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "basic_math.h"
-#include "cstrings.h"
 #include "cdefs.h"
+#include "cstrings.h"
 #include "relational_operators.h"
 #include "sort.h"
 #include "standard_types.h"
@@ -28,7 +28,7 @@ namespace kio
 	· item's eq(), ne(), lt() should be implemented for operator==() and sort() etc.
 	· specializations for Array<str> and Array<cstr> with allocation in TempMem.
 */
- 
+
 
 template<typename T>
 class Array
@@ -45,13 +45,13 @@ protected:
 	static void _init_with_copy(T* z, const T* q, uint n);
 	static void _init_with_move(T* z, T* q, uint n) noexcept;
 	static void _init(T* a, uint n) noexcept;
-	static void	_kill(T* a, uint n) noexcept;
+	static void _kill(T* a, uint n) noexcept;
 	void		_growmax(uint newmax) throws;
-	void		_shrinkmax(uint newmax) throws;	
+	void		_shrinkmax(uint newmax) throws;
 	static void _init(T& a) noexcept;
-	static void	_kill(T& a) noexcept{a.~T();}
-	
-	
+	static void _kill(T& a) noexcept { a.~T(); }
+
+
 public:
 	// see https://stackoverflow.com/questions/11562/how-to-overload-stdswap
 	static void swap(Array& a, Array& b) noexcept
@@ -88,9 +88,9 @@ public:
 	Array copyofrange(uint a, uint e) const throws;
 
 	// access data members:
-	uint	 count() const noexcept { return cnt; }
-	const T* getData() const noexcept { return data; }
-	T*		 getData() noexcept { return data; }
+	const uint& count() const noexcept { return cnt; }
+	const T*	getData() const noexcept { return data; }
+	T*			getData() noexcept { return data; }
 
 	const T& operator[](uint i) const noexcept
 	{
@@ -221,15 +221,11 @@ public:
 	{
 		Foo2() = delete;
 	};
-	void
-	remove(select_type<std::is_fundamental_v<T>, Foo1, ref_or_value(T)> item, bool fast = 0) noexcept
+	void remove(select_type<std::is_fundamental_v<T>, Foo1, ref_or_value(T)> item, bool fast = 0) noexcept
 	{
 		removeitem(item, fast);
 	}
-	void remove(select_type<std::is_fundamental_v<T>, Foo2, uint> idx, bool fast = 0) noexcept
-	{
-		removeat(idx, fast);
-	}
+	void remove(select_type<std::is_fundamental_v<T>, Foo2, uint> idx, bool fast = 0) noexcept { removeat(idx, fast); }
 
 	void insertat(uint idx, T) throws;
 	void insertat(uint idx, const T* q, uint n) throws;
@@ -261,9 +257,18 @@ public:
 	void rol() noexcept { rol(0, cnt); }
 	void ror() noexcept { ror(0, cnt); }
 	void shuffle() noexcept { shuffle(0, cnt); }
-	void sort() noexcept { if (cnt) kio::sort(data, data + cnt); } // uses lt()
-	void rsort() noexcept { if (cnt) kio::rsort(data, data + cnt); } // uses gt()
-	void sort(compare_fu(T) lt) noexcept { if (cnt) kio::sort(data, data + cnt, lt); }
+	void sort() noexcept
+	{
+		if (cnt) kio::sort(data, data + cnt);
+	} // uses lt()
+	void rsort() noexcept
+	{
+		if (cnt) kio::rsort(data, data + cnt);
+	} // uses gt()
+	void sort(compare_fu(T) lt) noexcept
+	{
+		if (cnt) kio::sort(data, data + cnt, lt);
+	}
 
 	void swap(uint i, uint j) noexcept
 	{
@@ -280,22 +285,23 @@ public:
 template<typename T>
 void Array<T>::_init(T* a, uint n) noexcept
 {
-	if constexpr (std::is_scalar_v<T>) memset(a,0,n*sizeof(T)); // arith, enum, ptr
-	else while(n--) { new (a) T; }
+	if constexpr (std::is_scalar_v<T>) memset(a, 0, n * sizeof(T)); // arith, enum, ptr
+	else
+		while (n--) { new (a) T; }
 }
 
 template<typename T>
 void Array<T>::_init(T& a) noexcept
 {
-	if constexpr (std::is_scalar_v<T>) a=T(0); // arith, enum, ptr
-	else new(&a)T;
+	if constexpr (std::is_scalar_v<T>) a = T(0); // arith, enum, ptr
+	else new (&a) T;
 }
 
 template<typename T>
-void Array<T>::_init_with_copy(T* z, const T* q, uint n) 
+void Array<T>::_init_with_copy(T* z, const T* q, uint n)
 {
 	// initialize data from some other source
-	
+
 	while (n--) { new (z++) T(*q++); }
 }
 
@@ -303,7 +309,7 @@ template<typename T>
 void Array<T>::_init_with_move(T* z, T* q, uint n) noexcept
 {
 	// initialize data from some other source
-	
+
 	while (n--) { new (z++) T(std::move(*q++)); }
 }
 
@@ -352,27 +358,27 @@ void Array<T>::_growmax(uint newmax) throws
 {
 	// grow data[]
 	// grow only
-	
-	if(newmax > max)
+
+	if (newmax > max)
 	{
 		if constexpr (std::is_trivially_move_constructible_v<T>)
 		{
 			if (T* newdata = reinterpret_cast<T*>(realloc(data, newmax * sizeof(T))))
 			{
 				data = newdata;
-				max = newmax;
+				max	 = newmax;
 			}
 			else throw OUT_OF_MEMORY;
 		}
 		else
 		{
-			newmax += newmax/8 + 4;
+			newmax += newmax / 8 + 4;
 			T* newdata = _malloc(newmax);
 			_init_with_move(newdata, data, cnt); // if T has custom copy_ctor
-			_kill(data, cnt);						 // if T has custom dtor
+			_kill(data, cnt);					 // if T has custom dtor
 			_free(data);
 			data = newdata;
-			max = newmax;
+			max	 = newmax;
 		}
 	}
 }
@@ -526,7 +532,7 @@ void Array<T>::grow(uint newcnt, uint newmax) throws
 	// newcnt > cnt: grow cnt and clear new items
 
 	assert(newmax >= newcnt);
-	
+
 	_growmax(newmax);
 	while (cnt < newcnt) { _init(data[cnt++]); }
 }
@@ -589,8 +595,8 @@ void Array<T>::removerange(uint a, uint e) noexcept
 	if (a >= e) return;
 
 	uint n = e - a;
-	_move_dn(data + a, data + e, cnt-e);
-	_kill(data+cnt-n, n);
+	_move_dn(data + a, data + e, cnt - e);
+	_kill(data + cnt - n, n);
 	cnt -= n;
 }
 
@@ -613,7 +619,7 @@ template<typename T>
 void Array<T>::insertsorted(T q) throws
 {
 	uint i;
-	for (i = cnt; i>0 && lt(q, data[i-1]); i--) {}
+	for (i = cnt; i > 0 && lt(q, data[i - 1]); i--) {}
 	insertat(i, std::move(q));
 }
 
@@ -627,10 +633,10 @@ void Array<T>::insertat(uint idx, const T* q, uint n) throws
 	if (n == 0) return;
 
 	_growmax(cnt + n);
-	_init(data+cnt, n);
+	_init(data + cnt, n);
 	_move_up(data + idx + n, data + idx, cnt - idx);
 	cnt += n;
-	_kill(data + idx, n);  
+	_kill(data + idx, n);
 	_init_with_copy(data + idx, q, n);
 }
 
@@ -656,10 +662,10 @@ void Array<T>::insertrange(uint a, uint e) throws
 
 	uint n = e - a;
 	_growmax(cnt + n);
-	_init(data+cnt, n);
-	_move_up(data + e, data + a, cnt-a);
-	_kill(data+a, n);
-	_init(data+a, n);
+	_init(data + cnt, n);
+	_move_up(data + e, data + a, cnt - a);
+	_kill(data + a, n);
+	_init(data + a, n);
 	cnt += n;
 }
 
