@@ -52,11 +52,11 @@ constexpr bool ENABLE_DEN		  = VIDEO_DEN_ENABLE;
 constexpr bool DEN_POLARITY		  = VIDEO_DEN_POLARITY;
 constexpr uint TIMING_DMA_IRQ_IDX = 1;
 
-static uint TIMING_SM;
-static uint SCANLINE_SM;
-static uint TIMING_DMA_CHANNEL;
-static uint SCANLINE_DMA_CTRL_CHANNEL;
-static uint SCANLINE_DMA_DATA_CHANNEL;
+static uint8 TIMING_SM;
+static uint8 SCANLINE_SM;
+static uint8 TIMING_DMA_CHANNEL;
+static uint8 SCANLINE_DMA_CTRL_CHANNEL;
+static uint8 SCANLINE_DMA_DATA_CHANNEL;
 
 
 // =========================================================
@@ -149,11 +149,7 @@ static void RAM timing_isr() noexcept
 		{
 			in_vblank	  = true;
 			current_frame = current_frame + 1;
-			__sev();
-		}
-		else if (state == in_active_screen)
-		{
-			in_vblank			= false;
+
 			line_at_frame_start = line_at_frame_start + vga_mode.height;
 
 			time_us_at_frame_start = time_us_at_frame_start + us_per_frame;
@@ -162,6 +158,12 @@ static void RAM timing_isr() noexcept
 				cc_per_frame_rest -= cc_per_us;
 				time_us_at_frame_start = time_us_at_frame_start + 1;
 			}
+
+			__sev();
+		}
+		else if (state == in_active_screen)
+		{
+			in_vblank = false;
 
 			__sev();
 		}
@@ -497,11 +499,11 @@ void VideoBackend::initialize() noexcept
 {
 	// any core
 
-	TIMING_DMA_CHANNEL		  = uint(dma_claim_unused_channel(true));
-	SCANLINE_DMA_CTRL_CHANNEL = uint(dma_claim_unused_channel(true));
-	SCANLINE_DMA_DATA_CHANNEL = uint(dma_claim_unused_channel(true));
-	TIMING_SM				  = uint(pio_claim_unused_sm(video_pio, true));
-	SCANLINE_SM				  = uint(pio_claim_unused_sm(video_pio, true));
+	TIMING_DMA_CHANNEL		  = uint8(dma_claim_unused_channel(true));
+	SCANLINE_DMA_CTRL_CHANNEL = uint8(dma_claim_unused_channel(true));
+	SCANLINE_DMA_DATA_CHANNEL = uint8(dma_claim_unused_channel(true));
+	TIMING_SM				  = uint8(pio_claim_unused_sm(video_pio, true));
+	SCANLINE_SM				  = uint8(pio_claim_unused_sm(video_pio, true));
 
 	initialize_gpio_pins();
 	initialize_state_machines();

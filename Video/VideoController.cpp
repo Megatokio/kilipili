@@ -21,7 +21,10 @@
 #endif
 
 
-#define RAM __attribute__((section(".time_critical.VideoController")))
+#define WRAP(X)	 #X
+#define XWRAP(X) WRAP(X)
+#define XRAM	 __attribute__((section(".scratch_x.VC" XWRAP(__LINE__))))	   // the 4k page with the core1 stack
+#define RAM		 __attribute__((section(".time_critical.VC" XWRAP(__LINE__)))) // general ram
 
 
 using namespace kio::Video;
@@ -145,8 +148,8 @@ void VideoController::core1_runner() noexcept
 
 	try
 	{
-		print_core();
-		print_stack_free();
+		if (debug) print_core();
+		if (debug) print_stack_free();
 		init_stack_guard();
 
 		while (true)
@@ -196,24 +199,23 @@ void VideoController::core1_runner() noexcept
 void RAM VideoController::video_runner()
 {
 	trace(__func__);
-	print_stack_free();
 
-	int height = vga_mode.height;
-	int row0   = line_at_frame_start;
+	int row0 = line_at_frame_start;
 
 	// note: call_vblank_actions() esp. planes[i]->vblank()
 	// is guaranteed to be called before first call to planes[i]->renderScanline()
 
-	for (int row = height; requested_state == RUNNING; row++)
+	for (int row = vga_mode.height; requested_state == RUNNING; row++)
 	{
-		if unlikely (in_vblank || row >= height) // next frame
+		if unlikely (row0 != line_at_frame_start)
 		{
-			if constexpr (!VIDEO_RECOVERY_PER_LINE)
-			{
-				int missed = current_scanline() - row;
-				if (missed > 0) { scanlines_missed += uint(missed); }
-			}
+			int missed = vga_mode.height - row;
+			row		   = vga_mode.height;
+			scanlines_missed += uint(missed);
+		}
 
+		if unlikely (row >= vga_mode.height) // next frame
+		{
 			if unlikely (lockout_requested) wait_while_lockout();
 
 			if (onetime_action)
@@ -230,60 +232,35 @@ void RAM VideoController::video_runner()
 				for (uint i = 0; i < num_planes; i++) { planes[i]->vblank(); }
 			}
 
-			//idle_start();
-			while (!in_vblank && line_at_frame_start == row0)
+			while (line_at_frame_start == row0)
 			{
+				idle_start();
 				// wait until this frame is fully done
 				// ATTN: the timing irpt is actually called ~2 lines early!
-				if (requested_state != RUNNING) return;
+				//if (requested_state != RUNNING) {idle_end();return;}
 			}
-			//idle_end();
+			idle_end();
 
 			row	 = 0;
 			row0 = line_at_frame_start;
-
-			for (uint n = 0; n < scanline_buffer.count; n++, row++)
-			{
-				// render the first lines of the screen
-
-				uint32* scanline = scanline_buffer[row0 + row];
-				for (uint i = 0; i < num_planes; i++)
-				{
-					planes[i]->renderScanline(row, scanline); //
-				}
-			}
-
-			idle_start();
-			while (in_vblank)
-			{
-				// wait until line_at_frame_start advances to next frame
-				if (requested_state != RUNNING) return;
-			}
-			idle_end();
 		}
 
-		idle_start();
-		while (unlikely(row >= current_scanline() + int(scanline_buffer.count)))
-		{
-			// wait until video backend no longer displays from this scanline
-			if (requested_state != RUNNING) return;
-		}
+		// wait until video backend no longer displays from this scanline
+		int csl;
+		while ((csl = current_scanline()) <= row - int(scanline_buffer.count)) idle_start();
 		idle_end();
-
-		uint32* scanline = scanline_buffer[row0 + row];
-		for (uint i = 0; i < num_planes; i++)
-		{
-			planes[i]->renderScanline(row, scanline); //
-		}
 
 		if constexpr (VIDEO_RECOVERY_PER_LINE)
 		{
-			if unlikely (current_scanline() >= row)
+			if unlikely (csl >= row)
 			{
 				scanlines_missed++;
-				row++;
+				continue;
 			}
 		}
+
+		uint32* scanline = scanline_buffer[row0 + row];
+		for (uint i = 0; i < num_planes; i++) { planes[i]->renderScanline(row, scanline); }
 	}
 }
 
