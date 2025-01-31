@@ -74,6 +74,8 @@ public:
 
 	TextVDU(CanvasPtr) noexcept;
 
+	str inputLine(std::function<int()> getchar, str oldtext = nullptr, int epos = 0);
+
 	void reset() noexcept;
 	void cls() noexcept;
 	void identify() noexcept;
@@ -88,7 +90,6 @@ public:
 	void print(cstr text) noexcept;								// supports \n and \t
 	void printf(cstr fmt, ...) noexcept __printflike(2, 3);		// supports \n and \t
 	void printf(cstr fmt, va_list) noexcept __printflike(2, 0); // supports \n and \t
-	str	 inputLine(std::function<int()> getchar, str oldtext = nullptr, int epos = 0);
 	void cursorLeft(int count = 1, AutoWrap = wrap) noexcept;
 	void cursorRight(int count = 1, AutoWrap = wrap) noexcept;
 	void cursorUp(int count = 1, AutoWrap = wrap) noexcept;

@@ -18,9 +18,9 @@ namespace kio::Graphics
 // ------------------------------------------------------------
 
 // lsbit is left => revert bits
-#define r(b)                                                                                                 \
-  ((b & 128) >> 7) + ((b & 64) >> 5) + ((b & 32) >> 3) + ((b & 16) >> 1) + ((b & 8) << 1) + ((b & 4) << 3) + \
-	  ((b & 2) << 5) + ((b & 1) << 7)
+#define r(b)                                                                                                   \
+	((b & 128) >> 7) + ((b & 64) >> 5) + ((b & 32) >> 3) + ((b & 16) >> 1) + ((b & 8) << 1) + ((b & 4) << 3) + \
+		((b & 2) << 5) + ((b & 1) << 7)
 
 // The Character Set and Font:
 //
@@ -95,9 +95,9 @@ void TextVDU::identify() noexcept
 
 	cstr colors = colordepth == colordepth_rgb ? "rgb" : tostr(colordepth);
 
-	printf("size=%u*%u, text=%u*%u, ", pixmap->width, pixmap->height, cols, rows);
-	printf("char=%u*%u, colors=%s", CHAR_WIDTH, CHAR_HEIGHT, colors);
-	if (attrmode != attrmode_none) printf(", attr=%u*%u", 1 << attrwidth, attrheight);
+	printf("size=%i*%i, text=%i*%i, ", pixmap->width, pixmap->height, cols, rows);
+	printf("char=%i*%i, colors=%s", CHAR_WIDTH, CHAR_HEIGHT, colors);
+	if (attrmode != attrmode_none) printf(", attr=%u*%u", 1u << attrwidth, attrheight);
 	newLine();
 }
 
@@ -783,13 +783,13 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 	assert(epos <= int(strlen(oldtext)));
 
 	int col0 = col; // todo: this assumes that the screen won't scroll!
-	int row0 = row;
+	int row0 = row + scroll_count;
 
 	print(oldtext);
 
 	for (;;)
 	{
-		moveTo(row0, col0 + epos, wrap);
+		moveTo(row0 - scroll_count, col0 + epos, wrap);
 		showCursor();
 		int c = getc();
 
@@ -824,10 +824,10 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 				case 'B': c = KEY_ARROW_DOWN; break;  // ESC[B
 				case 'C': c = KEY_ARROW_RIGHT; break; // ESC[C
 				case 'D': c = KEY_ARROW_LEFT; break;  // ESC[D
-				default: printf("{ESC,0x%02x}", c); continue;
+				default: printf("{ESC,0x%02x}", uint(c)); continue;
 				}
 				break;
-			default: printf("{0x%02x}", c); continue;
+			default: printf("{0x%02x}", uint(c)); continue;
 			}
 		}
 
