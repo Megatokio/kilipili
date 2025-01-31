@@ -55,6 +55,9 @@ namespace kio::Devices
 // BlockDevices matching VolumeStr[]:
 static RCPtr<BlockDevice> blkdevs[FF_VOLUMES];
 
+static_assert(FF_MIN_SS == 512 && FF_MAX_SS == 512);
+static constexpr int ss = 9;
+
 
 FatFS::FatFS(cstr name, BlockDevicePtr bdev) throws : // ctor
 	FileSystem(name)
@@ -65,6 +68,8 @@ FatFS::FatFS(cstr name, BlockDevicePtr bdev) throws : // ctor
 	int idx = index_of(this);
 	assert(uint(idx) <= FF_VOLUMES);
 	assert(bdev != nullptr);
+
+	if (bdev->sectorSize() != 1 << ss) throw "sector size of device is not supported";
 
 	blkdevs[idx]   = bdev;
 	VolumeStr[idx] = this->name;
@@ -102,10 +107,14 @@ uint64 FatFS::getFree()
 	FRESULT err		 = f_getfree(catstr(name, ":"), &num_clusters, &fatfsptr);
 	if (err) throw tostr(err);
 	assert(fatfsptr == &fatfs);
-	return uint64(num_clusters) * uint(fatfs.csize << 9);
+	return uint64(num_clusters) * uint(fatfs.csize << ss);
 }
 
-uint64 FatFS::getSize() { return uint64(fatfs.n_fatent - 2) * uint(fatfs.csize << 9); }
+uint64 FatFS::getSize()
+{
+	BlockDevice* blkdev = blkdevs[index_of(this)];
+	return uint64(blkdev->sectorCount()) << ss;
+}
 
 DirectoryPtr FatFS::openDir(cstr path)
 {
@@ -129,16 +138,15 @@ void FatFS::mkfs(BlockDevice* blkdev, int idx, cstr /*type*/)
 
 	if (blkdevs[idx]) throw DEVICE_IN_USE;
 
-	const uint	ssx	   = max(9u, blkdev->ss_erase);
-	const uint	align  = 1 << (ssx - 9);
-	const uint8 fmtopt = blkdev->flags & partition ? FM_ANY | FM_SFD : FM_ANY;
-	const uint	n_mix  = uint(blkdev->totalSize() >> 16) >> (ssx - 7) << (ssx - 5);
-	const uint	n_root = minmax(align >> 5, n_mix, 512u);
+	uint8 fmtopt = blkdev->flags & partition ? FM_ANY | FM_SFD : FM_ANY;
+	uint  n_root = uint(blkdev->totalSize() >> 18); // 1 entry per 256kB <=> 1 rootdir sector per 4 MB
+	n_root		 = minmax(64u, n_root, 512u);		// min. 64 entries (4 sectors), max 512 entries
+	n_root		 = n_root >> (ss - 5) << (ss - 5);	// alignment: sector_size / 32
 
 	MKFS_PARM options = {
 		.fmt	 = fmtopt, // Format option (FM_FAT, FM_FAT32, FM_EXFAT and FM_SFD)
 		.n_fat	 = 1,	   // Number of FATs for FAT/FAT32: 1 or 2
-		.align	 = align,  // Data area alignment (sector)
+		.align	 = 0,	   // Data area alignment (sector): 0=IoCtl
 		.n_root	 = n_root, // Number of root directory entries
 		.au_size = 0	   // Cluster size (byte): 0=default
 	};
@@ -247,6 +255,7 @@ DRESULT disk_read(BYTE id, BYTE* buff, LBA_t sector, UINT count)
 
 	assert(id < FF_VOLUMES && blkdevs[id] != nullptr);
 	BlockDevice* blkdev = blkdevs[id];
+	assert(blkdev->ss_write == ss);
 
 	try
 	{
@@ -286,6 +295,7 @@ DRESULT disk_write(BYTE id, const BYTE* buff, LBA_t sector, UINT count)
 
 	assert(id < FF_VOLUMES && blkdevs[id] != nullptr);
 	BlockDevice* blkdev = blkdevs[id];
+	assert(blkdev->ss_write == ss);
 
 	try
 	{
@@ -335,6 +345,7 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 
 	assert(id < FF_VOLUMES && blkdevs[id] != nullptr);
 	BlockDevice* blkdev = blkdevs[id];
+	assert(blkdev->ss_write == ss);
 
 	try
 	{
@@ -354,32 +365,29 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 		static_assert(IoCtl::GET_BLOCK_SIZE == get_block_size);
 		static_assert(IoCtl::CTRL_TRIM == ctrl_trim);
 
-		// FatFS uses 512 byte sectors, except if configured to handle multiple sizes,
-		// but 512 bytes is the minimum.
-		// for devices with larger sectors we expect FatFS::FF_MAX_SS to be set accordingly.
-		// for devices with smaller sectors we package them to 512 byte units.
-
 		switch (cmd)
 		{
 		case IoCtl::GET_SECTOR_SIZE:
 		{
 			assert(buff);
 			//static_assert(sizeof(WORD) == sizeof(FATFS::ssize));
-			*reinterpret_cast<WORD*>(buff) = WORD(std::max(blkdev->sectorSize(), 512u));
+			*reinterpret_cast<WORD*>(buff) = 1 << ss;
+			debugstr("GET_SECTOR_SIZE = %u\n", *reinterpret_cast<WORD*>(buff));
 			return RES_OK;
 		}
 		case IoCtl::GET_SECTOR_COUNT:
 		{
 			assert(buff);
-			Devices::LBA sectorcount = blkdev->sectorCount();
-			if (blkdev->ss_write < 9) sectorcount >>= 9 - blkdev->ss_write;
-			*reinterpret_cast<LBA_t*>(buff) = sectorcount;
+			*reinterpret_cast<LBA_t*>(buff) = blkdev->sectorCount();
+			debugstr("GET_SECTOR_COUNT = %u\n", *reinterpret_cast<LBA_t*>(buff));
 			return RES_OK;
 		}
 		case IoCtl::GET_BLOCK_SIZE:
 		{
 			assert(buff);
-			*reinterpret_cast<DWORD*>(buff) = std::max(blkdev->eraseBlockSize(), 512u);
+			int sse							= max(ss, blkdev->ss_erase);
+			*reinterpret_cast<DWORD*>(buff) = 1 << (sse - ss);
+			debugstr("GET_BLOCK_SIZE = %u\n", *reinterpret_cast<DWORD*>(buff));
 			return RES_OK;
 		}
 		case IoCtl::CTRL_TRIM:
@@ -388,12 +396,7 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 			LBA_t*		  bu	= reinterpret_cast<LBA_t*>(buff);
 			Devices::LBA  lba	= bu[0];
 			Devices::SIZE count = bu[1] - bu[0] + 1;
-
-			if (blkdev->ss_write < 9)
-			{
-				lba <<= 9 - blkdev->ss_write;
-				count <<= 9 - blkdev->ss_write;
-			}
+			debugstr("CTRL_TRIM: [%u to %u]\n", bu[0], bu[1]);
 
 			blkdev->ioctl(IoCtl(IoCtl::CTRL_TRIM, IoCtl::LBA, IoCtl::SIZE), &lba, &count);
 			return RES_OK;
