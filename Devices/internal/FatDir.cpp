@@ -32,13 +32,13 @@ FileInfo::FileInfo(const FILINFO& info)
 	mtime.second = (info.ftime & 0x1f) * 2;
 }
 
-FatDir::FatDir(FatFSPtr device, cstr path) throws : //
-	Directory(path),
-	device(device)
+FatDir::FatDir(RCPtr<FileSystem>fs, cstr path) throws : //
+	Directory(std::move(fs),path)
 {
 	trace(__func__);
+	//assert(dynamic_cast<FatFS*>(this->fs.ptr()));
 
-	FRESULT err = f_opendir(&fatdir, catstr(device->name, ":", path));
+	FRESULT err = f_opendir(&fatdir, catstr(this->fs->name, ":", path));
 	if (err) throw tostr(err);
 }
 
@@ -77,7 +77,7 @@ FilePtr FatDir::openFile(cstr path, FileOpenMode mode)
 	trace(__func__);
 
 	path = makeAbsolutePath(path);
-	return new FatFile(device, path, mode);
+	return new FatFile(static_cast<FatFS*>(fs.ptr()), path, mode);
 }
 
 DirectoryPtr FatDir::openDir(cstr path)
@@ -85,7 +85,7 @@ DirectoryPtr FatDir::openDir(cstr path)
 	trace(__func__);
 
 	path = makeAbsolutePath(path);
-	return new FatDir(device, path);
+	return new FatDir(fs, path);
 }
 
 void FatDir::remove(cstr path)

@@ -86,39 +86,26 @@ FatFS::~FatFS() // dtor
 
 	if (VolumeStr[idx] == name)
 	{
-		FRESULT err = f_mount(nullptr, name, 0); // unmount, unregister buffers
+		FRESULT err = f_mount(nullptr, catstr(name, ":"), 0); // unmount, unregister buffers
 		if (err) logline("unmount error: %s", tostr(err));
 	}
 	VolumeStr[idx] = NoDevice;
 	blkdevs[idx]   = nullptr;
 }
 
-ADDR FatFS::getFree()
+uint64 FatFS::getFree()
 {
 	trace("FatFS::getFree");
 
 	DWORD	num_clusters;
 	FATFS*	fatfsptr = nullptr;
-	FRESULT err		 = f_getfree(name, &num_clusters, &fatfsptr);
+	FRESULT err		 = f_getfree(catstr(name, ":"), &num_clusters, &fatfsptr);
 	if (err) throw tostr(err);
 	assert(fatfsptr == &fatfs);
-	if constexpr (sizeof(ADDR) >= sizeof(FSIZE_t)) return ADDR(num_clusters) * uint(fatfs.csize << 9);
-	uint64 free = uint64(num_clusters) * uint(fatfs.csize << 9);
-	if (free == ADDR(free)) return ADDR(free);
-	debugstr("FatFS: free size exceeds 4GB\n");
-	return 0xffffffffu & ~(uint(fatfs.csize << 9) - 1);
+	return uint64(num_clusters) * uint(fatfs.csize << 9);
 }
 
-ADDR FatFS::getSize()
-{
-	trace("FatFS::getSize");
-
-	if constexpr (sizeof(ADDR) >= sizeof(FSIZE_t)) return ADDR(fatfs.n_fatent - 2) * uint(fatfs.csize << 9);
-	uint64 total_size = ADDR(fatfs.n_fatent - 2) * uint(fatfs.csize << 9);
-	if (total_size == ADDR(total_size)) return ADDR(total_size);
-	debugstr("FatFS: total size exceeds 4GB\n");
-	return 0xffffffffu & ~(uint(fatfs.csize << 9) - 1);
-}
+uint64 FatFS::getSize() { return uint64(fatfs.n_fatent - 2) * uint(fatfs.csize << 9); }
 
 DirectoryPtr FatFS::openDir(cstr path)
 {

@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "FileSystem.h"
 #include "devices_types.h"
 
 namespace kio::Devices
@@ -45,11 +46,13 @@ public:
 	virtual void setFmode(cstr path, FileMode mode, uint8 mask) throws = 0;
 	virtual void setMtime(cstr path, uint32 mtime) throws			   = 0;
 
-	cstr getPath() const noexcept { return path; }
+	cstr		getPath() const noexcept { return path; }
+	FileSystem* getFS() const noexcept { return fs; }
 
 protected:
-	cstr path = nullptr;
-	Directory(cstr path);
+	RCPtr<FileSystem> fs;
+	cstr			  path = nullptr;
+	Directory(RCPtr<FileSystem>, cstr path);
 	cstr makeAbsolutePath(cstr path);
 };
 

@@ -29,10 +29,9 @@ public:
 	virtual void		 setMtime(cstr path, uint32 mtime) override;
 
 private:
-	FatFSPtr device; // keep alive
-	DIR		 fatdir;
+	DIR fatdir;
 
-	FatDir(FatFSPtr device, cstr path) throws;
+	FatDir(RCPtr<FileSystem>, cstr path) throws;
 	friend class FatFS;
 };
 

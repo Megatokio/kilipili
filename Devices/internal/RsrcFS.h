@@ -47,8 +47,8 @@ class RsrcFS final : public FileSystem
 public:
 	RsrcFS(cstr name = "rsrc") throws : FileSystem(name) {}
 
-	virtual ADDR		 getFree() override { return 0; }
-	virtual ADDR		 getSize() override;
+	virtual uint64		 getFree() override { return 0; }
+	virtual uint64		 getSize() override;
 	virtual DirectoryPtr openDir(cstr path) override;
 	virtual FilePtr		 openFile(cstr path, FileOpenMode mode = READ) override;
 };
@@ -69,9 +69,7 @@ public:
 	void setMtime(cstr, uint32) throws override { throw NOT_WRITABLE; }
 
 private:
-	RCPtr<RsrcFS> fs; // keep alive
-	cuptr		  dpos = nullptr;
-
+	cuptr		dpos = nullptr;
 	Array<cstr> subdirs; // so far returned by next()
 
 	friend class RsrcFS;

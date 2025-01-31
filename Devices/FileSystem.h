@@ -106,8 +106,8 @@ public:
 	/*	Get total size and free space.
 		If exact calculation of free space is expensive return a lower limit.
 	*/
-	virtual ADDR getFree() = 0;
-	virtual ADDR getSize() = 0;
+	virtual uint64 getFree() = 0;
+	virtual uint64 getSize() = 0;
 
 	/*	Get and open directory.
 		Get and open regular file.

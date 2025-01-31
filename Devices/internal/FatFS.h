@@ -12,8 +12,8 @@ namespace kio::Devices
 class FatFS : public FileSystem
 {
 public:
-	virtual ADDR		 getFree() override;
-	virtual ADDR		 getSize() override;
+	virtual uint64		 getFree() override;
+	virtual uint64		 getSize() override;
 	virtual DirectoryPtr openDir(cstr path) override;
 	virtual FilePtr		 openFile(cstr path, FileOpenMode flags = READ) override;
 

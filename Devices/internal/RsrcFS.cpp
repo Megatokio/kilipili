@@ -75,7 +75,7 @@ static const uint8* next_direntry(cuptr p, cstr pattern)
 // ***********************************************************************
 // Resource File System
 
-ADDR RsrcFS::getSize()
+uint64 RsrcFS::getSize()
 {
 	// get size of the file system
 
@@ -84,7 +84,7 @@ ADDR RsrcFS::getSize()
 	if (!resource_file_data) return 0;
 	cuptr p = resource_file_data;
 	while (*p) { p = next_entry(p); }
-	return ADDR(p - resource_file_data);
+	return uint(p - resource_file_data);
 }
 
 DirectoryPtr RsrcFS::openDir(cstr path)
@@ -130,8 +130,7 @@ FilePtr RsrcFS::openFile(cstr path, FileOpenMode mode)
 // Resource Directory
 
 RsrcDir::RsrcDir(RCPtr<RsrcFS> fs, cstr path) : //
-	Directory(path),
-	fs(std::move(fs)),
+	Directory(std::move(fs), path),
 	dpos(resource_file_data)
 {}
 

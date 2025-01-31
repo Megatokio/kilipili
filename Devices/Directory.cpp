@@ -10,7 +10,7 @@ namespace kio::Devices
 
 static bool is_absolute_path(cstr path) { return path[0] == '/'; }
 
-Directory::Directory(cstr path)
+Directory::Directory(RCPtr<FileSystem> fs, cstr path) : fs(std::move(fs)), path(nullptr)
 {
 	assert(path);
 	assert(is_absolute_path(path));
