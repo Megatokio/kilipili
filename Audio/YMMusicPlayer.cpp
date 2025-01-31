@@ -198,7 +198,7 @@ int YMMusicPlayer::run() noexcept
 		{
 			// we are playing :-)
 
-			if (paused) return 100 * 1000; // we are not..
+			if (paused) return 100 * 1000; // we are not.. TODO: silence AY
 
 			read_frame(queue[queue.wi]); // throws at eof
 			__dmb();
@@ -343,6 +343,16 @@ int YMMusicPlayer::run() noexcept
 	catch (Error e)
 	{
 		logline("YMMusicPlayer: %s", e);
+		if (bitstream.infile)
+		{
+			bitstream.infile = nullptr; // close file
+			assert(queue.free());
+			QueueData& qd = queue[queue.wi];
+			memcpy(qd.registers, ayRegisterResetValues, sizeof(qd.registers));
+			qd.what = 0;
+			__dmb();
+			queue.wi++;
+		}
 	}
 	catch (...)
 	{
