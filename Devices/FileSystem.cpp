@@ -275,9 +275,12 @@ void setWorkDir(cstr path)
 
 cstr makeAbsolutePath(cstr path)
 {
-	ptr dp = strchr(path, ':');
-	if (dp) return mount(substr(path, dp))->makeAbsolutePath(dp + 1);
-	else if (cwd) return cwd->makeAbsolutePath(path);
+	if (ptr dp = strchr(path, ':'))
+	{
+		FileSystemPtr fs = mount(substr(path, dp));
+		return catstr(fs->name, ":", fs->makeAbsolutePath(dp + 1));
+	}
+	else if (cwd) return catstr(cwd->name, ":", cwd->makeAbsolutePath(path));
 	else throw NO_WORKING_DEVICE;
 }
 
