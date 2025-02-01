@@ -85,7 +85,7 @@ cptr rfind(cstr start, cstr end, char c) noexcept
 {
 	// return pointer to last occurence of c or NULL
 
-	while (end >= start)
+	while (end > start)
 	{
 		if (*--end == c) return end;
 	}
@@ -852,7 +852,7 @@ str toutf8str(cstr qstr)
 		{
 			*z++ = c;
 			continue;
-		}									 // 7-bit ascii
+		} // 7-bit ascii
 		*z++ = char(0xC0 + (uchar(c) >> 6)); // 2-char utf8 code
 		*z++ = char(0x80 + (c & 0x3f));
 	}
