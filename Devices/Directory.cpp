@@ -8,20 +8,11 @@
 namespace kio::Devices
 {
 
-static bool is_absolute_path(cstr path) { return path[0] == '/'; }
-
-Directory::Directory(RCPtr<FileSystem> fs, cstr path) : fs(std::move(fs)), path(nullptr)
+Directory::Directory(RCPtr<FileSystem> fs, cstr full_path) : fs(std::move(fs)), dirpath(nullptr)
 {
-	assert(path);
-	assert(is_absolute_path(path));
-	this->path = newcopy(path);
-}
-
-cstr Directory::makeAbsolutePath(cstr path)
-{
-	assert(path);
-	if (is_absolute_path(path)) return path;
-	else return catstr(this->path, "/", path);
+	assert(full_path);
+	assert(kio::find(full_path, ":/"));
+	this->dirpath = newcopy(full_path);
 }
 
 } // namespace kio::Devices

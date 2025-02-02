@@ -43,7 +43,7 @@ constexpr char UNKNOWN_FILESYSTEM[]	   = "unknown file system";
 constexpr char UNKNOWN_DEVICE[]		   = "unknown device";
 constexpr char DEVICE_IN_USE[]		   = "device in use";
 constexpr char NO_MOUNTPOINT_FREE[]	   = "no mountpoint free";
-constexpr char NO_WORKING_DEVICE[]	   = "no working device";
+constexpr char NO_WORKING_DEVICE[]	   = "no current working device";
 constexpr char NAME_TOO_LONG[]		   = "name too long";
 
 

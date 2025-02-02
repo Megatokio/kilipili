@@ -14,7 +14,7 @@ class FatFS;
 using FatFSPtr = RCPtr<FatFS>;
 
 
-class FatFile : public File
+class FatFile final : public File
 {
 public:
 	~FatFile() noexcept override;

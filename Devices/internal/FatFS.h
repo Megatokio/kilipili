@@ -9,13 +9,20 @@
 namespace kio::Devices
 {
 
-class FatFS : public FileSystem
+class FatFS final : public FileSystem
 {
 public:
 	virtual uint64		 getFree() override;
 	virtual uint64		 getSize() override;
 	virtual DirectoryPtr openDir(cstr path) override;
 	virtual FilePtr		 openFile(cstr path, FileOpenMode flags = READ) override;
+
+	virtual FileType getFileType(cstr path) noexcept override;
+	virtual void	 makeDir(cstr path) throws override;
+	virtual void	 remove(cstr path) throws override;
+	virtual void	 rename(cstr path, cstr name) throws override;
+	virtual void	 setFmode(cstr path, FileMode mode, uint8 mask) throws override;
+	virtual void	 setMtime(cstr path, uint32 mtime) throws override;
 
 private:
 	FATFS fatfs;

@@ -153,7 +153,7 @@ FileSystemPtr mount(cstr devicename) throws
 	throw UNKNOWN_DEVICE;
 }
 
-void unmount(FileSystemPtr fs)
+void unmount(FileSystem* fs)
 {
 	if (fs == cwd) cwd = nullptr;
 }
@@ -170,67 +170,165 @@ void unmountAll()
 		}
 }
 
-static cstr makeCanonicalPath(cstr path)
+static cptr find_dp(cstr p) noexcept
 {
-	// eliminate "//", "/." and "/.."
+	while (is_alphanumeric(*p)) p++;
+	return *p == ':' ? p : nullptr;
+}
 
-	for (int i = 0; path[i] != 0; i++)
+bool is_canonical_fullpath(cstr path, FileSystem* fs = nullptr) noexcept
+{
+	// check whether path is a canonical full path
+	// and whether it refers to the FileSystem fs, if supplied.
+
+	cptr dp = find_dp(path);
+	if (!dp) return false;							 // no dev
+	if (dp >= path + sizeof(fs->name)) return false; // ill. dev name
+	if (dp[1] != '/') return false;					 // no absolute path
+
+	if (fs) // compare fs name:
+		for (cptr p = path, q = fs->name;; p++, q++)
+			if (to_lower(*p) != to_lower(*q)) return *p != ':' || *q != 0;
+
+	if (dp[2] == 0) return true; // odd man out: "dev:/" ends with '/'
+
+	for (cptr p = dp + 1;; p++) // check whether canonical:
 	{
-		if (path[i] != '/') continue;
-		else if (path[i + 1] == '/') path = catstr(substr(path, path + i), path + i + 1);
-		else if (path[i + 1] != '.') continue;
-		else if (path[i + 2] == 0) return i == 0 ? "/" : substr(path, path + i);
-		else if (path[i + 2] == '/') path = catstr(substr(path, path + i), path + i + 2);
-		else if (path[i + 2] != '.') continue;
-		if (path[i + 3] == 0)
-		{
-			if (i == 0) return "/";
-			while (path[--i] != '/') {}
-			return i == 0 ? "/" : substr(path, path + i);
-		}
-		else if (path[i + 3] != '/') continue;
-		else if (i == 0) path = path + 3;
+		if (*p == 0) return true;
+		if (*p == '/' && (p[1] == '/' || p[1] == '.' || p[1] == 0)) return false;
+	}
+}
+
+static cstr make_fullpath(cstr path, FileSystem* fs)
+{
+	// make canonical full absolute path
+	// the path or device are not tested and may be void
+
+	// prepend device and workdir
+	// eliminate "//", "/.", "/.." and trailing '/'
+
+	// fs != nullptr <=> called from this fs
+	//	 use fs->name instead of device from path, if present (but should be same)
+	//	 use fs->workdir for relative path
+	// fs == nullptr <=> called from a global scope
+	//	 use cwd->name if no device in path
+	//	 use cwd->workdir for relative path
+
+	// in:
+	//   "dev:/abs_path/to/dir/or/file"
+	//   "dev:rel_path/to/dir/or/file"
+	//   "dev:/"	= root dir of device
+	//   "dev:" 	= workdir dir of device
+	//   "/abs_path/to/dir/or/file"
+	//   "rel_path/to/dir/or/file"
+	//   "/"		= root dir of current device
+	//   "" 		= workdir dir of current device
+
+	// out:
+	//	"dev:/abs_path/to/dir/or/file"
+	//	"dev:/"		= exception: root dir path ends on '/'
+
+	trace("FS::makeFullPath");
+	assert(path);
+
+	if (is_canonical_fullpath(path, fs)) return path;
+
+	if (!fs) fs = cwd;
+	cptr dp = find_dp(path);
+	if (!dp && !fs) throw NO_WORKING_DEVICE;
+	ptr z;
+
+	// prepend device and cwd
+	// append '/' to simpify tests:
+	if (dp)
+	{
+		if (dp[1] == '/') z = catstr(path, "/");
 		else
 		{
-			int j = i;
-			while (path[--i] != '/') {}
-			path = catstr(substr(path, path + i), path + j + 3);
+			cstr dev = substr(path, dp);
+			int	 i	 = index_of(dev);
+			if (i < 0) z = catstr(dev, ":/", dp + 1, "/");
+			else if (cstr wd = file_systems[i]->workdir) z = catstr(wd, "/", dp + 1, "/");
+			else z = catstr(file_systems[i]->name, ":/", dp + 1, "/");
 		}
-		i--;
 	}
-	return path[0] != 0 ? path : "/";
+	else // no dp:
+	{
+		if (path[0] == '/') z = catstr(fs->name, ":", path, "/");
+		else if (fs->workdir) z = catstr(fs->workdir, "/", path, "/");
+		else z = catstr(fs->name, ":/", path, "/");
+	}
+
+	cptr q = z;
+	path   = z;
+
+	// eliminate "//", "/.", "/.."
+	while (*q)
+	{
+		if (*q == '/')
+		{
+			if (q[1] == '/') // "//"
+			{
+				q++;
+				continue;
+			}
+			if (q[1] == '.' && q[2] == '/') // "/."
+			{
+				q += 2;
+				continue;
+			}
+			if (q[1] == '.' && q[2] == '.' && q[3] == '/') // "/.."
+			{
+				q += 3;
+				if (z[-1] == ':') continue; // "dev:/../"
+				while (*--z != '/') {}		// "dev:/dir/../"
+				continue;
+			}
+		}
+
+		*z++ = *q++;
+	}
+
+	assert(z[-1] == '/');
+
+	if (z[-2] != ':') z--;
+	*z = 0;
+	return path;
+}
+
+cstr makeFullPath(cstr path)
+{
+	// make canonical full absolute path
+	// the path or device are not tested and may be void
+
+	return make_fullpath(path, nullptr);
 }
 
 DirectoryPtr openDir(cstr path) throws
 {
-	trace("FS::openDir");
+	trace("openDir");
 
-	ptr dp = strchr(path, ':');
-	if (!dp)
-	{
-		if (cwd) return cwd->openDir(path);
-		else throw NO_WORKING_DEVICE;
-	}
-
-	cstr devname = substr(path, dp);
-	return mount(devname)->openDir(dp + 1);
+	cptr dp = find_dp(path);
+	if (dp) return mount(substr(path, dp))->openDir(path);
+	else if (cwd) return cwd->openDir(path);
+	else throw NO_WORKING_DEVICE;
 }
 
 FilePtr openFile(cstr path, FileOpenMode flags) throws
 {
-	trace("FS::openFile");
+	trace("openFile");
 
-	ptr dp = strchr(path, ':');
-	if (!dp)
-	{
-		if (cwd) return cwd->openFile(path);
-		else throw NO_WORKING_DEVICE;
-	}
-
-	cstr devname = substr(path, dp);
-	return mount(devname)->openFile(dp + 1, flags);
+	cptr dp = find_dp(path);
+	if (dp) return mount(substr(path, dp))->openFile(path, flags);
+	else if (cwd) return cwd->openFile(path);
+	else throw NO_WORKING_DEVICE;
 }
 
+FileSystemPtr getDevice(cstr name)
+{
+	int i = index_of(name);
+	return i >= 0 ? file_systems[i] : nullptr;
+}
 
 FileSystemPtr getWorkDevice()
 {
@@ -242,46 +340,55 @@ void setWorkDevice(FileSystemPtr fs)
 	cwd = std::move(fs); //
 }
 
-FileSystemPtr getDevice(cstr name)
-{
-	int i = index_of(name);
-	return i >= 0 ? file_systems[i] : nullptr;
-}
-
 cstr getWorkDir()
 {
-	trace("getWorkDir");
-
-	// "A:/", "A:/foo"
-	return cwd ? catstr(cwd->name, ":", cwd->getWorkDir()) : nullptr;
+	return cwd ? cwd->getWorkDir() : nullptr; //
 }
 
 void setWorkDir(cstr path)
 {
-	trace("setWorkDir");
-
 	// "A:", "A:/foo", "A:foo", "/foo", "foo"
-	if (!path || !*path) return;
 
-	if (ptr dp = strchr(path, ':'))
-	{
-		cwd	 = mount(substr(path, dp));
-		path = dp + 1;
-	}
+	trace("setWorkDir");
+	assert(path);
 
+	cptr dp = find_dp(path);
+	if (dp) cwd = mount(substr(path, dp));
 	if (cwd) cwd->setWorkDir(path);
 	else throw NO_WORKING_DEVICE;
 }
 
-cstr makeAbsolutePath(cstr path)
+FileType getFileType(cstr path) noexcept
 {
-	if (ptr dp = strchr(path, ':'))
-	{
-		FileSystemPtr fs = mount(substr(path, dp));
-		return catstr(fs->name, ":", fs->makeAbsolutePath(dp + 1));
-	}
-	else if (cwd) return catstr(cwd->name, ":", cwd->makeAbsolutePath(path));
-	else throw NO_WORKING_DEVICE;
+	trace("getFileType");
+	assert(path);
+
+	cptr dp = find_dp(path);
+	if (!dp && !cwd) return FileType::NoFile;
+	FileSystemPtr fs = dp ? mount(substr(path, dp)) : cwd;
+	return fs->getFileType(path);
+}
+
+void remove(cstr path) throws
+{
+	trace("remove");
+	assert(path);
+
+	cptr dp = find_dp(path);
+	if (!dp && !cwd) throw NO_WORKING_DEVICE;
+	FileSystemPtr fs = dp ? mount(substr(path, dp)) : cwd;
+	fs->remove(path);
+}
+
+void makeDir(cstr path) throws
+{
+	trace("makeDir");
+	assert(path);
+
+	cptr dp = find_dp(path);
+	if (!dp && !cwd) throw NO_WORKING_DEVICE;
+	FileSystemPtr fs = dp ? mount(substr(path, dp)) : cwd;
+	fs->makeDir(path);
 }
 
 
@@ -290,8 +397,9 @@ cstr makeAbsolutePath(cstr path)
 FileSystem::FileSystem(cstr devname) throws // ctor
 {
 	trace("FS::ctor");
+	assert(devname);
 
-	if (strlen(devname) + 1 >= sizeof(name)) throw NAME_TOO_LONG;
+	if (strlen(devname) >= sizeof(name)) throw NAME_TOO_LONG;
 	strcpy(name, devname);
 
 	int idx = index_of(devname);
@@ -313,27 +421,27 @@ FileSystem::~FileSystem() noexcept
 	if (idx >= 0) file_systems[idx] = nullptr;
 }
 
-cstr FileSystem::makeAbsolutePath(cstr path)
+cstr FileSystem::makeFullPath(cstr path)
 {
-	trace("FS::makeAbsolutePath");
+	return make_fullpath(path, this); //
+}
 
-	if (path[0] == '/') return makeCanonicalPath(path);
-	if (path[0] == 0) return getWorkDir();
-	return makeCanonicalPath(catstr(getWorkDir(), "/", path));
+cstr FileSystem::getWorkDir() const noexcept
+{
+	return workdir ? workdir : catstr(name, ":/"); //
 }
 
 void FileSystem::setWorkDir(cstr path)
 {
 	trace("FS::setWorkDir");
 
-	path = makeAbsolutePath(path);
-	(void)openDir(path); // does it mount?
+	path = make_fullpath(path, this);
+	if (!isaDirectory(path)) throw DIRECTORY_NOT_FOUND;
 
 	delete[] workdir;
 	workdir = nullptr;
 	workdir = newcopy(path);
 }
-
 
 } // namespace kio::Devices
 
