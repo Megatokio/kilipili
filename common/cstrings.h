@@ -33,6 +33,7 @@ inline constexpr bool is_bin_digit(char c) noexcept;
 inline constexpr bool is_oct_digit(char c) noexcept;
 inline constexpr bool is_decimal_digit(int c) noexcept;
 inline constexpr bool is_hex_digit(char c) noexcept;
+inline constexpr bool is_alphanumeric(char c) noexcept { return is_letter(c) || is_decimal_digit(c); }
 
 inline constexpr bool no_bin_digit(char c) noexcept;
 inline constexpr bool no_oct_digit(char c) noexcept;
@@ -131,9 +132,9 @@ extern str hexstr(uint64 n, uint len);
 
 // this is a PITA:
 #define str_if_Tle4 \
-  typename std::enable_if<(std::is_integral<T>::value || std::is_enum<T>::value) && sizeof(T) <= 4, str>::type
+	typename std::enable_if<(std::is_integral<T>::value || std::is_enum<T>::value) && sizeof(T) <= 4, str>::type
 #define str_if_Tgt4 \
-  typename std::enable_if<(std::is_integral<T>::value || std::is_enum<T>::value) && 4 < sizeof(T), str>::type
+	typename std::enable_if<(std::is_integral<T>::value || std::is_enum<T>::value) && 4 < sizeof(T), str>::type
 
 template<typename T>
 inline str_if_Tle4 binstr(T n, cstr b0 = "00000000", cstr b1 = "11111111");
