@@ -40,8 +40,9 @@ FatFile::FatFile(FatFSPtr device, cstr path, FileOpenMode mode) : //
 	device(device)
 {
 	trace(__func__);
+	assert(kio::find(path, ":/"));
 
-	FRESULT err = f_open(&fatfile, catstr(device->name, ":", path), fatFS_mode_for_File_mode(mode));
+	FRESULT err = f_open(&fatfile, path, fatFS_mode_for_File_mode(mode));
 	if (err) throw tostr(err);
 }
 

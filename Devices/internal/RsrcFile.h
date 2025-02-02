@@ -14,7 +14,7 @@ namespace kio::Devices
 	compressed files are wrapped in a HeatShrinkDecoder by the RsrcFS,
 	so you always get the uncompressed data.
 */
-class RsrcFile : public File
+class RsrcFile final : public File
 {
 public:
 	~RsrcFile() noexcept override = default;

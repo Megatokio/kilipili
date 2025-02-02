@@ -315,7 +315,7 @@ int YMMusicPlayer::run() noexcept
 			Devices::FileInfo finfo = ymmusic_dir->next("*.ymm");
 			if (finfo)
 			{
-				next_file = newcopy(catstr(ymmusic_dir->getPath(), "/", finfo.fname)); //
+				next_file = newcopy(catstr(ymmusic_dir->getFullPath(), "/", finfo.fname)); //
 			}
 			else if (repeat_dir && next_dir == nullptr)
 			{
@@ -365,14 +365,14 @@ int YMMusicPlayer::run() noexcept
 void YMMusicPlayer::play(cstr fpath)
 {
 	delete[] next_file;
-	next_file = newcopy(Devices::makeAbsolutePath(fpath));
+	next_file = newcopy(Devices::makeFullPath(fpath));
 	debugstr("play file: %s\n", next_file);
 }
 
 void YMMusicPlayer::playDirectory(cstr dpath)
 {
 	delete[] next_dir;
-	next_dir = newcopy(Devices::makeAbsolutePath(dpath));
+	next_dir = newcopy(Devices::makeFullPath(dpath));
 	debugstr("play dir: %s\n", next_dir);
 }
 

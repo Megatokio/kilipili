@@ -92,9 +92,11 @@ DirectoryPtr RsrcFS::openDir(cstr path)
 	trace(__func__);
 	assert(path);
 
-	path		 = makeAbsolutePath(path);
-	cstr pattern = eq(path, "/") ? "*" : catstr(path + 1, "/*");
-	if (next_direntry(resource_file_data, pattern)) return new RsrcDir(this, path);
+	cstr full_path = makeFullPath(path);
+
+	path		 = strchr(full_path, ':') + 2;
+	cstr pattern = *path == 0 ? "*" : catstr(path, "/*");
+	if (next_direntry(resource_file_data, pattern)) return new RsrcDir(this, full_path);
 	else throw DIRECTORY_NOT_FOUND;
 }
 
@@ -115,9 +117,9 @@ FilePtr RsrcFS::openFile(cstr path, FileOpenMode mode)
 	trace(__func__);
 	assert(path);
 
-	path = makeAbsolutePath(path);
+	path = strchr(makeFullPath(path), ':') + 2;
 	if (mode & ~READ) throw NOT_WRITABLE;
-	cuint8* p = next_direntry(resource_file_data, path + 1);
+	cuint8* p = next_direntry(resource_file_data, path);
 	if (!p) throw FILE_NOT_FOUND;
 
 	p = skip(p);
@@ -125,12 +127,24 @@ FilePtr RsrcFS::openFile(cstr path, FileOpenMode mode)
 	else return new RsrcFile(p + 4, usize(p));												  // uncompressed
 }
 
+FileType RsrcFS::getFileType(cstr path) noexcept
+{
+	trace(__func__);
+	assert(path);
+
+	path = strchr(makeFullPath(path), ':') + 2;
+	if (*path == 0) return FileType::DirectoryFile; // root dir
+	if (next_direntry(resource_file_data, path)) return FileType::RegularFile;
+	if (next_direntry(resource_file_data, catstr(path, "/*"))) return FileType::DirectoryFile;
+	else return FileType::NoFile;
+}
+
 
 // ***********************************************************************
 // Resource Directory
 
-RsrcDir::RsrcDir(RCPtr<RsrcFS> fs, cstr path) : //
-	Directory(std::move(fs), path),
+RsrcDir::RsrcDir(RCPtr<RsrcFS> fs, cstr full_path) : //
+	Directory(std::move(fs), full_path),
 	dpos(resource_file_data)
 {}
 
@@ -141,39 +155,17 @@ void RsrcDir::rewind() throws
 	subdirs.purge();
 }
 
-
-bool is_in_ram(const void* p) { return uint32(p) >= SRAM_STRIPED_BASE && uint32(p) < SRAM_STRIPED_END; }
-bool is_in_flash(const void* p) { return uint32(p) >= XIP_BASE && uint32(p) < XIP_BASE + PICO_FLASH_SIZE_BYTES; }
-
-void dump_memory(cstr title, cptr p, uint sz)
-{
-	printf("%s\n", title);
-	for (uint i = 0; i < sz; i += 32)
-	{
-		printf("0x%08x: ", uint32(p));
-		for (uint j = i; j < i + 32; j++) printf("%02x ", p[j]);
-		for (uint j = i; j < i + 32; j++) printf("%c", is_printable(p[j]) ? p[j] : '_');
-		printf("\n");
-	}
-}
-
 bool RsrcDir::is_in_subdirs(cstr path, cptr sep)
 {
 	trace(__func__);
 	assert(path);
 	assert(sep);
-	assert(is_in_ram(path) || is_in_flash(path));
 
 	uint len = uint(sep - path) + 1;
 	assert(len <= 256);
-	assert(is_in_ram(subdirs.getData()) || (subdirs.count() == 0 && subdirs.getData() == nullptr));
 
 	for (uint i = 0; i < subdirs.count(); i++)
 	{
-		if (!is_in_flash(subdirs[i]))
-			dump_memory(usingstr("subdirs.data[%u]", subdirs.count()), cptr(subdirs.getData()), 256);
-
-		assert(is_in_flash(subdirs[i]));
 		if (memcmp(path, subdirs[i], len) == 0) return true;
 	}
 	return false;
@@ -182,9 +174,11 @@ bool RsrcDir::is_in_subdirs(cstr path, cptr sep)
 FileInfo RsrcDir::next(cstr pattern) throws
 {
 	trace(__func__);
-	assert(path && path[0] == '/');
 
-	uint					  dpathlen = strlen(path) - 1;
+	cstr path = strchr(dirpath, ':') + 2;
+	assert(path);
+
+	uint					  dpathlen = strlen(path);
 	static constexpr DateTime notime; // all-zero
 
 	// subdirs are returned when next() encounters the first file which establishes the subdir.
@@ -198,7 +192,7 @@ FileInfo RsrcDir::next(cstr pattern) throws
 		if (dpathlen) // we are a subdir
 		{
 			if (dpos[dpathlen] != '/') continue;
-			if (memcmp(path + 1, dpos, dpathlen)) continue;
+			if (memcmp(path, dpos, dpathlen)) continue;
 			dpos += 1 + dpathlen; // this is a nice trick! :-)
 		}
 
@@ -216,23 +210,6 @@ FileInfo RsrcDir::next(cstr pattern) throws
 	}
 	return FileInfo(nullptr, 0, notime, NoFile, WriteProtected);
 }
-
-FilePtr RsrcDir::openFile(cstr fpath, FileOpenMode fmode) throws
-{
-	trace(__func__);
-
-	fpath = makeAbsolutePath(fpath);
-	return fs->openFile(fpath, fmode);
-}
-
-DirectoryPtr RsrcDir::openDir(cstr dpath) throws
-{
-	trace(__func__);
-
-	dpath = makeAbsolutePath(dpath);
-	return fs->openDir(dpath);
-}
-
 
 } // namespace kio::Devices
 

@@ -12,17 +12,15 @@ namespace kio::Devices
 
 /*
 	A Directory represents a directory file on the FileSystem.
-	It provides methods
-	- to create, delete and open files and nested directories
-	- iterate over files in directory
-	- get and manipulate meta data
+	It provides methods to iterate over files in the directory.
+	For convenience it also stores the full path to the directory.
 */
 class Directory : public RCObject
 {
 public:
 	Id("Directory");
 
-	virtual ~Directory() noexcept override { delete[] path; }
+	virtual ~Directory() noexcept override { delete[] dirpath; }
 
 	/* ————————————————————————————————————————
 		Iterate over directory entries:
@@ -31,29 +29,14 @@ public:
 	virtual FileInfo next(cstr pattern = nullptr) throws = 0; // next file in dir
 	FileInfo		 find(cstr pattern = nullptr) throws;	  // rewind & return first
 
-	/* ————————————————————————————————————————
-		Create, delete and open files and directories:
-	*/
-	virtual FilePtr		 openFile(cstr path, FileOpenMode mode = READ) throws = 0;
-	virtual DirectoryPtr openDir(cstr path) throws							  = 0;
-	virtual void		 remove(cstr path) throws							  = 0;
-	virtual void		 makeDir(cstr path) throws							  = 0;
-
-	/* ————————————————————————————————————————
-		Get and manipulate meta data:
-	*/
-	virtual void rename(cstr path, cstr name) throws				   = 0;
-	virtual void setFmode(cstr path, FileMode mode, uint8 mask) throws = 0;
-	virtual void setMtime(cstr path, uint32 mtime) throws			   = 0;
-
-	cstr		getPath() const noexcept { return path; }
+	cstr		getFullPath() const noexcept { return dirpath; } // "dev:/path/to/dir"
 	FileSystem* getFS() const noexcept { return fs; }
 
 protected:
+	Directory(RCPtr<FileSystem>, cstr full_path);
+
 	RCPtr<FileSystem> fs;
-	cstr			  path = nullptr;
-	Directory(RCPtr<FileSystem>, cstr path);
-	cstr makeAbsolutePath(cstr path);
+	cstr			  dirpath = nullptr; // full path
 };
 
 

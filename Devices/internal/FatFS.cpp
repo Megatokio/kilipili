@@ -28,7 +28,7 @@ static const cstr ff_errors[] = {
 	/*  FR_NO_PATH,				*/ kio::Devices::DIRECTORY_NOT_FOUND,
 	/*  FR_INVALID_NAME,		*/ "The path name format is invalid",
 	/*  FR_DENIED,				*/ "Access denied due to prohibited access or directory full",
-	/*  FR_EXIST,				*/ "Access denied due to prohibited access",
+	/*  FR_EXIST,				*/ "An object with the same name already exists",
 	/*  FR_INVALID_OBJECT,		*/ "The file/directory object is invalid",
 	/*  FR_WRITE_PROTECTED,		*/ "The physical drive is write protected",
 	/*  FR_INVALID_DRIVE,		*/ "The logical drive number is invalid",
@@ -73,7 +73,7 @@ FatFS::FatFS(cstr name, BlockDevicePtr bdev) throws : // ctor
 
 	blkdevs[idx]   = bdev;
 	VolumeStr[idx] = this->name;
-	if (FRESULT err = f_mount(&fatfs, catstr(name, ":"), 1 /*mount now*/))
+	if (FRESULT err = f_mount(&fatfs, catstr(name, ":"), 1 /*mount now*/)) // TODO use "0:"
 	{
 		VolumeStr[idx] = NoDevice; // dtor not called
 		blkdevs[idx]   = nullptr;  // if we throw!
@@ -91,7 +91,7 @@ FatFS::~FatFS() // dtor
 
 	if (VolumeStr[idx] == name)
 	{
-		FRESULT err = f_mount(nullptr, catstr(name, ":"), 0); // unmount, unregister buffers
+		FRESULT err = f_mount(nullptr, catstr(name, ":"), 0); // unmount, unregister buffers // TODO use "0:"
 		if (err) logline("unmount error: %s", tostr(err));
 	}
 	VolumeStr[idx] = NoDevice;
@@ -104,7 +104,7 @@ uint64 FatFS::getFree()
 
 	DWORD	num_clusters;
 	FATFS*	fatfsptr = nullptr;
-	FRESULT err		 = f_getfree(catstr(name, ":"), &num_clusters, &fatfsptr);
+	FRESULT err		 = f_getfree(catstr(name, ":"), &num_clusters, &fatfsptr); // TODO use "0:"
 	if (err) throw tostr(err);
 	assert(fatfsptr == &fatfs);
 	return uint64(num_clusters) * uint(fatfs.csize << ss);
@@ -120,7 +120,7 @@ DirectoryPtr FatFS::openDir(cstr path)
 {
 	trace("FatFS::openDir");
 
-	path = makeAbsolutePath(path);
+	path = makeFullPath(path);
 	return new FatDir(this, path);
 }
 
@@ -128,9 +128,101 @@ FilePtr FatFS::openFile(cstr path, FileOpenMode flags)
 {
 	trace("FatFS::openFile");
 
-	path = makeAbsolutePath(path);
+	path = makeFullPath(path);
 	return new FatFile(this, path, flags);
 }
+
+FileType FatFS::getFileType(cstr path) noexcept
+{
+	trace("FatFS::getFileType");
+
+	path = makeFullPath(path);
+	if (strchr(path, ':')[2] == 0) return DirectoryFile; // f_stat doesn't work for the root dir
+
+	FILINFO finfo;
+	FRESULT err = f_stat(path, &finfo);
+	return err ? NoFile : finfo.fattrib == AM_DIR ? DirectoryFile : RegularFile;
+}
+
+void FatFS::makeDir(cstr path) throws
+{
+	trace("FatFS::makeDir");
+
+	FRESULT err = f_mkdir(makeFullPath(path));
+	if (err == FR_EXIST)
+	{
+		FILINFO finfo;
+		FRESULT err2 = f_stat(path, &finfo);
+		if (err2 == FR_OK && finfo.fattrib == AM_DIR) return;
+	}
+	if (err) throw tostr(err);
+}
+
+void FatFS::remove(cstr path) throws
+{
+	FRESULT err = f_unlink(makeFullPath(path));
+	if (err) throw tostr(err);
+}
+
+void FatFS::rename(cstr path, cstr name) throws
+{
+	trace(__func__);
+
+	FRESULT err = f_rename(makeFullPath(path), name);
+	if (err) throw tostr(err);
+}
+
+void FatFS::setFmode(cstr path, FileMode fmode, uint8 mask) throws
+{
+	trace(__func__);
+	if constexpr (!FF_USE_CHMOD) throw "option disabled";
+
+	FRESULT err = f_chmod(makeFullPath(path), fmode, mask);
+	if (err) throw tostr(err);
+}
+
+void FatFS::setMtime(cstr path, uint32 mtime) throws
+{
+	trace(__func__);
+
+	if constexpr (!FF_USE_CHMOD) throw "option disabled";
+
+	FILINFO				   info;
+	static constexpr uint8 dpm[12] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+	uint days = mtime / (24 * 60 * 60);
+
+	mtime -= days * (24 * 60 * 60);
+	uint s = mtime % 60;
+	mtime /= 60;
+	uint m = mtime % 60;
+	mtime /= 60;
+	uint h	   = mtime;
+	info.ftime = uint16(h * 2048 | m * 32 | s / 2);
+
+	days -= 365 * 10 + 2; // base(1970) -> base(1980)
+
+	uint y = days / (4 * 365 + 1);
+	days -= y * (4 * 365 + 1);
+
+	if (days >= 366) days -= 1;
+	y += days / 365;
+	days = days % 365;
+
+	uint mo = 0;
+	if (y % 4 != 0 && days >= 31 + 28) days++;
+	while (days >= dpm[mo])
+	{
+		days -= dpm[mo];
+		mo += 1;
+	}
+
+	info.fdate = uint16(y * 512 | (mo + 1) * 32 | (days + 1));
+
+	FRESULT err = f_utime(makeFullPath(path), &info);
+	if (err) throw tostr(err);
+}
+
 
 void FatFS::mkfs(BlockDevice* blkdev, int idx, cstr /*type*/)
 {

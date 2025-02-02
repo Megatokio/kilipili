@@ -51,29 +51,28 @@ public:
 	virtual uint64		 getSize() override;
 	virtual DirectoryPtr openDir(cstr path) override;
 	virtual FilePtr		 openFile(cstr path, FileOpenMode mode = READ) override;
+
+	virtual FileType getFileType(cstr path) noexcept override;
+	virtual void	 makeDir(cstr) throws override { throw NOT_WRITABLE; }
+	virtual void	 remove(cstr) throws override { throw NOT_WRITABLE; }
+	virtual void	 rename(cstr, cstr) throws override { throw NOT_WRITABLE; }
+	virtual void	 setFmode(cstr, FileMode, uint8) throws override { throw NOT_WRITABLE; }
+	virtual void	 setMtime(cstr, uint32) throws override { throw NOT_WRITABLE; }
 };
 
 
-class RsrcDir : public Directory
+class RsrcDir final : public Directory
 {
 public:
-	virtual void		 rewind() throws override;
-	virtual FileInfo	 next(cstr pattern = nullptr) throws override;
-	virtual FilePtr		 openFile(cstr path, FileOpenMode mode = READ) throws override;
-	virtual DirectoryPtr openDir(cstr path) throws override;
-
-	void remove(cstr) throws override { throw NOT_WRITABLE; }
-	void makeDir(cstr) throws override { throw NOT_WRITABLE; }
-	void rename(cstr, cstr) throws override { throw NOT_WRITABLE; }
-	void setFmode(cstr, FileMode, uint8) throws override { throw NOT_WRITABLE; }
-	void setMtime(cstr, uint32) throws override { throw NOT_WRITABLE; }
+	virtual void	 rewind() throws override;
+	virtual FileInfo next(cstr pattern = nullptr) throws override;
 
 private:
 	cuptr		dpos = nullptr;
 	Array<cstr> subdirs; // so far returned by next()
 
 	friend class RsrcFS;
-	RsrcDir(RCPtr<RsrcFS> fs, cstr path);
+	RsrcDir(RCPtr<RsrcFS> fs, cstr full_path);
 	bool is_in_subdirs(cstr path, cptr sep);
 };
 
