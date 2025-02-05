@@ -19,7 +19,11 @@ extern uint			   cc_per_us;			// cpu clock cycles per microsecond
 extern volatile bool   in_vblank;			// set while in vblank (set and reset ~2 scanlines early)
 extern volatile int	   line_at_frame_start; // rolling line number at start of current frame
 extern volatile uint32 time_us_at_frame_start;
+extern volatile uint32 time_cc_at_frame_start;
 extern volatile int	   current_frame;
+
+extern uint32 time_cc_32() noexcept; // equivalent to time_us_32() but for cpu clock cycles
+
 
 /** get currently displayed line number.
 	can be less than 0 (-1 or -2) immediately before frame start.

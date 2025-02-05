@@ -122,9 +122,7 @@ private:
 
 	void core1_runner() noexcept;
 	void video_runner();
-
-	void		wait_while_lockout() noexcept;
-	static void poll_isr(volatile bool&) noexcept;
+	void call_vblank_actions() noexcept;
 };
 
 

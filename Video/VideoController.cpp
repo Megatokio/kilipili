@@ -144,22 +144,12 @@ void VideoController::stopVideo() noexcept
 	onetime_action = nullptr; // if planes were added but the VideoController was never started
 }
 
-void __noinline __not_in_flash("wait_while_lockout") VideoController::poll_isr(volatile bool& lockout) noexcept
+static void __noinline RAM poll_isr(volatile bool& lockout) noexcept
 {
 	while (lockout) { __wfe(); }
 }
 
-void __noinline VideoController::wait_while_lockout() noexcept
-{
-	locked_out = true;
-	__sev();
-	poll_isr(lockout_requested);
-	locked_out = false;
-	__sev();
-}
-
-__attribute((noreturn)) //
-void VideoController::core1_runner() noexcept
+void __noreturn VideoController::core1_runner() noexcept
 {
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
@@ -174,7 +164,14 @@ void VideoController::core1_runner() noexcept
 		while (true)
 		{
 			wfe();
-			if (lockout_requested) wait_while_lockout();
+			if (lockout_requested)
+			{
+				locked_out = true;
+				__sev();
+				poll_isr(lockout_requested);
+				locked_out = false;
+				__sev();
+			}
 
 			if (requested_state == RUNNING)
 			{
@@ -215,71 +212,106 @@ void VideoController::core1_runner() noexcept
 	}
 }
 
+__noinline void VideoController::call_vblank_actions() noexcept
+{
+	if (onetime_action)
+	{
+		onetime_action();
+		onetime_action = nullptr;
+		__sev();
+	}
+
+	if (vblank_action) { vblank_action(); }
+}
+
 void RAM VideoController::video_runner()
 {
 	trace(__func__);
 
-	int row0 = line_at_frame_start;
+	// before rendering scanline `row` we must wait until the video backend no longer displays from
+	// scanline_buffer[row]
+	// time_cc_32() is 0..cc_per_us cc too low: we need the lower limit though actual cc may be higher
+	//			- the calculation adds some delay	 => 50cc
+	//			- more delay until the first scanline_renderer() stores it's first pixel => 50cc
+	// the pixel dma reads the last data 18 pixels before the end of in-screen area
+	//			=> (vga.width-18) * cc_per_pixel
+	//			but for half size modes scanlines are repeated and we must wait for the last repetition
+	//			=> cc_per_scanline - (px_per_hsync+18) * cc_per_px
+	//			=> cc_per_scanline - ((vga.h_total-vga.width)+18) * cc_per_px
 
-	// note: call_vblank_actions() esp. planes[i]->vblank()
-	// is guaranteed to be called before first call to planes[i]->renderScanline()
+	uint32 cc_max_ahead =												//
+		(scanline_buffer.count - 1) * cc_per_scanline					//
+		+ ((vga_mode.h_total() - vga_mode.h_active()) + 18) * cc_per_px //
+		+ 50 + 50;
+a:
+	int	   row0				= line_at_frame_start; // rolling number
+	uint32 cc_at_line_start = time_cc_at_frame_start + uint(vga_mode.height) * cc_per_scanline - cc_max_ahead;
+	if (row0 != line_at_frame_start) goto a;
 
-	for (int row = vga_mode.height; requested_state == RUNNING; row++)
+
+	// note: VideoPlane::vblank() is guaranteed to be called before VideoPlane::renderScanline()
+
+	for (int row = vga_mode.height; requested_state == RUNNING; row++, cc_at_line_start += cc_per_scanline)
 	{
 		if unlikely (row0 != line_at_frame_start)
 		{
 			int missed = vga_mode.height - row;
-			row		   = vga_mode.height;
 			scanlines_missed += uint(missed);
+			cc_at_line_start += uint(missed) * cc_per_scanline;
+			row += missed;
 		}
 
 		if unlikely (row >= vga_mode.height) // next frame
 		{
-			if unlikely (lockout_requested) wait_while_lockout();
+			if (!locked_out) call_vblank_actions(); // in rom: only if !lockout
 
-			if (onetime_action)
+			for (uint i = 0; i < num_planes; i++)
 			{
-				onetime_action();
-				onetime_action = nullptr;
+				planes[i]->vblank(locked_out); //
+			}
+
+			// the pixel dma starts reading the first pixels of a scanline
+			// (8+1)*2 = 18 pixels before the end of the previous line
+			// => if the 1st pixels of the 1st line of the next frame are not rendered
+			//	  before the last 18 pixels of the last line of the current frame are displayed,
+			//	  then the dma reads 18 not-yet-rendered pixels for the first line before it
+			//	  is blocked by the pio.
+			//    to avoid this (if vblank actions finish quickly) we render the first line immediately.
+			// this is a minor glitch and we could ignore this and save some space if we don't bother.
+
+			row0 += vga_mode.height;
+
+			while (int(time_cc_32() - cc_at_line_start) < 0) {}
+			for (uint i = 0; i < num_planes; i++)
+			{
+				planes[i]->render(0, scanline_buffer[row0], locked_out); //
+			}
+
+			cc_at_line_start -= uint(row) * cc_per_scanline;
+			cc_at_line_start += cc_per_frame + cc_per_scanline;
+			row = 1;
+		}
+
+		// if constexpr (VIDEO_RECOVERY_PER_LINE)
+		//	 if unlikely (csl >= row) { scanlines_missed++; continue; }
+
+		while (int(time_cc_32() - cc_at_line_start) < 0)
+		{
+			idle_start();
+
+			if (lockout_requested != locked_out)
+			{
+				locked_out = lockout_requested;
 				__sev();
 			}
-
-			if (vblank_action) { vblank_action(); }
-
-			{
-				Locker _;
-				for (uint i = 0; i < num_planes; i++) { planes[i]->vblank(); }
-			}
-
-			while (line_at_frame_start == row0)
-			{
-				idle_start();
-				// wait until this frame is fully done
-				// ATTN: the timing irpt is actually called ~2 lines early!
-				//if (requested_state != RUNNING) {idle_end();return;}
-			}
-			idle_end();
-
-			row	 = 0;
-			row0 = line_at_frame_start;
 		}
-
-		// wait until video backend no longer displays from this scanline
-		int csl;
-		while ((csl = current_scanline()) <= row - int(scanline_buffer.count)) idle_start();
 		idle_end();
 
-		if constexpr (VIDEO_RECOVERY_PER_LINE)
-		{
-			if unlikely (csl >= row)
-			{
-				scanlines_missed++;
-				continue;
-			}
-		}
-
 		uint32* scanline = scanline_buffer[row0 + row];
-		for (uint i = 0; i < num_planes; i++) { planes[i]->renderScanline(row, scanline); }
+		for (uint i = 0; i < num_planes; i++)
+		{
+			planes[i]->render(row, scanline, locked_out); //
+		}
 	}
 }
 

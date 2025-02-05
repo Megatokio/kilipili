@@ -63,12 +63,14 @@ static uint8 SCANLINE_DMA_DATA_CHANNEL;
 
 VgaMode vga_mode;
 
+uint32			cc_per_px;
 uint32			cc_per_scanline; //
 uint32			cc_per_frame;	 //
 uint			cc_per_us;		 // cpu clock cycles per microsecond
 volatile bool	in_vblank;
 volatile int	line_at_frame_start;
 volatile uint32 time_us_at_frame_start; // timestamp of start of active screen lines (updated ~1 scanline early)
+volatile uint32 time_cc_at_frame_start; // timestamp of start of active screen lines, precise to the cc
 volatile int	current_frame = 0;
 
 static uint us_per_frame;		// integer part of fractional value!
@@ -102,6 +104,18 @@ static uint8		  timing_program_load_offset;
 
 // =========================================================
 
+uint32 RAM time_cc_32() noexcept
+{
+	// calculated from the usec time
+	// => up to cc_per_us too low ((plus time for evaluation))
+a:
+	uint32 cc0 = time_cc_at_frame_start;
+	uint32 us0 = time_us_at_frame_start;
+	if (cc0 != time_cc_at_frame_start) goto a;
+	return cc0 + (time_us_32() - us0) * cc_per_us + cc_per_frame_rest;
+}
+
+
 static __always_inline bool dma_irqn_get_channel_status(uint irq_index, uint channel)
 {
 	//invalid_params_if(HARDWARE_DMA, irq_index >= NUM_DMA_IRQS);
@@ -114,13 +128,11 @@ static __always_inline void dma_irqn_acknowledge_channel(uint irq_index, uint ch
 	//check_dma_channel_param(channel);
 	dma_hw->irq_ctrl[irq_index].ints = 1u << channel;
 }
-
 static __always_inline dma_channel_hw_t* dma_channel_hw_addr(uint channel)
 {
 	//check_dma_channel_param(channel);
 	return &dma_hw->ch[channel];
 }
-
 static __always_inline void
 dma_channel_transfer_from_buffer_now(uint channel, const volatile void* read_addr, uint32_t transfer_count)
 {
@@ -147,12 +159,13 @@ static void RAM timing_isr() noexcept
 
 		if (state == in_frontporch)
 		{
-			in_vblank	  = true;
-			current_frame = current_frame + 1;
-
+			in_vblank			= true;
+			current_frame		= current_frame + 1;
 			line_at_frame_start = line_at_frame_start + vga_mode.height;
 
 			time_us_at_frame_start = time_us_at_frame_start + us_per_frame;
+			time_cc_at_frame_start = time_cc_at_frame_start + cc_per_frame;
+
 			if ((cc_per_frame_rest += cc_per_frame_fract) >= cc_per_us)
 			{
 				cc_per_frame_rest -= cc_per_us;
@@ -427,7 +440,7 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 	setup_dma(vga_mode);
 
 	// *ATTN* real get_system_clock() and new_sys_clock used in the sm may differ!
-	uint32 cc_per_px	   = new_sys_clock / pixel_clock;			  // non fract
+	cc_per_px			   = new_sys_clock / pixel_clock;			  // non fract
 	uint32 px_per_scanline = vga_mode.h_total() << vga_mode.vss;	  // non fract
 	uint32 px_per_frame	   = vga_mode.h_total() * vga_mode.v_total(); // non fract
 	cc_per_scanline		   = cc_per_px * px_per_scanline;			  // non fract
