@@ -172,23 +172,23 @@ public:
 	// see https://stackoverflow.com/questions/11562/how-to-overload-stdswap
 	friend void swap(RCPtr& a, RCPtr& b) noexcept { std::swap(a.p, b.p); }
 
-	int refcnt() const noexcept { return p ? p->rc : 0; }
-	T*	ptr() const noexcept { return p; }
-	T*	operator->() const noexcept { return p; }
-	T&	operator*() const noexcept
+	inline int refcnt() const noexcept { return p ? p->rc : 0; }
+	inline T*  ptr() const noexcept { return p; }
+	inline T*  operator->() const noexcept { return p; }
+	inline T&  operator*() const noexcept
 	{
 		assert(p != nullptr);
 		return *p;
 	}
-	operator T&() const noexcept
+	inline operator T&() const noexcept
 	{
 		assert(p != nullptr);
 		return *p;
 	}
-	operator T*() const noexcept { return p; }
+	inline operator T*() const noexcept { return p; }
 
 	template<typename IDX>
-	auto& operator[](IDX i) const
+	inline auto& operator[](IDX i) const
 	{
 		assert(p);
 		return (*p)[i];
@@ -403,7 +403,7 @@ public:
 	int refcnt() const noexcept { return p ? p->rc : 0; }
 	T*	ptr() const { return p; }
 	T*	operator->() const { return p; }
-		operator T*() const { return p; }
+	operator T*() const { return p; }
 
 	template<typename IDX>
 	auto& operator[](IDX i) const
@@ -485,7 +485,7 @@ public:
 	int refcnt() const noexcept { return p ? p->rc : 0; }
 	T*	ptr() const { return p; }
 	T*	operator->() const { return p; }
-		operator T*() const { return p; }
+	operator T*() const { return p; }
 
 	template<typename IDX>
 	auto& operator[](IDX i) const
