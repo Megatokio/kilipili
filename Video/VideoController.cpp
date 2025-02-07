@@ -54,6 +54,27 @@ __weak_symbol void resume_core1() noexcept
 	__sev();
 }
 
+__noreturn RAM static void hard_fault_handler() noexcept
+{
+	if (!locked_out) kio::panic("HARDFAULT_EXCEPTION");
+
+	if constexpr (0) { for (;;); }
+	else
+	{
+		// core0 = short ON, long off
+		// core1 = long ON, short off
+
+		static constexpr uint pin  = PICO_DEFAULT_LED_PIN;
+		uint				  mask = 1 << pin;
+		gpio_set_mask(mask);
+		for (uint n = get_core_num();;)
+		{
+			for (uint end = time_us_32() + 150 * 1000; time_us_32() != end;) {}
+			if ((++n & 3) <= 1) gpio_xor_mask(mask);
+		}
+	}
+}
+
 
 namespace kio::Video
 {
@@ -80,6 +101,9 @@ VideoController::VideoController() noexcept
 	spinlock		= spin_lock_init(uint(spin_lock_claim_unused(true)));
 	requested_state = STOPPED;
 	multicore_launch_core1([] {
+		exception_set_exclusive_handler(
+			HARDFAULT_EXCEPTION,
+			hard_fault_handler);	 // contraire to documentation, this sets the handler for both cores
 		assert(get_core_num() == 1); // yes we are on core1
 		sleep_us(10);				 // static videocontroller's ctor must finish
 		getRef().core1_runner();	 // else calling getRef() leads to recursion
@@ -140,11 +164,6 @@ void VideoController::core1_runner() noexcept
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
 	trace(__func__);
-
-	exception_set_exclusive_handler(HARDFAULT_EXCEPTION, [] {
-		// contraire to documentation, this sets the handler for both cores:
-		panic("HARDFAULT_EXCEPTION");
-	});
 
 	try
 	{
