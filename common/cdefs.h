@@ -55,15 +55,15 @@ constexpr bool debug = true;
 
 // this is the most portable FALLTHROUGH annotation.
 // only disadvantage: you must not write a ';' after it
-#define __fallthrough             \
-  goto __CONCAT(label, __LINE__); \
-  __CONCAT(label, __LINE__) :
+#define __fallthrough               \
+	goto __CONCAT(label, __LINE__); \
+	__CONCAT(label, __LINE__) :
 
 
 // ######################################
 // Abort:
 
-__unused static constexpr const char* filenamefrompath(const char* path)
+static constexpr const __unused char* filenamefrompath(const char* path)
 {
 	const char* p = path;
 	while (char c = *p++)
@@ -82,13 +82,13 @@ extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
 
 #undef assert
 // clang-format off
-#define assert(COND) if constexpr(debug) ((COND) ? (void)0 : kio::panic("assert: %s:%i", filenamefrompath(__FILE__), __LINE__))
-#define assert_eq(A, B) if constexpr(debug) ((A) == (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) == (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
-#define assert_ne(A, B) if constexpr(debug) ((A) != (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) != (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
-#define assert_lt(A, B) if constexpr(debug) ((A) <  (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) < (%li)",  filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
-#define assert_le(A, B) if constexpr(debug) ((A) <= (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) <= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
-#define assert_gt(A, B) if constexpr(debug) ((A) >  (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) > (%li)",  filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
-#define assert_ge(A, B) if constexpr(debug) ((A) >= (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) >= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+#define assert(COND)    (!debug || (COND)     ? (void)0 : kio::panic("assert: %s:%i", filenamefrompath(__FILE__), __LINE__))
+#define assert_eq(A, B) (!debug || (A) == (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) == (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+#define assert_ne(A, B) (!debug || (A) != (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) != (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+#define assert_lt(A, B) (!debug || (A) <  (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) < (%li)",  filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+#define assert_le(A, B) (!debug || (A) <= (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) <= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+#define assert_gt(A, B) (!debug || (A) >  (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) > (%li)",  filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
+#define assert_ge(A, B) (!debug || (A) >= (B) ? (void)0 : kio::panic("failed: %s:%i: (%li) >= (%li)", filenamefrompath(__FILE__),__LINE__,long(A),long(B)))
 // clang-format on
 
 
@@ -106,19 +106,16 @@ extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
   #define debug_break() __asm__ volatile("bkpt")
 #endif
 
-#define LOL                                                     \
-  do {                                                          \
-	::printf("@%s:%i\n", filenamefrompath(__FILE__), __LINE__); \
-	stdio_flush();                                              \
-  }                                                             \
-  while (0);
+#define LOL                                                         \
+	do {                                                            \
+		::printf("@%s:%i\n", filenamefrompath(__FILE__), __LINE__); \
+		stdio_flush();                                              \
+	}                                                               \
+	while (0);
 
 #if defined DEBUG || defined MEMORY_ID
-  #define Id(n)                                      \
-	char _id[8]                                      \
-	{                                                \
-	  n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7] \
-	}
+  #define Id(n) \
+	  char _id[8] { n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7] }
 #else
   #define Id(n) static const char _id[8]
 #endif
