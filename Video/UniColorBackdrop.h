@@ -4,8 +4,6 @@
 
 #pragma once
 #include "Color.h"
-#include "Graphics/BitBlit.h"
-#include "VideoBackend.h"
 #include "VideoPlane.h"
 
 namespace kio::Video
@@ -14,33 +12,10 @@ namespace kio::Video
 class UniColorBackdrop : public VideoPlane
 {
 public:
-	using Color = Graphics::Color;
+	UniColorBackdrop(Graphics::Color color) noexcept;
 
-	UniColorBackdrop(Color color) noexcept : //
-		color(Graphics::flood_filled_color<Graphics::colordepth_16bpp>(color))
-	{}
-
-	virtual ~UniColorBackdrop() noexcept override = default;
-	virtual void setup() override {}
-	virtual void teardown() noexcept override {}
-	virtual void vblank() noexcept override {}
-
-	/*
-		render one scanline into the buffer.
-		note: this function must go into RAM else no video during flash lock-out!
-		@param row    the current row, starting at 0
-		@param buffer destination for the pixel data
-	*/
-	virtual void renderScanline(int __unused row, uint32* buffer) noexcept override
-	{
-		// a multiple of 8 bytes is always guaranteed:
-		// note: worst case: width=200 & sizeof(Color)=1
-		for (uint n = uint(vga_mode.width) / (8 / sizeof(Color)); n; n--)
-		{
-			*buffer++ = color;
-			*buffer++ = color;
-		}
-	}
+private:
+	static void render(VideoPlane*, int row, uint32* fbu) noexcept;
 
 	uint32 color;
 };

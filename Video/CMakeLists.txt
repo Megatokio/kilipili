@@ -40,6 +40,7 @@ set(video_sources
 	MultiSpritesPlane.cpp
 	MultiSpritesPlane.h
 	UniColorBackdrop.h
+	UniColorBackdrop.cpp  
 	Frames.h
 	HamImageVideoPlane.h 
 	HamImageVideoPlane.cpp
