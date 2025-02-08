@@ -288,7 +288,12 @@ template void teardownScanlineRenderer<colormode_i8>() noexcept;
 template<>
 void RAM scanlineRenderFunction<colormode_i16>(uint32* dest, uint width, const uint8* pixels)
 {
-	memcpy(dest, pixels, width * sizeof(Color));
+	//memcpy(dest, pixels, width * sizeof(Color));
+
+	//assert((width & 1) == 0);
+
+	volatile uint32* z = dest;
+	for (uint n = 0; n < width / 2; n++) z[n] = pixels[n];
 }
 
 template<>
