@@ -121,8 +121,10 @@ private:
 	VideoController() noexcept;
 
 	void core1_runner() noexcept;
-	void video_runner();
+	void video_runner(int row0, uint32 cc_at_line_start);
 	void call_vblank_actions() noexcept;
+	void vblank(VideoPlane* vp) noexcept;
+	void render(VideoPlane* vp, int row, uint32* fb) noexcept;
 };
 
 

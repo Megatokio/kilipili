@@ -21,10 +21,8 @@
 #endif
 
 
-#define WRAP(X)	 #X
-#define XWRAP(X) WRAP(X)
-#define XRAM	 __attribute__((section(".scratch_x.VC" XWRAP(__LINE__))))	   // the 4k page with the core1 stack
-#define RAM		 __attribute__((section(".time_critical.VC" XWRAP(__LINE__)))) // general ram
+#define XRAM __attribute__((section(".scratch_x.VC" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
+#define RAM	 __attribute__((section(".time_critical.VC" __XSTRING(__LINE__)))) // general ram
 
 
 using namespace kio::Video;
@@ -58,7 +56,7 @@ __noreturn RAM static void hard_fault_handler() noexcept
 {
 	if (!locked_out) kio::panic("HARDFAULT_EXCEPTION");
 
-	if constexpr (0) { for (;;); }
+	if constexpr (1) { for (;;); }
 	else
 	{
 		// core0 = short ON, long off
@@ -179,8 +177,18 @@ void __noreturn VideoController::core1_runner() noexcept
 				state = RUNNING;
 				__sev();
 
-				video_runner();
-				assert(requested_state == STOPPED);
+				{ // setup calculations for video_runner() done here in flash to save ram:
+					uint32 cc_max_ahead = (scanline_buffer.count - 1) * cc_per_scanline +
+										  ((vga_mode.h_total() - vga_mode.h_active()) + 18) * cc_per_px + 50 + 50;
+				a:
+					int	   row0 = line_at_frame_start; // rolling number
+					uint32 cc_at_line_start =
+						time_cc_at_frame_start + uint(vga_mode.height) * cc_per_scanline - cc_max_ahead;
+					if (row0 != line_at_frame_start) goto a;
+
+					video_runner(row0, cc_at_line_start);
+					assert(requested_state == STOPPED);
+				}
 
 				VideoBackend::stop();
 				while (num_planes)
@@ -224,9 +232,22 @@ __noinline void VideoController::call_vblank_actions() noexcept
 	if (vblank_action) { vblank_action(); }
 }
 
-void RAM VideoController::video_runner()
+__force_inline RAM void VideoController::vblank(VideoPlane* vp) noexcept
+{
+	if (vp->vblank_fu) vp->vblank_fu(vp);
+	else if (!locked_out) vp->vblank();
+}
+
+__force_inline RAM void VideoController::render(VideoPlane* vp, int row, uint32* fb) noexcept
+{
+	if (vp->render_fu) vp->render_fu(vp, row, fb);
+	else if (!locked_out) vp->renderScanline(row, fb);
+}
+
+void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
 {
 	trace(__func__);
+	assert(!locked_out);
 
 	// before rendering scanline `row` we must wait until the video backend no longer displays from
 	// scanline_buffer[row]
@@ -239,14 +260,14 @@ void RAM VideoController::video_runner()
 	//			=> cc_per_scanline - (px_per_hsync+18) * cc_per_px
 	//			=> cc_per_scanline - ((vga.h_total-vga.width)+18) * cc_per_px
 
-	uint32 cc_max_ahead =												//
-		(scanline_buffer.count - 1) * cc_per_scanline					//
-		+ ((vga_mode.h_total() - vga_mode.h_active()) + 18) * cc_per_px //
-		+ 50 + 50;
-a:
-	int	   row0				= line_at_frame_start; // rolling number
-	uint32 cc_at_line_start = time_cc_at_frame_start + uint(vga_mode.height) * cc_per_scanline - cc_max_ahead;
-	if (row0 != line_at_frame_start) goto a;
+	//	uint32 cc_max_ahead =												//
+	//		(scanline_buffer.count - 1) * cc_per_scanline					//
+	//		+ ((vga_mode.h_total() - vga_mode.h_active()) + 18) * cc_per_px //
+	//		+ 50 + 50;
+	//a:
+	//	int	   row0				= line_at_frame_start; // rolling number
+	//	uint32 cc_at_line_start = time_cc_at_frame_start + uint(vga_mode.height) * cc_per_scanline - cc_max_ahead;
+	//	if (row0 != line_at_frame_start) goto a;
 
 
 	// note: VideoPlane::vblank() is guaranteed to be called before VideoPlane::renderScanline()
@@ -265,10 +286,7 @@ a:
 		{
 			if (!locked_out) call_vblank_actions(); // in rom: only if !lockout
 
-			for (uint i = 0; i < num_planes; i++)
-			{
-				planes[i]->vblank(locked_out); //
-			}
+			for (uint i = 0; i < num_planes; i++) { vblank(planes[i]); }
 
 			// the pixel dma starts reading the first pixels of a scanline
 			// (8+1)*2 = 18 pixels before the end of the previous line
@@ -282,10 +300,7 @@ a:
 			row0 += vga_mode.height;
 
 			while (int(time_cc_32() - cc_at_line_start) < 0) {}
-			for (uint i = 0; i < num_planes; i++)
-			{
-				planes[i]->render(0, scanline_buffer[row0], locked_out); //
-			}
+			for (uint i = 0; i < num_planes; i++) { render(planes[i], 0, scanline_buffer[row0]); }
 
 			cc_at_line_start -= uint(row) * cc_per_scanline;
 			cc_at_line_start += cc_per_frame + cc_per_scanline;
@@ -308,10 +323,7 @@ a:
 		idle_end();
 
 		uint32* scanline = scanline_buffer[row0 + row];
-		for (uint i = 0; i < num_planes; i++)
-		{
-			planes[i]->render(row, scanline, locked_out); //
-		}
+		for (uint i = 0; i < num_planes; i++) { render(planes[i], row, scanline); }
 	}
 }
 
