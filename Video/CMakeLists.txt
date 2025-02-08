@@ -16,6 +16,7 @@ set(VIDEO_MAX_SYSCLOCK_MHz "290" CACHE STRING "maximum system clock set by Video
 
 set(video_sources
 	FrameBuffer.h
+	FrameBuffer.cpp
 	MousePointer.cpp
 	MousePointer.h
 	ScanlineRenderFu.cpp
