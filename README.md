@@ -2,8 +2,6 @@
 *Kio's Little Pico Library*
 
 *A c++ library for video, audio and input devices for the RP2040.*
-
-***This work is always in progress***   
 *If you run into a problem please file a bug report or a merge request.*
 
 ## Latest Additions
@@ -11,6 +9,7 @@
 - AY-3-8912 sound chip emulation and *.ym* audio file playback. See Wiki page about *.ymm* files.
 - Write to internal flash with video enabled.
 - Preferences in program flash
+- write to internal flash without any distortion in video output. (FrameBuffers and similar VideoPlanes)
 
 
 ## Video 
@@ -23,7 +22,7 @@ The video engine provides many video modes with indexed or true color up to high
 - `[done]` Mouse pointer. 
 - `[done]` Switch between different video mode and screen resolutions.
 - `[done]` Automatically sets the required system clock.  
-- `[done]` Run entirely in RAM: video output while writing to the internal flash. 
+- `[done]` video output not affected by flash-lockout for writing to the internal flash. 
 - `[test]` Sprites.
 - `[test]` Tiled background.
 - `[done]` Display true color images up to 600x400 pixels with a *HamImageVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
