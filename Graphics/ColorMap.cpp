@@ -6,13 +6,9 @@
 #include <string.h>
 
 #if !defined GRAPHICS_SYSTEM_COLORMAP_IN_XRAM || GRAPHICS_SYSTEM_COLORMAP_IN_XRAM
-  #define WRAP(X)  #X
-  #define XWRAP(X) WRAP(X)
-  #define XRAM	   __attribute__((section(".scratch_x.SRFu" XWRAP(__LINE__))))	   // the 4k page with the core1 stack
-  #define RAM	   __attribute__((section(".time_critical.SRFu" XWRAP(__LINE__)))) // general ram
+  #define XRAM __attribute__((section(".scratch_x.ColorMap"))) // the 4k page with the core1 stack
 #else
   #define XRAM
-  #define RAM
 #endif
 
 

@@ -7,6 +7,10 @@
 #include "Shape.h"
 #include "VideoPlane.h"
 
+#define XRAM __attribute__((section(".scratch_x.SSP" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
+#define RAM	 __attribute__((section(".time_critical.SSP" __XSTRING(__LINE__)))) // general ram
+
+
 namespace kio::Video
 {
 
@@ -157,7 +161,7 @@ void SingleSpritePlane<Sprite>::SingleSpritePlane::setup()
 }
 
 template<typename Sprite>
-void __section(".time_critical.sprites") SingleSpritePlane<Sprite>::SingleSpritePlane::vblank() noexcept
+void /*RAM*/ SingleSpritePlane<Sprite>::SingleSpritePlane::vblank() noexcept
 {
 	if constexpr (is_animated)
 	{
@@ -171,18 +175,18 @@ void __section(".time_critical.sprites") SingleSpritePlane<Sprite>::SingleSprite
 
 	// sprite starts above screen:
 
-	sprite.template start(hot_shape);
+	sprite.start(hot_shape);
 	do is_hot = !hot_shape.skip_row();
 	while (++y < 0 && is_hot);
 }
 
 template<typename Sprite>
-void __section(".time_critical.sprites") SingleSpritePlane<Sprite>::renderScanline(int row, uint32* scanline) noexcept
+void RAM SingleSpritePlane<Sprite>::renderScanline(int row, uint32* scanline) noexcept
 {
 	if (!is_hot)
 	{
 		if (row != sprite.pos.y) return;
-		sprite.template start(hot_shape);
+		sprite.start(hot_shape);
 	}
 
 	bool finished = hot_shape.render_row(reinterpret_cast<Color*>(scanline));
@@ -191,6 +195,9 @@ void __section(".time_critical.sprites") SingleSpritePlane<Sprite>::renderScanli
 
 
 } // namespace kio::Video
+
+#undef RAM
+#undef XRAM
 
 
 /*

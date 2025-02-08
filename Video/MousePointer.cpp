@@ -12,10 +12,8 @@
 // also, there should be no const data accessed in hot video code for the same reason.
 // the most timecritical things should go into core1 stack page because it is not contended.
 
-#define WRAP(X)	 #X
-#define XWRAP(X) WRAP(X)
-#define XRAM	 __attribute__((section(".scratch_x.mouse" XWRAP(__LINE__))))	  // the 4k page with the core1 stack
-#define RAM		 __attribute__((section(".time_critical.mouse" XWRAP(__LINE__)))) // general ram
+#define XRAM __attribute__((section(".scratch_x.MP" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
+#define RAM	 __attribute__((section(".time_critical.MP" __XSTRING(__LINE__)))) // general ram
 
 
 // =============================================================
@@ -203,7 +201,7 @@ static Pixmap<colormode_i2> *busy(uint i,Dist* hotspot)
 	return new Pixmap<colormode_i2> {11, 11, const_cast<uint8*>(bitmap_busy[i]), 3};
 };
 
-	// clang-format on
+// clang-format on
 
 #undef _
 #undef b
@@ -271,6 +269,7 @@ template<typename Sprite>
 void MousePointer<Sprite>::setup()
 {
 	USB::setScreenSize(screen_width(), screen_height());
+	super::setup();
 }
 
 
