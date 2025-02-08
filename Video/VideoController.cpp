@@ -16,10 +16,6 @@
 #include <hardware/exception.h>
 #include <pico/multicore.h>
 
-#ifndef VIDEO_RECOVERY_PER_LINE
-  #define VIDEO_RECOVERY_PER_LINE OFF
-#endif
-
 
 #define XRAM __attribute__((section(".scratch_x.VC" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
 #define RAM	 __attribute__((section(".time_critical.VC" __XSTRING(__LINE__)))) // general ram
@@ -306,9 +302,6 @@ void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
 			cc_at_line_start += cc_per_frame + cc_per_scanline;
 			row = 1;
 		}
-
-		// if constexpr (VIDEO_RECOVERY_PER_LINE)
-		//	 if unlikely (csl >= row) { scanlines_missed++; continue; }
 
 		while (int(time_cc_32() - cc_at_line_start) < 0)
 		{

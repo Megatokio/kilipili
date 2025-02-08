@@ -7,7 +7,6 @@ cmake_minimum_required(VERSION 3.13)
 
 
 option(VIDEO_OPTIMISTIC_A1W8_RGB "optimize a1w8_rgb mode for moderate color usage. makes 1280x768 work. poor display of many colors." OFF)
-option(VIDEO_RECOVERY_PER_LINE "check for missed scanlines after every line. failing screens look better. makes 1024x768 fail." OFF)
 option(VIDEO_SUPPORT_200x150_A1W8_RGB "support int8 bitmap width in a1w8_rgb renderer. slightly slower than otherwise." ON)
 option(VIDEO_SUPPORT_400x300_A1W8_RGB "support int16 bitmap width in a1w8_rgb renderer. slightly slower than otherwise." ON)
 
@@ -51,7 +50,6 @@ set(video_sources
 
 set(video_defines PUBLIC
 	VIDEO_OPTIMISTIC_A1W8_RGB=${VIDEO_OPTIMISTIC_A1W8_RGB}
-	VIDEO_RECOVERY_PER_LINE=${VIDEO_RECOVERY_PER_LINE}
 	VIDEO_SUPPORT_200x150_A1W8_RGB=${VIDEO_SUPPORT_200x150_A1W8_RGB}
 	VIDEO_SUPPORT_400x300_A1W8_RGB=${VIDEO_SUPPORT_400x300_A1W8_RGB}
 	VIDEO_MAX_SYSCLOCK_MHz=${VIDEO_MAX_SYSCLOCK_MHz}

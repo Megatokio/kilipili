@@ -67,13 +67,6 @@ inline int current_scanline() noexcept;
 		than non-optimized. Specifically 1024*768 is also not guaranteed to display colorful 
 		contents properly, while 1024*768 can *just* be displayed without optimization 
 		regardless of the screen contents.  
-	- VIDEO_RECOVERY_PER_LINE = ON|OFF
-		This enables a test for scanline buffer underflow in each scanline. The advantage is,
-		that the video display recovers fast, just displaying single wrong lines. The 
-		disadvantage is, that this test takes time and makes even more scanlines fail. 
-		Specifically with this option enabled, screen resolution 1024*768 without 
-		VIDEO_OPTIMISTIC_A1W8_RGB misses some lines per frame while with this option disabled 
-		it *just* works.		
 
 	General capabilities and drawbacks:
 	  - The supply of pixel data is not part of the backend. The backend displays pixels from a 
