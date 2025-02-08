@@ -9,11 +9,9 @@
 #include "common/cdefs.h"
 #include <hardware/interp.h>
 
-#define WRAP(X)	 #X
-#define XWRAP(X) WRAP(X)
-#define RAM		 __attribute__((section(".time_critical." XWRAP(__LINE__)))) // general ram
+#define RAM __attribute__((section(".time_critical." __XSTRING(__LINE__)))) // general ram
 #if !defined VIDEO_HAM_RENDER_FUNCTION_IN_XRAM || VIDEO_HAM_RENDER_FUNCTION_IN_XRAM
-  #define XRAM __attribute__((section(".scratch_x." XWRAP(__LINE__)))) // the 4k page with the core1 stack
+  #define XRAM __attribute__((section(".scratch_x." __XSTRING(__LINE__)))) // the 4k page with the core1 stack
 #else
   #define XRAM RAM
 #endif
@@ -28,13 +26,16 @@ constexpr uint		 lane1 = 1;
 extern template void setupScanlineRenderer<Graphics::colormode_i8>(const Color* colormap);
 extern template void teardownScanlineRenderer<Graphics::colormode_i8>();
 
-static inline const Color* next_color(interp_hw_t* interp)
+static const __force_inline Color* next_color(interp_hw_t* interp)
 {
 	return reinterpret_cast<const Color*>(interp_pop_lane_result(interp, lane1));
 }
 
+static __force_inline Color operator+(Color a, Color b) { return Color(a.raw + b.raw); }
+
 
 HamImageVideoPlane::HamImageVideoPlane(const Pixmap* pm, const ColorMap* cm, uint first_rel_code) :
+	VideoPlane(&do_vblank, &do_render),
 	pixmap(pm),
 	colormap(cm),
 	first_rel_code(first_rel_code)
@@ -42,7 +43,7 @@ HamImageVideoPlane::HamImageVideoPlane(const Pixmap* pm, const ColorMap* cm, uin
 	if (pm->width & 1) throw "ham image: odd row offset not supported";
 }
 
-void HamImageVideoPlane::_setup(int w, int h, uint n)
+void HamImageVideoPlane::_setup(int w, int h, uint n) noexcept
 {
 	first_rel_code = n;
 	image_width	   = w & 0xfffc; // for renderScanline() optimizations
@@ -52,6 +53,8 @@ void HamImageVideoPlane::_setup(int w, int h, uint n)
 	top_border	 = max(0, (vga_mode.height - h) / 2);
 	left_border	 = max(0, (vga_mode.width - w) / 2) & 0xfffe;
 	right_border = max(0, vga_mode.width - w - left_border);
+
+	do_vblank(this);
 }
 
 void HamImageVideoPlane::setup()
@@ -59,7 +62,6 @@ void HamImageVideoPlane::setup()
 	_setup(pixmap->width, pixmap->height, first_rel_code);
 
 	setupScanlineRenderer<colormode_i8>(colormap->colors);
-	HamImageVideoPlane::vblank();
 }
 
 void HamImageVideoPlane::setupNextImage(int width, int height, uint first_rel_code)
@@ -80,30 +82,20 @@ void HamImageVideoPlane::setupNextImage(int width, int height, uint first_rel_co
 
 void HamImageVideoPlane::teardown() noexcept { teardownScanlineRenderer<colormode_i8>(); }
 
-void RAM HamImageVideoPlane::vblank() noexcept
+void RAM HamImageVideoPlane::do_vblank(VideoPlane* vp) noexcept
 {
-	pixels		= pixmap->pixmap;
-	next_row	= 0;
-	first_color = black;
+	HamImageVideoPlane* me = reinterpret_cast<HamImageVideoPlane*>(vp);
+	me->pixels			   = me->pixmap->pixmap;
+	me->first_color		   = black;
 }
 
-inline Color operator+(Color a, Color b)
+void __force_inline XRAM HamImageVideoPlane::_render(int row, uint32* framebuffer) noexcept
 {
-	return Color(a.raw + b.raw); //
-}
+	// we don't check the row
+	// we rely on do_vblank() to reset the pointer
+	// and if we actually miss a scanline then let it be
 
-void XRAM HamImageVideoPlane::renderScanline(int current_row, uint32* framebuffer) noexcept
-{
-	// increment row and catch up when we missed some rows
-	while (unlikely(++next_row <= current_row))
-	{
-		uint8 code	= *pixels;
-		Color color = colormap->colors[code];
-		first_color = code >= first_rel_code ? first_color + color : color;
-		if (next_row > top_border) pixels += row_offset;
-	}
-
-	if (uint(current_row - top_border) < uint(image_height))
+	if (uint(row - top_border) < uint(image_height))
 	{
 		const Color*  first_rel_color = &colormap->colors[first_rel_code];
 		Color		  current_color	  = first_color;
@@ -139,6 +131,12 @@ void XRAM HamImageVideoPlane::renderScanline(int current_row, uint32* framebuffe
 		Color* dest = reinterpret_cast<Color*>(framebuffer);
 		for (int i = 0; i < vga_mode.width; i++) *dest++ = border_color;
 	}
+}
+
+void XRAM HamImageVideoPlane::do_render(VideoPlane* vp, int row, uint32* fbu) noexcept
+{
+	HamImageVideoPlane* me = reinterpret_cast<HamImageVideoPlane*>(vp);
+	me->_render(row, fbu);
 }
 
 
