@@ -10,6 +10,10 @@
 
 #define RAM __attribute__((section(".time_critical.SLB"))) // general ram
 
+#if !defined VIDEO_MAX_SCANLINE_BUFFERS
+  #define VIDEO_MAX_SCANLINE_BUFFERS 16 // 2 .. 2^N .. 16
+#endif
+
 namespace kio::Video
 {
 
@@ -48,11 +52,12 @@ struct ScanlineBuffer
 	}
 
 	int	 vss;		// log2 of repetitions of each scanline for lowres screen modes
-	uint count = 0; // number of scanlines in buffer
+	uint count = 0; // number of scanlines in buffer (logical scanlines)
 	uint mask  = 0; // count - 1
 
-	static constexpr uint max_count = 16;		// 4 .. 2^N .. 16
-	static uint32*		  scanlines[max_count]; // array of pointers to scanlines, ready for fragment dma
+	static constexpr uint max_count = VIDEO_MAX_SCANLINE_BUFFERS;
+	static_assert(max_count >= 2 && max_count <= 32 && (max_count & (max_count - 1)) == 0);
+	static uint32* scanlines[max_count]; // array of pointers to scanlines, ready for fragment dma
 };
 
 extern ScanlineBuffer scanline_buffer;

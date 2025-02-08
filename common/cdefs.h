@@ -113,9 +113,9 @@ extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
 	}                                                               \
 	while (0);
 
-#if defined DEBUG || defined MEMORY_ID
+#if (defined MEMORY_ID && MEMORY_ID) || (!defined MEMORY_ID && defined DEBUG)
   #define Id(n) \
-	  char _id[8] { n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7] }
+	  const char _id[8] { n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7] }
 #else
   #define Id(n) static const char _id[8]
 #endif
