@@ -12,9 +12,9 @@ namespace kio::Video
 
 extern VgaMode vga_mode; // VGAMode in use
 
-extern uint32		   cc_per_scanline;		//
+extern uint32		   cc_per_scanline;		// cc per logical scanline (scaled by vss)
 extern uint32		   cc_per_frame;		//
-extern uint			   cc_per_px;			// cpu clock cycles per pixel octet
+extern uint			   cc_per_px;			// cpu clock cycles per pixel
 extern uint			   cc_per_us;			// cpu clock cycles per microsecond
 extern volatile bool   in_vblank;			// set while in vblank (set and reset ~2 scanlines early)
 extern volatile int	   line_at_frame_start; // rolling line number at start of current frame

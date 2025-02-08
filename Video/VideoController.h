@@ -110,7 +110,6 @@ private:
 
 	uint		  num_planes		 = 0;
 	VideoPlanePtr planes[max_planes] = {nullptr};
-	IdleAction	  idle_action		 = nullptr;
 	VBlankAction  vblank_action		 = nullptr;
 	OneTimeAction onetime_action	 = nullptr;
 

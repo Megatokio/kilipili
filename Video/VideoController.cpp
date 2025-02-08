@@ -52,21 +52,22 @@ __noreturn RAM static void hard_fault_handler() noexcept
 {
 	if (!locked_out) kio::panic("HARDFAULT_EXCEPTION");
 
-	if constexpr (1) { for (;;); }
-	else
+#ifdef PICO_DEFAULT_LED_PIN
+	if constexpr (0)
 	{
 		// core0 = short ON, long off
 		// core1 = long ON, short off
 
-		static constexpr uint pin  = PICO_DEFAULT_LED_PIN;
-		uint				  mask = 1 << pin;
-		gpio_set_mask(mask);
+		gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
 		for (uint n = get_core_num();;)
 		{
 			for (uint end = time_us_32() + 150 * 1000; time_us_32() != end;) {}
-			if ((++n & 3) <= 1) gpio_xor_mask(mask);
+			if ((++n & 3) <= 1) gpio_xor_mask(1 << PICO_DEFAULT_LED_PIN);
 		}
 	}
+	else
+#endif
+		for (;;);
 }
 
 
@@ -193,7 +194,6 @@ void __noreturn VideoController::core1_runner() noexcept
 					planes[num_planes] = nullptr;
 				}
 				scanline_buffer.teardown();
-				idle_action	   = nullptr;
 				vblank_action  = nullptr;
 				onetime_action = nullptr;
 				state		   = STOPPED;
@@ -218,10 +218,15 @@ void __noreturn VideoController::core1_runner() noexcept
 
 __noinline void VideoController::call_vblank_actions() noexcept
 {
+	trace(__func__);
+
 	if (onetime_action)
 	{
-		onetime_action();
+		uint32 state   = spin_lock_blocking(spinlock);
+		auto   fu	   = std::move(onetime_action);
 		onetime_action = nullptr;
+		spin_unlock(spinlock, state);
+		fu();
 		__sev();
 	}
 
@@ -328,7 +333,6 @@ void VideoController::addPlane(VideoPlanePtr plane)
 	// plane must be added by core1 because plane->setup() may initialize the hw interp:
 
 	addOneTimeAction([this, plane] {
-		locker();
 		assert_lt(num_planes, max_planes);
 		plane->setup(); // throws
 		planes[num_planes++] = plane;
@@ -341,7 +345,6 @@ void VideoController::removePlane(VideoPlanePtr plane)
 	// note: normally not used because teardown() removes all planes.
 
 	addOneTimeAction([this, plane] {
-		locker();
 		for (uint i = num_planes; i;)
 		{
 			if (planes[--i] != plane) continue;
@@ -356,8 +359,10 @@ void VideoController::removePlane(VideoPlanePtr plane)
 
 void VideoController::setVBlankAction(const VBlankAction& fu) noexcept
 {
-	locker();
-	vblank_action = fu;
+	// use addOneTimeAction() to set VBlankAction:
+	// => video_runner() doesn't need to lock spinlock before calling vblank_action().
+
+	addOneTimeAction([this, fu]() { vblank_action = fu; });
 }
 
 void VideoController::addOneTimeAction(const std::function<void()>& fu) noexcept
