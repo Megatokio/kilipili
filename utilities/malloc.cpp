@@ -3,9 +3,11 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "malloc.h"
+#include "common/cdefs.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <hardware/sync.h>
 #include <new>
 #include <pico.h>
 #include <pico/malloc.h>
@@ -13,6 +15,61 @@
 #ifndef PICO_CXX_ENABLE_EXCEPTIONS
   #define PICO_CXX_ENABLE_EXCEPTIONS false
 #endif
+
+#ifndef MALLOC_SPINLOCK_NUMBER
+  #define MALLOC_SPINLOCK_NUMBER PICO_SPINLOCK_ID_OS2
+#endif
+
+#if (defined MALLOC_ENHANCED_VALIDATION && MALLOC_ENHANCED_VALIDATION) || defined DEBUG
+static constexpr bool enhanced_validation = true;
+#else
+static constexpr bool enhanced_validation = false;
+#endif
+
+#if defined MALLOC_ENHANCED_LOGGING && MALLOC_ENHANCED_LOGGING
+  #define xlogline printf
+#else
+  #define xlogline(...) (void)0
+#endif
+
+
+/*
+	ATTN: This file must be linked into the exectutable directly, not in a library,
+	else parts of the application may use this version and others use the stdlib version of malloc.
+*/
+
+using uint32 = uint32_t;
+using int32	 = int32_t;
+using cptr	 = const char*;
+using Error	 = const char*;
+
+/*
+  Make malloc() reentrant-safe:
+  it seems that "pico-sdk/src/rp2_common/pico_malloc/malloc.c" is not used if we provide our own malloc implementation.
+
+  the choice is to use a spinlock:
+  pro: safely synchronizes access by this core, it's interrupts and the other core and it's interrupts.
+  con: every time malloc() is executed interrupts are disabled for a somewhat long time.
+
+  only the search-and-acquire part of malloc() must be synchronized,
+  free() and the additional code of realloc() and calloc() can be done unblocked.
+*/
+
+static uint32 malloc_lock() noexcept
+{
+	for (;; __nop())
+	{
+		// don't block irqs while we are waiting for the lock:
+		uint32 irqs = save_and_disable_interrupts();
+		if (spin_try_lock_unsafe(spin_lock_instance(MALLOC_SPINLOCK_NUMBER))) return irqs;
+		restore_interrupts_from_disabled(irqs);
+	}
+}
+static void malloc_unlock(uint32 irqs) noexcept
+{
+	spin_unlock(spin_lock_instance(MALLOC_SPINLOCK_NUMBER), irqs); //
+}
+
 
 static constexpr bool enable_exceptions = PICO_CXX_ENABLE_EXCEPTIONS;
 constexpr char		  OUT_OF_MEMORY[]	= "out of memory";
@@ -31,29 +88,16 @@ void* operator new[](size_t n)
 }
 
 void* operator new(size_t n, const std::nothrow_t&) noexcept { return malloc(n); }
-
 void* operator new[](size_t n, const std::nothrow_t&) noexcept { return malloc(n); }
 
 void operator delete(void* p) noexcept { free(p); }
 void operator delete[](void* p) noexcept { free(p); }
 
 #if defined __cpp_sized_deallocation && __cpp_sized_deallocation
-void		operator delete(void* p, __unused size_t n) noexcept { free(p); }
-void		operator delete[](void* p, __unused size_t n) noexcept { free(p); }
+void operator delete(void* p, __unused size_t n) noexcept { free(p); }
+void operator delete[](void* p, __unused size_t n) noexcept { free(p); }
 #endif
 
-
-/*
-	ATTN: This file must be linked into the exectutable directly, not in a library,
-	else parts of the application may use this version and others use the stdlib version of malloc.
-*/
-
-
-#define unlikely(x) (__builtin_expect(!!(x), 0))
-using uint32 = uint32_t;
-using int32	 = int32_t;
-using cptr	 = const char*;
-using Error	 = const char*;
 
 // defined by linker:
 extern uint32 end;
@@ -69,9 +113,6 @@ extern uint32 __StackTop;
 	Therefore the next chunk after uint32* p can be reached by p += *p.
 
 	The upper bits of the `size` word are used to indicate used or free and to provide minimal validation.
-
-	note: The pico_sdk uses wrapper around malloc library calls.
-		  Therefore no multicore precautions are needed here.
 */
 
 
@@ -90,28 +131,49 @@ constexpr size_t max_size = (size_mask << 2) - 4; // bytes
 
 
 // helper:
-static inline bool is_used(uint32* p) { return int32(*p) < 0; }
-static inline bool is_free(uint32* p) { return int32(*p) >= 0; }
+[[maybe_unused]] static inline bool is_used(uint32* p) noexcept { return int32(*p) < 0; }
+[[maybe_unused]] static inline bool is_free(uint32* p) noexcept { return int32(*p) >= 0; }
 
-[[maybe_unused]] static inline bool is_valid_used(uint32* p)
+[[maybe_unused]] static inline bool is_valid_used(uint32* p) noexcept
 {
 	return (*p & flag_mask) == flag_used && *p != flag_used;
 }
-[[maybe_unused]] static inline bool is_valid_free(uint32* p)
+[[maybe_unused]] static inline bool is_valid_free(uint32* p) noexcept
 {
 	return (*p & flag_mask) == flag_free && *p != flag_free;
 }
 
 static inline uint32* skip_free(uint32* p)
 {
-	while (p < heap_end && is_free(p)) { p += *p; }
-	return p;
+	if constexpr (enhanced_validation)
+	{
+		while (p < heap_end && is_valid_free(p)) { p += *p; }
+
+		// in a race condition the used block at p could just been released by free().
+		if (p < heap_end && !is_valid_used(p) && !is_valid_free(p)) panic("malloc:skip_free: !valid_used");
+
+		return p;
+	}
+	else
+	{
+		while (p < heap_end && is_free(p)) { p += *p; }
+		return p;
+	}
 }
 
 static inline uint32* skip_used(uint32* p)
 {
-	while (p < heap_end && is_used(p)) { p += *p & size_mask; }
-	return p;
+	if constexpr (enhanced_validation)
+	{
+		while (p < heap_end && is_valid_used(p)) { p += *p & size_mask; }
+		if (p < heap_end && !is_valid_free(p)) panic("malloc:skip_used: !valid_free");
+		return p;
+	}
+	else
+	{
+		while (p < heap_end && is_used(p)) { p += *p & size_mask; }
+		return p;
+	}
 }
 
 
@@ -130,11 +192,20 @@ void* malloc(size_t size)
 		assert(free_size <= size_mask);
 
 		*heap_start = free_size | flag_free; // define one big free chunk
+
+		spin_lock_claim(MALLOC_SPINLOCK_NUMBER);
+		spin_lock_init(MALLOC_SPINLOCK_NUMBER);
 	}
 
 	// calc. required size in words, incl. header:
-	if unlikely (size > max_size) return nullptr;
+	if unlikely (size > max_size)
+	{
+		xlogline("malloc%u %u -> NULL\n", get_core_num(), size);
+		return nullptr;
+	}
 	size = (size + 7) >> 2;
+
+	uint32 _ = malloc_lock();
 
 	uint32* p = skip_used(heap_start); // find 1st free chunk
 
@@ -146,6 +217,8 @@ void* malloc(size_t size)
 		{
 			if (gap > size) { *(p + size) = (gap - size) | flag_free; } // split
 			*p = size | flag_used;
+			malloc_unlock(_);
+			xlogline("malloc%u %u -> 0x%8x\n", get_core_num(), (size - 1) << 2, size_t(p + 1));
 			return p + 1;
 		}
 
@@ -154,6 +227,8 @@ void* malloc(size_t size)
 		p  = skip_used(p + gap); // find next free chunk
 	}
 
+	malloc_unlock(_);
+	xlogline("malloc%u %u -> NULL\n", get_core_num(), (size - 1) << 2);
 	return nullptr;
 }
 
@@ -202,9 +277,14 @@ void* realloc(void* mem, size_t size)
 
 	if (size < old_size) // shrinked
 	{
+		uint32 _ = malloc_lock();
+
 		*p = size | flag_used;
 		p += size;
 		*p = (old_size - size) | flag_free;
+
+		malloc_unlock(_);
+		xlogline("realloc 0x%8x: %u -> %u\n", size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
 		return mem;
 	}
 
@@ -213,13 +293,19 @@ void* realloc(void* mem, size_t size)
 		size_t avail = uint32(skip_free(p + old_size) - p);
 		if (avail >= size)
 		{
+			uint32 _ = malloc_lock();
+
 			*p = size | flag_used;
 			p += size;
 			if (avail > size) *p = (avail - size) | flag_free;
+
+			malloc_unlock(_);
+			xlogline("realloc 0x%8x: %u -> %u\n", size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
 			return mem;
 		}
 
 		// can't grow in place, must relocate:
+		xlogline("realloc 0x%8x: %u -> %u: reallocate\n", size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
 		void* z = malloc((size - 1) << 2);
 		if (z)
 		{
@@ -231,6 +317,7 @@ void* realloc(void* mem, size_t size)
 
 	else // new_size == old_size
 	{
+		xlogline("realloc 0x%8x: %u -> %u\n", size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
 		return mem;
 	}
 }
@@ -245,9 +332,11 @@ void free(void* mem)
 	if (mem)
 	{
 		uint32* p = reinterpret_cast<uint32*>(mem) - 1;
+		xlogline("free%u 0x%8x: %u \n", get_core_num(), size_t(mem), ((*p & size_mask) - 1) << 2);
 		assert(is_valid_used(p));
 		*p = (*p & size_mask) | flag_free;
 	}
+	else xlogline("free%u NULL\n", get_core_num());
 }
 
 Error check_heap()
@@ -258,9 +347,9 @@ Error check_heap()
 	{
 		if (is_valid_used(p)) p += *p & size_mask;
 		else if (is_valid_free(p)) p += *p;
-		else return "heap: invalid block found";
+		else return "invalid block found";
 	}
-	if (p > heap_end) return "heap: last block extends beyond heap end";
+	if (p > heap_end) return "last block extends beyond heap end";
 	return nullptr;
 }
 
@@ -288,8 +377,8 @@ void dump_heap()
 	{
 		if (is_valid_free(p))
 		{
-			int sz = skip_free(p) - p;
-			printf("0x%08x: free, sz=%i\n", uint32(p + 1), sz * 4 - 4);
+			uint sz = *p & size_mask;
+			printf("0x%08x: free, sz=%u\n", uint32(p + 1), sz * 4 - 4);
 			p += sz;
 		}
 		else if (is_valid_used(p))
@@ -317,8 +406,8 @@ void dump_heap_to_fu(dump_heap_print_fu* print_fu, void* data)
 	{
 		if (is_valid_free(p))
 		{
-			int sz = skip_free(p) - p;
-			print_fu(data, p + 1, sz * 4 - 4, 0);
+			uint sz = *p & size_mask;
+			print_fu(data, p + 1, int(sz * 4 - 4), 0);
 			p += sz;
 		}
 		else if (is_valid_used(p))
