@@ -94,7 +94,7 @@ void print_heap_free(int r)
 {
 	// print list of all free chunks on the heap:
 
-	uint32 sz = heap_free();
+	uint32 sz = heap_largest_free_block();
 	if (sz == 0) return;
 
 	printf("%s: %u bytes\n", r ? "+fragment" : "heap free", sz);
@@ -106,7 +106,7 @@ void print_heap_free(int r)
 		if (!p) // stdclib malloc sometimes fails to return available memory:
 		{
 			printf("  alloc %u bytes failed\n", sz);
-			sz = heap_free();
+			sz = heap_largest_free_block();
 			printf("  now available: %u bytes (recalculated)\n", sz);
 			while (!p && sz) p = malloc(sz--);
 			printf("  now available: %u bytes (trying hard)\n", ++sz);
@@ -151,7 +151,7 @@ void print_flash_usage()
 void print_system_info(uint)
 {
 	print_core();
-	printf("total heap size = %u\n", heap_size());
+	printf("total heap size = %u\n", heap_total_size());
 	print_heap_free();
 	print_stack_free();
 	print_core0_scratch_y_usage();
@@ -207,15 +207,17 @@ void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 	}
 
 	printf("core: %u\n", get_core_num());
+	Trace::print(get_core_num());
 	printf("stack free = %i\n", int(stack_free()));
 	if (check_heap)
 	{
 		cstr s = check_heap();
 		printf("heap: %s\n", s ? s : "valid");
+		if (s) dump_heap();
 	}
-	Trace::print(get_core_num());
 
-	_exit(1);
+	for (;;);
+	//_exit(1);	 --> HARDFAULT_EXCEPTION
 }
 
 

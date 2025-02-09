@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "cdefs.h"
 #ifdef MAKE_TOOLS
   #include "glue.h"
 #else
@@ -29,10 +30,10 @@ inline void wfi() noexcept;
 extern void wfe_or_timeout(int timeout_usec) noexcept;
 
 
-extern size_t heap_start() noexcept;
-extern size_t heap_end() noexcept;
-extern size_t heap_size() noexcept;
-extern size_t heap_free() noexcept;
+extern size_t			   heap_start() noexcept;
+extern size_t			   heap_end() noexcept;
+extern __deprecated size_t heap_size() noexcept; // use heap_total_size() in malloc.h
+extern __deprecated size_t heap_free() noexcept; // use heap_largest_free_block()
 
 extern size_t core0_scratch_y_start() noexcept;
 extern size_t core0_scratch_y_end() noexcept;
