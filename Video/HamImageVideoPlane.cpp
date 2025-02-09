@@ -89,7 +89,7 @@ void RAM HamImageVideoPlane::do_vblank(VideoPlane* vp) noexcept
 	me->first_color		   = black;
 }
 
-void __force_inline XRAM HamImageVideoPlane::_render(int row, uint32* framebuffer) noexcept
+void inline XRAM HamImageVideoPlane::_render(int row, uint32* framebuffer) noexcept
 {
 	// we don't check the row
 	// we rely on do_vblank() to reset the pointer
