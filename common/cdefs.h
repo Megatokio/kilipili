@@ -113,9 +113,11 @@ extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
 	}                                                               \
 	while (0);
 
-#if (defined MEMORY_ID && MEMORY_ID) || (!defined MEMORY_ID && defined DEBUG)
-  #define Id(n) \
-	  const char _id[8] { n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7] }
-#else
-  #define Id(n) static const char _id[8]
-#endif
+// TODO: add_compile_definitions is not propagated up in cmake
+//       => no option MEMORY_ID until this problem is solved!
+//#if (defined MEMORY_ID && MEMORY_ID) || (!defined MEMORY_ID && defined DEBUG)
+#define Id(n) \
+	const char _id[8] { n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7] }
+//#else
+//  #define Id(n) static const char _id[8]
+//#endif

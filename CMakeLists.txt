@@ -10,12 +10,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(PICO_BOARD_HEADER_DIRS  "${CMAKE_CURRENT_LIST_DIR}/boards")
 set(PICO_BOARD_HEADER_DIRS ${PICO_BOARD_HEADER_DIRS} CACHE STRING "PICO board header directories" FORCE)
 
-option(MEMORY_ID "include char[8] IDs in many classes. helps with heap dumps." ON)
+# option(MEMORY_ID "include char[8] IDs in many classes. helps with heap dumps." ON)
 
-
-add_compile_definitions(
-	MEMORY_ID=${MEMORY_ID}  
-)
+#add_compile_definitions(
+#	MEMORY_ID=${MEMORY_ID}		<-- this is not propagated back to the main project!
+#)
 
 # dependencies:
 add_subdirectory(common)
