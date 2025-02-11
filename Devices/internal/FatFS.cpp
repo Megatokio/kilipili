@@ -148,7 +148,10 @@ void FatFS::makeDir(cstr path) throws
 {
 	trace("FatFS::makeDir");
 
-	FRESULT err = f_mkdir(makeFullPath(path));
+	path = makeFullPath(path);
+	if (strchr(path, ':')[2] == 0) return; // f_stat doesn't work for the root dir
+
+	FRESULT err = f_mkdir(path);
 	if (err == FR_EXIST)
 	{
 		FILINFO finfo;
