@@ -233,13 +233,13 @@ __noinline void VideoController::call_vblank_actions() noexcept
 	if (vblank_action) { vblank_action(); }
 }
 
-__force_inline RAM void VideoController::vblank(VideoPlane* vp) noexcept
+RAM void VideoController::vblank(VideoPlane* vp) noexcept
 {
 	if (vp->vblank_fu) vp->vblank_fu(vp);
 	else if (!locked_out) vp->vblank();
 }
 
-__force_inline RAM void VideoController::render(VideoPlane* vp, int row, int width, uint32* fb) noexcept
+RAM void VideoController::render(VideoPlane* vp, int row, int width, uint32* fb) noexcept
 {
 	if (vp->render_fu) vp->render_fu(vp, row, width, fb);
 	else if (!locked_out) vp->renderScanline(row, width, fb);

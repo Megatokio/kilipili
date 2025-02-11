@@ -49,6 +49,7 @@ set(video_sources
 	HamImageVideoPlane.cpp
 	HamImageInfo.h 
 	HamImageInfo.cpp
+	Passepartout.h Passepartout.cpp
 )
 
 set(video_defines PUBLIC

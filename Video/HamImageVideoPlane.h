@@ -23,30 +23,21 @@ public:
 	using Color	   = Graphics::Color;
 	using ColorMap = Graphics::ColorMap<Graphics::colordepth_8bpp>;
 
-	HamImageVideoPlane(const Pixmap*, const ColorMap*, uint first_rel_code);
+	HamImageVideoPlane(const Pixmap*, const ColorMap*, uint16 first_rel_code);
 
 	virtual void setup() override;
 	virtual void teardown() noexcept override;
 
-	void setupNextImage(int width, int height, uint first_rel_code);
+	void setupNextImage(int row_offset, uint16 first_rel_code);
 
 	RCPtr<const Pixmap>	  pixmap;
 	RCPtr<const ColorMap> colormap;
-	uint				  first_rel_code;
-
-	Color		 first_color;
-	Color		 border_color;
-	const uint8* pixels; // next position
-
-	int image_height;
-	int image_width;  // displayed pixels
-	int row_offset;	  // TODO eliminate when Passepartout is done
-	int top_border;	  // ""
-	int left_border;  // ""
-	int right_border; // ""
+	int					  row_offset;
+	uint16				  first_rel_code;
+	Color				  first_color; // initial color at start of next row
+	const uint8*		  pixels;	   // next position
 
 private:
-	void		_setup(int w, int h, uint num_abs_codes) noexcept;
 	void		_render(int row, int width, uint32* scanline) noexcept;
 	static void do_render(VideoPlane*, int row, int width, uint32* fbu) noexcept;
 	static void do_vblank(VideoPlane*) noexcept;

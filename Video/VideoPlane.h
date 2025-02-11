@@ -75,6 +75,7 @@ protected:
 
 private:
 	friend class VideoController;
+	friend class Passepartout;
 
 	VblankFu* vblank_fu = nullptr;
 	RenderFu* render_fu = nullptr;

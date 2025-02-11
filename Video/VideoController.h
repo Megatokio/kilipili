@@ -119,11 +119,13 @@ private:
 
 	VideoController() noexcept;
 
-	void core1_runner() noexcept;
-	void video_runner(int row0, uint32 cc_at_line_start);
-	void call_vblank_actions() noexcept;
-	void vblank(VideoPlane* vp) noexcept;
-	void render(VideoPlane* vp, int row, int width, uint32* fb) noexcept;
+	void		core1_runner() noexcept;
+	void		video_runner(int row0, uint32 cc_at_line_start);
+	void		call_vblank_actions() noexcept;
+	static void vblank(VideoPlane* vp) noexcept;
+	static void render(VideoPlane* vp, int row, int width, uint32* fb) noexcept;
+
+	friend class Passepartout;
 };
 
 
