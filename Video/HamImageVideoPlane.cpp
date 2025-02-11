@@ -89,7 +89,7 @@ void RAM HamImageVideoPlane::do_vblank(VideoPlane* vp) noexcept
 	me->first_color		   = black;
 }
 
-void inline XRAM HamImageVideoPlane::_render(int row, uint32* framebuffer) noexcept
+void inline XRAM HamImageVideoPlane::_render(int row, int width, uint32* framebuffer) noexcept
 {
 	// we don't check the row
 	// we rely on do_vblank() to reset the pointer
@@ -129,14 +129,14 @@ void inline XRAM HamImageVideoPlane::_render(int row, uint32* framebuffer) noexc
 	else
 	{
 		Color* dest = reinterpret_cast<Color*>(framebuffer);
-		for (int i = 0; i < vga_mode.width; i++) *dest++ = border_color;
+		for (int i = 0; i < width; i++) *dest++ = border_color;
 	}
 }
 
-void XRAM HamImageVideoPlane::do_render(VideoPlane* vp, int row, uint32* fbu) noexcept
+void XRAM HamImageVideoPlane::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
 {
 	HamImageVideoPlane* me = reinterpret_cast<HamImageVideoPlane*>(vp);
-	me->_render(row, fbu);
+	me->_render(row, width, fbu);
 }
 
 

@@ -64,11 +64,11 @@ public:
 		@param row    the current row, starting at 0
 		@param buffer destination for the pixel data
 	*/
-	virtual void renderScanline(int __unused row, uint32* __unused buffer) noexcept {}
+	virtual void renderScanline(int __unused row, int __unused width, uint32* __unused buffer) noexcept {}
 
 protected:
 	using VblankFu = void(VideoPlane*) noexcept;
-	using RenderFu = void(VideoPlane*, int row, uint32* buffer) noexcept;
+	using RenderFu = void(VideoPlane*, int row, int width, uint32* buffer) noexcept;
 
 	VideoPlane() noexcept {}
 	VideoPlane(VblankFu* a, RenderFu* b) noexcept : vblank_fu(a), render_fu(b) {}

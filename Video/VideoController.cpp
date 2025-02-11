@@ -239,10 +239,10 @@ __force_inline RAM void VideoController::vblank(VideoPlane* vp) noexcept
 	else if (!locked_out) vp->vblank();
 }
 
-__force_inline RAM void VideoController::render(VideoPlane* vp, int row, uint32* fb) noexcept
+__force_inline RAM void VideoController::render(VideoPlane* vp, int row, int width, uint32* fb) noexcept
 {
-	if (vp->render_fu) vp->render_fu(vp, row, fb);
-	else if (!locked_out) vp->renderScanline(row, fb);
+	if (vp->render_fu) vp->render_fu(vp, row, width, fb);
+	else if (!locked_out) vp->renderScanline(row, width, fb);
 }
 
 void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
@@ -301,7 +301,7 @@ void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
 			row0 += vga_mode.height;
 
 			while (int(time_cc_32() - cc_at_line_start) < 0) {}
-			for (uint i = 0; i < num_planes; i++) { render(planes[i], 0, scanline_buffer[row0]); }
+			for (uint i = 0; i < num_planes; i++) { render(planes[i], 0, vga_mode.width, scanline_buffer[row0]); }
 
 			cc_at_line_start -= uint(row) * cc_per_scanline;
 			cc_at_line_start += cc_per_frame + cc_per_scanline;
@@ -321,7 +321,7 @@ void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
 		idle_end();
 
 		uint32* scanline = scanline_buffer[row0 + row];
-		for (uint i = 0; i < num_planes; i++) { render(planes[i], row, scanline); }
+		for (uint i = 0; i < num_planes; i++) { render(planes[i], row, vga_mode.width, scanline); }
 	}
 }
 

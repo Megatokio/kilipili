@@ -42,7 +42,7 @@ public:
 	virtual void setup() override;
 	virtual void teardown() noexcept override {}
 	virtual void vblank() noexcept override;
-	virtual void renderScanline(int row, uint32* scanline) noexcept override;
+	virtual void renderScanline(int row, int width, uint32* scanline) noexcept override;
 
 	Sprite sprite;
 
@@ -181,7 +181,7 @@ void /*RAM*/ SingleSpritePlane<Sprite>::SingleSpritePlane::vblank() noexcept
 }
 
 template<typename Sprite>
-void RAM SingleSpritePlane<Sprite>::renderScanline(int row, uint32* scanline) noexcept
+void RAM SingleSpritePlane<Sprite>::renderScanline(int row, int __unused width, uint32* scanline) noexcept
 {
 	if (!is_hot)
 	{

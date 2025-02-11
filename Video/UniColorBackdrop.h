@@ -15,7 +15,7 @@ public:
 	UniColorBackdrop(Graphics::Color color) noexcept;
 
 private:
-	static void render(VideoPlane*, int row, uint32* fbu) noexcept;
+	static void render(VideoPlane*, int row, int width, uint32* fbu) noexcept;
 
 	uint32 color;
 };

@@ -46,7 +46,7 @@ public:
 	virtual void setup() override;
 	virtual void teardown() noexcept override;
 	virtual void vblank() noexcept override;
-	virtual void renderScanline(int row, uint32* scanline) noexcept override;
+	virtual void renderScanline(int row, int width, uint32* scanline) noexcept override;
 
 	Sprite* add(Sprite*) throws;
 	Sprite* remove(Sprite*) noexcept;

@@ -35,7 +35,7 @@ private:
 	scanlineRenderFu* render_fu;
 	uint8*			  pixels; // next position
 
-	static void _render(VideoPlane*, int row, uint32* scanline) noexcept;
+	static void _render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
 	static void _vblank(VideoPlane*) noexcept;
 };
 
@@ -78,7 +78,7 @@ private:
 	int			 arow;
 	int			 attrheight;
 
-	static void _render(VideoPlane*, int row, uint32* scanline) noexcept;
+	static void _render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
 	static void _vblank(VideoPlane*) noexcept;
 };
 

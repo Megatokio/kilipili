@@ -4,7 +4,6 @@
 
 #include "MultiSpritesPlane.h"
 #include "Trace.h"
-#include "VideoBackend.h"
 #include "cdefs.h"
 #include <pico/platform.h>
 #include <pico/stdlib.h>
@@ -260,7 +259,7 @@ void RAM MultiSpritesPlane<Sprite, WZ>::add_to_hotlist(const Sprite* sprite) noe
 }
 
 template<typename Sprite, ZPlane WZ>
-void RAM MultiSpritesPlane<Sprite, WZ>::renderScanline(int hot_row, uint32* scanline) noexcept
+void RAM MultiSpritesPlane<Sprite, WZ>::renderScanline(int hot_row, int width, uint32* scanline) noexcept
 {
 	trace(__func__);
 	assert(get_core_num() == 1);
@@ -275,7 +274,7 @@ void RAM MultiSpritesPlane<Sprite, WZ>::renderScanline(int hot_row, uint32* scan
 	Sprite* s = next_sprite;
 	while (s && s->pos.y <= hot_row)
 	{
-		if (s->pos.x < screen_width() && s->pos.x + s->width() > 0) { add_to_hotlist(s); }
+		if (s->pos.x < width && s->pos.x + s->width() > 0) { add_to_hotlist(s); }
 		next_sprite = s = static_cast<Sprite*>(s->next);
 	}
 

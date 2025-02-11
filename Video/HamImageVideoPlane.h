@@ -39,16 +39,16 @@ public:
 	const uint8* pixels; // next position
 
 	int image_height;
-	int image_width; // displayed pixels
-	int row_offset;
-	int top_border;
-	int left_border;
-	int right_border;
+	int image_width;  // displayed pixels
+	int row_offset;	  // TODO eliminate when Passepartout is done
+	int top_border;	  // ""
+	int left_border;  // ""
+	int right_border; // ""
 
 private:
 	void		_setup(int w, int h, uint num_abs_codes) noexcept;
-	void		_render(int row, uint32* scanline) noexcept;
-	static void do_render(VideoPlane*, int row, uint32* fbu) noexcept;
+	void		_render(int row, int width, uint32* scanline) noexcept;
+	static void do_render(VideoPlane*, int row, int width, uint32* fbu) noexcept;
 	static void do_vblank(VideoPlane*) noexcept;
 };
 

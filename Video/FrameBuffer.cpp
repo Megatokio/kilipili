@@ -3,7 +3,6 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "FrameBuffer.h"
-#include "VideoBackend.h"
 
 #define XRAM __attribute__((section(".scratch_x.FB" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
 #define RAM	 __attribute__((section(".time_critical.FB" __XSTRING(__LINE__)))) // general ram
@@ -19,7 +18,7 @@ void RAM FrameBufferBase::_vblank(VideoPlane* vp) noexcept
 	fb->pixels = fb->pixmap;
 }
 
-void XRAM FrameBufferBase::_render(VideoPlane* vp, int __unused row, uint32* scanline) noexcept
+void XRAM FrameBufferBase::_render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	FrameBufferBase* fb = reinterpret_cast<FrameBufferBase*>(vp);
 
@@ -27,7 +26,7 @@ void XRAM FrameBufferBase::_render(VideoPlane* vp, int __unused row, uint32* sca
 	// we rely on do_vblank() to reset the pointer
 	// and if we actually miss a scanline then the remainder of the screen is shifted
 
-	fb->render_fu(scanline, uint(vga_mode.width), fb->pixels);
+	fb->render_fu(scanline, uint(width), fb->pixels);
 	fb->pixels += fb->row_offset;
 }
 
@@ -41,7 +40,7 @@ void RAM FrameBufferBase_wAttr::_vblank(VideoPlane* vp) noexcept
 	fb->arow	   = fb->attrheight;
 }
 
-void XRAM FrameBufferBase_wAttr::_render(VideoPlane* vp, int __unused row, uint32* scanline) noexcept
+void XRAM FrameBufferBase_wAttr::_render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	FrameBufferBase_wAttr* fb = reinterpret_cast<FrameBufferBase_wAttr*>(vp);
 
@@ -49,7 +48,7 @@ void XRAM FrameBufferBase_wAttr::_render(VideoPlane* vp, int __unused row, uint3
 	// we rely on do_vblank() to reset the pointer
 	// and if we actually miss a scanline then the remainder of the screen is shifted
 
-	fb->render_fu(scanline, uint(vga_mode.width), fb->pixels, fb->attributes);
+	fb->render_fu(scanline, uint(width), fb->pixels, fb->attributes);
 
 	fb->pixels += fb->row_offset;
 
