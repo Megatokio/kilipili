@@ -17,7 +17,8 @@ set(graphics_sources
 	graphics_types.h
 	BitBlit.h
 	BitBlit.cpp
-	rsrc/font_12x8.h
+	systemfont.cpp
+	systemfont.h
 	gif/Colormap.cpp
 	gif/Colormap.h
 	gif/GifArray.h

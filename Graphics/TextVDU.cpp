@@ -22,11 +22,9 @@ namespace kio::Graphics
 	((b & 128) >> 7) + ((b & 64) >> 5) + ((b & 32) >> 3) + ((b & 16) >> 1) + ((b & 8) << 1) + ((b & 4) << 3) + \
 		((b & 2) << 5) + ((b & 1) << 7)
 
-// The Character Set and Font:
+// the system font:
 //
-static constexpr const uchar font[(256 - 32 - 32) * 12] = {
-#include "rsrc/font_12x8.h"
-};
+extern const unsigned char systemfont256x12[256 * 12];
 
 // convert nibble -> double width byte:
 //
@@ -556,22 +554,10 @@ void TextVDU::getCharMatrix(CharMatrix charmatrix, char cc) noexcept
 	// returns ASCII, UDG or LATIN-1 characters
 	// or GRAPHICS CHARACTERS if attribute ATTR_GRAPHICS_CHARACTERS is set
 
-	// valid range:
-	// 0x20 .. 0x7F	ASCII
-	// 0x80 .. 0x9F	UDG
-	// 0xA0 .. 0xFF	LATIN-1
-
 	if (attributes & GRAPHICS) { getGraphicsCharMatrix(charmatrix, cc); }
 	else
 	{
-		uint  o = 127 - 32; // default = pattern of 'delete'
-		uchar c = uchar(cc);
-		if (c < 0x20) {}
-		else if (c < 0x80) { o = c - 32; }
-		else if (c < 0xA0) {} // readUDG(c,charmatrix);		TODO:  LCD: read from eeprom
-		else { o = c - 64; }
-
-		const uchar* p = font + o * CHAR_HEIGHT;
+		const uchar* p = systemfont256x12 + uchar(cc) * CHAR_HEIGHT;
 		memcpy(charmatrix, p, CHAR_HEIGHT);
 	}
 }
