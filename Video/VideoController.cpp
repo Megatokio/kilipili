@@ -329,29 +329,30 @@ void VideoController::addPlane(VideoPlanePtr plane)
 	assert(plane != nullptr);
 	assert_lt(num_planes, count_of(planes));
 
-	// plane must be added by core1 because plane->setup() may initialize the hw interp:
+	// plane must be added by core1 during vblank:
 
-	addOneTimeAction([this, plane] {
-		assert_lt(num_planes, max_planes);
-		planes[num_planes++] = plane;
-	});
+	if (plane)
+		addOneTimeAction([this, plane] {
+			assert_lt(num_planes, max_planes);
+			planes[num_planes++] = plane;
+		});
 }
 
 void VideoController::removePlane(VideoPlanePtr plane)
 {
-	// plane must be removed by core1 because plane->teardown() may unclaim the hw interp:
-	// note: normally not used because teardown() removes all planes.
+	// plane must be removed by core1 during vblank:
 
-	addOneTimeAction([this, plane] {
-		for (uint i = num_planes; i;)
-		{
-			if (planes[--i] != plane) continue;
+	if (plane)
+		addOneTimeAction([this, plane] {
+			for (uint i = num_planes; i;)
+			{
+				if (planes[--i] != plane) continue;
 
-			while (++i < num_planes) std::swap(planes[i - 1], planes[i]);
-			planes[--num_planes] = nullptr;
-			return;
-		}
-	});
+				while (++i < num_planes) std::swap(planes[i - 1], planes[i]);
+				planes[--num_planes] = nullptr;
+				return;
+			}
+		});
 }
 
 void VideoController::setVBlankAction(const VBlankAction& fu) noexcept

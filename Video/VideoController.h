@@ -126,6 +126,10 @@ private:
 	static void render(VideoPlane* vp, int row, int width, uint32* fb) noexcept;
 
 	friend class Passepartout;
+	template<int>
+	friend class HorizontalLayout;
+	template<int>
+	friend class VerticalLayout;
 };
 
 

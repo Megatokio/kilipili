@@ -56,6 +56,8 @@ set(video_sources
 	HamImageInfo.cpp
 	Passepartout.h Passepartout.cpp
 	Interp.h  
+	VerticalLayout.h VerticalLayout.cpp
+	HorizontalLayout.h HorizontalLayout.cpp
 )
 
 set(video_defines PUBLIC
