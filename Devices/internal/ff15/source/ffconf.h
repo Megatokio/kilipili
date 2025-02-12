@@ -223,7 +223,12 @@
 / System Configurations
 /---------------------------------------------------------------------------*/
 
-#define FF_FS_TINY 0
+// Warning: this option changes the size of structs. Therefore it must not be set in
+// one compilation unit only but for the whole application, else the application will crash.
+// Add the option in the main application's CMakeLists.txt if needed!
+#ifndef FF_FS_TINY
+  #define FF_FS_TINY 0
+#endif
 /* This option switches tiny buffer configuration. (0:Normal or 1:Tiny)
 /  At the tiny configuration, size of file object (FIL) is shrinked FF_MAX_SS bytes.
 /  Instead of private sector buffer eliminated from the file object, common sector
