@@ -22,6 +22,19 @@
 namespace kio::Audio
 {
 
+#if defined AUDIO_INPUT_BUFFER_ON_STACK && AUDIO_INPUT_BUFFER_ON_STACK
+  #define opt_static
+#else
+  #define opt_static static
+#endif
+
+#if defined AUDIO_INPUT_BUFFER_SIZE && AUDIO_INPUT_BUFFER_SIZE != 0
+static constexpr uint ibu_size = AUDIO_INPUT_BUFFER_SIZE;
+#else
+static constexpr uint ibu_size = 64;
+#endif
+
+
 #if audio_hw_num_channels != 0
 
 // clang-format off
@@ -44,7 +57,7 @@ namespace kio::Audio
 
   #define audio_pio pio0 // same as video pio
 
-constexpr uint dma_buffer_num_frames = AUDIO_DMA_BUFFER_NUM_FRAMES;
+constexpr uint dma_buffer_num_frames = AUDIO_DMA_BUFFER_SIZE;
 constexpr uint dma_buffer_frame_size = audio_hw_sample_size * (audio_hw == I2S ? 2 : 1);
 constexpr uint dma_buffer_size		 = dma_buffer_num_frames * dma_buffer_frame_size;
 
@@ -466,10 +479,8 @@ static int64 fill_buffer(alarm_id_t, void*) noexcept
 
 	assert_lt(int(frames_needed), int(dma_buffer_num_frames)); // may be negative!
 
-	// since we run on a timer we don't want to use too much ram on the stack:
-	constexpr uint							 ibu_size = 64;
-	static AudioSample<hw_num_channels, int> input_buffer[ibu_size]; // 64 * 2 * 4 = 512 bytes
-	AudioSample<hw_num_channels>			 ibu[ibu_size];
+	opt_static AudioSample<hw_num_channels, int> input_buffer[ibu_size]; // normally static: 64 * 2 * 4 = 512 bytes
+	AudioSample<hw_num_channels>				 ibu[ibu_size];			 // always on stack: 64 * 2 * 2 = 256 bytes
 
 	while (int(frames_needed) > 0)
 	{

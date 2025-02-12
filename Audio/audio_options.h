@@ -104,8 +104,8 @@
 #endif
 
 // dma buffer size in number of audio frames (Sample[num_channels])
-#ifndef AUDIO_DMA_BUFFER_NUM_FRAMES
-  #define AUDIO_DMA_BUFFER_NUM_FRAMES 256 // ~ 5ms
+#ifndef AUDIO_DMA_BUFFER_SIZE
+  #define AUDIO_DMA_BUFFER_SIZE 256 // ~ 5ms
 #endif
 
 

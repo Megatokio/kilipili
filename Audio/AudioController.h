@@ -74,7 +74,7 @@ public:
 		this applies to the AudioController only, if you have buffered AudioSources they add to this.
 		normally the latency is limited by the size of the dma buffer and the hw_sample_frequency.
 		the default values are 10 ms for the max. latency, but the dma buffer reduces that to approx. 5ms
-		for the default AUDIO_DMA_BUFFER_NUM_FRAMES and AUDIO_DEFAULT_SAMPLE_FREQUENCY of 44100 Hz.
+		for the default AUDIO_DMA_BUFFER_SIZE and AUDIO_DEFAULT_SAMPLE_FREQUENCY of 44100 Hz.
 	*/
 	void setMaxLatency(uint32 msec) noexcept;
 

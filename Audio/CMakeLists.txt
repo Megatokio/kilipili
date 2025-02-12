@@ -7,9 +7,12 @@ cmake_minimum_required(VERSION 3.13)
 
 
 set(AUDIO_DEFAULT_SAMPLE_FREQUENCY 44100 CACHE STRING "default sample frequency")
-set(AUDIO_DMA_BUFFER_NUM_FRAMES 256 CACHE STRING "number of audio frames in dma buffer. 256 ~ 5msec")
+set(AUDIO_DMA_BUFFER_SIZE 256 CACHE STRING "number of audio frames in dma buffer. 256 ~ 5msec")
+option(AUDIO_INPUT_BUFFER_ON_STACK "no static input_buffer[] in fill_buffer() but allocated on stack" OFF)
+set(AUDIO_INPUT_BUFFER_SIZE 64 CACHE STRING "size of input_buffer[] in fill_buffer()")
 
-set_property(CACHE AUDIO_DMA_BUFFER_NUM_FRAMES PROPERTY STRINGS 64 128 256 512 1024)
+set_property(CACHE AUDIO_DMA_BUFFER_SIZE PROPERTY STRINGS 64 128 256 512 1024)
+set_property(CACHE AUDIO_INPUT_BUFFER_SIZE PROPERTY STRINGS 32 48 64)
 
 set(audio_sources
 	audio_options.h
@@ -27,8 +30,10 @@ set(audio_sources
 )
 
 set(audio_defines
-	AUDIO_DMA_BUFFER_NUM_FRAMES=${AUDIO_DMA_BUFFER_NUM_FRAMES}
+	AUDIO_DMA_BUFFER_SIZE=${AUDIO_DMA_BUFFER_SIZE}
 	AUDIO_DEFAULT_SAMPLE_FREQUENCY=${AUDIO_DEFAULT_SAMPLE_FREQUENCY}
+	AUDIO_INPUT_BUFFER_ON_STACK=${AUDIO_INPUT_BUFFER_ON_STACK}
+	AUDIO_INPUT_BUFFER_SIZE=${AUDIO_INPUT_BUFFER_SIZE}
 )
 
 set(audio_includes
