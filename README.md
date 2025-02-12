@@ -4,28 +4,36 @@
 *A c++ library for video, audio and input devices for the RP2040.*
 *If you run into a problem please file a bug report or a merge request.*
 
+## Cheap Summary
+Lib *kilipili* provides the tools for using video and audio on a Raspberry Pi Pico or any other board with a RP2040 microcontroller.
+Very coarsely it provides:
+- a Dispatcher
+- a FileSystem: preferences, resource FS in flash, FlashFS, SDCard
+- Video output: a multitude of hardware configurations, video formats and options
+- Audio output: 3 hardware options (I2S, PWM and SigmaDelta), real-time capable
+- USB input: Keyboard and Mouse
+- Graphics: TextVDU and drawing primitives
+- debugging support
+
+
 ## Latest Additions
 - Display true color images up to 600x400 pixels with a *HoldAndModifyVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
 - AY-3-8912 sound chip emulation and *.ym* audio file playback. See Wiki page about *.ymm* files.
-- Write to internal flash with video enabled.
-- Preferences in program flash
-- write to internal flash without any distortion in video output. (FrameBuffers and similar VideoPlanes)
+- write to internal flash without disrupting video output. 
 
 
 ## Video 
 The video engine provides many video modes with indexed or true color up to highest resolution by use of attributes. It provides sprites and a mouse pointer.
 
-- `[done]` Video output fully functional and tested.
 - `[done]` Screen resolution 160\*120 up to **1280\*768** in **16 bit true color**.  
 - `[done]` Low RAM usage by use of attributes. =\> colorful display in high resolutions.  
   e.g. **1024 x 768** with 8 x 12 pixel **true color** attributes uses **only 132 kB of Ram**, leaving over 100 kB to the application.
 - `[done]` Mouse pointer. 
 - `[done]` Switch between different video mode and screen resolutions.
-- `[done]` Automatically sets the required system clock.  
 - `[done]` video output not affected by flash-lockout for writing to the internal flash. 
+- `[done]` Display true color images up to 600x400 pixels with a *HamImageVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
 - `[test]` Sprites.
 - `[test]` Tiled background.
-- `[done]` Display true color images up to 600x400 pixels with a *HamImageVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
 
 
 ## USB Host
@@ -33,8 +41,8 @@ The USB host mode currently supports keyboards and pointer devices (aka 'Mouse')
 
 - `[done]` USB keyboard support. 
 - `[done]` English and German key translation tables
-- `[todo]` more key translation tables
 - `[done]` USB mouse support
+- `[todo]` more key translation tables
 
 
 ## Graphics
@@ -88,15 +96,23 @@ The audio interface automatically adjusts to a changed system clock when switchi
 - `[done]` AY-3-8912 sound chip emulation and *.ym* audio file playback. See Wiki page about *.ymm* files.
 
 
-## Resource File System
-Lib kilipili provides a compressed resource file system with files linked into the binary and written to the program flash. This can be compiled using the RsrcFileWriter in the desktop_tools/ directory. See below. The RsrcFileWriter creates a file `rsrc.cpp` which must be linked into the program. See Wiki page.
-
-
-## SDCard support
+## Files and Devices
+Lib kilipili provides a compressed resource file system with files linked into the binary and written to the program flash. This can be compiled using the RsrcFileWriter in the desktop_tools/ directory. See below. The RsrcFileWriter creates a file `rsrc.cpp` which must be linked into the program. See Wiki page.  
 The SDcard Interface accesses the SD card via it's SPI interface.  
 
-- `[done]` Read SC card in SPI mode 
-- `[done]` FAT file system support 
+- `[done]` Preferences at the end of program flash
+- `[done]` Compressed resource file system linked into the binary
+- `[done]` Flash file system
+- `[done]` Read SDCard in SPI mode 
+- `[done]` FAT file system 
+- `[done]` BlockDevice for the internal program flash
+- `[todo]` Write to SDCard 
+
+
+## Other
+- `[done]` Dispatcher: manages a list of scheduled one-time or repeated events. You can convert interrupts, e.g. timer interrupts into events for the dispatcher to execute them synchronously with much less hazzle to synchronize access to global data.
+- `[done]` **malloc** replacement which doesn't fail to return available memory. It also provides many additional tools to support debugging.
+- `[done]` cpu load sensor
 
 
 ## Desktop Tools
@@ -106,16 +122,9 @@ The following utilities are built by *desktop_tools/CmakeLists.txt*:
 - `[done]` RsrcFileWriter: read and convert a directory for use with the resource file system or to write to an SDcard. See Wiki page.
 
 
-## Other
-- `[done]` cpu load sensor
-- `[done]` **malloc** replacement which doesn't fail to return available memory
-- `[done]` BlockDevice for the internal program flash
-- `[done]` Preferences in program flash
-
-
 ## Resources & restrictions
 - Uses CPU core 1, 3 DMA channels and 2 state machines in PIO 1 for video.  
-  Upt to 2 DMA channels and the other state machines are used for audio.
+  Up to 2 DMA channels and the other state machines are used for audio.
 - Some video modes require excessive high system clock in high screen resolutions.
 - Pixel clock restricted to full MHz.
 - System clock must be a multiple of the pixel clock.
