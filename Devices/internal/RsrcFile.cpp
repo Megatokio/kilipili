@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "RsrcFile.h"
+#include "common/DiskLight.h"
 #include <cstring>
 
 namespace kio ::Devices
@@ -30,6 +31,9 @@ SIZE RsrcFile::read(void* data, SIZE size, bool partial)
 		if (eof_pending()) throw END_OF_FILE;
 		if (size == 0) set_eof_pending();
 	}
+
+	DiskLight _;
+
 	memcpy(data, this->data + fpos, size);
 	fpos += size;
 	return size;

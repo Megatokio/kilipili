@@ -11,10 +11,6 @@
 #include <hardware/spi.h>
 
 
-// you may define this symbol to get a disk activity light:
-extern __weak_symbol void set_disk_light(bool onoff);
-
-
 namespace kio::Devices
 {
 

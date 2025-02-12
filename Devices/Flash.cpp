@@ -4,6 +4,7 @@
 
 
 #include "Flash.h"
+#include "common/DiskLight.h"
 #include <string.h>
 
 #if defined UNIT_TEST && UNIT_TEST
@@ -57,26 +58,22 @@ void flash_erase(uint32 addr, uint32 size) noexcept
 {
 	assert(get_core_num() == 0);
 
-	if (set_disk_light) set_disk_light(on);
 	if (suspend_core1) suspend_core1();
 	uint32 o = save_and_disable_interrupts();
 	flash_range_erase(addr, size);
 	restore_interrupts(o);
 	if (resume_core1) resume_core1();
-	if (set_disk_light) set_disk_light(off);
 }
 
 void flash_program(uint32 addr, cuptr bu, uint32 size) noexcept
 {
 	assert(get_core_num() == 0);
 
-	if (set_disk_light) set_disk_light(on);
 	if (suspend_core1) suspend_core1();
 	uint32 o = save_and_disable_interrupts();
 	flash_range_program(addr, bu, size);
 	restore_interrupts(o);
 	if (resume_core1) resume_core1();
-	if (set_disk_light) set_disk_light(off);
 }
 
 static constexpr uint	left_fract(uint32 addr, uint mask) { return addr & mask; }
@@ -170,6 +167,8 @@ void eraseData(uint32 addr, uint32 size) throws
 	assert(get_core_num() == 0);
 	assert(addr <= xip_flash_size && size <= xip_flash_size - addr);
 
+	DiskLight _;
+
 	if (is_erased(addr, size)) return;
 
 	if (uint d = right_fract(addr, emask))
@@ -245,6 +244,8 @@ void writeData(uint32 addr, const void* _data, uint32 size) throws
 	assert(get_core_num() == 0);
 	assert(addr <= xip_flash_size && size <= xip_flash_size - addr);
 
+	DiskLight _;
+
 	cuptr data = cuptr(_data);
 	if (is_same_as(addr, data, size)) return;
 
@@ -270,6 +271,8 @@ void readData(uint32 addr, void* data, uint32 size) noexcept
 {
 	if (size == 0) return;
 	assert(addr <= xip_flash_size && size <= xip_flash_size - addr);
+
+	DiskLight _;
 
 	// reading uncached in the hope not to flush the program cache
 	// and in the hope that data is mostly read only once.

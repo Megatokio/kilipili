@@ -27,6 +27,7 @@ set(common_sources
 	sdbm_hash.h
 	LzhDecoder.cpp
 	LzhDecoder.h
+	DiskLight.h
 )
 
 set(common_defines
