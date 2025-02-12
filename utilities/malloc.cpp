@@ -20,15 +20,17 @@
   #define MALLOC_SPINLOCK_NUMBER PICO_SPINLOCK_ID_OS2
 #endif
 
-#if (defined MALLOC_ENHANCED_VALIDATION && MALLOC_ENHANCED_VALIDATION) || defined DEBUG
-static constexpr bool enhanced_validation = true;
+#if (defined MALLOC_EXTENDED_VALIDATION && MALLOC_EXTENDED_VALIDATION) || defined DEBUG
+static constexpr bool extended_validation = true;
 #else
-static constexpr bool enhanced_validation = false;
+static constexpr bool extended_validation = false;
 #endif
 
-#if defined MALLOC_ENHANCED_LOGGING && MALLOC_ENHANCED_LOGGING
+#if defined MALLOC_EXTENDED_LOGGING && MALLOC_EXTENDED_LOGGING
+static constexpr bool extended_logging = true;
   #define xlogline printf
 #else
+static constexpr bool extended_logging = false;
   #define xlogline(...) (void)0
 #endif
 
@@ -145,11 +147,11 @@ constexpr size_t max_size = (size_mask << 2) - 4; // bytes
 
 static inline uint32* skip_free(uint32* p)
 {
-	if constexpr (enhanced_validation)
+	if constexpr (extended_validation)
 	{
 		while (p < heap_end && is_valid_free(p)) { p += *p; }
 
-		// in a race condition the used block at p could just been released by free().
+		// note: in a race condition the used block at p could just been released by free().
 		if (p < heap_end && !is_valid_used(p) && !is_valid_free(p)) panic("malloc:skip_free: !valid_used");
 
 		return p;
@@ -163,7 +165,7 @@ static inline uint32* skip_free(uint32* p)
 
 static inline uint32* skip_used(uint32* p)
 {
-	if constexpr (enhanced_validation)
+	if constexpr (extended_validation)
 	{
 		while (p < heap_end && is_valid_used(p)) { p += *p & size_mask; }
 		if (p < heap_end && !is_valid_free(p)) panic("malloc:skip_used: !valid_free");
@@ -200,7 +202,8 @@ void* malloc(size_t size)
 	// calc. required size in words, incl. header:
 	if unlikely (size > max_size)
 	{
-		xlogline("malloc%u %u -> NULL\n", get_core_num(), size);
+		xlogline("%u:malloc %u -> NULL\n", get_core_num(), size);
+		if constexpr (extended_logging) dump_heap();
 		return nullptr;
 	}
 	size = (size + 7) >> 2;
@@ -218,7 +221,7 @@ void* malloc(size_t size)
 			if (gap > size) { *(p + size) = (gap - size) | flag_free; } // split
 			*p = size | flag_used;
 			malloc_unlock(_);
-			xlogline("malloc%u %u -> 0x%8x\n", get_core_num(), (size - 1) << 2, size_t(p + 1));
+			xlogline("%u:malloc %u -> 0x%8x\n", get_core_num(), (size - 1) << 2, size_t(p + 1));
 			return p + 1;
 		}
 
@@ -228,7 +231,8 @@ void* malloc(size_t size)
 	}
 
 	malloc_unlock(_);
-	xlogline("malloc%u %u -> NULL\n", get_core_num(), (size - 1) << 2);
+	xlogline("%u:malloc %u -> NULL\n", get_core_num(), (size - 1) << 2);
+	if constexpr (extended_logging) dump_heap();
 	return nullptr;
 }
 
@@ -284,7 +288,7 @@ void* realloc(void* mem, size_t size)
 		*p = (old_size - size) | flag_free;
 
 		malloc_unlock(_);
-		xlogline("realloc 0x%8x: %u -> %u\n", size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
+		xlogline("%u:realloc 0x%8x: %u -> %u\n", get_core_num(), size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
 		return mem;
 	}
 
@@ -300,12 +304,14 @@ void* realloc(void* mem, size_t size)
 			if (avail > size) *p = (avail - size) | flag_free;
 
 			malloc_unlock(_);
-			xlogline("realloc 0x%8x: %u -> %u\n", size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
+			xlogline("%u:realloc 0x%8x: %u -> %u\n", get_core_num(), size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
 			return mem;
 		}
 
 		// can't grow in place, must relocate:
-		xlogline("realloc 0x%8x: %u -> %u: reallocate\n", size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
+		xlogline(
+			"%u:realloc 0x%8x: %u -> %u: reallocate\n", get_core_num(), size_t(mem), //
+			(old_size - 1) << 2, (size - 1) << 2);
 		void* z = malloc((size - 1) << 2);
 		if (z)
 		{
@@ -317,7 +323,7 @@ void* realloc(void* mem, size_t size)
 
 	else // new_size == old_size
 	{
-		xlogline("realloc 0x%8x: %u -> %u\n", size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
+		xlogline("%u:realloc 0x%8x: %u -> %u\n", get_core_num(), size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
 		return mem;
 	}
 }
@@ -332,11 +338,10 @@ void free(void* mem)
 	if (mem)
 	{
 		uint32* p = reinterpret_cast<uint32*>(mem) - 1;
-		xlogline("free%u 0x%8x: %u \n", get_core_num(), size_t(mem), ((*p & size_mask) - 1) << 2);
+		xlogline("%u:free 0x%8x: %u \n", get_core_num(), size_t(mem), ((*p & size_mask) - 1) << 2);
 		assert(is_valid_used(p));
 		*p = (*p & size_mask) | flag_free;
 	}
-	else xlogline("free%u NULL\n", get_core_num());
 }
 
 Error check_heap()
