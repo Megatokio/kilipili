@@ -87,7 +87,7 @@ void SerialDevice::puts(cstr s)
 
 void SerialDevice::printf(cstr fmt, ...)
 {
-	char bu[256];
+	char bu[100];
 
 	va_list va;
 	va_start(va, fmt);
@@ -96,17 +96,17 @@ void SerialDevice::printf(cstr fmt, ...)
 
 	assert(n >= 0);
 	SIZE size = uint(n);
-	if (size <= 255) return (void)write(bu, size);
+	if (size < 100) return (void)write(bu, size);
 
-	std::unique_ptr<char[]> bp {new (std::nothrow) char[size + 1]};
+	TempMemSave _;
 
-	if (!bp) return (void)write(bu, 256); // desperately short of memory
+	ptr bp = tempstr(size);
 
 	va_start(va, fmt);
-	vsnprintf(bp.get(), size + 1, fmt, va);
+	vsnprintf(bp, size + 1, fmt, va);
 	va_end(va);
 
-	return (void)write(bp.get(), size);
+	write(bp, size);
 }
 
 
