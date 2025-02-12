@@ -2,10 +2,10 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
+#include "tempmem.h"
 #include "basic_math.h"
 #include "cdefs.h"
 #include "string.h"
-#include "tempmem.h"
 #include <cstddef>
 
 // this file provides tempmem buffers on systems supporting c++11 thread_local variables.
@@ -195,6 +195,12 @@ ptr xtempmem(uint size)
 
 	return pool.prev->alloc(size);
 }
+
+
+// Dummy:
+TempMemSave::TempMemSave() noexcept {}
+TempMemSave::~TempMemSave() noexcept {}
+
 
 } // namespace kio
 
