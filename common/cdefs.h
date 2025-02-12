@@ -113,11 +113,12 @@ extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
 	}                                                               \
 	while (0);
 
-// TODO: add_compile_definitions is not propagated up in cmake
-//       => no option MEMORY_ID until this problem is solved!
-//#if (defined MEMORY_ID && MEMORY_ID) || (!defined MEMORY_ID && defined DEBUG)
-#define Id(n) \
-	const char _id[8] { n[0], n[1], n[2], n[3], n[4], n[5], n[6], n[7] }
-//#else
-//  #define Id(n) static const char _id[8]
-//#endif
+// WARNING: if OPTION_MEMORY_ID is defined it must be defined in the main program CMakeLists.txt.
+// Defining it in kilipili/CMakeLists.txt (or even only one of it's modules) will result in some
+// compile units seeing this definition and others not, which results in different sizes of objects.
+#if !defined OPTION_MEMORY_ID || OPTION_MEMORY_ID
+  #define Id(n) \
+	  const char _id[8] { n[0], n[1], n[2], n[3], n[4], n[5], n[6], 0 }
+#else
+  #define Id(n) static const char _id[8]
+#endif
