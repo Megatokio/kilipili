@@ -5,7 +5,7 @@
 #pragma once
 #include "ColorMap.h"
 #include "Pixmap.h"
-#include "ScanlineRenderFu.h"
+#include "ScanlineRenderer.h"
 #include "VideoPlane.h"
 
 
@@ -13,110 +13,41 @@ namespace kio::Video
 {
 
 /*	_____________________________________________________________________________________
-	Base class for FrameBuffers with direct color modes (color modes without attributes):
-*/
-class FrameBufferBase : public VideoPlane
-{
-protected:
-	using scanlineRenderFu = void(uint32* dest, uint screen_width_pixels, const uint8* video_pixels);
-
-	FrameBufferBase(uint8* pixmap, uint row_offset, scanlineRenderFu* fu) noexcept :
-		VideoPlane(&_vblank, &_render),
-		pixmap(pixmap),
-		row_offset(row_offset),
-		render_fu(fu),
-		pixels(pixmap)
-	{}
-
-private:
-	Id("FrameBuffer");
-	uint8*			  pixmap;
-	uint			  row_offset;
-	scanlineRenderFu* render_fu;
-	uint8*			  pixels; // next position
-
-	static void _render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
-	static void _vblank(VideoPlane*) noexcept;
-};
-
-
-/*	_____________________________________________________________________________________
-	Base class for FrameBuffers with color modes with color attributes.
-*/
-class FrameBufferBase_wAttr : public VideoPlane
-{
-protected:
-	using scanlineRenderFu = void(uint32* dest, uint screen_width_pixels, const uint8* pixels, const uint8* attributes);
-
-	FrameBufferBase_wAttr(
-		const uint8* pixmap, uint row_offset,			  //
-		const uint8* attr, uint arow_offset, int aheight, //
-		scanlineRenderFu* fu) noexcept					  //
-		:
-		VideoPlane(&_vblank, &_render),
-		pixmap(pixmap),
-		pixels(pixmap),
-		row_offset(row_offset),
-		render_fu(fu),
-		attrmap(attr),
-		attributes(attr),
-		arow_offset(arow_offset),
-		arow(0),
-		attrheight(aheight)
-	{}
-
-private:
-	Id("FrameBuffer");
-	const uint8*	  pixmap;
-	const uint8*	  pixels; // next position
-	uint			  row_offset;
-	scanlineRenderFu* render_fu;
-
-	const uint8* attrmap;
-	const uint8* attributes; // next position
-	uint		 arow_offset;
-	int			 arow;
-	int			 attrheight;
-
-	static void _render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
-	static void _vblank(VideoPlane*) noexcept;
-};
-
-
-/*	_____________________________________________________________________________________
-	Template class FrameBuffer renders whole scanlines from a vga_mode.width Pixmap.
+	Template class FrameBuffer renders whole Pixmaps.
 */
 template<ColorMode CM, typename = void>
 class FrameBuffer;
 
-
 /*	_____________________________________________________________________________________
-	Partial specialization for direct color modes (color modes without attributes):
+	Explicit specialization for true color mode without attributes:
 */
-template<ColorMode CM>
-class FrameBuffer<CM, std::enable_if_t<is_direct_color(CM)>> final : public FrameBufferBase
+template<>
+class FrameBuffer<ColorMode::colormode_rgb> final : public VideoPlane
 {
 public:
-	using Pixmap   = Graphics::Pixmap<CM>;
-	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
-	using Canvas   = Graphics::Canvas;
+	static const ColorMode CM = Graphics::colormode_rgb;
+	using Pixmap			  = Graphics::Pixmap<CM>;
+	using ColorMap			  = Graphics::ColorMap<Graphics::colordepth_rgb>;
+	using Canvas			  = Graphics::Canvas;
 
-	RCPtr<const Pixmap>	  pixmap;
-	RCPtr<const ColorMap> colormap;
+	Id("FrameBuffer");
+	RCPtr<const Pixmap> pixmap;
+	int					row_offset;
+	uint8*				pixels; // next position
 
-	FrameBuffer(const Pixmap* px, const ColorMap* cm = nullptr) noexcept :
-		FrameBufferBase(pixmap->pixmap, pixmap->row_offset, &scanlineRenderFunction<CM>),
+	FrameBuffer(const Pixmap* px, const ColorMap* = nullptr) noexcept : //
+		VideoPlane(&_vblank, &_render),
 		pixmap(px),
-		colormap(cm ? cm : &Graphics::system_colormap)
+		row_offset(pixmap->row_offset),
+		pixels(pixmap->pixmap)
+	{}
+	FrameBuffer(const Canvas* px, const ColorMap* = nullptr) noexcept : FrameBuffer(static_cast<const Pixmap*>(px))
 	{
 		assert(px->colormode == CM);
 	}
-	FrameBuffer(const Canvas* px, const ColorMap* cmap = nullptr) noexcept :
-		FrameBuffer(static_cast<const Pixmap*>(px), cmap)
-	{}
 
-	virtual void setup() throws override { setupScanlineRenderer<CM>(colormap->colors); }
-	virtual void teardown() noexcept override { teardownScanlineRenderer<CM>(); }
+	static void _render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
+	static void _vblank(VideoPlane*) noexcept;
 };
 
 
@@ -124,33 +55,99 @@ public:
 	Partial specialization for color modes with color attributes.
 */
 template<ColorMode CM>
-class FrameBuffer<CM, std::enable_if_t<is_attribute_mode(CM)>> final : public FrameBufferBase_wAttr
+class FrameBuffer<CM, std::enable_if_t<is_attribute_mode(CM)>> final : public VideoPlane
 {
 public:
 	using Pixmap   = Graphics::Pixmap<CM>;
 	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
 	using Canvas   = Graphics::Canvas;
 
-	RCPtr<const Pixmap>	  pixmap;
-	RCPtr<const ColorMap> colormap;
+	Id("FrameBuffer");
+	RCPtr<const Pixmap> pixmap;
+	int					row_offset;
+	const uint8*		pixels; // next position
+	const uint8*		attrmap;
+	const uint8*		attributes; // next position
+	uint				arow_offset;
+	int					attrheight;
+	int					arow;
 
-	FrameBuffer(const Pixmap* px, const ColorMap* cm = nullptr) noexcept :
-		FrameBufferBase_wAttr(
-			px->pixmap, px->row_offset,										  //
-			px->attributes.pixmap, px->attributes.row_offset, px->attrheight, //
-			&scanlineRenderFunction<CM>),
+	FrameBuffer(const Pixmap* px, const ColorMap* = nullptr) noexcept :
+		VideoPlane(&_vblank, &_render),
 		pixmap(px),
-		colormap(cm ? cm : &Graphics::system_colormap)
+		row_offset(pixmap->row_offset),
+		pixels(pixmap->pixmap),
+		attrmap(px->attributes.pixmap),
+		attributes(attrmap),
+		arow_offset(px->attributes.row_offset),
+		attrheight(px->attrheight),
+		arow(attrheight)
+	{}
+
+	FrameBuffer(const Canvas* px, const ColorMap* cm = nullptr) noexcept :
+		FrameBuffer(static_cast<const Pixmap*>(px), cm)
 	{
 		assert(px->colormode == CM);
 	}
-	FrameBuffer(const Canvas* px, const ColorMap* cm = nullptr) noexcept :
-		FrameBuffer(static_cast<const Pixmap*>(px), cm)
-	{}
 
-	virtual void setup() throws override { setupScanlineRenderer<CM>(colormap->colors); }
-	virtual void teardown() noexcept override { teardownScanlineRenderer<CM>(); }
+	static void _render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
+	static void _vblank(VideoPlane*) noexcept;
 };
+
+
+/*	_____________________________________________________________________________________
+	Partial specialization for indexed color modes:
+*/
+template<ColorMode CM>
+class FrameBuffer<CM, std::enable_if_t<is_indexed_color(CM)>> final : public VideoPlane
+{
+public:
+	using Pixmap   = Graphics::Pixmap<CM>;
+	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
+	using Canvas   = Graphics::Canvas;
+
+	Id("FrameBuffer");
+	RCPtr<const Pixmap>	  pixmap;
+	RCPtr<const ColorMap> colormap;
+	ScanlineRenderer<CM>  scanline_renderer;
+	int					  row_offset;
+	uint8*				  pixels; // next position
+
+	FrameBuffer(const Pixmap* px, const ColorMap* cm = nullptr) noexcept :
+		VideoPlane(&_vblank, &_render),
+		pixmap(px),
+		colormap(cm ? cm : &Graphics::system_colormap),
+		scanline_renderer(colormap->colors),
+		row_offset(pixmap->row_offset),
+		pixels(pixmap->pixmap)
+	{}
+	FrameBuffer(const Canvas* px, const ColorMap* cmap = nullptr) noexcept :
+		FrameBuffer(static_cast<const Pixmap*>(px), cmap)
+	{
+		assert(px->colormode == CM);
+	}
+
+	static void _render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
+	static void _vblank(VideoPlane*) noexcept;
+};
+
+
+//	_____________________________________________________________________________________
+//  declare implementation in another file:
+
+extern template class FrameBuffer<ColorMode::colormode_i1>;
+extern template class FrameBuffer<ColorMode::colormode_i2>;
+extern template class FrameBuffer<ColorMode::colormode_i4>;
+extern template class FrameBuffer<ColorMode::colormode_i8>;
+extern template class FrameBuffer<ColorMode::colormode_rgb>;
+extern template class FrameBuffer<ColorMode::colormode_a1w1>;
+extern template class FrameBuffer<ColorMode::colormode_a1w2>;
+extern template class FrameBuffer<ColorMode::colormode_a1w4>;
+extern template class FrameBuffer<ColorMode::colormode_a1w8>;
+extern template class FrameBuffer<ColorMode::colormode_a2w1>;
+extern template class FrameBuffer<ColorMode::colormode_a2w2>;
+extern template class FrameBuffer<ColorMode::colormode_a2w4>;
+extern template class FrameBuffer<ColorMode::colormode_a2w8>;
 
 
 //	_____________________________________________________________________________________

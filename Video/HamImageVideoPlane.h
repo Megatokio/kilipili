@@ -5,6 +5,7 @@
 #pragma once
 #include "ColorMap.h"
 #include "Pixmap.h"
+#include "ScanlineRenderer.h"
 #include "VideoPlane.h"
 
 namespace kio::Video
@@ -25,20 +26,15 @@ public:
 
 	HamImageVideoPlane(const Pixmap*, const ColorMap*, uint16 first_rel_code);
 
-	virtual void setup() override;
-	virtual void teardown() noexcept override;
-
 	void setupNextImage(int row_offset, uint16 first_rel_code);
 
-	RCPtr<const Pixmap>	  pixmap;
-	RCPtr<const ColorMap> colormap;
-	int					  row_offset;
-	uint16				  first_rel_code;
-	Color				  first_color; // initial color at start of next row
-	const uint8*		  pixels;	   // next position
+	RCPtr<const Pixmap>		 pixmap;
+	RCPtr<const ColorMap>	 colormap;
+	HamImageScanlineRenderer scanline_renderer;
+	int						 row_offset;
+	const uint8*			 pixels; // next position
 
 private:
-	void		_render(int row, int width, uint32* scanline) noexcept;
 	static void do_render(VideoPlane*, int row, int width, uint32* fbu) noexcept;
 	static void do_vblank(VideoPlane*) noexcept;
 };

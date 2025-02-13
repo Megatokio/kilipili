@@ -161,7 +161,7 @@ constexpr VgaMode vga_mode_1280x768_60 =
 {
 	// this is VESA mode 1366*768@60Hz REDUCED BLANKING 	
 	// but we use only 1280 = 40*32 pixels 	
-	// successfully displays colormode `a1w8_rgb` with option VIDEO_OPTIMISTIC_A1W8_RGB enabled
+	// successfully displays colormode `a1w8` with option VIDEO_OPTIMISTIC_A1W8 enabled
 		
 	// SRC   pclk:MHz  hsync:kHz  vsync:Hz  hor                       vert                 polarity
 	// ----- --------- ---------- --------- ------------------------ --------------------- -------------

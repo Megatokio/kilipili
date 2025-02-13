@@ -4,6 +4,7 @@
 
 #include "VideoController.h"
 #include "ScanlineBuffer.h"
+#include "ScanlineRenderer.h"
 #include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "cdefs.h"
@@ -149,6 +150,8 @@ void __noreturn VideoController::core1_runner() noexcept
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
 	trace(__func__);
+
+	initializeInterpolators();
 
 	try
 	{

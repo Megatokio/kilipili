@@ -407,7 +407,7 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 
 	// we need a multiple of pixel clock and a multiple of 1 MHz less than fMAX:
 	// `min_sys_clock` is only used as a hint.
-	if (!min_sys_clock) min_sys_clock = uint32(vga_mode.width * vga_mode.height) * 7 * 60; // best guess
+	if (!min_sys_clock) min_sys_clock = uint32(vga_mode.width * vga_mode.height) * 8 * 60; // best guess
 	min_sys_clock			   = max(min_sys_clock, 60 MHz);
 	const uint32 pixel_clock   = vga_mode.pixel_clock;
 	uint32		 new_sys_clock = (min_sys_clock + pixel_clock - 1 MHz) / pixel_clock * pixel_clock;
