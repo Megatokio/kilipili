@@ -197,7 +197,9 @@ template class Pixmap<colormode_i1>;
 template class Pixmap<colormode_i2>;
 template class Pixmap<colormode_i4>;
 template class Pixmap<colormode_i8>;
-template class Pixmap<colormode_i16>;
+#if VIDEO_COLOR_PIN_COUNT > 8
+template class Pixmap<colormode_rgb>;
+#endif
 
 
 } // namespace kio::Graphics

@@ -4,6 +4,7 @@
 
 #pragma once
 #include "Color.h"
+#include "basic_math.h"
 #include "standard_types.h"
 
 /*	This file defines some enum types used in the Pixmap and graphics engine.
@@ -15,9 +16,9 @@
 
 Info: What are attributes?
 	It's the 'ZX Spectrum' way to disguise lack of memory while still providing colorful graphics.
-	The Pixmap is divided into a grid of tiles for which each there is a colormap.
+	The Pixmap is divided into a grid of tiles each with a little colormap with 2 or 4 colors.
 	These are the 'attributes'.
-	The Pixmap itself uses 1 or 2 bit per pixel and accordingly the attributes contain 2 or 4 colors each.
+	The Pixmap itself uses 1 or 2 bit per pixel and accordingly the attributes have 2 or 4 colors.
 	If you want to display text then you best match the attribute cell size with the character size.
 
 	Of course there is nothing to substitute memory, except more memory.
@@ -42,11 +43,12 @@ namespace kio::Graphics
    num colors = 1<<(1<<CD)
 */
 enum ColorDepth : uint8 {
-	colordepth_1bpp	 = 0, // 1 bit/pixel indexed color
-	colordepth_2bpp	 = 1,
-	colordepth_4bpp	 = 2,
-	colordepth_8bpp	 = 3,
-	colordepth_16bpp = 4, // 16 bit/pixel true color
+	colordepth_1bpp	 = 0,									// 1 bit/pixel probably indexed color
+	colordepth_2bpp	 = 1,									// 2 bit/pixel probably indexed color
+	colordepth_4bpp	 = 2,									// 4 bit/pixel probably indexed color
+	colordepth_8bpp	 = 3,									// 8 bit/pixel probably indexed color
+	colordepth_16bpp = 4,									// 16 bit/pixel always true color
+	colordepth_rgb	 = msbit(VIDEO_COLOR_PIN_COUNT * 2 - 1) // colordepth_1bpp .. colordepth_16bpp
 };
 
 
@@ -59,18 +61,18 @@ enum AttrMode : int8 {
 };
 
 
-/* width of color attribute cells:
+/* width of attribute cells:
 */
 enum AttrWidth : uint8 {
 	attrwidth_none = 0, // if used with attrmode_none
 	attrwidth_1px  = 0, // 1<<0 = 1 pixel/attr
 	attrwidth_2px  = 1, // 1<<1 = 2 pixel/attr
-	attrwidth_4px  = 2,
-	attrwidth_8px  = 3,
+	attrwidth_4px  = 2, // 1<<2 = 4 pixel/attr
+	attrwidth_8px  = 3, // 1<<3 = 8 pixel/attr
 };
 
 
-/* height of color attribute cells:
+/* height of attribute cells:
 */
 enum AttrHeight : uint8 {
 	attrheight_none = 0,
@@ -103,133 +105,74 @@ enum ColorMode : uint8 {
 	colormode_i2,
 	colormode_i4,
 	colormode_i8,
-	colormode_i16,
+	colormode_rgb, // 1..16 bit true color
 
 	// color attributes assign colors to a rectangular cell of pixels.
 	// color attributes are used to disguise the fact that we don't have enough memory
 	// to store an individual color for each pixel.
 	// then the pixels are still high-res but the color isn't.
 	// the pixels can be 1 bit or 2 bit per pixel, allowing 2 or 4 colors per attribute cell.
-	// attribute modes are cpu intensive; the narrower the cell the higher the required system clock!
 
-	// attribute width 1 pixel to best support proportional text and horizontal scrollers:
-	// very cpu intensive! not recommended!
-	colormode_a1w1_i4,	// 1 bit/pixel, 1 pixel/attr, 4 bit indexed colors
-	colormode_a1w1_i8,	// 1 bit/pixel, 1 pixel/attr, 8 bit indexed colors
-	colormode_a1w1_i16, // 1 bit/pixel, 1 pixel/attr, 16 bit true color
+	// attribute mode wth 1 bit per pixel to provide 2 colors per attribute cell:
+	// attribute width 1..4 pixel may be used for proportional text and horizontal scrolling.
+	colormode_a1w1, // 1 bit/pixel, 1 pixel/attr, 4..16 bit true color. very cpu intensive! deprecated!
+	colormode_a1w2, // 1 bit/pixel, 2 pixel/attr, 4..16 bit true color. very cpu intensive!
+	colormode_a1w4, // 1 bit/pixel, 4 pixel/attr, 4..16 bit true color. very cpu intensive!
+	colormode_a1w8, // 1 bit/pixel, 8 pixel/attr, 4..16 bit true color. THIS IS THE RECOMMENDED ATTRIBUTE MODE!
 
-	// attribute width 2 pixel to support proportional text and horizontal scrollers:
-	// very cpu intensive!
-	colormode_a1w2_i4,	// 1 bit/pixel, 2 pixel/attr, 4 bit indexed colors
-	colormode_a1w2_i8,	// 1 bit/pixel, 2 pixel/attr, 8 bit indexed colors
-	colormode_a1w2_i16, // 1 bit/pixel, 2 pixel/attr, 16 bit true color
-
-	// attribute width 4 pixel still allows good horizontal scrolling at 4 pixel/frame:
-	// very cpu intensive!
-	colormode_a1w4_i4,	// 1 bit/pixel, 4 pixel/attr, 4 bit indexed colors
-	colormode_a1w4_i8,	// 1 bit/pixel, 4 pixel/attr, 8 bit indexed colors
-	colormode_a1w4_i16, // 1 bit/pixel, 4 pixel/attr, 16 bit true color
-
-	// attribute width 8 pixel matches character cell width of 8x12 pixel terminal font:
-	// the ZX Spectrum used 8x8 pixel attribute cells.
-	// THESE ARE THE RECOMMENDED ATTRIBUTE MODES!
-	colormode_a1w8_i4,	// 1 bit/pixel, 8 pixel/attr, 4 bit indexed colors
-	colormode_a1w8_i8,	// 1 bit/pixel, 8 pixel/attr, 8 bit indexed colors
-	colormode_a1w8_i16, // 1 bit/pixel, 8 pixel/attr, 16 bit true color
-
-	// attributes width 2 bit per pixel to provide attribute cells with a total of 4 different colors:
-	// very cpu intensive!
-
-	colormode_a2w1_i4,	// 2 bit/pixel, 1 pixel/attr, 4 bit indexed colors
-	colormode_a2w1_i8,	// 2 bit/pixel, 1 pixel/attr, 8 bit indexed colors
-	colormode_a2w1_i16, // 2 bit/pixel, 1 pixel/attr, 16 bit true color
-
-	colormode_a2w2_i4,	// 2 bit/pixel, 2 pixel/attr, 4 bit indexed colors
-	colormode_a2w2_i8,	// 2 bit/pixel, 2 pixel/attr, 8 bit indexed colors
-	colormode_a2w2_i16, // 2 bit/pixel, 2 pixel/attr, 16 bit true color
-
-	colormode_a2w4_i4,	// 2 bit/pixel, 4 pixel/attr, 4 bit indexed colors
-	colormode_a2w4_i8,	// 2 bit/pixel, 4 pixel/attr, 8 bit indexed colors
-	colormode_a2w4_i16, // 2 bit/pixel, 4 pixel/attr, 16 bit true color
-
-	colormode_a2w8_i4,	// 2 bit/pixel, 8 pixel/attr, 4 bit indexed colors
-	colormode_a2w8_i8,	// 2 bit/pixel, 8 pixel/attr, 8 bit indexed colors
-	colormode_a2w8_i16, // 2 bit/pixel, 8 pixel/attr, 16 bit true color
+	// attribute mode wth 2 bit per pixel to provide 4 colors per attribute cell:
+	colormode_a2w1, // 2 bit/pixel, 1 pixel/attr, 4..16 bit true color. very cpu intensive!
+	colormode_a2w2, // 2 bit/pixel, 2 pixel/attr, 4..16 bit true color. very cpu intensive!
+	colormode_a2w4, // 2 bit/pixel, 4 pixel/attr, 4..16 bit true color. very cpu intensive!
+	colormode_a2w8, // 2 bit/pixel, 8 pixel/attr, 4..16 bit true color. very cpu intensive!
 };
 
-constexpr uint num_colormodes = colormode_a2w8_i16 + 1;
+constexpr uint		num_colormodes	   = colormode_a2w8 + 1;
+constexpr ColorMode colormode_a1w8_rgb = colormode_a1w8; // old name
 
-static constexpr ColorMode colormode_rgb	  = sizeof(Color) == 1 ? colormode_i8 : colormode_i16;
-static constexpr ColorMode colormode_a1w1_rgb = sizeof(Color) == 1 ? colormode_a1w1_i8 : colormode_a1w1_i16;
-static constexpr ColorMode colormode_a1w2_rgb = sizeof(Color) == 1 ? colormode_a1w2_i8 : colormode_a1w2_i16;
-static constexpr ColorMode colormode_a1w4_rgb = sizeof(Color) == 1 ? colormode_a1w4_i8 : colormode_a1w4_i16;
-static constexpr ColorMode colormode_a1w8_rgb = sizeof(Color) == 1 ? colormode_a1w8_i8 : colormode_a1w8_i16;
-static constexpr ColorMode colormode_a2w1_rgb = sizeof(Color) == 1 ? colormode_a2w1_i8 : colormode_a2w1_i16;
-static constexpr ColorMode colormode_a2w2_rgb = sizeof(Color) == 1 ? colormode_a2w2_i8 : colormode_a2w2_i16;
-static constexpr ColorMode colormode_a2w4_rgb = sizeof(Color) == 1 ? colormode_a2w4_i8 : colormode_a2w4_i16;
-static constexpr ColorMode colormode_a2w8_rgb = sizeof(Color) == 1 ? colormode_a2w8_i8 : colormode_a2w8_i16;
-
-static constexpr ColorDepth colordepth_rgb = sizeof(Color) == 1 ? colordepth_8bpp : colordepth_16bpp;
-
-
-constexpr ColorMode calc_colormode(AttrMode am, AttrWidth aw, ColorDepth cd) noexcept
-{
-	return am == attrmode_none ? ColorMode(cd) :
-								 ColorMode(colormode_a1w1_i4 + am * 3 * 4 + aw * 3 + cd - colordepth_4bpp);
-}
 
 constexpr AttrMode get_attrmode(ColorMode cm) noexcept
 {
-	return cm <= colormode_i16 ? attrmode_none : cm <= colormode_a1w8_i16 ? attrmode_1bpp : attrmode_2bpp;
+	return cm <= colormode_rgb ? attrmode_none : cm <= colormode_a1w8 ? attrmode_1bpp : attrmode_2bpp;
 }
 
 constexpr AttrWidth get_attrwidth(ColorMode cm) noexcept
 {
-	return cm <= colormode_i16 ? attrwidth_none : AttrWidth(((cm - colormode_a1w1_i4) / 3) & 3);
+	return cm <= colormode_rgb ? attrwidth_none : AttrWidth((cm - colormode_a1w1) & 3);
 }
 
 constexpr ColorDepth get_colordepth(ColorMode cm) noexcept
 {
-	return cm <= colormode_i16 ? ColorDepth(cm) : ColorDepth(colordepth_4bpp + (cm - colormode_i4) % 3);
+	return cm < colormode_rgb		  ? ColorDepth(cm) :
+		   cm == colormode_rgb		  ? colordepth_rgb :
+		   VIDEO_COLOR_PIN_COUNT <= 4 ? colordepth_4bpp : // min. bits in attr
+										colordepth_rgb;
 }
 
-constexpr bool is_direct_color(ColorMode cm) noexcept { return cm <= colormode_i16; }
-constexpr bool is_attribute_mode(ColorMode cm) noexcept { return !is_direct_color(cm); }
+constexpr bool is_direct_color(ColorMode cm) noexcept { return cm <= colormode_rgb; }
+constexpr bool is_attribute_mode(ColorMode cm) noexcept { return cm > colormode_rgb; }
+constexpr bool is_true_color(ColorMode cm) noexcept { return cm >= colormode_rgb; }
+constexpr bool is_indexed_color(ColorMode cm) noexcept { return cm < colormode_rgb; }
 
-constexpr bool is_indexed_color(ColorDepth cd) noexcept { return cd < colordepth_rgb; }
-constexpr bool is_indexed_color(ColorMode cm) noexcept { return is_indexed_color(get_colordepth(cm)); }
-constexpr bool is_true_color(ColorDepth cd) noexcept { return cd >= colordepth_rgb; }
-constexpr bool is_true_color(ColorMode cm) noexcept { return !is_indexed_color(cm); }
-
-inline void split_colormode(ColorMode cm, AttrMode* am, AttrWidth* aw, ColorDepth* cd) noexcept
-{
-	*am = get_attrmode(cm);
-	*aw = get_attrwidth(cm);
-	*cd = get_colordepth(cm);
-	assert(cm == calc_colormode(*am, *aw, *cd));
-}
-
-static_assert(calc_colormode(attrmode_none, attrwidth_none, colordepth_2bpp) == colormode_i2);
-static_assert(calc_colormode(attrmode_1bpp, attrwidth_1px, colordepth_4bpp) == colormode_a1w1_i4);
-static_assert(calc_colormode(attrmode_1bpp, attrwidth_2px, colordepth_4bpp) == colormode_a1w2_i4);
-static_assert(calc_colormode(attrmode_1bpp, attrwidth_2px, colordepth_8bpp) == colormode_a1w2_i8);
-static_assert(calc_colormode(attrmode_2bpp, attrwidth_2px, colordepth_8bpp) == colormode_a2w2_i8);
 
 static_assert(get_attrmode(colormode_i4) == attrmode_none);
-static_assert(get_attrmode(colormode_a1w1_i4) == attrmode_1bpp);
-static_assert(get_attrmode(colormode_a2w4_i4) == attrmode_2bpp);
-static_assert(get_attrmode(colormode_a1w1_i16) == attrmode_1bpp);
+static_assert(get_attrmode(colormode_a1w1) == attrmode_1bpp);
+static_assert(get_attrmode(colormode_a2w4) == attrmode_2bpp);
+static_assert(get_attrmode(colormode_a1w8) == attrmode_1bpp);
 
 static_assert(get_attrwidth(colormode_i4) == attrwidth_none);
-static_assert(get_attrwidth(colormode_a1w1_i4) == attrwidth_1px);
-static_assert(get_attrwidth(colormode_a1w4_i4) == attrwidth_4px);
-static_assert(get_attrwidth(colormode_a1w4_i8) == attrwidth_4px);
-static_assert(get_attrwidth(colormode_a2w4_i16) == attrwidth_4px);
+static_assert(get_attrwidth(colormode_rgb) == attrwidth_none);
+static_assert(get_attrwidth(colormode_a1w1) == attrwidth_1px);
+static_assert(get_attrwidth(colormode_a1w4) == attrwidth_4px);
+static_assert(get_attrwidth(colormode_a2w4) == attrwidth_4px);
+static_assert(get_attrwidth(colormode_a2w8) == attrwidth_8px);
 
-static_assert(get_colordepth(colormode_i16) == colordepth_16bpp);
-static_assert(get_colordepth(colormode_a1w1_i4) == colordepth_4bpp);
-static_assert(get_colordepth(colormode_a1w4_i4) == colordepth_4bpp);
-static_assert(get_colordepth(colormode_a1w4_i8) == colordepth_8bpp);
+static_assert(get_colordepth(colormode_i1) == colordepth_1bpp);
+static_assert(get_colordepth(colormode_i8) == colordepth_8bpp);
+static_assert(get_colordepth(colormode_rgb) == colordepth_rgb);
+static_assert(get_colordepth(colormode_a1w1) == VIDEO_COLOR_PIN_COUNT < 4 ? colordepth_4bpp : colordepth_rgb);
+static_assert(get_colordepth(colormode_a2w4) == VIDEO_COLOR_PIN_COUNT < 4 ? colordepth_4bpp : colordepth_rgb);
+static_assert(get_colordepth(colormode_a1w8) == VIDEO_COLOR_PIN_COUNT < 4 ? colordepth_4bpp : colordepth_rgb);
 
 } // namespace kio::Graphics
 
@@ -244,15 +187,9 @@ inline cstr tostr(kio::Graphics::ColorMode cm)
 {
 	// clang-format off
 	static constexpr char id[kio::Graphics::num_colormodes][9] = {
-		"i1", "i2", "i4", "i8", "i16",		
-		"a1w1_i4",	"a1w1_i8",  "a1w1_i16", 
-		"a1w2_i4",	"a1w2_i8",  "a1w2_i16", 		
-		"a1w4_i4",	"a1w4_i8",  "a1w4_i16", 
-		"a1w8_i4",	"a1w8_i8",  "a1w8_i16", 
-		"a2w1_i4",	"a2w1_i8",  "a2w1_i16", 
-		"a2w2_i4",	"a2w2_i8",  "a2w2_i16", 		
-		"a2w4_i4",	"a2w4_i8",  "a2w4_i16", 
-		"a2w8_i4",	"a2w8_i8",  "a2w8_i16", 
+		"i1", "i2", "i4", "i8", "rgb",		
+		"a1w1", "a1w2", "a1w4", "a1w8", 
+		"a2w1", "a2w2", "a2w4", "a2w8", 
 	};
 	// clang-format on
 	return id[cm];

@@ -213,30 +213,14 @@ void AttrModePixmap::drawChar(coord zx, coord zy, const uint8* bmp, int h, uint 
 // instantiate everything.
 // the linker will know what we need:
 
-template class Pixmap<colormode_a1w1_i4>;
-template class Pixmap<colormode_a1w1_i8>;
-template class Pixmap<colormode_a1w1_i16>;
-template class Pixmap<colormode_a1w2_i4>;
-template class Pixmap<colormode_a1w2_i8>;
-template class Pixmap<colormode_a1w2_i16>;
-template class Pixmap<colormode_a1w4_i4>;
-template class Pixmap<colormode_a1w4_i8>;
-template class Pixmap<colormode_a1w4_i16>;
-template class Pixmap<colormode_a1w8_i4>;
-template class Pixmap<colormode_a1w8_i8>;
-template class Pixmap<colormode_a1w8_i16>;
-template class Pixmap<colormode_a2w1_i4>;
-template class Pixmap<colormode_a2w1_i8>;
-template class Pixmap<colormode_a2w1_i16>;
-template class Pixmap<colormode_a2w2_i4>;
-template class Pixmap<colormode_a2w2_i8>;
-template class Pixmap<colormode_a2w2_i16>;
-template class Pixmap<colormode_a2w4_i4>;
-template class Pixmap<colormode_a2w4_i8>;
-template class Pixmap<colormode_a2w4_i16>;
-template class Pixmap<colormode_a2w8_i4>;
-template class Pixmap<colormode_a2w8_i8>;
-template class Pixmap<colormode_a2w8_i16>;
+template class Pixmap<colormode_a1w1>;
+template class Pixmap<colormode_a1w2>;
+template class Pixmap<colormode_a1w4>;
+template class Pixmap<colormode_a1w8>;
+template class Pixmap<colormode_a2w1>;
+template class Pixmap<colormode_a2w2>;
+template class Pixmap<colormode_a2w4>;
+template class Pixmap<colormode_a2w8>;
 
 
 } // namespace kio::Graphics
