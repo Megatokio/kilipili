@@ -191,11 +191,7 @@ void __noreturn VideoController::core1_runner() noexcept
 				}
 
 				VideoBackend::stop();
-				while (num_planes)
-				{
-					planes[--num_planes]->teardown();
-					planes[num_planes] = nullptr;
-				}
+				while (num_planes) { planes[--num_planes] = nullptr; }
 				scanline_buffer.teardown();
 				vblank_action  = nullptr;
 				onetime_action = nullptr;
@@ -337,7 +333,6 @@ void VideoController::addPlane(VideoPlanePtr plane)
 
 	addOneTimeAction([this, plane] {
 		assert_lt(num_planes, max_planes);
-		plane->setup(); // throws
 		planes[num_planes++] = plane;
 	});
 }
@@ -352,7 +347,6 @@ void VideoController::removePlane(VideoPlanePtr plane)
 		{
 			if (planes[--i] != plane) continue;
 
-			plane->teardown();
 			while (++i < num_planes) std::swap(planes[i - 1], planes[i]);
 			planes[--num_planes] = nullptr;
 			return;

@@ -251,6 +251,7 @@ MousePointer<Sprite>::MousePointer(MousePointerID id) : //
 			}
 			replace(shapes, 6, 4);
 		}
+	USB::setScreenSize(screen_width(), screen_height());
 }
 
 template<typename Sprite>
@@ -263,13 +264,6 @@ void MousePointer<Shape>::vblank() noexcept
 {
 	setPosition(USB::getMousePosition());
 	super::vblank();
-}
-
-template<typename Sprite>
-void MousePointer<Sprite>::setup()
-{
-	USB::setScreenSize(screen_width(), screen_height());
-	super::setup();
 }
 
 

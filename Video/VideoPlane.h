@@ -40,18 +40,6 @@ public:
 	virtual ~VideoPlane() noexcept override = default;
 
 	/*
-		Initialize this VideoPlane after construction.
-		The VideoPlane can be constructed on core 0, but setup() is always called on core 1.
-	*/
-	virtual void setup() {}
-
-	/*
-		Tear down this VideoPlane before destruction.
-		The VideoPlane can be deleted on core 0, but teardown() is always called on core 1.
-	*/
-	virtual void teardown() noexcept {}
-
-	/*
 		reset internal counters and addresses for next frame.
 		called at the start of each frame; except during flash lockout!
 	*/
@@ -62,6 +50,7 @@ public:
 		called for each scanline; except during flash lockout!
 		this function should go into RAM!
 		@param row    the current row, starting at 0
+		@param width  number of pixels to draw
 		@param buffer destination for the pixel data
 	*/
 	virtual void renderScanline(int __unused row, int __unused width, uint32* __unused buffer) noexcept {}

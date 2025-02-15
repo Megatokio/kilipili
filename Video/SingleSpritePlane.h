@@ -3,8 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "AnimatedSprite.h"
+#include "Frames.h"
 #include "Shape.h"
+#include "Sprite.h"
 #include "VideoPlane.h"
 
 #define XRAM __attribute__((section(".scratch_x.SSP" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
@@ -39,8 +40,6 @@ public:
 	SingleSpritePlane(const Shape& s, const Point& position);
 	SingleSpritePlane(Frames&& frames, const Point& position);
 
-	virtual void setup() override;
-	virtual void teardown() noexcept override {}
 	virtual void vblank() noexcept override;
 	virtual void renderScanline(int row, int width, uint32* scanline) noexcept override;
 
@@ -58,7 +57,7 @@ public:
 
 protected:
 	HotShape hot_shape;
-	bool	 is_hot;
+	bool	 is_hot = false;
 	char	 _padding[3];
 
 	void next_frame() noexcept
@@ -93,7 +92,11 @@ SingleSpritePlane<Sprite>::SingleSpritePlane(const Shape& s, const Point& positi
 	sprite(s, position)
 {
 	if constexpr (is_animated)
+	{
 		if (!sprites_spinlock) sprites_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
+		sprite.current_frame = 0xff; //
+		sprite.next_frame();		 // needed?
+	}
 }
 
 template<typename Sprite>
@@ -101,7 +104,11 @@ SingleSpritePlane<Sprite>::SingleSpritePlane(Frames&& frames, const Point& posit
 	sprite(std::move(frames), position)
 {
 	if constexpr (is_animated)
+	{
 		if (!sprites_spinlock) sprites_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
+		sprite.current_frame = 0xff; //
+		sprite.next_frame();		 // needed?
+	}
 }
 
 template<typename Sprite>
@@ -147,18 +154,6 @@ void SingleSpritePlane<Sprite>::replace(const Shape* shapes, const uint16* dur, 
 
 
 // ============================================================================
-
-template<typename Sprite>
-void SingleSpritePlane<Sprite>::SingleSpritePlane::setup()
-{
-	is_hot = false;
-
-	if constexpr (is_animated)
-	{
-		sprite.current_frame = 0xff;
-		sprite.next_frame();
-	}
-}
 
 template<typename Sprite>
 void /*RAM*/ SingleSpritePlane<Sprite>::SingleSpritePlane::vblank() noexcept

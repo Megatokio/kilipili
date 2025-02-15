@@ -40,11 +40,9 @@ public:
 
 	using HotShape = MyHotShape<typename Shape::HotShape, WZ>;
 
-	MultiSpritesPlane() noexcept = default;
+	MultiSpritesPlane() noexcept;
 	virtual ~MultiSpritesPlane() noexcept override;
 
-	virtual void setup() override;
-	virtual void teardown() noexcept override;
 	virtual void vblank() noexcept override;
 	virtual void renderScanline(int row, int width, uint32* scanline) noexcept override;
 
@@ -73,9 +71,10 @@ private:
 
 	Sprite* displaylist			 = nullptr;
 	Sprite* volatile next_sprite = nullptr;
-	HotShape* hotlist			 = nullptr;
-	uint	  max_hot			 = 0;
-	uint	  num_hot			 = 0;
+
+	static constexpr uint max_hot = 20;
+	HotShape			  hotlist[max_hot];
+	uint				  num_hot = 0;
 
 	void add_to_hotlist(const Sprite*) noexcept;
 };
@@ -83,13 +82,6 @@ private:
 
 // ============================================================================
 // Implementations
-
-template<typename Sprite, ZPlane WZ>
-MultiSpritesPlane<Sprite, WZ>::~MultiSpritesPlane() noexcept
-{
-	assert(displaylist == nullptr); // else teardown not called => plane still in planes[] ?
-	assert(hotlist == nullptr);
-}
 
 
 // ============================================================================

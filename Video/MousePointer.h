@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "AnimatedSprite.h"
 #include "SingleSpritePlane.h"
-
 
 namespace kio::Video
 {
@@ -33,8 +33,6 @@ public:
 	MousePointer(const Shape& s);
 	~MousePointer() noexcept override = default;
 
-	virtual void setup() override;
-	//virtual void teardown() noexcept override;
 	virtual void vblank() noexcept override;
 	//virtual void renderScanline(int row, uint32* scanline) noexcept override;
 

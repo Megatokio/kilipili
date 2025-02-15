@@ -15,9 +15,6 @@ public:
 	Passepartout(RCPtr<VideoPlane>, int inner_width, int inner_height);
 	Passepartout(RCPtr<VideoPlane>, int width, int height, int inner_width, int inner_height);
 
-	virtual void setup() override;
-	virtual void teardown() noexcept override;
-
 	void setInnerSize(int inner_width, int inner_height) noexcept;
 	void setSize(int width, int height) noexcept;
 	void setSize(int width, int height, int inner_width, int inner_height) noexcept;

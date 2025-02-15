@@ -13,31 +13,6 @@
 
 namespace kio ::Video
 {
-//void RAM memcpy_in_ram(void* z, const void* q, size_t n) noexcept
-//{
-//	size_t qa = size_t(q);
-//	size_t za = size_t(z);
-//
-//	if (n >= 8)
-//	{
-//		for (; za & 3; za++, qa++, n--) { *ptr(za) = *reinterpret_cast<volatile const char*>(qa); }
-//
-//		if ((qa & 3) == 0)
-//			for (; n >= 4; za += 4, qa += 4, n -= 4)
-//			{
-//				*uint32ptr(za) = *reinterpret_cast<volatile const uint32*>(qa); //
-//			}
-//
-//		else if ((qa & 1) == 0)
-//			for (; n >= 4; za += 4, qa += 4, n -= 4) // little endian!
-//			{
-//				*uint32ptr(za) = *reinterpret_cast<volatile const uint16*>(qa) +
-//								 *reinterpret_cast<volatile const uint16*>(qa + 2) * 0x10000u;
-//			}
-//	}
-//
-//	for (; n; za++, qa++, n--) { *ptr(za) = *reinterpret_cast<volatile const char*>(qa); }
-//}
 
 using namespace Graphics;
 
@@ -61,9 +36,6 @@ Passepartout::Passepartout(RCPtr<VideoPlane> vp, int inner_width, int inner_heig
 {
 	setSize(screen_width(), screen_height(), inner_width, inner_height);
 }
-
-void Passepartout::setup() { vp->setup(); }
-void Passepartout::teardown() noexcept { vp->teardown(); }
 
 void RAM Passepartout::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
 {

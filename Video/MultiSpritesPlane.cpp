@@ -19,26 +19,23 @@ using namespace Graphics;
 // also, there should be no const data accessed in hot video code for the same reason.
 // the most timecritical things should go into core1 stack page because it is not contended.
 
-#define WRAP(X)	 #X
-#define XWRAP(X) WRAP(X)
-#define XRAM	 __attribute__((section(".scratch_x.spr" XWRAP(__LINE__))))		// the 4k page with the core1 stack
-#define RAM		 __attribute__((section(".time_critical.spr" XWRAP(__LINE__)))) // general ram
+#define XRAM __attribute__((section(".scratch_x.MSP" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
+#define RAM	 __attribute__((section(".time_critical.MSP" __XSTRING(__LINE__)))) // general ram
 
 
 bool hotlist_overflow = false; // set by add_to_hotlist()
 
 
 template<typename Sprite, ZPlane WZ>
-void MultiSpritesPlane<Sprite, WZ>::setup()
+MultiSpritesPlane<Sprite, WZ>::MultiSpritesPlane() noexcept
 {
-	// called by VideoController before first vblank()
-	// we don't clear the displaylist and keep all sprites if there are already any
-
 	if (!sprites_spinlock) sprites_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
+}
 
-	const uint cnt = 20;
-	hotlist		   = new HotShape[cnt];
-	max_hot		   = cnt;
+template<typename Sprite, ZPlane WZ>
+MultiSpritesPlane<Sprite, WZ>::~MultiSpritesPlane() noexcept
+{
+	if (debug) clear_displaylist(false);
 }
 
 template<typename Sprite, ZPlane WZ>
@@ -60,21 +57,6 @@ void MultiSpritesPlane<Sprite, WZ>::clear_displaylist(bool delete_sprites) noexc
 	Lock _;
 	next_sprite = nullptr;
 	num_hot		= 0;
-}
-
-template<typename Sprite, ZPlane WZ>
-void MultiSpritesPlane<Sprite, WZ>::teardown() noexcept
-{
-	// called by VideoController
-
-	trace(__func__);
-	assert(get_core_num() == 1);
-
-	clear_displaylist();
-
-	max_hot = num_hot = 0;
-	delete[] hotlist;
-	hotlist = nullptr;
 }
 
 template<typename Sprite, ZPlane WZ>
