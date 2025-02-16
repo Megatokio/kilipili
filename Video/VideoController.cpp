@@ -72,6 +72,12 @@ __noreturn RAM static void hard_fault_handler() noexcept
 }
 
 
+namespace kio::USB
+{
+__weak void setMouseLimits(int, int) noexcept {}
+} // namespace kio::USB
+
+
 namespace kio::Video
 {
 
@@ -123,6 +129,7 @@ void VideoController::startVideo(const VgaMode& mode, uint32 system_clock, uint 
 	assert(locked_out == false);
 
 	vga_mode = mode;
+	USB::setMouseLimits(mode.width, mode.height);
 	scanline_buffer.setup(vga_mode, scanline_buffer_count); // throws
 	requested_system_clock = system_clock;
 	requested_state		   = RUNNING;

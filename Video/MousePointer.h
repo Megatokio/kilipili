@@ -53,6 +53,12 @@ extern template class MousePointer<AnimatedSprite<SoftenedShape>>;
 } // namespace kio::Video
 
 
+namespace kio::USB
+{
+extern Point getMousePosition() noexcept;
+}
+
+
 /*
 
 

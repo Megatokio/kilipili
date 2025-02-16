@@ -118,7 +118,7 @@ AnsiTerm::AnsiTerm(CanvasPtr pixmap) :
 	export_char(&default_export_char),
 	full_pixmap(pixmap)
 {
-	USB::setScreenSize(pixmap->width, pixmap->height);
+	USB::setMouseLimits(pixmap->width, pixmap->height);
 	display = new TextVDU(pixmap);
 	memset(htabs, 0x01, sizeof(htabs)); // lsb = leftmost position within 8 chars
 }

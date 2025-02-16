@@ -5,8 +5,6 @@
 
 #include "MousePointer.h"
 #include "AnimatedSprite.h"
-#include "USBMouse.h"
-#include "VideoBackend.h"
 
 // all hot video code should go into ram to allow video while flashing.
 // also, there should be no const data accessed in hot video code for the same reason.
@@ -251,7 +249,6 @@ MousePointer<Sprite>::MousePointer(MousePointerID id) : //
 			}
 			replace(shapes, 6, 4);
 		}
-	USB::setScreenSize(screen_width(), screen_height());
 }
 
 template<typename Sprite>

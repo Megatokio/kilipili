@@ -79,7 +79,6 @@ set(video_libraries
 	kilipili_common
 	kilipili_utilities
 	kilipili_graphics
-	kilipili_usb_host  # wg. mouse
 	pico_stdlib
 	hardware_pio
 	hardware_dma

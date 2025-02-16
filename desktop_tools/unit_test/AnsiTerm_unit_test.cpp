@@ -3464,7 +3464,7 @@ TEST_CASE("CSI	n… ' w  DECEFR")
 	using namespace USB::Mock;
 
 	setMousePresent();
-	setScreenSize(400, 300); // also set mouse to 400/2,300/3 = 200,100 ~ 25,8
+	setMouseLimits(400, 300); // also set mouse to 400/2,300/3 = 200,100 ~ 25,8
 
 	at.puts("\x1b['w");
 	CHECK_EQ(at.mouse_rect.top(), 8);
@@ -3509,7 +3509,7 @@ TEST_CASE("CSI	n;m ' z  DECELR")
 	using namespace USB::Mock;
 
 	setMousePresent();
-	setScreenSize(400, 300); // also set mouse to 400/2,300/3 = 200,100 ~ 25,8
+	setMouseLimits(400, 300); // also set mouse to 400/2,300/3 = 200,100 ~ 25,8
 
 	CHECK_EQ(at.mouse_enabled, false);
 	CHECK_EQ(at.mouse_enable_rect, false);
@@ -3556,7 +3556,7 @@ TEST_CASE("CSI n… ' {  DECSLE")
 	using namespace USB::Mock;
 
 	setMousePresent();
-	setScreenSize(400, 300); // also set mouse to 400/2,300/3 = 200,100 ~ 25,8
+	setMouseLimits(400, 300); // also set mouse to 400/2,300/3 = 200,100 ~ 25,8
 
 	at.puts("\x1b[1'{");
 	CHECK_EQ(at.mouse_enabled, false);
@@ -3607,7 +3607,7 @@ TEST_CASE("CSI n ' |  DECRQLP")
 		return std::string(escapedstr(bu));
 	};
 
-	setScreenSize(400, 300); // also set mouse to 400/2,300/3 = 200,100 ~ 25,8
+	setMouseLimits(400, 300); // also set mouse to 400/2,300/3 = 200,100 ~ 25,8
 
 	at.mouse_enabled = false;
 	at.puts("\x1b['|");
@@ -3891,7 +3891,7 @@ TEST_CASE("AnsiTerm: getc() mouse reports")
 	using namespace USB;
 	using namespace USB::Mock;
 
-	setScreenSize(400, 300); // also set mouse to 400/2,300/3 = 200,100 ~ 25,8
+	setMouseLimits(400, 300); // also set mouse to 400/2,300/3 = 200,100 ~ 25,8
 	at.application_mode = false;
 	at.c1_codes_8bit	= false;
 	at.utf8_mode		= false;

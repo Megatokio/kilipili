@@ -38,7 +38,7 @@ static int16		screen_height = 240;
 
 // =============================================================
 
-void setScreenSize(int width, int height) noexcept
+void setMouseLimits(int width, int height) noexcept
 {
 	screen_width  = int16(width);
 	screen_height = int16(height);

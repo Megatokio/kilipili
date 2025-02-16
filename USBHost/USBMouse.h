@@ -44,14 +44,16 @@ using MouseEventHandler = void(const MouseEvent&);
 extern void setMouseEventHandler(MouseEventHandler*) noexcept;
 
 /*
-	set the limit for mouse x and y position.
-	must be called after setting VGA screen size.
-	note: is called by class MousePointer.
+	set the limit for mouse x and y position:
+		0 <= x < width
+		0 <= y < height
+	note: called by VideoController.
 */
-extern void setScreenSize(int width, int height) noexcept;
+extern void setMouseLimits(int width, int height) noexcept;
 
 /*
 	query the current absolute position of the mouse.
+	note: called by MousePointer.
 */
 extern Point getMousePosition() noexcept;
 
