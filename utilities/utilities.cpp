@@ -213,7 +213,7 @@ void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 	{
 		cstr s = check_heap();
 		printf("heap: %s\n", s ? s : "valid");
-		if (s) dump_heap();
+		dump_heap();
 	}
 
 	for (;;);
