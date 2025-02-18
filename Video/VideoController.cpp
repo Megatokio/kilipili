@@ -228,8 +228,21 @@ __noinline void VideoController::call_vblank_actions() noexcept
 
 	if (onetime_action)
 	{
-		uint32 state   = spin_lock_blocking(spinlock);
-		auto   fu	   = std::move(onetime_action);
+		// addOneTimeAction() blocks the spinlock for ~10 .. ~100 usec
+		// if MALLOC_EXTENDED_LOGGING=ON then up to ~3000 usec
+		// this is mostly due to blocked logging to stdout while the spinlock is held by addOneTimeAction().
+		// if we lose a timing_isr() then we lose synchronization between clock cycles and scanline position.
+		// therefore we must not wait blindly for the spinlock to become available.
+		// therefore we wait for the spinlock with interrupts enabled:
+
+		uint32 state = save_and_disable_interrupts();
+		while (!spin_try_lock_unsafe(spinlock))
+		{
+			restore_interrupts_from_disabled(state);
+			state = save_and_disable_interrupts();
+		}
+
+		auto fu		   = std::move(onetime_action);
 		onetime_action = nullptr;
 		spin_unlock(spinlock, state);
 		fu();
@@ -372,6 +385,9 @@ void VideoController::setVBlankAction(const VBlankAction& fu) noexcept
 
 void VideoController::addOneTimeAction(const std::function<void()>& fu) noexcept
 {
+	// the spinlock is blocked for ~10 .. ~100 usec
+	// if MALLOC_EXTENDED_LOGGING=ON then up to ~3000 usec (depending on serial speed)
+
 	locker();
 
 	if (!onetime_action)
