@@ -193,6 +193,8 @@ void* malloc(size_t size)
 		uint32 free_size = uint32(heap_end - heap_start);
 		assert(free_size <= size_mask);
 
+		if constexpr (extended_validation) memset(heap_start, 0xE5, free_size * 4);
+
 		*heap_start = free_size | flag_free; // define one big free chunk
 
 		spin_lock_claim(MALLOC_SPINLOCK_NUMBER);
@@ -340,6 +342,7 @@ void free(void* mem)
 		uint32* p = reinterpret_cast<uint32*>(mem) - 1;
 		xlogline("%u:free 0x%8x: %u \n", get_core_num(), size_t(mem), ((*p & size_mask) - 1) << 2);
 		assert(is_valid_used(p));
+		if constexpr (extended_validation) memset(p + 1, 0xE5, ((*p & size_mask) - 1) << 2);
 		*p = (*p & size_mask) | flag_free;
 	}
 }
