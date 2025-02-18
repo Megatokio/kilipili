@@ -393,7 +393,7 @@ void dump_heap()
 		{
 			int sz = *p & size_mask;
 			printf("0x%08x: used, sz=%i\n", uint32(p + 1), sz * 4 - 4);
-			dump_memory(cptr(p) + 4, min(256, sz * 4 - 4));
+			dump_memory(cptr(p) + 4, sz * 4 - 4 == 1088 ? 1088 : min(256, sz * 4 - 4));
 			p += sz;
 		}
 		else
