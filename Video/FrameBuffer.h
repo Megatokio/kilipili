@@ -159,6 +159,12 @@ FrameBuffer(Graphics::Pixmap<CM>*, const Graphics::ColorMap<get_colordepth(CM)>*
 template<ColorMode CM>
 FrameBuffer(RCPtr<Graphics::Pixmap<CM>>, const Graphics::ColorMap<get_colordepth(CM)>*) -> FrameBuffer<CM>;
 
+template<ColorMode CM>
+FrameBuffer(Graphics::Pixmap<CM>*) -> FrameBuffer<CM>;
+
+template<ColorMode CM>
+FrameBuffer(RCPtr<Graphics::Pixmap<CM>>) -> FrameBuffer<CM>;
+
 } // namespace kio::Video
 
 
