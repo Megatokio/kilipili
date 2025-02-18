@@ -760,6 +760,7 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 
 	enum {
 		BACKSPACE = 8,
+		RUBOUT	  = 0x7f,
 		RETURN	  = 13,
 		ESC		  = 0x1b,
 		CSI		  = 0x9b, // C1 version of ESC[
@@ -795,6 +796,7 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 				print(oldtext + epos);
 				newLine();
 				return oldtext;
+			case RUBOUT:
 			case BACKSPACE: c = KEY_BACKSPACE; break;
 			case ESC:
 			case CSI:
