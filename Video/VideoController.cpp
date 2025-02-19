@@ -26,7 +26,6 @@ using namespace kio::Video;
 
 
 static volatile bool lockout_requested = false;
-static volatile bool locked_out		   = false;
 
 __weak_symbol void suspend_core1() noexcept
 {
@@ -81,7 +80,8 @@ __weak void setMouseLimits(int, int) noexcept {}
 namespace kio::Video
 {
 
-uint scanlines_missed = 0;
+uint		  scanlines_missed = 0;
+volatile bool locked_out	   = false;
 
 static spin_lock_t* spinlock = nullptr;
 
@@ -252,18 +252,6 @@ __noinline void VideoController::call_vblank_actions() noexcept
 	if (vblank_action) { vblank_action(); }
 }
 
-RAM void VideoController::vblank(VideoPlane* vp) noexcept
-{
-	if (vp->vblank_fu) vp->vblank_fu(vp);
-	else if (!locked_out) vp->vblank();
-}
-
-RAM void VideoController::render(VideoPlane* vp, int row, int width, uint32* fb) noexcept
-{
-	if (vp->render_fu) vp->render_fu(vp, row, width, fb);
-	else if (!locked_out) vp->renderScanline(row, width, fb);
-}
-
 void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
 {
 	trace(__func__);
@@ -306,7 +294,13 @@ void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
 		{
 			if (!locked_out) call_vblank_actions(); // in rom: only if !lockout
 
-			for (uint i = 0; i < num_planes; i++) { vblank(planes[i]); }
+			for (uint i = 0; i < num_planes; i++)
+			{
+				VideoPlane* vp = planes[i];
+				//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
+				vp->vblank_fu(vp);
+				//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
+			}
 
 			// the pixel dma starts reading the first pixels of a scanline
 			// (8+1)*2 = 18 pixels before the end of the previous line
@@ -320,7 +314,13 @@ void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
 			row0 += vga_mode.height;
 
 			while (int(time_cc_32() - cc_at_line_start) < 0) {}
-			for (uint i = 0; i < num_planes; i++) { render(planes[i], 0, vga_mode.width, scanline_buffer[row0]); }
+			for (uint i = 0; i < num_planes; i++)
+			{
+				VideoPlane* vp = planes[i];
+				//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
+				vp->render_fu(vp, 0 /*row*/, vga_mode.width, scanline_buffer[row0]);
+				//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
+			}
 
 			cc_at_line_start -= uint(row) * cc_per_scanline;
 			cc_at_line_start += cc_per_frame + cc_per_scanline;
@@ -340,7 +340,13 @@ void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
 		idle_end();
 
 		uint32* scanline = scanline_buffer[row0 + row];
-		for (uint i = 0; i < num_planes; i++) { render(planes[i], row, vga_mode.width, scanline); }
+		for (uint i = 0; i < num_planes; i++)
+		{
+			VideoPlane* vp = planes[i];
+			//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
+			vp->render_fu(vp, row, vga_mode.width, scanline);
+			//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
+		}
 	}
 }
 

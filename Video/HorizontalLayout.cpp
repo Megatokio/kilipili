@@ -4,8 +4,8 @@
 
 #include "HorizontalLayout.h"
 #include "Graphics/Color.h"
-#include "VideoController.h"
 #include "basic_math.h"
+#include <hardware/gpio.h>
 
 #define XRAM __attribute__((section(".scratch_x.HL" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
 #define RAM	 __attribute__((section(".time_critical.HL" __XSTRING(__LINE__)))) // general ram
@@ -17,55 +17,68 @@ namespace kio ::Video
 constexpr int ss = msbit(sizeof(Graphics::Color));
 constexpr int zz = 2 - ss;
 
-template<>
-HorizontalLayout<2>::HorizontalLayout(VideoPlane* p1, VideoPlane* p2, int w0) :
+constexpr int stopper = 8000;
+
+HorizontalLayout<2>::HorizontalLayout(VideoPlane* p0, VideoPlane* p1, int w0) :
 	VideoPlane(&do_vblank, &do_render),
-	planes {p1, p2},
-	width {w0 >> zz << zz, 8000}
+	planes {{p0, w0 >> zz << zz}, {p1, stopper}}
 {
-	assert(p1 && p2 && w0 >= 0);
+	assert(p0 && p1 && w0 >= 0);
 }
 
-template<>
 HorizontalLayout<3>::HorizontalLayout(VideoPlane* p0, VideoPlane* p1, VideoPlane* p2, int w0, int w1) :
-	VideoPlane(&do_vblank, &do_render),
-	planes {p0, p1, p2},
-	width {w0 >> zz << zz, w1 >> zz << zz, 9999}
+	HorizontalLayout<2>(p0, p1, w0),
+	more_planes {{p2, stopper}}
 {
+	planes[1].width = w1 >> zz << zz;
 	assert(p0 && p1 && p2 && w0 >= 0 && w1 >= 0);
 }
 
-template<>
 HorizontalLayout<4>::HorizontalLayout(
 	VideoPlane* p0, VideoPlane* p1, VideoPlane* p2, VideoPlane* p3, int w0, int w1, int w2) :
-	VideoPlane(&do_vblank, &do_render),
-	planes {p0, p1, p2, p3},
-	width {w0 >> zz << zz, w1 >> zz << zz, w2 >> zz << zz, 9999}
+	HorizontalLayout<3>(p0, p1, p2, w0, w1),
+	more_planes {{p3, stopper}}
 {
+	planes[2].width = w2 >> zz << zz;
 	assert(p0 && p1 && p2 && w0 >= 0 && w1 >= 0 && w2 >= 0);
 }
 
 
-template<int N>
-void RAM HorizontalLayout<N>::do_vblank(VideoPlane* vp) noexcept
+void RAM HorizontalLayout<2>::do_vblank(VideoPlane* vp) noexcept
 {
 	HorizontalLayout* me = reinterpret_cast<HorizontalLayout*>(vp);
-	for (int i = 0; i < N; i++) VideoController::vblank(me->planes[i]);
+
+	//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
+	for (Plane* pp = me->planes;; pp++)
+	{
+		VideoPlane* vp = pp->vp;
+		vp->vblank_fu(vp);
+		if (pp->width == stopper) break;
+	}
+	//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
 }
 
-template<int N>
-void RAM HorizontalLayout<N>::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
+void RAM HorizontalLayout<2>::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
 {
 	HorizontalLayout* me = reinterpret_cast<HorizontalLayout*>(vp);
 
-	for (int i = 0; i < N - 1; i++)
+	//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
+	for (Plane* pp = me->planes;; pp++)
 	{
-		int w = min(me->width[i], width);
-		VideoController::render(me->planes[i], row, w, fbu);
+		VideoPlane* vp = pp->vp;
+
+		int w = pp->width;
+		if (w > width) w = width;
+
+		vp = pp->vp;
+		vp->render_fu(vp, row, w, fbu);
+
 		width -= w;
 		fbu += w >> zz;
+
+		if (width == 0) break;
 	}
-	VideoController::render(me->planes[N - 1], row, width, fbu);
+	//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
 }
 
 

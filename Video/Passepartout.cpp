@@ -5,7 +5,6 @@
 #include "Passepartout.h"
 #include "Graphics/Color.h"
 #include "VideoBackend.h"
-#include "VideoController.h"
 
 #define XRAM __attribute__((section(".scratch_x.PPT" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
 #define RAM	 __attribute__((section(".time_critical.PPT" __XSTRING(__LINE__)))) // general ram
@@ -53,7 +52,8 @@ void RAM Passepartout::do_render(VideoPlane* vp, int row, int width, uint32* fbu
 
 		clear_row(fbu, left);
 		clear_row(fbu + left + inner_width, right);
-		VideoController::render(me->vp, row, inner_width << ss, fbu + left);
+		VideoPlane* vp = me->vp;
+		vp->render_fu(vp, row, inner_width << ss, fbu + left);
 	}
 	else
 	{
@@ -65,7 +65,8 @@ void RAM Passepartout::do_vblank(VideoPlane* vp) noexcept
 {
 	Passepartout* me = reinterpret_cast<Passepartout*>(vp);
 
-	VideoController::vblank(me->vp);
+	vp = me->vp;
+	vp->vblank_fu(vp);
 }
 
 void Passepartout::setInnerSize(int inner_width, int inner_height) noexcept

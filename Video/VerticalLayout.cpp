@@ -3,7 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "VerticalLayout.h"
-#include "VideoController.h"
+#include <cstdio>
+#include <hardware/gpio.h>
 
 #define XRAM __attribute__((section(".scratch_x.VL" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
 #define RAM	 __attribute__((section(".time_critical.VL" __XSTRING(__LINE__)))) // general ram
@@ -12,32 +13,34 @@
 namespace kio ::Video
 {
 
-VerticalLayout<2>::VerticalLayout(VideoPlane* p1, VideoPlane* p2, int height) :
+constexpr int stopper = 8000;
+
+
+VerticalLayout<2>::VerticalLayout(VideoPlane* p0, VideoPlane* p1, int h0, int h1) :
 	VideoPlane(&do_vblank, &do_render),
-	plane1(p1),
-	plane2(p2),
-	height(height)
+	planes {{p0, h0}, {p1, h1}}
+{}
+
+VerticalLayout<2>::VerticalLayout(VideoPlane* p0, VideoPlane* p1, int h0) : VerticalLayout<2>(p0, p1, h0, stopper)
 {
-	assert(p1 && p2 && height >= -1000);
+	assert(p0 && p1 && h0 >= -1000);
 }
 
-template<>
+VerticalLayout<3>::VerticalLayout(VideoPlane* p0, VideoPlane* p1, VideoPlane* p2, int h0, int h1, int h2) :
+	VerticalLayout<2>(p0, p1, h0, h1),
+	more_planes {p2, h2}
+{}
+
 VerticalLayout<3>::VerticalLayout(VideoPlane* p0, VideoPlane* p1, VideoPlane* p2, int h0, int h1) :
-	VideoPlane(&do_vblank, &do_render),
-	planes {p0, p1, p2},
-	bottom {h0, h0 + h1, 9999},
-	idx(0)
+	VerticalLayout<3>(p0, p1, p2, h0, h1, stopper)
 {
 	assert(p0 && p1 && p2 && h0 >= -1000 && h1 >= -1000);
 }
 
-template<>
 VerticalLayout<4>::VerticalLayout(
 	VideoPlane* p0, VideoPlane* p1, VideoPlane* p2, VideoPlane* p3, int h0, int h1, int h2) :
-	VideoPlane(&do_vblank, &do_render),
-	planes {p0, p1, p2, p3},
-	bottom {h0, h0 + h1, h0 + h1 + h2, 9999},
-	idx(0)
+	VerticalLayout<3>(p0, p1, p2, h0, h1, h2),
+	more_planes {p3, stopper}
 {
 	assert(p0 && p1 && p2 && h0 >= -1000 && h1 >= -1000 && h2 >= -1000);
 }
@@ -46,49 +49,35 @@ VerticalLayout<4>::VerticalLayout(
 void RAM VerticalLayout<2>::do_vblank(VideoPlane* vp) noexcept
 {
 	VerticalLayout* me = reinterpret_cast<VerticalLayout*>(vp);
-	VideoController::vblank(me->plane1);
-}
 
-template<int N>
-void RAM VerticalLayout<N>::do_vblank(VideoPlane* vp) noexcept
-{
-	VerticalLayout* me = reinterpret_cast<VerticalLayout*>(vp);
-	me->idx			   = 0;
-	VideoController::vblank(me->planes[0]);
+	me->idx = 0;
+	me->top = 0;
+
+	for (Plane* pp = me->planes;; pp++)
+	{
+		VideoPlane* vp = pp->vp;
+		vp->vblank_fu(vp);
+		if (pp->height == stopper) break;
+	}
 }
 
 void RAM VerticalLayout<2>::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
 {
 	VerticalLayout* me = reinterpret_cast<VerticalLayout*>(vp);
 
-	int height = me->height;
-	if (row < height) return VideoController::render(me->plane1, row, width, fbu);
+	int	   i   = me->idx;
+	int	   top = me->top;
+	Plane* pp  = &me->planes[i];
 
-	row -= height;
-	if unlikely (row == 0) VideoController::vblank(me->plane2);
-
-	VideoController::render(me->plane2, row, width, fbu);
-}
-
-template<int N>
-void RAM VerticalLayout<N>::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
-{
-	VerticalLayout* me = reinterpret_cast<VerticalLayout*>(vp);
-
-	int i	   = me->idx;
-	int bottom = me->bottom[i];
-
-	if unlikely (row >= bottom)
+	if unlikely (row - top == pp->height)
 	{
-		do bottom = me->bottom[++i];
-		while unlikely(row >= bottom);
-
-		me->idx = i;
-		VideoController::vblank(me->planes[i]);
+		me->top = top += pp->height;
+		me->idx = i += 1;
+		pp += 1;
 	}
 
-	int top = i ? me->bottom[i - 1] : 0;
-	VideoController::render(me->planes[i], row - top, width, fbu);
+	vp = pp->vp;
+	vp->render_fu(vp, row - top, width, fbu);
 }
 
 

@@ -6,21 +6,27 @@
 #include "VideoPlane.h"
 
 
-namespace kio ::Video
+namespace kio::Video
 {
 
-
 template<int num_planes>
-class HorizontalLayout : public VideoPlane
+class HorizontalLayout;
+
+
+template<>
+class HorizontalLayout<2> : public VideoPlane
 {
 public:
 	HorizontalLayout(VideoPlane*, VideoPlane*, int w0);
-	HorizontalLayout(VideoPlane*, VideoPlane*, VideoPlane*, int w0, int w1);
-	HorizontalLayout(VideoPlane*, VideoPlane*, VideoPlane*, VideoPlane*, int w0, int w1, int w3);
 
 protected:
-	RCPtr<VideoPlane> planes[num_planes];
-	int				  width[num_planes];
+	struct Plane
+	{
+		VideoPlanePtr vp;
+		int			  width;
+	};
+
+	Plane planes[2];
 
 	static void do_render(VideoPlane*, int row, int width, uint32* fbu) noexcept;
 	static void do_vblank(VideoPlane*) noexcept;
@@ -28,12 +34,29 @@ protected:
 
 
 template<>
-HorizontalLayout<2>::HorizontalLayout(VideoPlane* p0, VideoPlane* p1, int w0);
-template<>
-HorizontalLayout<3>::HorizontalLayout(VideoPlane* p0, VideoPlane* p1, VideoPlane* p2, int w0, int w1);
-template<>
-HorizontalLayout<4>::HorizontalLayout(VideoPlane*, VideoPlane*, VideoPlane*, VideoPlane*, int, int, int);
+class HorizontalLayout<3> : public HorizontalLayout<2>
+{
+public:
+	HorizontalLayout(VideoPlane*, VideoPlane*, VideoPlane*, int w0, int w1);
 
+protected:
+	Plane more_planes[1];
+};
+
+
+template<>
+class HorizontalLayout<4> : public HorizontalLayout<3>
+{
+public:
+	HorizontalLayout(VideoPlane*, VideoPlane*, VideoPlane*, VideoPlane*, int w0, int w1, int w3);
+
+protected:
+	Plane more_planes[1];
+};
+
+
+static_assert(sizeof(HorizontalLayout<3>) == sizeof(HorizontalLayout<2>) + 2 * sizeof(ptr));
+static_assert(sizeof(HorizontalLayout<4>) == sizeof(HorizontalLayout<3>) + 2 * sizeof(ptr));
 
 extern template class HorizontalLayout<2>;
 extern template class HorizontalLayout<3>;

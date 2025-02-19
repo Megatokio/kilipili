@@ -18,10 +18,6 @@
 #include <pico/stdio.h>
 
 
-#ifndef VIDEO_INTERP_SETUP_PER_SCANLINE
-  #define VIDEO_INTERP_SETUP_PER_SCANLINE OFF
-#endif
-
 #ifndef VIDEO_INTERP0_MODE
   #define VIDEO_INTERP0_MODE ip_any
 #endif
@@ -98,41 +94,31 @@ static_assert(SIO_INTERP1_ACCUM0_OFFSET - SIO_INTERP0_ACCUM0_OFFSET == sizeof(In
 
 // ============================================================================================
 
+template<InterpMode mode>
+static constexpr int ipi = ip1_mode == mode || (ip0_mode != mode && ip1_mode == ip_any);
 
-constexpr int ipi(InterpMode mode) noexcept // determine interpolator index for mode: 0 or 1
-{
-	return ip1_mode == mode || (ip0_mode != mode && ip1_mode == ip_any);
-}
-constexpr bool need_setup(InterpMode mode) noexcept // per scanline
-{
-	return (ip_modes[ipi(mode)]) != mode && VIDEO_INTERP_SETUP_PER_SCANLINE;
-}
-constexpr bool need_frame_setup(InterpMode mode) noexcept // per frame
-{
-	return (ip_modes[ipi(mode)]) != mode && !VIDEO_INTERP_SETUP_PER_SCANLINE;
-}
-constexpr bool need_cleanup(InterpMode mode) noexcept // per scanline
-{
-	return need_setup(mode) && ip_modes[ipi(mode)] != ip_any;
-}
-static inline void setup(Interp* ip, InterpMode mode) noexcept //
+template<InterpMode mode>
+constexpr bool need_setup = (ip_modes[ipi<mode>]) != mode;
+
+template<InterpMode mode>
+constexpr bool need_cleanup = need_setup<mode> && ip_modes[ipi<mode>] != ip_any;
+
+template<InterpMode mode>
+static __force_inline void setup(Interp* ip) noexcept //
 {
 	ip->setup(1 << (mode & 3), ss_color + uint(mode >> 2));
 }
+
 template<InterpMode mode>
-static inline void setup_if_needed() noexcept
+static __force_inline void setup_if_needed() noexcept
 {
-	if constexpr (need_setup(mode)) setup(&interp0[ipi(mode)], mode);
+	if constexpr (need_setup<mode>) setup<mode>(&interp0[ipi<mode>]);
 }
+
 template<InterpMode mode>
-static inline void cleanup_if_needed() noexcept
+static __force_inline void cleanup_if_needed() noexcept
 {
-	if constexpr (need_cleanup(mode)) setup(&interp0[ipi(mode)], ip_modes[ipi(mode)]);
-}
-template<InterpMode mode>
-static inline void frame_setup_if_needed() noexcept
-{
-	if constexpr (need_frame_setup(mode)) setup(&interp0[ipi(mode)], mode);
+	if constexpr (need_cleanup<mode>) setup<ip_modes[ipi<mode>]>(&interp0[ipi<mode>]);
 }
 
 void initializeInterpolators() noexcept
@@ -141,10 +127,10 @@ void initializeInterpolators() noexcept
 	constexpr uint lane0 = 0;
 
 	interp0->base[lane0] = 0; // interp0.lane0: add nothing
-	if constexpr (ip0_mode != ip_any) setup(interp0, ip0_mode);
+	if constexpr (ip0_mode != ip_any) setup<ip0_mode>(interp0);
 
 	interp1->base[lane0] = 0; // interp1.lane0: add nothing
-	if constexpr (ip1_mode != ip_any) setup(interp1, ip1_mode);
+	if constexpr (ip1_mode != ip_any) setup<ip1_mode>(interp1);
 }
 
 
@@ -152,7 +138,7 @@ void initializeInterpolators() noexcept
 // 1-bit indexed color mode:
 // this version uses no interp but a pre-computed 4k colormap.
 
-ScanlineRenderer<colormode_i1>::ScanlineRenderer(const Color* colormap_in) noexcept
+ScanlineRenderer_i1::ScanlineRenderer_i1(const Color* colormap_in) noexcept
 {
 	// for all values for bytes from pixmap
 	// which contain 8 pixels
@@ -165,7 +151,7 @@ ScanlineRenderer<colormode_i1>::ScanlineRenderer(const Color* colormap_in) noexc
 	}
 }
 
-void XRAM ScanlineRenderer<colormode_i1>::render(uint32* dest, uint width, const uint8* pixels) noexcept
+void XRAM ScanlineRenderer_i1::render(uint32* dest, uint width, const uint8* pixels) noexcept
 {
 	const twocolors* colors = reinterpret_cast<const twocolors*>(colormap);
 
@@ -184,7 +170,7 @@ void XRAM ScanlineRenderer<colormode_i1>::render(uint32* dest, uint width, const
 // 2-bit indexed color mode:
 // this version uses no interp but a pre-computed 2k colormap.
 
-ScanlineRenderer<colormode_i2>::ScanlineRenderer(const Color* colormap_in) noexcept
+ScanlineRenderer_i2::ScanlineRenderer_i2(const Color* colormap_in) noexcept
 {
 	// for all values for bytes from pixmap
 	// which contain 4 pixels
@@ -197,7 +183,7 @@ ScanlineRenderer<colormode_i2>::ScanlineRenderer(const Color* colormap_in) noexc
 	}
 }
 
-void XRAM ScanlineRenderer<colormode_i2>::render(uint32* dest, uint width, const uint8* pixels) noexcept
+void XRAM ScanlineRenderer_i2::render(uint32* dest, uint width, const uint8* pixels) noexcept
 {
 	const twocolors* colors = reinterpret_cast<const twocolors*>(colormap);
 
@@ -217,13 +203,11 @@ void XRAM ScanlineRenderer<colormode_i2>::render(uint32* dest, uint width, const
 // ============================================================================================
 // 4-bit indexed color mode:
 
-void RAM ScanlineRenderer<colormode_i4>::vblank() noexcept { frame_setup_if_needed<ip_4bpp>(); }
-
-void XRAM ScanlineRenderer<colormode_i4>::render(uint32* _dest, uint width, const uint8* _pixels) noexcept
+void XRAM ScanlineRenderer_i4::render(uint32* _dest, uint width, const uint8* _pixels) noexcept
 {
 	constexpr InterpMode ip = ip_4bpp;
 	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi(ip)];
+	Interp* const interp = &interp0[ipi<ip>];
 	interp->set_color_base(colormap);
 
 	onecolor*	  dest	 = reinterpret_cast<onecolor*>(_dest);
@@ -245,13 +229,11 @@ void XRAM ScanlineRenderer<colormode_i4>::render(uint32* _dest, uint width, cons
 // ============================================================================================
 // 8-bit indexed color mode:
 
-void RAM ScanlineRenderer<colormode_i8>::vblank() noexcept { frame_setup_if_needed<ip_8bpp>(); }
-
-void XRAM ScanlineRenderer<colormode_i8>::render(uint32* _dest, uint width, const uint8* _pixels) noexcept
+void XRAM ScanlineRenderer_i8::render(uint32* _dest, uint width, const uint8* _pixels) noexcept
 {
 	constexpr InterpMode ip = ip_8bpp;
 	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi(ip)];
+	Interp* const interp = &interp0[ipi<ip>];
 	interp->set_color_base(colormap);
 
 	Color*		  dest	 = reinterpret_cast<Color*>(_dest);
@@ -275,7 +257,7 @@ void XRAM ScanlineRenderer<colormode_i8>::render(uint32* _dest, uint width, cons
 // ============================================================================================
 // true color mode:
 
-void XRAM ScanlineRenderer<colormode_rgb>::render(uint32* dest, uint width, const uint8* q) noexcept
+void XRAM ScanlineRenderer_rgb(uint32* dest, uint width, const uint8* q) noexcept
 {
 	volatile uint32* z = dest;
 
@@ -340,17 +322,15 @@ void XRAM ScanlineRenderer<colormode_rgb>::render(uint32* dest, uint width, cons
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 1 pixel wide attributes and true colors:
 
-void RAM ScanlineRenderer<colormode_a1w1>::vblank() noexcept { frame_setup_if_needed<ip_1bpp>(); }
-
-void XRAM ScanlineRenderer<colormode_a1w1>::render(
-	uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes) noexcept
+template<>
+void XRAM ScanlineRenderer<colormode_a1w1>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_1bpp;
 	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi(ip)];
+	Interp* const interp = &interp0[ipi<ip>];
 
 	onecolor*		 dest		= reinterpret_cast<onecolor*>(_dest);
-	const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
+	const twocolors* attributes = reinterpret_cast<const twocolors*>(_attr);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -381,17 +361,15 @@ void XRAM ScanlineRenderer<colormode_a1w1>::render(
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 2 pixel wide attributes and true colors:
 
-void RAM ScanlineRenderer<colormode_a1w2>::vblank() noexcept { frame_setup_if_needed<ip_1bpp>(); }
-
-void XRAM ScanlineRenderer<colormode_a1w2>::render(
-	uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes) noexcept
+template<>
+void XRAM ScanlineRenderer<colormode_a1w2>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_1bpp;
 	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi(ip)];
+	Interp* const interp = &interp0[ipi<ip>];
 
 	onecolor*		 dest		= reinterpret_cast<onecolor*>(_dest);
-	const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
+	const twocolors* attributes = reinterpret_cast<const twocolors*>(_attr);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -418,17 +396,15 @@ void XRAM ScanlineRenderer<colormode_a1w2>::render(
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 4 pixel wide attributes and true colors:
 
-void RAM ScanlineRenderer<colormode_a1w4>::vblank() noexcept { frame_setup_if_needed<ip_1bpp>(); }
-
-void XRAM ScanlineRenderer<colormode_a1w4>::render(
-	uint32* _dest, uint width, const uint8* pixels, const uint8* _attributes) noexcept
+template<>
+void XRAM ScanlineRenderer<colormode_a1w4>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_1bpp;
 	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi(ip)];
+	Interp* const interp = &interp0[ipi<ip>];
 
 	onecolor*		 dest		= reinterpret_cast<onecolor*>(_dest);
-	const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
+	const twocolors* attributes = reinterpret_cast<const twocolors*>(_attr);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -454,16 +430,14 @@ void XRAM ScanlineRenderer<colormode_a1w4>::render(
 // ============================================================================================
 // attribute mode with 1 bit/pixel with 8 pixel wide attributes and true colors:
 
-void RAM ScanlineRenderer<colormode_a1w8>::vblank() noexcept { frame_setup_if_needed<ip_a1w8>(); }
-
-void XRAM ScanlineRenderer<colormode_a1w8>::render(
-	uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes) noexcept
+template<>
+void XRAM ScanlineRenderer<colormode_a1w8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	// 2023-10-27
 	// this version displays 1024x768 with avg/max load = 247.1/259.3MHz
 
 	constexpr InterpMode ip		= ip_a1w8;
-	Interp* const		 interp = &interp0[ipi(ip)];
+	Interp* const		 interp = &interp0[ipi<ip>];
 	setup_if_needed<ip>();
 
 	constexpr int ssx = sizeof(Color) * CHAR_BIT; // shift distance for swapping colors
@@ -475,7 +449,7 @@ void XRAM ScanlineRenderer<colormode_a1w8>::render(
 	{
 		twocolors*		 dest		= reinterpret_cast<twocolors*>(_dest);
 		const uint32*	 pixels		= reinterpret_cast<const uint32*>(_pixels);
-		const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
+		const twocolors* attributes = reinterpret_cast<const twocolors*>(_attr);
 		constexpr uint	 lane0		= 0;
 
 		twocolors color10a;
@@ -557,7 +531,7 @@ void XRAM ScanlineRenderer<colormode_a1w8>::render(
 
 		twocolors*		 dest		= reinterpret_cast<twocolors*>(_dest);
 		const uint8*	 pixels		= reinterpret_cast<const uint8*>(_pixels);
-		const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
+		const twocolors* attributes = reinterpret_cast<const twocolors*>(_attr);
 
 		for (uint i = 0; i < width / 8; i++)
 		{
@@ -585,7 +559,7 @@ void XRAM ScanlineRenderer<colormode_a1w8>::render(
 
 		twocolors*		 dest		= reinterpret_cast<twocolors*>(_dest);
 		const uint16*	 pixels		= reinterpret_cast<const uint16*>(_pixels);
-		const twocolors* attributes = reinterpret_cast<const twocolors*>(_attributes);
+		const twocolors* attributes = reinterpret_cast<const twocolors*>(_attr);
 
 		for (uint i = 0; i < width / 16; i++)
 		{
@@ -630,17 +604,15 @@ void XRAM ScanlineRenderer<colormode_a1w8>::render(
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 1 pixel wide attributes and true colors:
 
-void RAM ScanlineRenderer<colormode_a2w1>::vblank() noexcept { frame_setup_if_needed<ip_2bpp>(); }
-
-void XRAM ScanlineRenderer<colormode_a2w1>::render(
-	uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes) noexcept
+template<>
+void XRAM ScanlineRenderer<colormode_a2w1>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_2bpp;
 	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi(ip)];
+	Interp* const interp = &interp0[ipi<ip>];
 
 	onecolor*		  dest		 = reinterpret_cast<onecolor*>(_dest);
-	const fourcolors* attributes = reinterpret_cast<const fourcolors*>(_attributes);
+	const fourcolors* attributes = reinterpret_cast<const fourcolors*>(_attr);
 	const uint16*	  pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
@@ -672,17 +644,15 @@ void XRAM ScanlineRenderer<colormode_a2w1>::render(
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 2 pixel wide attributes and true colors:
 
-void RAM ScanlineRenderer<colormode_a2w2>::vblank() noexcept { frame_setup_if_needed<ip_2bpp>(); }
-
-void XRAM ScanlineRenderer<colormode_a2w2>::render(
-	uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes) noexcept
+template<>
+void XRAM ScanlineRenderer<colormode_a2w2>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_2bpp;
 	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi(ip)];
+	Interp* const interp = &interp0[ipi<ip>];
 
 	onecolor*		  dest		 = reinterpret_cast<onecolor*>(_dest);
-	const fourcolors* attributes = reinterpret_cast<const fourcolors*>(_attributes);
+	const fourcolors* attributes = reinterpret_cast<const fourcolors*>(_attr);
 	const uint16*	  pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
@@ -710,17 +680,15 @@ void XRAM ScanlineRenderer<colormode_a2w2>::render(
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 4 pixel wide attributes and true colors:
 
-void RAM ScanlineRenderer<colormode_a2w4>::vblank() noexcept { frame_setup_if_needed<ip_2bpp>(); }
-
-void XRAM ScanlineRenderer<colormode_a2w4>::render(
-	uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes) noexcept
+template<>
+void XRAM ScanlineRenderer<colormode_a2w4>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_2bpp;
 	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi(ip)];
+	Interp* const interp = &interp0[ipi<ip>];
 
 	onecolor*		  dest		 = reinterpret_cast<onecolor*>(_dest);
-	const fourcolors* attributes = reinterpret_cast<const fourcolors*>(_attributes);
+	const fourcolors* attributes = reinterpret_cast<const fourcolors*>(_attr);
 	const uint16*	  pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
@@ -747,17 +715,15 @@ void XRAM ScanlineRenderer<colormode_a2w4>::render(
 // ============================================================================================
 // attribute mode with 2 bit/pixel with 8 pixel wide attributes and true colors:
 
-void RAM ScanlineRenderer<colormode_a2w8>::vblank() noexcept { frame_setup_if_needed<ip_2bpp>(); }
-
-void XRAM ScanlineRenderer<colormode_a2w8>::render(
-	uint32* _dest, uint width, const uint8* _pixels, const uint8* _attributes) noexcept
+template<>
+void XRAM ScanlineRenderer<colormode_a2w8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_2bpp;
 	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi(ip)];
+	Interp* const interp = &interp0[ipi<ip>];
 
 	onecolor*		  dest		 = reinterpret_cast<onecolor*>(_dest);
-	const fourcolors* attributes = reinterpret_cast<const fourcolors*>(_attributes);
+	const fourcolors* attributes = reinterpret_cast<const fourcolors*>(_attr);
 	const uint16*	  pixels	 = reinterpret_cast<const uint16*>(_pixels); // 16 bit for 8 pixel
 
 	for (uint i = 0; i < width / 8; i++)
@@ -783,17 +749,11 @@ void XRAM ScanlineRenderer<colormode_a2w8>::render(
 
 static __force_inline Color operator+(Color a, Color b) { return Color(a.raw + b.raw); }
 
-void RAM HamImageScanlineRenderer::vblank() noexcept
-{
-	frame_setup_if_needed<ip_8bpp>();
-	first_color = black;
-}
-
 void XRAM HamImageScanlineRenderer::render(uint32* framebuffer, uint width, const uint8* _pixels) noexcept
 {
 	constexpr InterpMode ip = ip_8bpp;
 	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi(ip)];
+	Interp* const interp = &interp0[ipi<ip>];
 	interp->set_color_base(colormap);
 
 	// we don't check the row

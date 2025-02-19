@@ -9,7 +9,6 @@ cmake_minimum_required(VERSION 3.13)
 option(VIDEO_OPTIMISTIC_A1W8 "optimize a1w8_rgb mode for moderate color usage. makes 1280x768 work. otherwise not recommended." OFF)
 option(VIDEO_SUPPORT_200x150_A1W8 "support int8 bitmap width in a1w8 renderer. slightly slower than otherwise." ON)
 option(VIDEO_SUPPORT_400x300_A1W8 "support int16 bitmap width in a1w8 renderer. slightly slower than otherwise." ON)
-option(VIDEO_INTERP_SETUP_PER_SCANLINE "setup interpolators for each scanline. rarely needed. see header file." OFF)
 
 set(VIDEO_MAX_SYSCLOCK_MHz "290" CACHE STRING "maximum system clock set by VideoBackend.start()")
 set(VIDEO_MAX_SCANLINE_BUFFERS "16" CACHE STRING "max. number of prepared scanlines (2^N)")
@@ -29,6 +28,7 @@ set(video_sources
 	ScanlineRenderer.cpp
 	ScanlineRenderer.h
 	VideoPlane.h
+	VideoPlane.cpp
 	VideoController.cpp
 	VideoController.h
 	VgaMode.h
@@ -66,7 +66,6 @@ set(video_defines PUBLIC
 	VIDEO_SUPPORT_400x300_A1W8=${VIDEO_SUPPORT_400x300_A1W8}
 	VIDEO_MAX_SYSCLOCK_MHz=${VIDEO_MAX_SYSCLOCK_MHz}
 	VIDEO_MAX_SCANLINE_BUFFERS=${VIDEO_MAX_SCANLINE_BUFFERS}
-	VIDEO_INTERP_SETUP_PER_SCANLINE=${VIDEO_INTERP_SETUP_PER_SCANLINE}
 	VIDEO_INTERP0_MODE=${VIDEO_INTERP0_MODE}
 	VIDEO_INTERP1_MODE=${VIDEO_INTERP1_MODE}
 )

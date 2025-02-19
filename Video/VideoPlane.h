@@ -55,19 +55,20 @@ public:
 	*/
 	virtual void renderScanline(int __unused row, int __unused width, uint32* __unused buffer) noexcept {}
 
-protected:
 	using VblankFu = void(VideoPlane*) noexcept;
 	using RenderFu = void(VideoPlane*, int row, int width, uint32* buffer) noexcept;
 
-	VideoPlane() noexcept {}
-	VideoPlane(VblankFu* a, RenderFu* b) noexcept : vblank_fu(a), render_fu(b) {}
-
-private:
-	friend class VideoController;
-	friend class Passepartout;
-
 	VblankFu* vblank_fu = nullptr;
 	RenderFu* render_fu = nullptr;
+
+protected:
+	// default vblank and render functions:
+	// these call the virtual vblank() and render() functions unless the flash is locked out.
+	static void do_vblank(VideoPlane*) noexcept;
+	static void do_render(VideoPlane*, int row, int width, uint32* buffer) noexcept;
+
+	VideoPlane() noexcept : vblank_fu(&do_vblank), render_fu(&do_render) {}
+	VideoPlane(VblankFu* a, RenderFu* b) noexcept : vblank_fu(a), render_fu(b) {}
 };
 
 using VideoPlanePtr = RCPtr<VideoPlane>;

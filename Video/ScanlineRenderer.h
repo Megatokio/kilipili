@@ -45,161 +45,66 @@ using Color		= Graphics::Color;
 extern void initializeInterpolators() noexcept;
 
 
-template<ColorMode CM>
-struct ScanlineRenderer;
-
-
 // _________________________________________________________________
-template<>
-struct ScanlineRenderer<ColorMode::colormode_i1>
+struct ScanlineRenderer_i1
 {
 	Color colormap[256 * 8]; // 2 or 4kB
 
-	ScanlineRenderer(const Color* colormap) noexcept;
-	~ScanlineRenderer() = default;
-
-	void vblank() noexcept {}
+	ScanlineRenderer_i1(const Color* colormap) noexcept;
 	void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in) noexcept;
 };
 
 // _________________________________________________________________
-template<>
-struct ScanlineRenderer<ColorMode::colormode_i2>
+struct ScanlineRenderer_i2
 {
 	Color colormap[256 * 4]; // 1 or 2kB
 
-	ScanlineRenderer(const Color* colormap) noexcept;
-	~ScanlineRenderer() = default;
-
-	void vblank() noexcept {}
+	ScanlineRenderer_i2(const Color* colormap) noexcept;
 	void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in) noexcept;
 };
 
 // _________________________________________________________________
-template<>
-struct ScanlineRenderer<ColorMode::colormode_i4> // uses interp1
+struct ScanlineRenderer_i4
 {
 	const Color* colormap;
 
-	ScanlineRenderer(const Color* colormap) noexcept : colormap(colormap) {}
-	~ScanlineRenderer() = default;
+	ScanlineRenderer_i4(const Color* colormap) noexcept : colormap(colormap) {}
 
-	void vblank() noexcept;
 	void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in) noexcept;
 };
 
 // _________________________________________________________________
-template<>
-struct ScanlineRenderer<ColorMode::colormode_i8> // uses interp1
+struct ScanlineRenderer_i8
 {
 	const Color* colormap;
 
-	ScanlineRenderer(const Color* colormap) noexcept : colormap(colormap) {}
-	~ScanlineRenderer() = default;
+	ScanlineRenderer_i8(const Color* colormap) noexcept : colormap(colormap) {}
 
-	void vblank() noexcept;
 	void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in) noexcept;
 };
 
 // _________________________________________________________________
-template<>
-struct ScanlineRenderer<ColorMode::colormode_rgb>
-{
-	ScanlineRenderer() noexcept {}
-	~ScanlineRenderer() = default;
-
-	static void vblank() noexcept {}
-	static void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in) noexcept;
-};
+void ScanlineRenderer_rgb(uint32* scanline_out, uint width_in_pixels, const uint8* pixels_in) noexcept;
 
 // _________________________________________________________________
+template<ColorMode CM>
+void ScanlineRenderer(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
 template<>
-struct ScanlineRenderer<ColorMode::colormode_a1w1>
-{
-	ScanlineRenderer() noexcept {}
-	~ScanlineRenderer() = default;
-
-	static void vblank() noexcept;
-	static void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
-};
-
-// _________________________________________________________________
+void ScanlineRenderer<Graphics::colormode_a1w1>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-struct ScanlineRenderer<ColorMode::colormode_a1w2>
-{
-	ScanlineRenderer() noexcept {}
-	~ScanlineRenderer() = default;
-
-	static void vblank() noexcept;
-	static void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
-};
-
-// _________________________________________________________________
+void ScanlineRenderer<Graphics::colormode_a1w2>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-struct ScanlineRenderer<ColorMode::colormode_a1w4>
-{
-	ScanlineRenderer() noexcept {}
-	~ScanlineRenderer() = default;
-
-	static void vblank() noexcept;
-	static void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
-};
-
-// _________________________________________________________________
+void ScanlineRenderer<Graphics::colormode_a1w4>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-struct ScanlineRenderer<ColorMode::colormode_a1w8>
-{
-	ScanlineRenderer() noexcept {}
-	~ScanlineRenderer() = default;
-
-	static void vblank() noexcept;
-	static void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
-};
-
-// _________________________________________________________________
+void ScanlineRenderer<Graphics::colormode_a1w8>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-struct ScanlineRenderer<ColorMode::colormode_a2w1>
-{
-	ScanlineRenderer() noexcept {}
-	~ScanlineRenderer() = default;
-
-	static void vblank() noexcept;
-	static void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
-};
-
-// _________________________________________________________________
+void ScanlineRenderer<Graphics::colormode_a2w1>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-struct ScanlineRenderer<ColorMode::colormode_a2w2>
-{
-	ScanlineRenderer() noexcept {}
-	~ScanlineRenderer() = default;
-
-	static void vblank() noexcept;
-	static void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
-};
-
-// _________________________________________________________________
+void ScanlineRenderer<Graphics::colormode_a2w2>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
 template<>
-struct ScanlineRenderer<ColorMode::colormode_a2w4>
-{
-	ScanlineRenderer() noexcept {}
-	~ScanlineRenderer() = default;
-
-	static void vblank() noexcept;
-	static void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
-};
-
-// _________________________________________________________________
+void ScanlineRenderer<Graphics::colormode_a2w4>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
 template<>
-struct ScanlineRenderer<ColorMode::colormode_a2w8>
-{
-	ScanlineRenderer() noexcept {}
-	~ScanlineRenderer() = default;
-
-	static void vblank() noexcept;
-	static void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
-};
-
+void ScanlineRenderer<Graphics::colormode_a2w8>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
 
 // _________________________________________________________________
 struct HamImageScanlineRenderer
@@ -212,10 +117,9 @@ struct HamImageScanlineRenderer
 		colormap(colors),
 		first_rel_code(num_abs_codes)
 	{}
-	~HamImageScanlineRenderer() = default;
 
-	void vblank() noexcept;
-	void render(uint32* dest, uint width_in_pixels, const uint8* pixels_in) noexcept;
+	inline void vblank() noexcept { first_color = Graphics::black; }
+	void		render(uint32* dest, uint width_in_pixels, const uint8* pixels_in) noexcept;
 };
 
 

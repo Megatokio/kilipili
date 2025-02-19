@@ -9,22 +9,8 @@
 namespace kio ::Video
 {
 
-
 template<int num_planes>
-class VerticalLayout : public VideoPlane
-{
-public:
-	VerticalLayout(VideoPlane*, VideoPlane*, VideoPlane*, int h0, int h1);
-	VerticalLayout(VideoPlane*, VideoPlane*, VideoPlane*, VideoPlane*, int h0, int h1, int h3);
-
-protected:
-	RCPtr<VideoPlane> planes[num_planes];
-	int				  bottom[num_planes];
-	int				  idx;
-
-	static void do_render(VideoPlane*, int row, int width, uint32* fbu) noexcept;
-	static void do_vblank(VideoPlane*) noexcept;
-};
+class VerticalLayout;
 
 
 template<>
@@ -34,19 +20,48 @@ public:
 	VerticalLayout(VideoPlane*, VideoPlane*, int height);
 
 protected:
-	RCPtr<VideoPlane> plane1, plane2;
-	int				  height;
+	VerticalLayout(VideoPlane*, VideoPlane*, int h0, int h1);
 
 	static void do_render(VideoPlane*, int row, int width, uint32* fbu) noexcept;
 	static void do_vblank(VideoPlane*) noexcept;
+
+	struct Plane
+	{
+		VideoPlanePtr vp;
+		int			  height;
+	};
+
+	int	  idx = 0;
+	int	  top = 0;
+	Plane planes[2];
 };
 
 
 template<>
-VerticalLayout<3>::VerticalLayout(VideoPlane* p0, VideoPlane* p1, VideoPlane* p2, int h0, int h1);
-template<>
-VerticalLayout<4>::VerticalLayout(VideoPlane*, VideoPlane*, VideoPlane*, VideoPlane*, int, int, int);
+class VerticalLayout<3> : public VerticalLayout<2>
+{
+public:
+	VerticalLayout(VideoPlane*, VideoPlane*, VideoPlane*, int h0, int h1);
 
+protected:
+	VerticalLayout(VideoPlane*, VideoPlane*, VideoPlane*, int h0, int h1, int h2);
+	Plane more_planes;
+};
+
+
+template<>
+class VerticalLayout<4> : public VerticalLayout<3>
+{
+public:
+	VerticalLayout(VideoPlane*, VideoPlane*, VideoPlane*, VideoPlane*, int h0, int h1, int h3);
+
+protected:
+	Plane more_planes;
+};
+
+
+static_assert(sizeof(VerticalLayout<3>) == sizeof(VerticalLayout<2>) + 2 * sizeof(ptr));
+static_assert(sizeof(VerticalLayout<4>) == sizeof(VerticalLayout<3>) + 2 * sizeof(ptr));
 
 extern template class VerticalLayout<2>;
 extern template class VerticalLayout<3>;

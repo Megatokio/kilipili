@@ -4,6 +4,7 @@
 
 #include "FrameBuffer.h"
 #include "Pixmap_wAttr.h"
+#include <hardware/gpio.h>
 
 #define XRAM __attribute__((section(".scratch_x.FB" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
 #define RAM	 __attribute__((section(".time_critical.FB" __XSTRING(__LINE__)))) // general ram
@@ -13,14 +14,13 @@ namespace kio::Video
 {
 using namespace Graphics;
 
-void RAM FrameBuffer<ColorMode::colormode_rgb>::_vblank(VideoPlane* vp) noexcept
+void RAM FrameBuffer<ColorMode::colormode_rgb>::vblank(VideoPlane* vp) noexcept
 {
 	auto* fb   = reinterpret_cast<FrameBuffer*>(vp);
 	fb->pixels = fb->pixmap->pixmap;
-	ScanlineRenderer<CM>::vblank();
 }
 
-void XRAM FrameBuffer<colormode_rgb>::_render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void XRAM FrameBuffer<colormode_rgb>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	// we don't check the row
 	// we rely on do_vblank() to reset the pointer
@@ -29,68 +29,131 @@ void XRAM FrameBuffer<colormode_rgb>::_render(VideoPlane* vp, int __unused row, 
 	auto*  fb  = reinterpret_cast<FrameBuffer*>(vp);
 	uint8* px  = fb->pixels;
 	fb->pixels = px + fb->row_offset;
-	ScanlineRenderer<CM>::render(scanline, uint(width), px);
+	ScanlineRenderer_rgb(scanline, uint(width), px);
 }
 
 
-// =========================================================================
+//	_____________________________________________________________________________________
 
-template<ColorMode CM>
-void RAM FrameBuffer<CM, std::enable_if_t<is_indexed_color(CM)>>::_vblank(VideoPlane* vp) noexcept
+void RAM FrameBuffer<colormode_i1>::vblank(VideoPlane* vp) noexcept
 {
-	auto* fb   = reinterpret_cast<FrameBuffer*>(vp);
+	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
+
 	fb->pixels = fb->pixmap->pixmap;
-	fb->scanline_renderer.vblank();
+	//fb->scanline_renderer.vblank();	nop
 }
 
-template<ColorMode CM>
-void XRAM FrameBuffer<CM, std::enable_if_t<is_indexed_color(CM)>>::_render(
-	VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void XRAM FrameBuffer<colormode_i1>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
+	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
+
 	// we don't check the row
 	// we rely on do_vblank() to reset the pointer
 	// and if we miss a scanline then the remainder of the screen is shifted
 
-	auto*  fb  = reinterpret_cast<FrameBuffer*>(vp);
-	uint8* px  = fb->pixels;
-	fb->pixels = px + fb->row_offset;
-	fb->scanline_renderer.render(scanline, uint(width), px);
+	//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
+	fb->scanline_renderer.render(scanline, uint(width), fb->pixels);
+	fb->pixels += fb->row_offset;
+	//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
 }
 
 
-// =========================================================================
+//	_____________________________________________________________________________________
 
-template<ColorMode CM>
-void RAM FrameBuffer<CM, std::enable_if_t<is_attribute_mode(CM)>>::_vblank(VideoPlane* vp) noexcept
+void RAM FrameBuffer<colormode_i2>::vblank(VideoPlane* vp) noexcept
 {
-	auto* fb	   = reinterpret_cast<FrameBuffer<CM>*>(vp);
-	fb->pixels	   = fb->pixmap->pixmap;
+	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
+
+	fb->pixels = fb->pixmap->pixmap;
+}
+
+void XRAM FrameBuffer<colormode_i2>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+{
+	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
+
+	// we don't check the row
+	// we rely on do_vblank() to reset the pointer
+	// and if we miss a scanline then the remainder of the screen is shifted
+
+	fb->scanline_renderer.render(scanline, uint(width), fb->pixels);
+	fb->pixels += fb->row_offset;
+}
+
+
+//	_____________________________________________________________________________________
+
+void RAM FrameBuffer<colormode_i4>::vblank(VideoPlane* vp) noexcept
+{
+	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
+
+	fb->pixels = fb->pixmap->pixmap;
+}
+
+void XRAM FrameBuffer<colormode_i4>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+{
+	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
+
+	// we don't check the row
+	// we rely on do_vblank() to reset the pointer
+	// and if we miss a scanline then the remainder of the screen is shifted
+
+	fb->scanline_renderer.render(scanline, uint(width), fb->pixels);
+	fb->pixels += fb->row_offset;
+}
+
+
+//	_____________________________________________________________________________________
+
+void RAM FrameBuffer<colormode_i8>::vblank(VideoPlane* vp) noexcept
+{
+	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
+
+	fb->pixels = fb->pixmap->pixmap;
+}
+
+void XRAM FrameBuffer<colormode_i8>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+{
+	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
+
+	// we don't check the row
+	// we rely on do_vblank() to reset the pointer
+	// and if we miss a scanline then the remainder of the screen is shifted
+
+	fb->scanline_renderer.render(scanline, uint(width), fb->pixels); // *** NOT HERE
+	fb->pixels += fb->row_offset;
+}
+
+
+//	_____________________________________________________________________________________
+
+void RAM FrameBufferBase_wAttr::vblank(VideoPlane* vp) noexcept
+{
+	FrameBufferBase_wAttr* fb = reinterpret_cast<FrameBufferBase_wAttr*>(vp);
+
+	fb->pixels	   = fb->pixmap;
 	fb->attributes = fb->attrmap;
 	fb->arow	   = fb->attrheight;
-	ScanlineRenderer<CM>::vblank();
 }
 
-template<ColorMode CM>
-void XRAM FrameBuffer<CM, std::enable_if_t<is_attribute_mode(CM)>>::_render(
-	VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void XRAM FrameBufferBase_wAttr::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
+	FrameBufferBase_wAttr* fb = reinterpret_cast<FrameBufferBase_wAttr*>(vp);
+
 	// we don't check the row
 	// we rely on do_vblank() to reset the pointer
 	// and if we miss a scanline then the remainder of the screen is shifted
 
-	auto* fb = reinterpret_cast<FrameBuffer<CM>*>(vp);
+	//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
+	fb->render_fu(scanline, uint(width), fb->pixels, fb->attributes); // *** NOT HERE
+	//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
 
-	const uint8* at = fb->attributes;
+	fb->pixels += fb->row_offset;
+
 	if unlikely (--fb->arow == 0)
 	{
-		fb->arow	   = fb->attrheight;
-		fb->attributes = at + fb->arow_offset;
+		fb->arow = fb->attrheight;
+		fb->attributes += fb->arow_offset;
 	}
-
-	const uint8* px = fb->pixels;
-	fb->pixels		= px + fb->row_offset;
-
-	ScanlineRenderer<CM>::render(scanline, uint(width), px, at);
 }
 
 

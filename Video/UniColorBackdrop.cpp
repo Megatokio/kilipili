@@ -15,7 +15,7 @@ namespace kio::Video
 using namespace Graphics;
 
 UniColorBackdrop::UniColorBackdrop(Color color) noexcept :
-	VideoPlane(nullptr, &render),
+	VideoPlane(do_vblank, &render),
 	color(Graphics::flood_filled_color<Graphics::colordepth_rgb>(color))
 {}
 
