@@ -23,6 +23,8 @@ extern void		   dump_heap();	 // dump to stdout
 extern void		   dump_heap_to_fu(dump_heap_print_fu*, void* data);
 extern size_t	   heap_total_size();
 extern size_t	   heap_largest_free_block();
+extern bool		   heap_cut_exception_block(); // if you are desperate for memory
+
 
 #ifdef __cplusplus
 }

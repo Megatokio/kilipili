@@ -3,30 +3,49 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "malloc.h"
-#include "common/cdefs.h"
+#include "../common/cdefs.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <hardware/sync.h>
 #include <new>
 #include <pico.h>
-#include <pico/malloc.h>
+
+
+/*
+	ATTN: This file must be linked into the exectutable directly, not in a library,
+	else parts of the application may use this version and others use the stdlib version of malloc.
+*/
+
 
 #ifndef PICO_CXX_ENABLE_EXCEPTIONS
-  #define PICO_CXX_ENABLE_EXCEPTIONS false
+  #define PICO_CXX_ENABLE_EXCEPTIONS 0
+#endif
+
+#ifndef PICO_CXX_DISABLE_ALLOCATION_OVERRIDES
+  #define PICO_CXX_DISABLE_ALLOCATION_OVERRIDES 0
+#endif
+
+#ifndef MALLOC_EXTENDED_VALIDATION
+  #define MALLOC_EXTENDED_VALIDATION 0
+#endif
+
+#ifndef MALLOC_EXTENDED_LOGGING
+  #define MALLOC_EXTENDED_LOGGING 0
 #endif
 
 #ifndef MALLOC_SPINLOCK_NUMBER
   #define MALLOC_SPINLOCK_NUMBER PICO_SPINLOCK_ID_OS2
 #endif
 
-#if (defined MALLOC_EXTENDED_VALIDATION && MALLOC_EXTENDED_VALIDATION) || defined DEBUG
+
+#if MALLOC_EXTENDED_VALIDATION || defined DEBUG
 static constexpr bool extended_validation = true;
 #else
 static constexpr bool extended_validation = false;
 #endif
 
-#if defined MALLOC_EXTENDED_LOGGING && MALLOC_EXTENDED_LOGGING
+#if MALLOC_EXTENDED_LOGGING
 static constexpr bool extended_logging = true;
   #define xlogline printf
 #else
@@ -35,58 +54,25 @@ static constexpr bool extended_logging = false;
 #endif
 
 
-/*
-	ATTN: This file must be linked into the exectutable directly, not in a library,
-	else parts of the application may use this version and others use the stdlib version of malloc.
-*/
-
 using uint32 = uint32_t;
 using int32	 = int32_t;
 using cptr	 = const char*;
 using Error	 = const char*;
 
-/*
-  Make malloc() reentrant-safe:
-  it seems that "pico-sdk/src/rp2_common/pico_malloc/malloc.c" is not used if we provide our own malloc implementation.
 
-  the choice is to use a spinlock:
-  pro: safely synchronizes access by this core, it's interrupts and the other core and it's interrupts.
-  con: every time malloc() is executed interrupts are disabled for a somewhat long time.
+#if PICO_CXX_ENABLE_EXCEPTIONS && !PICO_CXX_DISABLE_ALLOCATION_OVERRIDES
 
-  only the search-and-acquire part of malloc() must be synchronized,
-  free() and the additional code of realloc() and calloc() can be done unblocked.
-*/
-
-static uint32 malloc_lock() noexcept
-{
-	for (;; __nop())
-	{
-		// don't block irqs while we are waiting for the lock:
-		uint32 irqs = save_and_disable_interrupts();
-		if (spin_try_lock_unsafe(spin_lock_instance(MALLOC_SPINLOCK_NUMBER))) return irqs;
-		restore_interrupts_from_disabled(irqs);
-	}
-}
-static void malloc_unlock(uint32 irqs) noexcept
-{
-	spin_unlock(spin_lock_instance(MALLOC_SPINLOCK_NUMBER), irqs); //
-}
-
-
-static constexpr bool enable_exceptions = PICO_CXX_ENABLE_EXCEPTIONS;
-constexpr char		  OUT_OF_MEMORY[]	= "out of memory";
+constexpr char OUT_OF_MEMORY[] = "out of memory";
 
 void* operator new(size_t n)
 {
 	if (void* p = malloc(n)) return p;
-	if constexpr (enable_exceptions) throw OUT_OF_MEMORY;
-	else panic(OUT_OF_MEMORY);
+	else throw OUT_OF_MEMORY;
 }
 void* operator new[](size_t n)
 {
 	if (void* p = malloc(n)) return p;
-	if constexpr (enable_exceptions) throw OUT_OF_MEMORY;
-	else panic(OUT_OF_MEMORY);
+	else throw OUT_OF_MEMORY;
 }
 
 void* operator new(size_t n, const std::nothrow_t&) noexcept { return malloc(n); }
@@ -95,20 +81,16 @@ void* operator new[](size_t n, const std::nothrow_t&) noexcept { return malloc(n
 void operator delete(void* p) noexcept { free(p); }
 void operator delete[](void* p) noexcept { free(p); }
 
-#if defined __cpp_sized_deallocation && __cpp_sized_deallocation
+  #if defined __cpp_sized_deallocation && __cpp_sized_deallocation
 void operator delete(void* p, __unused size_t n) noexcept { free(p); }
 void operator delete[](void* p, __unused size_t n) noexcept { free(p); }
+  #endif
+
 #endif
 
 
-// defined by linker:
-extern uint32 end;
-extern uint32 __HeapLimit;
-extern uint32 __StackLimit;
-extern uint32 __StackTop;
-
-
-/*	The heap occupies the space between `end` and `__StackLimit`, which are calculated by the linker.
+/*	_________________________________________________________________________________________________
+	The heap occupies the space between `end` and `__StackLimit`, which are calculated by the linker.
 
 	The whole heap is occupied by a list of chunks which can be either used or free.
 	Each chunk is preceeded by a uint32 size, which is the size in uint32 words incl. this size itself.
@@ -117,6 +99,11 @@ extern uint32 __StackTop;
 	The upper bits of the `size` word are used to indicate used or free and to provide minimal validation.
 */
 
+// defined by linker:
+extern uint32 end;
+extern uint32 __HeapLimit;
+extern uint32 __StackLimit;
+extern uint32 __StackTop;
 
 constexpr uint32* heap_start = &end;
 constexpr uint32* heap_end	 = &__StackLimit;
@@ -133,6 +120,9 @@ constexpr size_t max_size = (size_mask << 2) - 4; // bytes
 
 
 // helper:
+static inline int min(int a, int b) noexcept { return a <= b ? a : b; }
+static inline int max(int a, int b) noexcept { return a >= b ? a : b; }
+
 [[maybe_unused]] static inline bool is_used(uint32* p) noexcept { return int32(*p) < 0; }
 [[maybe_unused]] static inline bool is_free(uint32* p) noexcept { return int32(*p) >= 0; }
 
@@ -176,6 +166,34 @@ static inline uint32* skip_used(uint32* p)
 		while (p < heap_end && is_used(p)) { p += *p & size_mask; }
 		return p;
 	}
+}
+
+
+/*	_________________________________________________________________________________________________
+	Make malloc() reentrant-safe:
+	it seems that "pico-sdk/src/rp2_common/pico_malloc/malloc.c" is not used if we provide our own malloc implementation.
+
+	the choice is to use a spinlock:
+	pro: safely synchronizes access by this core, it's interrupts and the other core and it's interrupts.
+	con: every time malloc() is executed interrupts are disabled for a somewhat long time.
+
+	only the search-and-acquire part of malloc() must be synchronized,
+	free() and the additional code of realloc() and calloc() can be done unblocked.
+*/
+
+static uint32 malloc_lock() noexcept
+{
+	for (;; __nop())
+	{
+		// don't block irqs while we are waiting for the lock:
+		uint32 irqs = save_and_disable_interrupts();
+		if (spin_try_lock_unsafe(spin_lock_instance(MALLOC_SPINLOCK_NUMBER))) return irqs;
+		restore_interrupts_from_disabled(irqs);
+	}
+}
+static void malloc_unlock(uint32 irqs) noexcept
+{
+	spin_unlock(spin_lock_instance(MALLOC_SPINLOCK_NUMBER), irqs); //
 }
 
 
@@ -342,7 +360,7 @@ void free(void* mem)
 		uint32* p = reinterpret_cast<uint32*>(mem) - 1;
 		xlogline("%u:free 0x%8x: %u \n", get_core_num(), size_t(mem), ((*p & size_mask) - 1) << 2);
 		assert(is_valid_used(p));
-		if constexpr (extended_validation) memset(p + 1, 0xE5, ((*p & size_mask) - 1) << 2);
+		if constexpr (extended_validation) memset(p + 1, 0xA5, ((*p & size_mask) - 1) << 2);
 		*p = (*p & size_mask) | flag_free;
 	}
 }
@@ -351,18 +369,13 @@ Error check_heap()
 {
 	uint32* p = heap_start;
 
-	while (p < heap_end)
-	{
-		if (is_valid_used(p)) p += *p & size_mask;
-		else if (is_valid_free(p)) p += *p;
-		else return "invalid block found";
-	}
-	if (p > heap_end) return "last block extends beyond heap end";
-	return nullptr;
-}
+	uint32 _ = malloc_lock();
+	for (; p < heap_end && (is_valid_used(p) || is_valid_free(p)); p += *p & size_mask) {}
+	malloc_unlock(_);
 
-static inline int min(int a, int b) { return a <= b ? a : b; }
-static inline int max(int a, int b) { return a >= b ? a : b; }
+	if (p == heap_end) return nullptr;
+	return p < heap_end ? "invalid block found" : "last block extends beyond heap end";
+}
 
 static void dump_memory(cptr p, int sz)
 {
@@ -456,6 +469,34 @@ size_t heap_largest_free_block()
 	return uint(maxfree - 1) * 4;
 }
 
+bool heap_cut_exception_block()
+{
+	/*	if exceptions are enabled then the boot code reserves a block of 1088 bytes
+		during the statics initialization phase.
+		this block is rarely ever used but reduces the amount of available memory for the application.
+		if you are desperate for memory then you can call malloc_cut_exception_block(),
+		best before allocating any own memory.
+
+		WARNING: i don't know what i'm doing here!
+		- This function truncates the "well known" spare block for the c++ exception handler
+		- and changes it's content to reflect the new size, because otherwise the exception handler will
+		  deallocate any exception which happens to be allocated within the range of the original block
+		  differently and corrupt the heap.
+		- I expect a program will crash without proper indication if an exception cannot be allocated on the heap.
+		  This can mostly be only an OUT_OF_MEMORY exception, but in rare cases any other exception as well.
+		- The size of the block c++ allocates for any exception thrown is at least 132 bytes. (at the time of writing)
+	*/
+	uint32* p	 = heap_start;
+	uint	size = ((*p & size_mask) - 1) << 2;
+	p += 1;
+
+	if (size <= 8 || *p != size || p[1] != 0) return false; // safety first
+
+	void* np = realloc(p, 8);
+	assert(np == p); // shrinking never fails
+	*p = 8;			 // change the size stored within that block
+	return true;	 // worked
+}
 
 /*
 
