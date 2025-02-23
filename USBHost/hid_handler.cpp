@@ -60,7 +60,15 @@ void initUSBHost() noexcept
 	// TUH_OPT_RHPORT must be defined in tusb_config.h
 	// better die here if it isn't defined.
 	// tusb_init() just did nothing and returned 'success'!
+  #if TUSB_VERSION_NUMBER >= 2000
+	const tusb_rhport_init_t rh_init = {
+		.role  = TUSB_ROLE_HOST,
+		.speed = TUH_OPT_HIGH_SPEED ? TUSB_SPEED_HIGH : TUSB_SPEED_FULL,
+	};
+	bool f = tuh_rhport_init(TUH_OPT_RHPORT, &rh_init);
+  #else
 	bool f = tuh_init(TUH_OPT_RHPORT);
+  #endif
 	if (!f) panic("initUSBHost() failed");
 	assert(tuh_inited() == true);
 }
