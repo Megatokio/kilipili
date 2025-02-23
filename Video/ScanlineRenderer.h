@@ -8,29 +8,36 @@
 
 /*	ScanlineRenderers for the FrameBuffers
 
-	tweakable parts:
+	Tweakable Parts:
 
-	VIDEO_INTERP_SETUP_PER_SCANLINE
-	  -	If set to true, then the interpolators are set up at the start of each and every scanline.
-	  -	Normally this is not needed and not done because it takes valuable time every scanline.
-		Instead the interpolators are set up at the start of each frame.
-	  -	This option is needed if you place 2 incompatible VideoPlanes side by side or on top of each other.
+	VIDEO_INTERP0_MODE: configure pixel size for interp0: -1=any, 0…3 -> 1,2,4,8 bit, 5=a1w8 (default)
+	VIDEO_INTERP1_MODE: configure pixel size for interp1: -1=any (default), 0…3 -> 1,2,4,8 bit, 5=a1w8
+	  -	these options define the default setting for interp0 and interp1 on core1.
+	  - an interpolator may be set for a specific color mode or for use by any color mode.
+	  - if an interpolator is set for a specific color mode then it is setup at startup by the VideoController.
+	  - otherwise the ScanlineRenderer must set it up at the start of each scanline.
+	  - if it uses an interpolator which is reserved for another color mode (because no interpolator is set to 'any')
+		then the ScanlineRenderer must also restore it to the reserved mode at the end of the scanline.
 
-	VIDEO_INTERP0_MODE: configure pixel size for interp0: -1=all, 0…3 -> 1,2,4,8 bit, 5=a1w8 (default)
-	VIDEO_INTERP1_MODE: configure pixel size for interp1: -1=all (default), 0…3 -> 1,2,4,8 bit, 5=a1w8
-	  -	these options define the default setting for interp0 and interp1.
-	  -	a ScanlineRenderer does not need to set up the interpolator if an interpolator is set up for it's need.
-	  -	otherwise the ScanlineRenderer must set it up at the start of each scanline or frame.
-	  - if no interpolator is set up for -1=all, then you must enable VIDEO_INTERP_SETUP_PER_SCANLINE if
-		you want to place 2 of the remaining modes side-by-side or on top of each other, which is rarely needed.
 
-	Interpolator setups for the various color modes:  (may change. please check source)
-		-1 = none: i1 i2 rgb
+	Interpolator settings needed for the various color modes:
+	(may change. please check source)
+
 		0 = 1 bpp: a1w1 a1w2 a1w4 a1w8 
-		1 = 2 bpp: a1w1 a1w2 a2w4 a2w8
+		1 = 2 bpp: a2w1 a2w2 a2w4 a2w8
 		2 = 4 bpp: i4
 		3 = 8 bpp: i8 ham
 		5 = 2 bp2: a1w8
+		none:      i1 i2 rgb
+
+
+	Own Render Functions using an Interpolator:
+
+	If an application defines a new render function which uses an interpolator, it must take care
+	to avoid conflicts with the existing ScanlineRenderers it uses:
+	  - either fully setup the interpolator at the start of each scanline and restore it at the end
+		to the extend needed (whether it is set to 'any' or a specific mode, see helper templates in the source)
+	  -	or reserve interp1 (not interp0) for your renderer exclusively with VIDEO_INTERP1_MODE=99 or similar.
 */
 
 
