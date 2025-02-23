@@ -9,6 +9,10 @@
 #include <cstdio>
 #include <pico/sync.h>
 
+#ifndef PICO_DEFAULT_LED_PIN
+  #include <pico/cyw43_arch.h>
+#endif
+
 #ifndef DISPATCHER_MAX_TASKS
   #define DISPATCHER_MAX_TASKS 10
 #endif
@@ -156,8 +160,19 @@ int blinkOnboardLed(void*) noexcept
 
 	gpio_xor_mask(1 << pin);
 	return -500 * 1000; // 1 Hz drift-free
+
 #else
-	return 0; // remove me
+	static bool is_initialized = false;
+	if unlikely (!is_initialized)
+	{
+		if (cyw43_arch_init() != 0) return 0; // failed = > remove me is_initialized = true;
+		is_initialized = true;
+	}
+
+	static bool on = false;
+	on			   = !on;
+	cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, on);
+	return -500 * 1000; // 1 Hz drift-free
 #endif
 }
 
