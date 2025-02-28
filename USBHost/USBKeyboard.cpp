@@ -6,6 +6,7 @@
 #include "common/Queue.h"
 #include "common/basic_math.h"
 #include "hid_handler.h"
+#include <cstdio>
 #include <cstring>
 #include <glue.h>
 
@@ -144,16 +145,31 @@ void __weak_symbol defaultHidKeyboardEventHandler(const HidKeyboardReport& new_r
 	// which receives the USB Host events
 
 	static HidKeyboardReport old_report;
+
+	bool event_sent = false;
+
 	for (uint i = 0; i < 6; i++)
 	{
 		HIDKey key = old_report.keys[i];
-		if (key && !find(new_report, key)) key_event_handler(KeyEvent(false, old_report.modifiers, key));
+		if (key && !find(new_report, key))
+		{
+			key_event_handler(KeyEvent(false, old_report.modifiers, key));
+			event_sent = true;
+		}
 	}
 	for (uint i = 0; i < 6; i++)
 	{
 		HIDKey key = new_report.keys[i];
-		if (key && !find(old_report, key)) key_event_handler(KeyEvent(true, new_report.modifiers, key));
+		if (key && !find(old_report, key))
+		{
+			key_event_handler(KeyEvent(true, new_report.modifiers, key));
+			event_sent = true;
+		}
 	}
+
+	if (!event_sent) // only modifier key toggled
+		key_event_handler(KeyEvent(new_report.modifiers & ~old_report.modifiers, new_report.modifiers, NO_KEY));
+
 	old_report = new_report;
 }
 
