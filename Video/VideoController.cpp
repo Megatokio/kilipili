@@ -24,8 +24,8 @@
 
 using namespace kio::Video;
 
-
 static volatile bool lockout_requested = false;
+
 
 __weak_symbol void suspend_core1() noexcept
 {
@@ -71,17 +71,37 @@ __noreturn RAM static void hard_fault_handler() noexcept
 }
 
 
+// =========================================================
+
 namespace kio::USB
 {
 __weak void setMouseLimits(int, int) noexcept {}
 } // namespace kio::USB
 
 
+// =========================================================
+
 namespace kio::Video
 {
 
 uint		  scanlines_missed = 0;
 volatile bool locked_out	   = false;
+
+static constexpr uint max_planes = 8;
+
+static uint			 num_planes			= 0;
+static VideoPlanePtr planes[max_planes] = {nullptr};
+static VBlankAction	 vblank_action		= nullptr;
+static OneTimeAction onetime_action		= nullptr;
+
+enum State : bool {
+	STOPPED,
+	RUNNING,
+};
+
+static volatile State state			  = STOPPED;
+static volatile State requested_state = STOPPED;
+static uint32		  requested_system_clock;
 
 static spin_lock_t* spinlock = nullptr;
 
@@ -92,13 +112,19 @@ struct Locker
 	~Locker() noexcept { spin_unlock(spinlock, state); }
 };
 
-#define locker() Locker _locklist
+static void core1_runner() noexcept;
+static void video_runner(int row0, uint32 cc_at_line_start);
 
 
 // =========================================================
 
-VideoController::VideoController() noexcept
+static bool is_initialized = false;
+static void initialize() noexcept
 {
+	assert(!is_initialized);
+	assert(get_core_num() == 0);
+
+	is_initialized = true;
 	VideoBackend::initialize();
 	spinlock		= spin_lock_init(uint(spin_lock_claim_unused(true)));
 	requested_state = STOPPED;
@@ -108,20 +134,13 @@ VideoController::VideoController() noexcept
 			hard_fault_handler);	 // contraire to documentation, this sets the handler for both cores
 		assert(get_core_num() == 1); // yes we are on core1
 		sleep_us(10);				 // static videocontroller's ctor must finish
-		getRef().core1_runner();	 // else calling getRef() leads to recursion
+		core1_runner();				 // else calling getRef() leads to recursion
 	});
-}
-
-VideoController& VideoController::getRef() noexcept
-{
-	// may panic on first call if HW can't be claimed
-
-	static VideoController videocontroller;
-	return videocontroller;
 }
 
 void VideoController::startVideo(const VgaMode& mode, uint32 system_clock, uint scanline_buffer_count)
 {
+	if unlikely (!is_initialized) initialize();
 	assert(get_core_num() == 0);
 	assert(state == STOPPED);
 	assert(requested_state == STOPPED);
@@ -139,6 +158,7 @@ void VideoController::startVideo(const VgaMode& mode, uint32 system_clock, uint 
 
 void VideoController::stopVideo() noexcept
 {
+	if unlikely (!is_initialized) initialize();
 	assert(get_core_num() == 0);
 
 	requested_state = STOPPED;
@@ -152,7 +172,7 @@ static void __noinline RAM poll_isr(volatile bool& lockout) noexcept
 	while (lockout) { __wfe(); }
 }
 
-void __noreturn VideoController::core1_runner() noexcept
+static void __noreturn core1_runner() noexcept
 {
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
@@ -222,7 +242,7 @@ void __noreturn VideoController::core1_runner() noexcept
 	}
 }
 
-__noinline void VideoController::call_vblank_actions() noexcept
+static void __noinline call_vblank_actions() noexcept
 {
 	trace(__func__);
 
@@ -252,7 +272,7 @@ __noinline void VideoController::call_vblank_actions() noexcept
 	if (vblank_action) { vblank_action(); }
 }
 
-void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
+static void RAM video_runner(int row0, uint32 cc_at_line_start)
 {
 	trace(__func__);
 	assert(!locked_out);
@@ -353,12 +373,12 @@ void RAM VideoController::video_runner(int row0, uint32 cc_at_line_start)
 void VideoController::addPlane(VideoPlanePtr plane)
 {
 	assert(plane != nullptr);
-	assert_lt(num_planes, count_of(planes));
+	assert_lt(num_planes, max_planes);
 
 	// plane must be added by core1 during vblank:
 
 	if (plane)
-		addOneTimeAction([this, plane] {
+		addOneTimeAction([plane] {
 			assert_lt(num_planes, max_planes);
 			planes[num_planes++] = plane;
 		});
@@ -369,7 +389,7 @@ void VideoController::removePlane(VideoPlanePtr plane)
 	// plane must be removed by core1 during vblank:
 
 	if (plane)
-		addOneTimeAction([this, plane] {
+		addOneTimeAction([plane] {
 			for (uint i = num_planes; i;)
 			{
 				if (planes[--i] != plane) continue;
@@ -386,7 +406,7 @@ void VideoController::setVBlankAction(const VBlankAction& fu) noexcept
 	// use addOneTimeAction() to set VBlankAction:
 	// => video_runner() doesn't need to lock spinlock before calling vblank_action().
 
-	addOneTimeAction([this, fu]() { vblank_action = fu; });
+	addOneTimeAction([fu]() { vblank_action = fu; });
 }
 
 void VideoController::addOneTimeAction(const std::function<void()>& fu) noexcept
@@ -394,7 +414,8 @@ void VideoController::addOneTimeAction(const std::function<void()>& fu) noexcept
 	// the spinlock is blocked for ~10 .. ~100 usec
 	// if MALLOC_EXTENDED_LOGGING=ON then up to ~3000 usec (depending on serial speed)
 
-	locker();
+	if unlikely (!is_initialized) initialize();
+	Locker _;
 
 	if (!onetime_action)
 	{
@@ -408,6 +429,11 @@ void VideoController::addOneTimeAction(const std::function<void()>& fu) noexcept
 			   fu();
 		};
 	}
+}
+
+bool VideoController::isRunning() noexcept
+{
+	return state == RUNNING; //
 }
 
 
