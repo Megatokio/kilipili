@@ -56,9 +56,9 @@ size_t core0_stack_top() noexcept { return size_t(&__StackTop); }
 size_t core1_stack_top() noexcept { return size_t(&__StackOneTop); }
 size_t stack_top(uint core) noexcept { return core == 0 ? core0_stack_top() : core1_stack_top(); }
 
-size_t flash_start() noexcept { return XIP_BASE; } // normal address for reading: cached
-size_t flash_end() noexcept { return XIP_BASE + PICO_FLASH_SIZE_BYTES; }
-size_t flash_size() noexcept { return PICO_FLASH_SIZE_BYTES; }
+//size_t flash_start() noexcept { return XIP_BASE; } // normal address for reading: cached
+//size_t flash_end() noexcept { return XIP_BASE + PICO_FLASH_SIZE_BYTES; }
+//size_t flash_size() noexcept { return PICO_FLASH_SIZE_BYTES; }
 size_t flash_used() noexcept { return flash_binary_end() - flash_start(); }
 size_t flash_free() noexcept { return flash_end() - flash_binary_end(); }
 size_t flash_binary_end() noexcept { return size_t(&__flash_binary_end); }

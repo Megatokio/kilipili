@@ -50,9 +50,9 @@ extern size_t stack_free() noexcept;
 
 extern size_t flash_binary_end() noexcept;
 extern size_t flash_binary_size() noexcept;
-extern size_t flash_start() noexcept;
-extern size_t flash_end() noexcept;
-extern size_t flash_size() noexcept;
+inline size_t flash_start() noexcept { return XIP_BASE; } // normal address for reading: cached
+inline size_t flash_end() noexcept { return XIP_BASE + PICO_FLASH_SIZE_BYTES; }
+inline size_t flash_size() noexcept { return PICO_FLASH_SIZE_BYTES; }
 extern size_t flash_used() noexcept;
 extern size_t flash_free() noexcept;
 
