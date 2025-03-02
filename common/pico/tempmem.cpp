@@ -178,22 +178,22 @@ str dupstr(cstr s) { return pools[get_core_num()]->dupstr(s); }
 cstr xdupstr(cstr s)
 {
 	Pool* pool = pools[get_core_num()];
-	assert(pool->prev);
-	return pool->prev->dupstr(s);
+	if (pool->prev) pool = pool->prev;
+	return pool->dupstr(s);
 }
 
 str xtempstr(uint len)
 {
 	Pool* pool = pools[get_core_num()];
-	assert(pool->prev);
-	return pool->prev->tempstr(len);
+	if (pool->prev) pool = pool->prev;
+	return pool->tempstr(len);
 }
 
 ptr xtempmem(uint size)
 {
 	Pool* pool = pools[get_core_num()];
-	assert(pool->prev);
-	return pool->prev->tempmem(size);
+	if (pool->prev) pool = pool->prev;
+	return pool->tempmem(size);
 }
 
 } // namespace kio
