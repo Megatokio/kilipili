@@ -65,9 +65,9 @@ extern bool ctrl_alt_del_detected; // ctrl+alt+delete or ctrl+alt+bs detected
 extern void setHidKeyTranslationTable(const HidKeyTable& table);
 
 using KeyEventHandler = void(const KeyEvent&);
-extern void		setKeyEventHandler(KeyEventHandler*); // set a callback, or ...
-extern KeyEvent getKeyEvent();						  // ... get next key up/down event
-extern int		getChar();							  // ... get next char
-extern bool		keyEventAvailable() noexcept;
+extern KeyEventHandler* setKeyEventHandler(KeyEventHandler*); // set a callback, or ...
+extern KeyEvent			getKeyEvent();						  // ... get next key up/down event
+extern int				getChar();							  // ... get next char
+extern bool				keyEventAvailable() noexcept;
 
 } // namespace kio::USB

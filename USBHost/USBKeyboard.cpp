@@ -122,16 +122,19 @@ static void pushKeyEvent(const KeyEvent& event) noexcept
 
 	if unlikely (key_event_queue.free() == 0) key_event_queue.get(); // discard oldest
 	key_event_queue.put(event);
+	__sev();
 }
 
 static KeyEventHandler* key_event_handler = &pushKeyEvent;
 
-void setKeyEventHandler(KeyEventHandler* handler)
+KeyEventHandler* setKeyEventHandler(KeyEventHandler* handler)
 {
+	auto* old_handler = key_event_handler;
 	key_event_handler = handler ? handler : &pushKeyEvent;
 	key_event_queue.flush();
 	repeat_key = NO_KEY;
 	setHidKeyboardEventHandler(&defaultHidKeyboardEventHandler);
+	return old_handler;
 }
 
 static bool find(const HidKeyboardReport& report, HIDKey key)
