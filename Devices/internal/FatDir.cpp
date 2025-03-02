@@ -20,7 +20,7 @@ FileInfo::FileInfo(const FILINFO& info)
 {
 	trace(__func__);
 
-	fname		 = newcopy(info.fname);
+	fname		 = dupstr(info.fname);
 	fsize		 = SIZE(info.fsize);
 	ftype		 = info.fattrib & AM_DIR ? DirectoryFile : RegularFile;
 	fmode		 = FileMode(info.fattrib & 0x0f);

@@ -100,18 +100,20 @@ struct DateTime
 
 struct FileInfo
 {
-	cstr	 fname = nullptr;
+	cstr	 fname = nullptr; // tempstr
 	SIZE	 fsize;
 	DateTime mtime;
 	FileType ftype;
 	FileMode fmode;
 
-	operator bool() const noexcept { return fname != nullptr; }
+	constexpr	   operator bool() const noexcept { return fname != nullptr; }
+	constexpr bool isaFile() const noexcept { return fname && ftype == FileType::RegularFile; }
+	constexpr bool isaDir() const noexcept { return fname && ftype == FileType::DirectoryFile; }
 
 	FileInfo() noexcept = default;
 
 	FileInfo(cstr name, uint fsize, const DateTime& mtime, FileType ftype, FileMode fmode) :
-		fname(newcopy(name)),
+		fname(name),
 		fsize(fsize),
 		mtime(mtime),
 		ftype(ftype),
@@ -119,8 +121,6 @@ struct FileInfo
 	{}
 	template<typename T>
 	explicit FileInfo(const T&);
-	~FileInfo() { delete[] fname; }
-	NO_COPY_MOVE(FileInfo);
 };
 
 
