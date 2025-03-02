@@ -63,7 +63,7 @@ public:
 
 	~Array() noexcept
 	{
-		_kill(0, cnt);
+		_kill(data, cnt);
 		_free(data);
 	}
 	Array() noexcept = default;
@@ -316,7 +316,7 @@ void Array<T>::_init_with_move(T* z, T* q, uint n) noexcept
 template<typename T>
 void Array<T>::_kill(T* a, uint n) noexcept
 {
-	while (n--) { a->~T(); }
+	while (n--) { a[n].~T(); }
 }
 
 template<typename T>
