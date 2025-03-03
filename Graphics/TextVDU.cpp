@@ -292,7 +292,7 @@ void TextVDU::newLine() noexcept
 	hideCursor();
 	col = 0;
 	row += dy;
-	validate_vpos();
+	//validate_vpos();
 }
 
 void TextVDU::clearRect(int row, int col, int rows, int cols) noexcept
