@@ -116,7 +116,11 @@ void TextVDU::show_cursor(bool show) noexcept
 void TextVDU::showCursor(bool on) noexcept
 {
 	if (cursorVisible == on) return;
-	if (on) validate_hpos(false);
+	if (on)
+	{
+		validate_hpos(false);
+		validate_vpos();
+	}
 	show_cursor(on);
 }
 
@@ -292,7 +296,7 @@ void TextVDU::newLine() noexcept
 	hideCursor();
 	col = 0;
 	row += dy;
-	validate_vpos();
+	//validate_vpos();
 }
 
 void TextVDU::clearRect(int row, int col, int rows, int cols) noexcept
@@ -496,7 +500,8 @@ void TextVDU::writeBmp(CharMatrix bmp, uint8 attr) noexcept
 	// increment col
 
 	hideCursor();
-	validate_hpos(false);
+	if unlikely (uint(col) >= uint(cols)) validate_hpos(false);
+	if unlikely (uint(row) >= uint(rows)) validate_vpos();
 
 	if unlikely (attr & DOUBLE_WIDTH)
 	{
@@ -538,7 +543,8 @@ void TextVDU::writeBmp(CharMatrix bmp, uint8 attr) noexcept
 	}
 
 	assert(col >= 0 && col < cols);
-	assert(row >= 0 && row < rows);
+	assert_ge(row, 0);
+	assert_lt(row, rows);
 
 	int x = col++ * CHAR_WIDTH;
 	int y = row * CHAR_HEIGHT;

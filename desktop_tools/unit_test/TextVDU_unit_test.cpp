@@ -885,11 +885,13 @@ TEST_CASE("TextVDU: newLine()")
 	CHECK_EQ(tv.row, 3);
 
 	tv.newLine();
+	tv.validateCursorPosition(true);
 	CHECK_EQ(tv.col, 0);
 	CHECK_EQ(tv.row, 4);
 	CHECK_EQ(tv.scroll_count, 0);
 
 	tv.newLine();
+	tv.validateCursorPosition(true);
 	CHECK_EQ(tv.col, 0);
 	CHECK_EQ(tv.row, 4);
 	CHECK_EQ(tv.scroll_count, 1);
