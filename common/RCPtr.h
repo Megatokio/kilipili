@@ -150,9 +150,12 @@ public:
 	RCPtr& operator=(const RCPtr& q) noexcept { return operator=(q.p); }
 	RCPtr& operator=(RCPtr&& q) noexcept
 	{
+		// save q.p before releasing p:
+		// --> z = std::move(z->next); works
+		T* qp = q.p;
+		q.p	  = nullptr;
 		release(p);
-		p	= q.p;
-		q.p = nullptr;
+		p = qp;
 		return *this;
 	}
 	template<typename T2, subclass_only>
