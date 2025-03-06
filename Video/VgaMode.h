@@ -307,6 +307,8 @@ constexpr VgaMode vga_mode_640x480_50 =
 	.height = 480,
 };
 
+constexpr VgaMode vga_mode_320x240_50 = vga_mode_640x480_50.half();
+
 static_assert(vga_mode_640x480_50.h_total() == 800);
 static_assert(vga_mode_640x480_50.v_total() == 550);
 
@@ -317,32 +319,14 @@ constexpr VgaMode vga_mode_1024x768_50 =
 	//		 # 1024x768 49.98 Hz (CVT 0.79M3) hsync: 39.63 kHz; pclk: 52.00 MHz
 	//		 Modeline "1024x768_50.00"   52.00  1024 1072 1168 1312  768 771 775 793 -hsync +vsync
 
-	// 54MHz or 57MHz: Multiplier=5 --> a1w8_rgb: 227 scanlines displayed, 541 missing.
-	// detected: 1280x768, horizontally not locked to real monitor pixels
-
-	//	.pixel_clock = 54000000,
-	//
-	//	.h_active      = 1024,
-	//	.h_front_porch = 24,
-	//	.h_pulse       = 136,
-	//	.h_back_porch  = 160,
-	//	.h_sync_polarity = 0,
-	//
-	//	.v_active      = 768,
-	//	.v_front_porch = 3,
-	//	.v_pulse       = 6,
-	//	.v_back_porch  = 29,
-	//	.v_sync_polarity = 0,
-
 	// 54MHz or 57MHz: Multiplier=5
-	// detected: 1280x768, horizontally not locked to real monitor pixels
+	// detected as 1280x768, horizontally not locked to real monitor pixels
 	// the image is ~ 16 pixel too narrow, ~10 left + ~6 right side. so it's neither 1280 nor 1024. weird.
-	// htotal=1376 => a1w8_rgb: clock=270MHz, avg=254.5MHz, max=267.8MHz
-	// htotal=1368 => a1w8_rgb: clock=270MHz, avg=256.9MHz, max=270.0MHz  <-- the current absolute limit!
+	// right side of the sync pulse seemingly doesn't matter for my TV
 
 	.pixel_clock = 54000000, 
 	.h_front_porch = 32,
-	.h_pulse	  = 160, // right side of the pulse seemingly doesn't matter for my TV
+	.h_pulse	  = 160, 
 	.h_back_porch = 160 - 8, 
 	.h_sync_polarity = 0,
 
@@ -355,6 +339,8 @@ constexpr VgaMode vga_mode_1024x768_50 =
 	.width	= 1024,
 	.height = 768,
 };
+
+constexpr VgaMode vga_mode_512x384_50 = vga_mode_1024x768_50.half();
 
 static_assert(vga_mode_1024x768_50.h_total() == 1368);
 static_assert(vga_mode_1024x768_50.v_total() == 806);
