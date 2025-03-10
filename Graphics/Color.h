@@ -146,17 +146,17 @@ constexpr Color::uRGB Color::mkred(int n, int bits)
 constexpr Color::uRGB Color::mkgreen(int n, int bits)
 {
 	int d = gshift + gbits - bits;
-	return (d >= 0 ? n << d : n >> d) & gmask;
+	return (d >= 0 ? n << d : n >> -d) & gmask;
 }
 constexpr Color::uRGB Color::mkblue(int n, int bits)
 {
 	int d = bshift + bbits - bits;
-	return (d >= 0 ? n << d : n >> d) & bmask;
+	return (d >= 0 ? n << d : n >> -d) & bmask;
 }
 constexpr Color::uRGB Color::mkgrey(int n, int bits)
 {
 	int d = ishift + ibits - bits;
-	return (d >= 0 ? n << d : n >> d) & imask;
+	return (d >= 0 ? n << d : n >> -d) & imask;
 }
 
 constexpr Color Color::fromRGB8(int r, int g, int b) noexcept
