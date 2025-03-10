@@ -257,6 +257,38 @@ static void stop_dma() noexcept
 	for (uint i = 0; i < dma_num_channels; i++) dma_channel_cleanup(dma_channel[i]);
 }
 
+static bool is_initialized = false;
+static void initialize() noexcept
+{
+	assert(!is_initialized);
+	assert(get_core_num() == 0);
+
+	is_initialized = true;
+	spinlock	   = spin_lock_instance(next_striped_spin_lock_num());
+
+	if constexpr (audio_hw == I2S)
+	{
+		gpio_set_function(audio_i2s_data_pin, GPIO_FUNC_PIO0);
+		gpio_set_function(audio_i2s_clock_pin_base, GPIO_FUNC_PIO0);
+		gpio_set_function(audio_i2s_clock_pin_base + 1, GPIO_FUNC_PIO0);
+	}
+
+	if constexpr (audio_hw == PWM || audio_hw == SIGMA_DELTA)
+	{
+		gpio_set_function(audio_left_pin, GPIO_FUNC_PIO0);
+		if constexpr (hw_num_channels == 2) gpio_set_function(audio_right_pin, GPIO_FUNC_PIO0);
+	}
+
+	for (uint i = 0; i < num_sm; i++)
+	{
+		dma_channel[i] = uint8(dma_claim_unused_channel(true));
+		sm[i]		   = uint8(pio_claim_unused_sm(audio_pio, true));
+	}
+
+	init_pio();
+	init_dma();
+}
+
 static void update_timing() noexcept
 {
 	float sysclock = float(get_system_clock());
@@ -508,6 +540,8 @@ static int64 fill_buffer(alarm_id_t, void*) noexcept
 
 int32 AudioController::fillBuffer(void*) noexcept
 {
+	//if unlikely (!is_initialized) initialize();
+
 	if (is_running)
 	{
 		if (timer_id <= 0) // no timer used
@@ -526,6 +560,8 @@ int32 AudioController::fillBuffer(void*) noexcept
 
 void AudioController::startAudio(bool with_timer) noexcept
 {
+	if unlikely (!is_initialized) initialize();
+
 	if (is_running)
 	{
 		if (with_timer == (timer_id > 0)) return;
@@ -551,6 +587,8 @@ void AudioController::startAudio(bool with_timer) noexcept
 
 void AudioController::stopAudio(bool remove_audio_sources) noexcept
 {
+	if unlikely (!is_initialized) initialize();
+
 	if (!is_running) return;
 	is_running = false;
 
@@ -565,38 +603,15 @@ void AudioController::stopAudio(bool remove_audio_sources) noexcept
 
 bool AudioController::isRunning() noexcept
 {
-	return is_running; //
-}
+	//if unlikely (!is_initialized) initialize();
 
-AudioController::AudioController() noexcept
-{
-	spinlock = spin_lock_instance(next_striped_spin_lock_num());
-
-	if constexpr (audio_hw == I2S)
-	{
-		gpio_set_function(audio_i2s_data_pin, GPIO_FUNC_PIO0);
-		gpio_set_function(audio_i2s_clock_pin_base, GPIO_FUNC_PIO0);
-		gpio_set_function(audio_i2s_clock_pin_base + 1, GPIO_FUNC_PIO0);
-	}
-
-	if constexpr (audio_hw == PWM || audio_hw == SIGMA_DELTA)
-	{
-		gpio_set_function(audio_left_pin, GPIO_FUNC_PIO0);
-		if constexpr (hw_num_channels == 2) gpio_set_function(audio_right_pin, GPIO_FUNC_PIO0);
-	}
-
-	for (uint i = 0; i < num_sm; i++)
-	{
-		dma_channel[i] = uint8(dma_claim_unused_channel(true));
-		sm[i]		   = uint8(pio_claim_unused_sm(audio_pio, true));
-	}
-
-	init_pio();
-	init_dma();
+	return is_running;
 }
 
 void AudioController::setMaxLatency(uint32 ms) noexcept
 {
+	//if unlikely (!is_initialized) initialize();
+
 	max_latency	 = float(ms) * .001f;
 	check_timing = true;
 }
@@ -605,12 +620,16 @@ void AudioController::setSampleFrequency(float f) noexcept
 {
 	// sample frequency will be updated next time fill_buffer() is called
 
+	//if unlikely (!is_initialized) initialize();
+
 	requested_sample_frequency = f;
 	check_timing			   = true;
 }
 
 float AudioController::getSampleFrequency() noexcept
 {
+	//if unlikely (!is_initialized) initialize();
+
 	if (check_timing && is_running)
 	{
 		if (timer_id > 0)
@@ -622,6 +641,8 @@ float AudioController::getSampleFrequency() noexcept
 
 HwAudioSource* AudioController::addAudioSource(RCPtr<AudioSource<hw_num_channels>> ac) noexcept
 {
+	if unlikely (!is_initialized) initialize();
+
 	Locker _;
 	if (ac == nullptr || num_sources >= max_sources) return nullptr;
 	else return audio_sources[num_sources++] = std::move(ac);
@@ -634,6 +655,9 @@ HwAudioSource* AudioController::addAudioSource(RCPtr<AudioSource<3 - hw_num_chan
 
 void AudioController::removeAudioSource(RCPtr<HwAudioSource> ac) noexcept
 {
+	//assert(is_initialized);
+
+	if (num_sources)
 	{
 		Locker _;
 		for (uint i = 0; i < num_sources; i++)
@@ -651,6 +675,8 @@ void AudioController::removeAudioSource(RCPtr<HwAudioSource> ac) noexcept
 
 void AudioController::removeAllAudioSources() noexcept
 {
+	//assert(is_initialized);
+
 	RCPtr<HwAudioSource> as = nullptr;
 	while (num_sources)
 	{
@@ -666,6 +692,8 @@ void sysclockChanged(uint32 /*new_clock*/) noexcept
 {
 	// called from set_system_clock():
 	// sample frequency will be changed next time fill_buffer() is called
+
+	//if unlikely (!is_initialized) initialize();
 
 	check_timing = true;
 }
@@ -709,21 +737,21 @@ void beep(float frequency, float volume, uint32 duration_ms)
 		}
 	};
 
-	AudioController& ac = AudioController::getRef();
-	if (!is_running) ac.startAudio(true);
-	ac.addAudioSource(new BeepingAudioSource(frequency, volume, duration_ms));
+	//AudioController& ac = AudioController::getRef();
+	if (!is_running) AudioController::startAudio(true);
+	AudioController::addAudioSource(new BeepingAudioSource(frequency, volume, duration_ms));
 }
 
 #endif // audio_hw_num_channels != 0
 
 
-AudioController& AudioController::getRef() noexcept
-{
-	// may panic on first call if HW can't be claimed
-
-	static AudioController audiocontroller;
-	return audiocontroller;
-}
+//AudioController& AudioController::getRef() noexcept
+//{
+//	// may panic on first call if HW can't be claimed
+//
+//	static AudioController audiocontroller;
+//	return audiocontroller;
+//}
 
 
 #if audio_hw_num_channels == 0
@@ -735,12 +763,12 @@ AudioController::AudioController() noexcept {}
 void		   AudioController::setSampleFrequency(float) noexcept {}
 void		   AudioController::setMaxLatency(uint32) noexcept {}
 void		   AudioController::startAudio(bool) noexcept { is_running = 1; }
-void		   AudioController::stopAudio() noexcept { is_running = 0; }
+void		   AudioController::stopAudio(bool) noexcept { is_running = 0; }
 HwAudioSource* AudioController::addAudioSource(RCPtr<AudioSource<1>>) noexcept { return nullptr; }
 HwAudioSource* AudioController::addAudioSource(RCPtr<AudioSource<2>>) noexcept { return nullptr; }
 void		   AudioController::removeAudioSource(RCPtr<HwAudioSource>) noexcept {}
 bool		   AudioController::isRunning() noexcept { return is_running; }
-void		   AudioController::fillBuffer() noexcept {}
+int32		   AudioController::fillBuffer(void*) noexcept { return 0; } // => remove me
 
 void beep(float, float, uint32 duration_ms)
 {

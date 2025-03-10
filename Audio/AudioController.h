@@ -52,7 +52,7 @@ public:
 		on first call the required hardware is claimed.
 		panics if claiming the required hardware fails.
 	*/
-	static AudioController& getRef() noexcept;
+	//static AudioController& getRef() noexcept;
 
 	/* _______________________________________________________________________________________
 		change the sample frequency used by the hardware.
@@ -60,14 +60,14 @@ public:
 		the sample frequency is not changed directly but only on the next call to `fillBuffer()`.
 		the default sample frequency can be set with AUDIO_DEFAULT_SAMPLE_FREQUENCY.
 	*/
-	void setSampleFrequency(float f) noexcept;
+	static void setSampleFrequency(float f) noexcept;
 
 	/* _______________________________________________________________________________________
 		get the actually used sample frequency.
 		if the sample frequency was recently changed and `startAudio()` was called with_timer = true
 		then this function waits until hw_sample_frequency is updated in the next timer call.
 	*/
-	float getSampleFrequency() noexcept;
+	static float getSampleFrequency() noexcept;
 
 	/* _______________________________________________________________________________________
 		set the maximum latency for audio output.
@@ -76,7 +76,7 @@ public:
 		the default values are 10 ms for the max. latency, but the dma buffer reduces that to approx. 5ms
 		for the default AUDIO_DMA_BUFFER_SIZE and AUDIO_DEFAULT_SAMPLE_FREQUENCY of 44100 Hz.
 	*/
-	void setMaxLatency(uint32 msec) noexcept;
+	static void setMaxLatency(uint32 msec) noexcept;
 
 	/* _______________________________________________________________________________________
 		start the audio output.
@@ -92,7 +92,7 @@ public:
 			disadvantage: your refill functions are called on a timer interrupt and you must properly
 				synchronize and block everything.
 	*/
-	void startAudio(bool with_timer) noexcept; // may panic
+	static void startAudio(bool with_timer) noexcept; // may panic
 
 	/* _______________________________________________________________________________________
 		stop the audio output.
@@ -101,12 +101,12 @@ public:
 		hardware is not unclaimed.
 		remove_audio_sources = true => release all AudioSources 
 	*/
-	void stopAudio(bool remove_audio_sources = false) noexcept;
+	static void stopAudio(bool remove_audio_sources = false) noexcept;
 
 	/* _______________________________________________________________________________________
 		query whether the AudioController is running.
 	*/
-	bool isRunning() noexcept;
+	static bool isRunning() noexcept;
 
 	/* _______________________________________________________________________________________
 		callback for use in your event loop.
@@ -127,8 +127,9 @@ public:
 		return HwAudioSource which can be used for later removal of the AudioSource.
 		returns nullptr if the AudioSource could not be added.
 	*/
-	HwAudioSource* addAudioSource(RCPtr<AudioSource<1>>) noexcept;
-	HwAudioSource* addAudioSource(RCPtr<AudioSource<2>>) noexcept;
+	static HwAudioSource* addAudioSource(RCPtr<AudioSource<1>>) noexcept;
+	static HwAudioSource* addAudioSource(RCPtr<AudioSource<2>>) noexcept;
+	static HwAudioSource* addAudioSource(RCPtr<AudioSource<0>>) noexcept { return nullptr; }
 
 	/* _______________________________________________________________________________________
 		remove an AudioSource from the controller.
@@ -137,9 +138,9 @@ public:
 		a source can also remove itself from the AudioController by returning less samples than requested
 		in a call to `virtual bool AudioSource::addAudio()`.
 	*/
-	void removeAudioSource(RCPtr<HwAudioSource>) noexcept;
+	static void removeAudioSource(RCPtr<HwAudioSource>) noexcept;
 
-	void removeAllAudioSources() noexcept;
+	static void removeAllAudioSources() noexcept;
 
 private:
 	AudioController() noexcept;
