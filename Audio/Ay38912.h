@@ -3,17 +3,38 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "AudioController.h"
 #include "AudioSample.h"
+#include "AudioSource.h"
+#include "audio_options.h"
 #include "common/basic_math.h"
 #include "common/cdefs.h"
-#include <functional>
+
+
+/*	_______________________________________________________________________________________
+	ay-3-8912 sound chip emulation
+
+	template classes for output into a mono or stereo buffer.
+	there are 3 different classes for different applications:
+
+	AY38912<NCH>: the basic class.
+		registers can be set any time and take effect the next time
+		the AudioController calls getAudio(), which is ~500 … 2000 times a second.
+		NCH: number of channels is normally set to audio_hw_num_channels.
+
+	AY38912_async<NCH,QSZ>: adds a queue for timed register updates.
+		all register updates are stored with their AY clock cycle into a queue for getAudio().		
+		NCH: number of channels is normally set to audio_hw_num_channels.
+		QSZ: a queue size of 64 bytes which buffers ~20 single register updates or 3 register set updates
+			 covers 90% of all use cases. a larger queue size is required to play back sampled sound.
+			 an emulator may use 256 or even higher, just to be safe.
+*/
 
 namespace kio::Audio
 {
 
 // actual HW sample frequency used by AudioController:
 extern float hw_sample_frequency;
-
 
 constexpr uint8 ayRegisterNumBits[] = {8, 4, 8, 4, 8, 4, 5, 8, 5, 5, 5, 8, 8, 4, 8, 8};
 
@@ -23,85 +44,42 @@ constexpr uint8 ayRegisterBitMasks[] = {0xff, 0x0f, 0xff, 0x0f, 0xff, 0x0f, 0x1f
 constexpr uint8 ayRegisterResetValues[] = {0xff, 0x0f, 0xff, 0x0f, 0xff, 0x0f, 0x1f, 0x3f,
 										   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
 
+enum AyStereoMix { Mono, ABCstereo, ACBstereo };
+
 
 /*	_______________________________________________________________________________________
 	ay-3-8912 sound chip emulation
-	template class for output into a mono or stereo buffer.
-
-	this class does not support synchronization of read & write access.
-	you may want to use the Ay38912_AudioSource which uses this class.
-
-	use:
-	- create instance
-	- setup registers etc. 
-	- while more commands to go:
-		- audioBufferStart()
-		- while timestamp of command < buffer end time
-			- writeRegister(command)
-		- audioBufferEnd()
-		- play buffer
 */
-template<uint num_channels>
-class Ay38912
+template<uint num_channels = audio_hw_num_channels>
+class Ay38912 : public AudioSource<num_channels>
 {
 public:
 	Id("Ay38912");
 
-	using WritePortProc = const std::function<void(CC, bool, uint8)>;
-	using ReadPortProc	= const std::function<uint8(CC, bool)>;
+	Ay38912(float ay_clock_frequency, AyStereoMix = Mono, float volume = 0.5) noexcept;
 
-	enum StereoMix { mono, abc_stereo, acb_stereo };
+	void setStereoMix(AyStereoMix) noexcept;
+	void setVolume(float volume) noexcept;
 
-	// create instance for hw_sample_frequency:
-	Ay38912(float frequency, StereoMix = mono, float volume = 0.5) noexcept;
-
-	// calculate clock which will result in a clock not slower than the requested one:
-	static float nextHigherClock(float clock, float sample_clock = hw_sample_frequency) noexcept;
-
-	// setup/save/restore:
-	// these should be called outside audioBufferStart() .. end()
-	void  setVolume(float volume) noexcept;
+	// change the AY clock:
+	// should only be called on core0 (same core as the audio interrupt)
+	// the actually set clock will be a tiny amount higher than the requested one.
 	void  setClock(float frequency) noexcept;
-	void  setSampleRate(float frequency) noexcept;
-	void  setRegister(uint r, uint8 n) noexcept;
-	void  setRegNr(uint n) noexcept { ay_reg_nr = n & 0x0f; }
-	uint8 getRegister(uint n) const noexcept { return ay_reg[n & 0x0f]; }
-	uint  getRegNr() const noexcept { return ay_reg_nr; }
-	void  reset() noexcept;
-	float getClock() const noexcept { return clock_frequency; }
-	float getActualClock() const noexcept { return sample_frequency * ccx_per_sample / (1 << ccx_fract_bits); }
-	void  setStereoMix(StereoMix) noexcept;
+	float getActualClock() const noexcept { return hw_sample_frequency * ccx_per_sample / (1 << ccx_fract_bits); }
 
-	// adjust the clock cycle counter to match what your application did:
-	void shiftTimebase(int delta_cc) noexcept; // subtract delta_cc from the current clock cycle
-	void resetTimebase() noexcept;			   // reset the clock cycle to 0
+	void reset() noexcept;
+	void setRegister(uint r, uint8 n) noexcept;
+	void setRegisters(const uint8 regs[14]) noexcept;
 
-	// runtime:
-	// these functions must only be called after audioBufferStart() until audioBufferEnd()!
-	// the passed CC should not exceed the duration of the audio buffer!
-	void reset(CC, WritePortProc&); // reset at clock cycle cc
-	void reset(CC) noexcept;		// reset at clock cycle cc
+	// convenience:
+	// these also set both bytes at the same time.
+	void setChannelAPeriod(uint16) noexcept;
+	void setChannelBPeriod(uint16) noexcept;
+	void setChannelCPeriod(uint16) noexcept;
+	void setEnvelopePeriod(uint16) noexcept;
 
-	void setRegister(CC, uint r, uint8 n) noexcept;
-	void setRegister(CC, uint r, uint8 n, WritePortProc&);
-
-	void writeRegister(CC cc, uint8 n, WritePortProc& cb) { setRegister(cc, ay_reg_nr, n, cb); }
-	void writeRegister(CC cc, uint8 n) noexcept { setRegister(cc, ay_reg_nr, n); }
-
-	uint8 readRegister(CC, ReadPortProc&);						  // read from selected register at cc
-	uint8 readRegister(CC) noexcept { return ay_reg[ay_reg_nr]; } // read from selected register at cc
-
-
-	// start next audio buffer:
-	// returns the clock cycle at the end of the buffer as a 24.8 fixed point number.
-	// use this to increment your ay clock cycle in sync with the audio output.
-	CC audioBufferStart(AudioSample<num_channels>* buffer, uint num_samples) noexcept;
-
-	// finish audio output into the audio buffer.
-	void audioBufferEnd() noexcept;
-
-private:
-	// the emulation uses internally 24.8 fixed point values for the SP0256 clock frequency
+protected:
+	// the emulation uses internally 24.8 fixed point values for the AY38912 clock frequency
 	// to allow integer calculations when resampling the output to the hw_frequency with little error.
 	static constexpr int ccx_fract_bits = 8;
 	using CCx							= CC; // 24.8 fixed point
@@ -160,34 +138,303 @@ private:
 	Noise	 noise;
 	Envelope envelope;
 
-	StereoMix stereo_mix;
+	AyStereoMix stereo_mix;
 
-	uint  ay_reg_nr = 0; // selected register
-	uint8 ay_reg[16];	 // registers
-
-	float volume;	   // volume of all channels combined: 0 .. 1.0
-	int	  log_vol[16]; // logarithmic volume table prescaled for faster resampling
-
-	float clock_frequency;	// ay_clock
-	float sample_frequency; // normally hw_sample_frequency
-	int	  ccx_per_sample;	// frequency / hw_frequency
+	uint8 ay_reg[16];	  // registers
+	float volume;		  // volume of all channels combined: 0 .. 1.0
+	int	  log_vol[16];	  // logarithmic volume table prescaled for faster resampling
+	int	  ccx_per_sample; // frequency / hw_frequency
 
 	AudioSample<num_channels>*	   output_buffer  = nullptr;
 	AudioSample<num_channels, int> current_value  = 0; // current output of chip
 	AudioSample<num_channels, int> current_sample = 0; // sample under construction
 
-	CCx	  ccx_at_sos;		  // cc at start of sample
-	CCx	  ccx_now;			  // current cc
-	int64 ccx_buffer_end = 0; // cc at end of buffer = buffer_size * cc_per_sample;
+	CCx ccx_at_sos {0}; // cc at start of sample
+	CCx ccx_now {0};	// current cc
+
+	// AudioSource interface:
+	virtual void setSampleRate(float frequency) noexcept override;
+	virtual uint getAudio(AudioSample<num_channels>* buffer, uint num_frames) noexcept override;
 
 	int	 output_of(Channel&) noexcept;
 	void run_up_to_cycle(CCx ccx) noexcept;
-	void shift_timebase(int delta_ccx) noexcept;
 };
 
 
 extern template class Ay38912<1>;
 extern template class Ay38912<2>;
+
+
+//
+// ******************************************************************************************
+// ******************************************************************************************
+// *****																				*****
+// *****					buffered ay-3-8912 sound chip emulation 					*****
+// *****					for use by AY music file players 							*****
+// *****																				*****
+// ******************************************************************************************
+// ******************************************************************************************
+
+
+template<uint num_channels = audio_hw_num_channels, uint queue_size = 4>
+class Ay38912_player : public Ay38912<num_channels>
+{
+public:
+	static_assert((queue_size & (queue_size - 1)) == 0);
+	using super = Ay38912<num_channels>;
+
+	Ay38912_player(float ay_clock, AyStereoMix = Mono, int frames_per_second = 50, float volume = 0.5) noexcept;
+
+	// new settings take effect immediately and also apply to not yet played queued commands!
+	void setStereoMix(AyStereoMix mix) noexcept { super::setStereoMix(mix); }
+	void setVolume(float volume) noexcept { super::setVolume(volume); }
+	void setClock(float frequency) noexcept { super::setClock(frequency); }
+	void setFps(int fps) noexcept;
+
+	void reset(float ay_clock, AyStereoMix = Mono, int frames_per_second = 50) noexcept;
+	void reset() noexcept { setRegisters(ayRegisterResetValues); }
+	void setRegisters(const uint8 registers[14]) noexcept;
+
+	uint free() const noexcept { return queue.free(); }
+	uint avail() const noexcept { return queue.avail(); }
+
+protected:
+	uint getAudio(AudioSample<num_channels>* buffer, uint num_frames) noexcept override;
+	void setSampleRate(float frequency) noexcept override;
+
+	static constexpr int ccx_fract_bits = super::ccx_fract_bits;
+	using super::run_up_to_cycle;
+	using CCx = typename super::CCx;
+	using super::ccx_now;
+	using super::ccx_per_sample;
+	using super::output_buffer;
+
+	struct Queue
+	{
+		enum Cmd { SetRegisters, Reset };
+		union Frame
+		{
+			struct
+			{
+				float		clock;
+				AyStereoMix mix;
+				int			fps;
+				uint16		_padding;
+				uint16		cmd; // at position of port A/B registers 14/15
+			};
+			uint8 registers[16];
+		};
+		Frame buffer[queue_size];
+		uint8 ri = 0, wi = 0;
+
+		Frame& operator[](uint i) noexcept { return buffer[i & (queue_size - 1)]; }
+		uint   avail() const noexcept { return uint8(wi - ri); }
+		uint   free() const noexcept { return queue_size - avail(); }
+	} queue;
+
+	uint16 fps;			  // frames per second
+	int32  ccx_per_frame; // ay clock cycles per frame (24.8 fixed point)
+	CCx	   ccx_next {0};  // ay clock cycle when the next register frame is to be written
+};
+
+template<uint NCH, uint QSZ>
+Ay38912_player<NCH, QSZ>::Ay38912_player(float frequency, AyStereoMix mix, int fps, float volume) noexcept :
+	super(frequency, mix, volume)
+{
+	setFps(fps);
+}
+
+template<uint NCH, uint QSZ>
+void Ay38912_player<NCH, QSZ>::setFps(int fps) noexcept
+{
+	this->fps	  = fps;
+	ccx_per_frame = hw_sample_frequency * (1 << ccx_fract_bits) / fps;
+}
+
+template<uint NCH, uint QSZ>
+void Ay38912_player<NCH, QSZ>::setSampleRate(float hw_sample_frequency) noexcept
+{
+	// callback from AudioController
+	// *not* the AY clock!
+	super::setSampleRate(hw_sample_frequency);
+	setFps(fps);
+}
+
+template<uint NCH, uint QSZ>
+void Ay38912_player<NCH, QSZ>::reset(float clock, AyStereoMix mix, int fps) noexcept
+{
+	typename Queue::Frame z {clock, mix, fps, 0, Queue::Reset};
+	setRegisters(z.registers);
+}
+
+template<uint NCH, uint QSZ>
+void Ay38912_player<NCH, QSZ>::setRegisters(const uint8 regs[14]) noexcept
+{
+	while (!free()) __wfe();
+	auto& zdata = queue[queue.wi];
+	memcpy(zdata.registers, regs, 14);
+	zdata.cmd = Queue::SetRegisters;
+	__dmb();
+	queue.wi++;
+}
+
+template<uint NCH, uint QSZ>
+uint Ay38912_player<NCH, QSZ>::getAudio(AudioSample<NCH>* buffer, uint num_frames) noexcept
+{
+	// callback from AudioController
+	output_buffer	   = buffer;
+	CCx ccx_buffer_end = ccx_now + int(num_frames) * ccx_per_sample;
+
+	if (ccx_next < ccx_buffer_end)
+	{
+		run_up_to_cycle(ccx_next);
+
+		if (avail())
+		{
+			auto& qdata = queue[queue.ri];
+			if (qdata.cmd == Queue::Reset)
+			{
+				setClock(qdata.clock);
+				setStereoMix(qdata.mix);
+				setFps(qdata.fps);
+				super::reset();
+			}
+			else super::setRegisters(qdata.registers);
+
+			__dmb();
+			queue.ri++;
+			__sev();
+		}
+
+		ccx_next += ccx_per_frame;
+	}
+
+	run_up_to_cycle(ccx_buffer_end);
+	return num_frames;
+}
+
+
+// ******************************************************************************************
+// ******************************************************************************************
+// *****																				*****
+// *****				  synchronized ay-3-8912 sound chip emulation 					*****
+// *****																				*****
+// ******************************************************************************************
+// ******************************************************************************************
+
+
+template<uint num_channels = audio_hw_num_channels, uint queue_size = 64>
+class Ay38912_sync : public Ay38912<num_channels>
+{
+public:
+	static_assert((queue_size & (queue_size - 1)) == 0);
+	using super = Ay38912<num_channels>;
+
+	Ay38912_sync(float ay_clock_frequency, AyStereoMix = Mono, float volume = 0.5) noexcept;
+
+	// new settings take effect immediately and also apply to not yet played queued commands!
+	void setStereoMix(AyStereoMix mix) noexcept { super::setStereoMix(mix); }
+	void setVolume(float volume) noexcept { super::setVolume(volume); }
+	void setClock(float frequency) noexcept { super::setClock(frequency); }
+
+	// set register after delay_ay_cc:
+	void reset(int delay_ay_cc) noexcept { setRegister(delay_ay_cc, 14, 0); }
+	void setRegister(int delay_ay_cc, uint r, uint8 n) noexcept;
+	void addDelay(int delay_ay_cc) noexcept { setRegister(delay_ay_cc, 15, 0); }
+
+	uint free() const noexcept { return queue.free(); }
+	uint avail() const noexcept { return queue.avail(); }
+
+private:
+	uint getAudio(AudioSample<num_channels>* buffer, uint num_frames) noexcept override;
+	//void setSampleRate(float frequency) noexcept override;
+
+	static constexpr int ccx_fract_bits = super::ccx_fract_bits;
+	using super::run_up_to_cycle;
+	using CCx = typename super::CCx;
+	using super::ccx_now;
+	using super::ccx_per_sample;
+	using super::output_buffer;
+
+	struct Queue
+	{
+		struct Data
+		{
+			uint16 delay_cc;
+			uint8  reg;
+			uint8  value;
+		} buffer[queue_size];
+		uint16 ri = 0, wi = 0;
+
+		Data& operator[](uint i) noexcept { return buffer[i & (queue_size - 1)]; }
+		uint  avail() const noexcept { return uint16(wi - ri); }
+		uint  free() const noexcept { return queue_size - avail(); }
+	};
+
+	Queue queue;
+	CCx	  ccx {0}; // current (last) clock cycle
+
+	//void add_delay(int cc);
+};
+
+
+//
+// ####################### Implementations ###############################
+//
+
+template<uint NCH, uint QSZ>
+Ay38912_sync<NCH, QSZ>::Ay38912_sync(float frequency, AyStereoMix mix, float volume) noexcept : //
+	super(frequency, mix, volume)
+{}
+
+template<uint NCH, uint QSZ>
+void Ay38912_sync<NCH, QSZ>::setRegister(int delay_cc, uint r, uint8 n) noexcept
+{
+	assert(delay_cc >= 0);
+	assert(r < 14);
+
+	while (!queue.free()) __wfe();
+
+	auto&  qd	= queue[queue.wi];
+	uint16 wi	= queue.wi;
+	qd.delay_cc = min(delay_cc, 0xffff);
+	qd.reg		= r;
+	qd.value	= n;
+	__dmb();
+	queue.wi = wi;
+}
+
+template<uint NCH, uint QSZ>
+uint Ay38912_sync<NCH, QSZ>::getAudio(AudioSample<NCH>* buffer, uint num_frames) noexcept
+{
+	output_buffer		 = buffer;
+	CCx ccx_buffer_start = ccx_now;
+	CCx ccx_buffer_end	 = ccx_buffer_start + int(num_frames) * ccx_per_sample;
+
+	// prevent ccx wrapping into the future if no registers are set for a long time:
+	ccx = max(ccx, ccx_buffer_start - (0xffff << ccx_fract_bits));
+
+	while (avail())
+	{
+		auto& qd	= queue[queue.ri];
+		int	  delay = qd.delay_cc << ccx_fract_bits;
+
+		if (ccx + delay > ccx_buffer_end) break; // not yet
+		ccx = ccx + delay;
+		if (ccx > ccx_buffer_start) run_up_to_cycle(ccx);
+		else ccx = ccx_buffer_start; // adjust if we are ahead of time
+
+		if (qd.reg < 14) super::setRegister(qd.reg, qd.value);
+		else super::reset();
+
+		__dmb();
+		queue.ri += 1;
+	}
+
+	run_up_to_cycle(ccx_buffer_end);
+	__sev();
+	return num_frames;
+}
 
 
 } // namespace kio::Audio
