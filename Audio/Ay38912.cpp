@@ -161,8 +161,8 @@ void Ay38912<nc>::Noise::reset(CCx now)
 template<uint nc>
 void Ay38912<nc>::Envelope::reset(CCx now)
 {
-	repeat	  = false;
-	invert	  = false;
+	hold	  = false;
+	toggle	  = false;
 	index	  = 0;
 	direction = 0;
 	reload	  = 0xffff * predivider;
@@ -185,8 +185,8 @@ void Ay38912<nc>::Envelope::setShape(CCx now, uint8 c)
 
 	index	  = c & 4 ? 0 : 15;
 	direction = c & 4 ? 1 : -1;
-	invert	  = c & 2;
-	repeat	  = !(c & 1);
+	toggle	  = c & 2;
+	hold	  = c & 1;
 
 	when = now + reload;
 }
@@ -200,18 +200,18 @@ inline void Ay38912<nc>::Envelope::trigger()
 
 		if (index & 0xF0) // ramp finished
 		{
-			if (repeat)
+			if (hold)
 			{
-				if (invert)
+				direction = 0;
+				if (!toggle) index = ~index;
+			}
+			else
+			{
+				if (toggle)
 				{
 					index	  = ~index;
 					direction = -direction;
 				}
-			}
-			else
-			{
-				direction = 0;
-				if (!invert) index = ~index;
 			}
 			index &= 0x0F;
 		}
@@ -240,18 +240,18 @@ void Ay38912<nc>::Envelope::fastForward(CCx now)
 
 	if (index & 0xF0) // ramp finished
 	{
-		if (repeat)
+		if (hold)
 		{
-			if (invert && (index & 0x10))
+			direction = 0;
+			if (!toggle) index = ~index;
+		}
+		else
+		{
+			if (toggle && (index & 0x10))
 			{
 				index	  = ~index;
 				direction = -direction;
 			}
-		}
-		else
-		{
-			direction = 0;
-			if (!invert) index = ~index;
 		}
 		index &= 0x0F;
 	}
@@ -263,19 +263,39 @@ void Ay38912<nc>::Envelope::fastForward(CCx now)
 =============================================================== */
 
 template<uint nc>
-Ay38912<nc>::Ay38912(float ay_frequency, StereoMix mix, float volume) noexcept :
-	stereo_mix(nc == 2 ? mix : mono),
-	clock_frequency(ay_frequency),
-	sample_frequency(hw_sample_frequency)
+Ay38912<nc>::Ay38912(float ay_clock, AyStereoMix mix, float volume) noexcept :
+	stereo_mix(nc == 2 ? mix : Mono),
+	volume(volume)
 {
-	setVolume(volume);
+	setClock(ay_clock);
 	reset();
 }
 
 template<uint nc>
-float Ay38912<nc>::nextHigherClock(float f, float sample_frequency) noexcept
+void Ay38912<nc>::setSampleRate(float new_hw_sample_frequency) noexcept
 {
-	return sample_frequency * ceilf(f * (1 << ccx_fract_bits) / sample_frequency) / (1 << ccx_fract_bits);
+	assert(new_hw_sample_frequency == hw_sample_frequency);
+	setClock(ay_clock);
+}
+
+template<uint nc>
+void Ay38912<nc>::setClock(float new_ay_clock) noexcept
+{
+	debugstr("Ay: set_clock: %f\n", double(new_ay_clock));
+	debugstr("Ay: hw_sample_frequency = %f\n", double(hw_sample_frequency));
+
+	// setClock() must not be interrupted by AudioController::getAudio()
+	// because `ccx_per_sample` must not change while getAudio() is running
+	// because `ccx_buffer_end` is precalculated and used to terminate the loop.
+	//
+	// this can only happen if setClock() is called on a different core or from a
+	// higher prioritized interrupt which is not normally the case.
+
+	// calculate clock which will result in a clock not slower than the requested one:
+	ay_clock	   = new_ay_clock;
+	ccx_per_sample = int(new_ay_clock * (1 << ccx_fract_bits) / hw_sample_frequency);
+	debugstr("Ay: ccx_per_sample = %d\n", ccx_per_sample);
+	setVolume(volume);
 }
 
 template<uint nc>
@@ -292,18 +312,16 @@ void Ay38912<nc>::setVolume(float v) noexcept
 	if (v > +1) v = +1;
 	volume = v;
 
-	ccx_per_sample = int(clock_frequency * (1 << ccx_fract_bits) / sample_frequency + 0.5f);
-
 	v = v * float(0x7fffffff);	   // wg. scale float -> int32
 	v = v / 3;					   // wg. 3 channels added
 	v = v / float(ccx_per_sample); // wg. accumulation in resampling
 
 	float base = -v;
 
-	assert_ge(int(base) * 3 * ccx_per_sample, -0x7fffffff);
-	assert_le(int(base) * 3 * ccx_per_sample, +0x7fffffff);
-	assert_ge(int(base + 2 * v) * 3 * ccx_per_sample, -0x7fffffff);
-	assert_le(int(base + 2 * v) * 3 * ccx_per_sample, +0x7fffffff);
+	assert_ge(int(base) * 3.0 * ccx_per_sample, -0x7fffffff);
+	assert_le(int(base) * 3.0 * ccx_per_sample, +0x7fffffff);
+	assert_ge(int(base + 2 * v) * 3.0 * ccx_per_sample, -0x7fffffff);
+	assert_le(int(base + 2 * v) * 3.0 * ccx_per_sample, +0x7fffffff);
 
 	log_vol[0] = int(base);
 	for (int i = 15; i; i--)
@@ -314,24 +332,64 @@ void Ay38912<nc>::setVolume(float v) noexcept
 }
 
 template<uint nc>
-void Ay38912<nc>::setClock(float new_frequency) noexcept
-{
-	assert(output_buffer == nullptr);
-	clock_frequency = new_frequency;
-	setVolume(volume);
-}
-
-template<uint nc>
-void Ay38912<nc>::setSampleRate(float hw_sample_frequency) noexcept
-{
-	sample_frequency = hw_sample_frequency;
-	setVolume(volume);
-}
-
-template<uint nc>
-void Ay38912<nc>::setStereoMix(StereoMix mix) noexcept
+void Ay38912<nc>::setStereoMix(AyStereoMix mix) noexcept
 {
 	if (nc == 2) stereo_mix = mix; // else mono must be mono
+}
+
+template<uint nc>
+void Ay38912<nc>::setChannelAPeriod(uint16 n) noexcept
+{
+	n &= ayRegisterBitMasks[0] + 256 * ayRegisterBitMasks[1];
+	ay_reg[0] = uint8(n);
+	ay_reg[1] = n >> 8;
+	channel_A.setPeriod(n);
+}
+
+template<uint nc>
+void Ay38912<nc>::setChannelBPeriod(uint16 n) noexcept
+{
+	n &= ayRegisterBitMasks[2] + 256 * ayRegisterBitMasks[3];
+	ay_reg[2] = uint8(n);
+	ay_reg[3] = n >> 8;
+	channel_B.setPeriod(n);
+}
+
+template<uint nc>
+void Ay38912<nc>::setChannelCPeriod(uint16 n) noexcept
+{
+	n &= ayRegisterBitMasks[4] + 256 * ayRegisterBitMasks[5];
+	ay_reg[4] = uint8(n);
+	ay_reg[5] = n >> 8;
+	channel_C.setPeriod(n);
+}
+
+template<uint nc>
+void Ay38912<nc>::setEnvelopePeriod(uint16 n) noexcept
+{
+	n &= ayRegisterBitMasks[11] + 256 * ayRegisterBitMasks[12];
+	ay_reg[11] = uint8(n);
+	ay_reg[12] = n >> 8;
+	envelope.setPeriod(n);
+}
+
+template<uint nc>
+void Ay38912<nc>::setRegisters(const uint8 regs[14]) noexcept
+{
+	if constexpr (1)
+	{
+		setChannelAPeriod(regs[0] + 256 * regs[1]);
+		setChannelBPeriod(regs[2] + 256 * regs[3]);
+		setChannelCPeriod(regs[4] + 256 * regs[5]);
+		for (uint r = 6; r <= 10; r++) setRegister(r, regs[r]);
+		setEnvelopePeriod(regs[11] + 256 * regs[12]);
+		if (regs[13] != 0xff) setRegister(13, regs[13]);
+	}
+	else
+	{
+		uint cnt = 13 + (regs[13] != 0xff);
+		for (uint r = 0; r < cnt; r++) { setRegister(r, regs[r]); }
+	}
 }
 
 template<uint nc>
@@ -341,8 +399,9 @@ void Ay38912<nc>::setRegister(uint regnr, uint8 newvalue) noexcept
 
 	regnr &= 0x0F;
 	newvalue &= ayRegisterBitMasks[regnr];
+	if (ay_reg[regnr] == newvalue && regnr != 13) return;
+	ay_reg[regnr] = newvalue;
 
-	//	if (AYreg[regnr]==newvalue && regnr!=13) break;		---> eel_demo !!!
 	switch (regnr)
 	{
 	case 0: channel_A.setPeriod(ay_reg[1] * 256 + newvalue); break;
@@ -372,8 +431,6 @@ void Ay38912<nc>::setRegister(uint regnr, uint8 newvalue) noexcept
 	case 13: envelope.setShape(ccx_now, newvalue); break;
 	default: break;
 	}
-
-	ay_reg[regnr] = newvalue;
 }
 
 template<uint nc>
@@ -386,112 +443,27 @@ void Ay38912<nc>::reset() noexcept
 	envelope.reset(ccx_now);
 
 	memcpy(ay_reg, ayRegisterResetValues, sizeof(ay_reg));
-	ay_reg_nr = 0;
 }
 
 template<uint nc>
-void Ay38912<nc>::reset(CC cc) noexcept
+uint Ay38912<nc>::getAudio(AudioSample<nc>* buffer, uint num_samples) noexcept
 {
-	run_up_to_cycle(cc << ccx_fract_bits);
-	reset();
+	output_buffer  = buffer;
+	ccx_at_sos	   = ccx_now;
+	current_sample = 0;
+	run_up_to_cycle(ccx_now + int(num_samples) * ccx_per_sample);
+	return num_samples;
 }
 
 template<uint nc>
-void Ay38912<nc>::reset(CC cc, WritePortProc& callback)
-{
-	setRegister(cc, 7, ayRegisterResetValues[7], callback);
-	reset();
-}
-
-template<uint nc>
-void Ay38912<nc>::setRegister(CC cc, uint r, uint8 n) noexcept
+void Ay38912<nc>::run_up_to_cycle(const CCx ccx_end) noexcept
 {
 	trace(__func__);
 
-	run_up_to_cycle(cc << ccx_fract_bits);
-	setRegister(r, n);
-}
+	if (ccx_end <= ccx_now) return;
 
-template<uint nc>
-void Ay38912<nc>::setRegister(CC cc, uint r, uint8 value, WritePortProc& callback)
-{
-	run_up_to_cycle(cc << ccx_fract_bits);
-
-	if (r == 7)
-	{
-		uint8 t = value ^ ay_reg[7];
-		if (t & 0x40 && ay_reg[14] != 0xff) callback(cc, 0, value & 0x40 ? ay_reg[14] : 0xff);
-		if (t & 0x80 && ay_reg[15] != 0xff) callback(cc, 1, value & 0x80 ? ay_reg[15] : 0xff);
-	}
-	else if (r >= 14)
-	{
-		if (ay_reg[r] != value && ay_reg[7] & (1 << (r & 7))) callback(cc, r & 1, value);
-	}
-
-	setRegister(r, value);
-}
-
-template<uint nc>
-uint8 Ay38912<nc>::readRegister(CC cc, ReadPortProc& callback)
-{
-	uint r = ay_reg_nr;
-	return (r < 14) ? ay_reg[r] : (ay_reg[7] & (1 << (r & 7)) ? ay_reg[r] : 0xff) & callback(cc, r & 1);
-}
-
-template<uint nc>
-void Ay38912<nc>::shift_timebase(int delta_ccx) noexcept
-{
-	// subtract delta_ccx from the current clock cycle
-
-	channel_A.when -= delta_ccx;
-	channel_B.when -= delta_ccx;
-	channel_C.when -= delta_ccx;
-	noise.when -= delta_ccx;
-	envelope.when -= delta_ccx;
-	ccx_now -= delta_ccx;
-	ccx_at_sos -= delta_ccx;
-	ccx_buffer_end -= delta_ccx;
-}
-
-template<uint nc>
-void Ay38912<nc>::shiftTimebase(int delta_cc) noexcept
-{
-	shift_timebase(delta_cc << ccx_fract_bits); //
-}
-
-template<uint nc>
-void Ay38912<nc>::resetTimebase() noexcept
-{
-	shift_timebase(int(ccx_now)); //
-}
-
-
-template<uint nc>
-auto Ay38912<nc>::audioBufferStart(AudioSample<nc>* buffer, uint num_samples) noexcept -> CC
-{
-	trace(__func__);
-
-	output_buffer = buffer;
-	ccx_buffer_end += int(num_samples) * ccx_per_sample;
-	return CC(int(ccx_buffer_end >> ccx_fract_bits));
-}
-
-template<uint nc>
-void Ay38912<nc>::audioBufferEnd() noexcept
-{
-	trace(__func__);
-
-	run_up_to_cycle(CCx(int(ccx_buffer_end)));
-	output_buffer = nullptr;
-}
-
-template<uint nc>
-void Ay38912<nc>::run_up_to_cycle(CCx ccx_end) noexcept
-{
-	trace(__func__);
-	assert(output_buffer != nullptr);
-
-	if (ccx_end > CCx(int(ccx_buffer_end))) ccx_end = CCx(int(ccx_buffer_end));
+	assert(ccx_now >= ccx_at_sos);
+	assert(ccx_at_sos < ccx_now + ccx_per_sample);
 
 	while (true)
 	{
@@ -521,11 +493,7 @@ void Ay38912<nc>::run_up_to_cycle(CCx ccx_end) noexcept
 		}
 		if (envelope.when < ccx_when)
 		{
-			if ((channel_A.volume | channel_B.volume | channel_C.volume) & 0x10)
-			{
-				who		 = 2;
-				ccx_when = envelope.when;
-			}
+			if ((channel_A.volume | channel_B.volume | channel_C.volume) & 0x10) { who = 2, ccx_when = envelope.when; }
 			else envelope.fastForward(ccx_end);
 		}
 
@@ -541,14 +509,14 @@ void Ay38912<nc>::run_up_to_cycle(CCx ccx_end) noexcept
 				switch (int(stereo_mix))
 				{
 				default:
-				case mono: // mono: ZX 128k, +2, +3, +3A, TS2068, TC2068
+				case Mono: // mono: ZX 128k, +2, +3, +3A, TS2068, TC2068
 					current_value = a + b + c;
 					break;
-				case abc_stereo: // western Europe
+				case ABCstereo: // western Europe
 					current_value.channels[0] = 2 * a + b;
 					current_value.channels[1] = b + 2 * c;
 					break;
-				case acb_stereo: // eastern Europe, Didaktik Melodik
+				case ACBstereo: // eastern Europe, Didaktik Melodik
 					current_value.channels[0] = 2 * a + c;
 					current_value.channels[1] = c + 2 * b;
 					break;

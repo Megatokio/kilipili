@@ -25,6 +25,9 @@ namespace kio
 
 inline void sleep_us(int usec) noexcept { (void)usec; }
 inline void wfe() noexcept {}
+inline void __wfe() noexcept {}
+inline void __sev() noexcept {}
+inline void __dmb() noexcept {}
 
 // these are defined in the unit test:
 extern void flash_range_erase(uint32 flash_offs, uint32 count);
