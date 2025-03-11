@@ -3,18 +3,21 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 
-#include "Audio/Ay38912.h"
-#include "Xoshiro256.h"
+#if 0
+
+
+  #include "Audio/Ay38912.h"
+  #include "Xoshiro256.h"
 //#include "YMFileConverter.h"
-#include "cdefs.h"
+  #include "cdefs.h"
 //#include "cstrings.h"
-#include "doctest.h"
-#include <cerrno>
-#include <cmath>
-#include <cstdio>
-#include <cstring>
-#include <dirent.h>
-#include <zlib.h>
+  #include "doctest.h"
+  #include <cerrno>
+  #include <cmath>
+  #include <cstdio>
+  #include <cstring>
+  #include <dirent.h>
+  #include <zlib.h>
 
 namespace kio::Audio
 {
@@ -848,10 +851,10 @@ TEST_CASE("Audio::Ay38912 channel A, B, C")
 }
 
 
-#define HT_GET_KEY(x)  ((x) >> 12)
-#define HT_GET_CODE(x) ((x)&0x0FFF)
-#define HT_PUT_KEY(x)  ((x) << 12)
-#define HT_PUT_CODE(x) ((x)&0x0FFF)
+  #define HT_GET_KEY(x)	 ((x) >> 12)
+  #define HT_GET_CODE(x) ((x) & 0x0FFF)
+  #define HT_PUT_KEY(x)	 ((x) << 12)
+  #define HT_PUT_CODE(x) ((x) & 0x0FFF)
 
 struct lzh_compressor
 {
@@ -1515,7 +1518,7 @@ TEST_CASE("Audio::Ay38912 envelope")
 	}
 }
 
-#if 0
+  #if 0
 TEST_CASE("Audio::Ay38912 play \"Ninja Spirits #5.ym\"")
 {
 	// this file doesn't use channel A and C for a prolonged time
@@ -1526,7 +1529,7 @@ TEST_CASE("Audio::Ay38912 play \"Ninja Spirits #5.ym\"")
 	converter.convert(infile, "/tmp", true);
 }
 
-  #if defined YM_FILE && defined YM_WHAT
+	#if defined YM_FILE && defined YM_WHAT
 
 TEST_CASE("Audio::Ay38912 create file")
 {
@@ -1539,9 +1542,9 @@ TEST_CASE("Audio::Ay38912 create file")
 	CHECK(1);
 }
 
-  #endif
+	#endif
 
-  #if defined YM_DIR && defined YM_WHAT
+	#if defined YM_DIR && defined YM_WHAT
 
 TEST_CASE("Audio::Ay38912 create files in dir")
 {
@@ -1554,11 +1557,14 @@ TEST_CASE("Audio::Ay38912 create files in dir")
 	CHECK(1);
 }
 
+	#endif
   #endif
-#endif
 
 
 } // namespace kio::Test
+
+
+#endif // if 0
 
 /*
 

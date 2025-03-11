@@ -65,7 +65,7 @@ uint32 YMFileConverter::write_raw_audio_file(FilePtr file, float sample_rate)
 	// returns number of samples written
 
 	hw_sample_frequency = sample_rate;
-	Ay38912<1>	ay(float(ay_clock), Ay38912<1>::mono, 1.0f);
+	Ay38912<1>	ay(float(ay_clock), Mono, 1.0f);
 	uint32		samples_per_frame = uint32(hw_sample_frequency / frame_rate + 0.5f);
 	MonoSample* sample_buffer	  = new MonoSample[samples_per_frame];
 
@@ -103,8 +103,10 @@ uint32 YMFileConverter::write_raw_audio_file(FilePtr file, float sample_rate)
 		uint8 env = register_data[13 * rf + frame * ff];
 		if (env != 0xff) ay.setRegister(13, env);
 
-		ay.audioBufferStart(sample_buffer, samples_per_frame);
-		ay.audioBufferEnd();
+		//ay.audioBufferStart(sample_buffer, samples_per_frame);
+		//ay.audioBufferEnd();
+		ay.getAudio(sample_buffer, samples_per_frame);
+
 		filter.filter(&sample_buffer[0].m, samples_per_frame);
 
 		if constexpr (__BYTE_ORDER != __LITTLE_ENDIAN)
