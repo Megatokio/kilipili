@@ -4,29 +4,25 @@
 
 #pragma once
 #include "AudioController.h"
-#include "AudioSource.h"
 #include "Ay38912.h"
-#include "Devices/File.h"
+#include "Devices/devices_types.h"
 #include "basic_math.h"
+
 
 namespace kio::Audio
 {
 
-class YMMusicPlayer : public AudioSource<hw_num_channels>
+class YMMusicPlayer : public Ay38912_player<hw_num_channels>
 {
 public:
-	Id("YMMusicPlayer");
-
+	using super		   = Ay38912_player<hw_num_channels>;
 	using FilePtr	   = Devices::FilePtr;
 	using DirectoryPtr = Devices::DirectoryPtr;
-	using AyPlayer	   = Ay38912<hw_num_channels>;
 
 	YMMusicPlayer();
 	~YMMusicPlayer() override;
 
-	int	 run() noexcept;
-	uint getAudio(AudioSample<hw_num_channels>* buffer, uint num_frames) noexcept override;
-	void setSampleRate(float /*new_sample_frequency*/) noexcept override;
+	int run() noexcept;
 
 	void play(cstr fpath);
 	void playDirectory(cstr dpath);
@@ -40,14 +36,11 @@ public:
 	void skip();					  // resume next song if playing from dir
 	void setVolume(float);
 
-	AyPlayer ay;
-
 	// while stopped the current file & dir can be remembered:
 	cstr next_file = nullptr;
 	cstr next_dir  = nullptr;
 
-	// the current file and directory (if any) while playing:
-	//FilePtr	 ymmusic_file; --> bitstream.infile
+	// the current directory (if any) while playing:
 	DirectoryPtr ymmusic_dir;
 
 	bool is_live	 = false; // is connected to audio controller
@@ -57,40 +50,19 @@ public:
 
 	// data from current file:
 	uint8  buffer_bits = 0;
-	int8   frame_rate  = 50;
 	uint8  registers_per_frame;
-	uint8  stereo_mix = AyPlayer::mono;
 	uint32 num_frames;
 	uint32 loop_frame;
-	float  ay_clock;
 	uint32 bitstream_start;
 
 	int32  cc_per_frame;	  // calc. from ay_clock and frame_rate
 	CC	   cc_next {0};		  // cc for next register update
 	uint32 frames_played = 0; // frame counter
 
-	struct QueueData
-	{
-		uint8 registers[16];
-		uint8 what; // 0=registers, 1=reset
-	};
-	struct Queue
-	{
-		static constexpr uint SZ = 4;
-
-		QueueData  buffer[SZ];
-		uint8	   ri = 0, wi = 0;
-		QueueData& operator[](uint i) noexcept { return buffer[i & (SZ - 1)]; }
-		uint	   avail() noexcept { return uint8(wi - ri); }
-		uint	   free() noexcept { return SZ - avail(); }
-	};
-
-	Queue queue;
-
 	// decoder data:
 	struct BitStream
 	{
-		FilePtr infile;
+		FilePtr infile;	  // the currently playing file
 		uint	accu = 0; // accumulator
 		uint	bits = 0; // remaining num bits in accu
 
@@ -125,7 +97,7 @@ public:
 	BackrefBuffer backref_buffers[16];
 
 private:
-	void read_frame(QueueData&);
+	void read_frame(uint8 regs[16]);
 };
 
 
