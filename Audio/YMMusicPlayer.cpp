@@ -4,6 +4,7 @@
 
 #include "YMMusicPlayer.h"
 #include "Devices/Directory.h"
+#include "Devices/File.h"
 #include "Devices/FileSystem.h"
 #include "Trace.h"
 #include "common/cdefs.h"
@@ -110,10 +111,10 @@ uint8 YMMusicPlayer::BackrefBuffer::next_value(BitStream& instream)
 
 
 // size is close to 600 bytes plus 3 memory Ids:
-static_assert(sizeof(YMMusicPlayer) <= 624);
+static_assert(sizeof(YMMusicPlayer) <= 608);
 
 
-YMMusicPlayer::YMMusicPlayer() : ay(2000000, AyPlayer::mono, 0.2f) {}
+YMMusicPlayer::YMMusicPlayer() : super(2000000, Mono, 50, 0.2f) {}
 
 YMMusicPlayer::~YMMusicPlayer()
 {
@@ -122,68 +123,13 @@ YMMusicPlayer::~YMMusicPlayer()
 	delete[] allocated_buffer;
 }
 
-void YMMusicPlayer::setSampleRate(float new_sample_frequency) noexcept
-{
-	// callback by the AudioController
-
-	trace(__func__);
-
-	ay.setSampleRate(new_sample_frequency);
-}
-
-uint YMMusicPlayer::getAudio(AudioSample<hw_num_channels>* buffer, uint num_frames) noexcept
-{
-	// callback by the AudioController
-
-	trace(__func__);
-
-	if (queue.avail())
-	{
-		QueueData& regs = queue[queue.ri];
-		assert(regs.what <= 1);
-
-		if unlikely (regs.what == 1)
-		{
-			ay.setStereoMix(AyPlayer::StereoMix(stereo_mix));
-			ay.setClock(ay_clock);
-			assert(ay_clock == ay.getClock());
-			cc_per_frame = int32(ay_clock + frame_rate / 2) / frame_rate;
-		}
-
-		CC cc_buffer_end = ay.audioBufferStart(buffer, num_frames);
-		if (cc_next < cc_buffer_end)
-		{
-			ay.setRegister(cc_next, 0, regs.registers[0]);
-			uint last_register = regs.registers[13] == 0x0f ? 12 : 13;
-			for (uint i = 1; i <= last_register; i++) ay.setRegister(i, regs.registers[i]);
-			cc_next += cc_per_frame;
-			__dmb();
-			queue.ri++;
-		}
-		ay.audioBufferEnd();
-		return num_frames;
-	}
-	else if (bitstream.infile)
-	{
-		ay.audioBufferStart(buffer, num_frames);
-		ay.audioBufferEnd();
-		return num_frames;
-	}
-	else
-	{
-		is_live = false;
-		return 0; // remove me
-	}
-}
-
-void YMMusicPlayer::read_frame(QueueData& d)
+void YMMusicPlayer::read_frame(uint8 regs[16])
 {
 	for (int r = 0; r < registers_per_frame; r++)
 	{
-		d.registers[r] = backref_buffers[r].next_value(bitstream); //
+		regs[r] = backref_buffers[r].next_value(bitstream); //
 	}
-
-	d.what = 0;
+	if (regs[13] == 0x0f) regs[13] = 0xff;
 }
 
 int YMMusicPlayer::run() noexcept
@@ -198,18 +144,14 @@ int YMMusicPlayer::run() noexcept
 		{
 			// we are playing :-)
 
-			if (paused) return 100 * 1000; // we are not.. TODO: silence AY
+			if (paused) return 100 * 1000; // we are not..
 
-			read_frame(queue[queue.wi]); // throws at eof
+			assert(is_live);
+
+			read_frame(queue[queue.wi].registers); // throws at eof
+			queue[queue.wi].cmd = Queue::SetRegisters;
 			__dmb();
 			queue.wi++;
-
-			if unlikely (!is_live)
-			{
-				is_live = true;
-				//AudioController::getRef().addAudioSource(new HF_DC_Filter<hw_num_channels>(this));
-				AudioController::getRef().addAudioSource(this);
-			}
 
 			if (++frames_played < num_frames) return 10 * 1000;
 
@@ -217,7 +159,7 @@ int YMMusicPlayer::run() noexcept
 			{
 				bitstream.infile->setFpos(bitstream_start);
 				bitstream.reset();
-				QueueData dummy;
+				uint8 dummy[16];
 				for (uint frame = 0; frame < loop_frame; frame++) { read_frame(dummy); }
 				frames_played = loop_frame;
 			}
@@ -238,15 +180,15 @@ int YMMusicPlayer::run() noexcept
 			next_file			 = nullptr; // if open() fails we don't want to come here again
 			FilePtr ymmusic_file = Devices::openFile(fname);
 
-			uint32 magic		= ymmusic_file->read<uint32>();
-			uint8  variant		= ymmusic_file->read<uint8>();
-			uint8  buffer_bits	= ymmusic_file->read<uint8>();
-			frame_rate			= ymmusic_file->read<int8>();
-			registers_per_frame = ymmusic_file->read<uint8>();
-			num_frames			= ymmusic_file->read_LE<uint32>();
-			loop_frame			= ymmusic_file->read_LE<uint32>();
-			ay_clock			= float(ymmusic_file->read_LE<uint32>());
-			stereo_mix			= AyPlayer::mono; //TODO
+			uint32 magic		   = ymmusic_file->read<uint32>();
+			uint8  variant		   = ymmusic_file->read<uint8>();
+			uint8  buffer_bits	   = ymmusic_file->read<uint8>();
+			uint8  frame_rate	   = ymmusic_file->read<uint8>();
+			registers_per_frame	   = ymmusic_file->read<uint8>();
+			num_frames			   = ymmusic_file->read_LE<uint32>();
+			loop_frame			   = ymmusic_file->read_LE<uint32>();
+			float		ay_clock   = float(ymmusic_file->read_LE<uint32>());
+			AyStereoMix stereo_mix = Mono; //TODO
 
 			if (memcmp(&magic, "ymm!", 4)) throw "not a .ymm music file";
 			if (variant != 2) throw "unknown .ymm variant";
@@ -296,16 +238,15 @@ int YMMusicPlayer::run() noexcept
 			}
 			if (p != allocated_buffer + (1 << buffer_bits)) throw "illegal buffer assignment";
 
-			// start playing by sending the reset register values:
+			// start playing by sending the setup command:
 			frames_played	 = 0;
 			bitstream.infile = ymmusic_file;
 			bitstream.reset();
 
-			QueueData& d = queue[queue.wi];
-			memcpy(d.registers, ayRegisterResetValues, 16); // reset values
-			d.what = 1;										// reset the AY chip
-			__dmb();
-			queue.wi++;
+			super::reset(ay_clock, stereo_mix, frame_rate);
+
+			if (!is_live) AudioController::addAudioSource(this);
+			is_live = true;
 		}
 		else if (ymmusic_dir)
 		{
@@ -338,25 +279,25 @@ int YMMusicPlayer::run() noexcept
 			ymmusic_dir = Devices::openDir(dpath);
 			ymmusic_dir->rewind();
 		}
+		else if (is_live)
+		{
+			if (avail() == 0)
+			{
+				is_live = false;
+				AudioController::removeAudioSource(this);
+			}
+		}
 		else return 100 * 1000;
 	}
 	catch (Error e)
 	{
 		logline("YMMusicPlayer: %s", e);
-		if (bitstream.infile)
-		{
-			bitstream.infile = nullptr; // close file
-			assert(queue.free());
-			QueueData& qd = queue[queue.wi];
-			memcpy(qd.registers, ayRegisterResetValues, sizeof(qd.registers));
-			qd.what = 0;
-			__dmb();
-			queue.wi++;
-		}
+		bitstream.infile = nullptr; // close file
 	}
 	catch (...)
 	{
 		logline("YMMusicPlayer: unknown exception");
+		bitstream.infile = nullptr; // close file
 	}
 
 	return 10 * 1000;
@@ -413,7 +354,7 @@ void YMMusicPlayer::stopAfterSong()
 void YMMusicPlayer::setVolume(float v)
 {
 	debugstr("YMMusicPlayer::setVolume %f\n", double(v));
-	ay.setVolume(v);
+	super::setVolume(v);
 }
 
 } // namespace kio::Audio
