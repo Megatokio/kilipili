@@ -63,13 +63,13 @@ public:
 		the plane will be added by core1 on the next vblank.
 		can be called before startVideo() and any time afterwards.
 	*/
-	static void addPlane(VideoPlanePtr);
+	static void addPlane(VideoPlanePtr, bool wait = false);
 
 	/*	remove a plane from the video output.
 		the plane will be removed by core1 on the next vblank.
 		note: stopVideo() also disposes off all planes.
 	*/
-	static void removePlane(VideoPlanePtr);
+	static void removePlane(VideoPlanePtr, bool wait = false);
 
 	/*	register a function to be called during every vblank.
 		the video controller calls onetime actions, the vblank action and 

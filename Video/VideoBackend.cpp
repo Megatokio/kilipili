@@ -243,14 +243,9 @@ static void initialize_state_machines() noexcept
 	pio_sm_init(video_pio, TIMING_SM, timing_program_load_offset, &config); // now paused
 }
 
-static void setup_state_machines(const VgaMode& vga_mode, uint32 system_clock) noexcept
+static void setup_state_machines(const VgaMode& vga_mode, uint32 cc_per_pixel) noexcept
 {
 	// hsync, vsync polarity and clock dividers depend on vga_mode and must be set each start:
-
-	uint32 pixel_clock	= vga_mode.pixel_clock;
-	uint   cc_per_pixel = system_clock / pixel_clock;
-	assert(cc_per_pixel >= 2);
-	assert(cc_per_pixel * pixel_clock == system_clock);
 
 	// set signal polarity:
 	gpio_set_outover(HSYNC_PIN, vga_mode.h_sync_polarity);
@@ -399,6 +394,30 @@ static void stop_sm_and_dma() noexcept
 	pio_set_sm_mask_enabled(video_pio, (1u << SCANLINE_SM) | (1u << TIMING_SM), false);
 }
 
+static constexpr uint32 full_mhz(uint32 f) noexcept { return (f + 1 MHz / 2) / (1 MHz) * (1 MHz); }
+
+sysclock_params calc_new_sysclock(uint32 min_clock, uint32 pixel_clock)
+{
+	// the resulting sysclock should be higher than min_sys_clock
+	// the resulting sysclock must be lower than VIDEO_MAX_SYSCLOCK_MHz
+	// the resulting sysclock must be a multiple of 1 MHz, preferrably with no rounding error
+	// the pixel clock multiplier must be at least 2.
+
+	uint32 max_clock = max(150 MHz, VIDEO_MAX_SYSCLOCK_MHz MHz, 2 * pixel_clock);
+	max_clock		 = (max_clock + 99) / pixel_clock * pixel_clock;
+	min_clock		 = min(min_clock, max_clock);
+	min_clock		 = max(min_clock, 90 MHz, 2 * pixel_clock);
+	min_clock		 = (min_clock + pixel_clock - 99) / pixel_clock * pixel_clock;
+
+	sysclock_params best = calc_sysclock_params(min_clock);
+	for (uint clock = min_clock + pixel_clock; best.err && clock <= max_clock; clock += pixel_clock)
+	{
+		sysclock_params params = calc_sysclock_params(clock);
+		if (params.err < best.err) best = params;
+	}
+	return best;
+}
+
 void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 {
 	assert(get_core_num() == 1);
@@ -407,16 +426,9 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 
 	// we need a multiple of pixel clock and a multiple of 1 MHz less than fMAX:
 	// `min_sys_clock` is only used as a hint.
-	if (!min_sys_clock) min_sys_clock = uint32(vga_mode.width * vga_mode.height) * 8 * 60; // best guess
-	min_sys_clock			   = max(min_sys_clock, 60 MHz);
-	const uint32 pixel_clock   = vga_mode.pixel_clock;
-	uint32		 new_sys_clock = (min_sys_clock + pixel_clock - 1 MHz) / pixel_clock * pixel_clock;
-	while (new_sys_clock % (1 MHz) && new_sys_clock < VIDEO_MAX_SYSCLOCK_MHz MHz) new_sys_clock += pixel_clock;
-	while (new_sys_clock % (1 MHz) || new_sys_clock > VIDEO_MAX_SYSCLOCK_MHz MHz) new_sys_clock -= pixel_clock;
-	const uint cc_per_pixel = new_sys_clock / pixel_clock;
-	if (cc_per_pixel < 2) throw "No system clock found for the requested vga mode"; // this means: there is none!
-
-	sysclock_params params = calc_sysclock_params(new_sys_clock);
+	if (!min_sys_clock) min_sys_clock = uint32(vga_mode.width) * vga_mode.v_total() * 8 * 60; // best guess
+	sysclock_params params = calc_new_sysclock(min_sys_clock, vga_mode.pixel_clock);
+	assert(params.sysclock % 1000000 == 0);
 
 	if (params.voltage > vreg_get_voltage())
 	{
@@ -433,19 +445,25 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 
 	// *** VIDEO GENERATION STOPPED ***
 
-	Video::vga_mode = vga_mode;
 	set_sys_clock_pll(params.vco, params.div1, params.div2);
-	setup_state_machines(vga_mode, new_sys_clock);
+	assert(get_system_clock() == params.sysclock);
+
+	uint32	   new_sys_clock = params.sysclock;
+	const uint cc_per_pixel	 = (new_sys_clock + vga_mode.pixel_clock / 2) / vga_mode.pixel_clock;
+	uint32	   pixel_clock	 = new_sys_clock / cc_per_pixel;
+
+	Video::vga_mode				= vga_mode;
+	Video::vga_mode.pixel_clock = pixel_clock;
+	setup_state_machines(vga_mode, cc_per_pixel);
 	setup_timing_programs(vga_mode);
 	setup_dma(vga_mode);
 
-	// *ATTN* real get_system_clock() and new_sys_clock used in the sm may differ!
-	cc_per_px			   = new_sys_clock / pixel_clock;			  // non fract
+	cc_per_px			   = cc_per_pixel;							  // non fract
 	uint32 px_per_scanline = vga_mode.h_total() << vga_mode.vss;	  // non fract
 	uint32 px_per_frame	   = vga_mode.h_total() * vga_mode.v_total(); // non fract
-	cc_per_scanline		   = cc_per_px * px_per_scanline;			  // non fract
-	cc_per_frame		   = cc_per_px * px_per_frame;				  // non fract
-	cc_per_us			   = get_system_clock() / 1000000;			  // non fract
+	cc_per_scanline		   = cc_per_pixel * px_per_scanline;		  // non fract
+	cc_per_frame		   = cc_per_pixel * px_per_frame;			  // non fract
+	cc_per_us			   = new_sys_clock / 1000000;				  // non fract
 	us_per_frame		   = cc_per_frame / cc_per_us;				  // fract
 	cc_per_frame_fract	   = cc_per_frame % cc_per_us;				  // remainder
 	cc_per_frame_rest	   = 0;										  // correction counter
@@ -473,10 +491,10 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 		vreg_set_voltage(params.voltage); // down
 	}
 
-	uint freq = (pixel_clock / vga_mode.h_total() * 1000 + vga_mode.v_total() / 2) / vga_mode.v_total();
-	debugstr("set resolution %i x %i @ %u.%03u Hz\n", vga_mode.width, vga_mode.height, freq / 1000, freq % 1000);
-	debugstr("system clock = %u\n", get_system_clock());
-	debugstr("pixel clock  = %u\n", vga_mode.pixel_clock);
+	uint fps = (pixel_clock / vga_mode.h_total() * 1000 + vga_mode.v_total() / 2) / vga_mode.v_total();
+	debugstr("set resolution %i x %i @ %u.%03u Hz\n", vga_mode.width, vga_mode.height, fps / 1000, fps % 1000);
+	debugstr("system clock = %u\n", new_sys_clock);
+	debugstr("pixel clock  = %u\n", pixel_clock);
 	debugstr("cc_per_us = %u\n", cc_per_us);
 	debugstr("cc_per_px = %u\n", cc_per_px);
 	debugstr("px_per_scanline = %u\n", px_per_scanline);
