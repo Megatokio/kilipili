@@ -35,21 +35,21 @@ static_assert(calc_vreg_voltage_for_sysclock(300 MHz) == VREG_VOLTAGE_1_30);
 static_assert(calc_sysclock_params(10 MHz).err == 666 MHz);
 static_assert(calc_sysclock_params(15300 kHz).err == 666 MHz);
 
-static_assert(calc_sysclock_params(15400 kHz).err > 0);
-static_assert(calc_sysclock_params(15400 kHz).err < 30 kHz);
-static_assert(calc_sysclock_params(15400 kHz).vco <= 12 MHz * 63);
-static_assert(calc_sysclock_params(15400 kHz).div1 == 7);
-static_assert(calc_sysclock_params(15400 kHz).div2 == 7);
+static_assert(calc_sysclock_params(15400 kHz, false).err > 0);
+static_assert(calc_sysclock_params(15400 kHz, false).err < 30 kHz);
+static_assert(calc_sysclock_params(15400 kHz, false).vco <= 12 MHz * 63);
+static_assert(calc_sysclock_params(15400 kHz, false).div1 == 7);
+static_assert(calc_sysclock_params(15400 kHz, false).div2 == 7);
 
-static_assert(calc_sysclock_params(16 MHz).err < 100 kHz);
-static_assert(calc_sysclock_params(16 MHz).vco == 16 MHz * 7 * 7 - 4 MHz);
-static_assert(calc_sysclock_params(16 MHz).div1 == 7);
-static_assert(calc_sysclock_params(16 MHz).div2 == 7);
+static_assert(calc_sysclock_params(16 MHz, false).err < 100 kHz);
+static_assert(calc_sysclock_params(16 MHz, false).vco == 16 MHz * 7 * 7 - 4 MHz);
+static_assert(calc_sysclock_params(16 MHz, false).div1 == 7);
+static_assert(calc_sysclock_params(16 MHz, false).div2 == 7);
 
-static_assert(calc_sysclock_params(20 MHz).err == 0);
-static_assert(calc_sysclock_params(20 MHz).vco == 20 MHz * 7 * 6);
-static_assert(calc_sysclock_params(20 MHz).div1 == 7);
-static_assert(calc_sysclock_params(20 MHz).div2 == 6);
+static_assert(calc_sysclock_params(20 MHz, false).err == 0);
+static_assert(calc_sysclock_params(20 MHz, false).vco == 20 MHz * 7 * 6);
+static_assert(calc_sysclock_params(20 MHz, false).div1 == 7);
+static_assert(calc_sysclock_params(20 MHz, false).div2 == 6);
 
 static_assert(calc_sysclock_params(125 MHz).err == 0);
 static_assert(calc_sysclock_params(125 MHz).vco == 125 MHz * 12);
@@ -111,7 +111,7 @@ Error set_system_clock(uint32 new_clock, uint32 max_error)
 
 	if (params.err)
 		debugstr(
-			"new system clock = %u kHz, error = %i kHz (0.%03i%%)\n", params.vco / params.div1 / params.div2,
+			"new system clock = %u kHz, error = %u kHz (0.%03u%%)\n", params.vco / params.div1 / params.div2,
 			(params.err + 500) / 1000, (params.err * 1000 + new_clock / 200) / (new_clock / 100));
 	if (params.err > max_error) return UNSUPPORTED_SYSTEM_CLOCK;
 	stdio_flush();
@@ -132,7 +132,7 @@ Error set_system_clock(uint32 new_clock, uint32 max_error)
 		sleep_ms(1);
 	}
 
-	sysclock_changed(new_clock);
+	sysclock_changed(get_system_clock());
 
 	return NO_ERROR;
 }

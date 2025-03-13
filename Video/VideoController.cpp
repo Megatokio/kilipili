@@ -370,7 +370,7 @@ static void RAM video_runner(int row0, uint32 cc_at_line_start)
 	}
 }
 
-void VideoController::addPlane(VideoPlanePtr plane)
+void VideoController::addPlane(VideoPlanePtr plane, bool wait)
 {
 	assert(plane != nullptr);
 	assert_lt(num_planes, max_planes);
@@ -382,9 +382,12 @@ void VideoController::addPlane(VideoPlanePtr plane)
 			assert_lt(num_planes, max_planes);
 			planes[num_planes++] = plane;
 		});
+
+	if (wait)
+		while (onetime_action) __wfe();
 }
 
-void VideoController::removePlane(VideoPlanePtr plane)
+void VideoController::removePlane(VideoPlanePtr plane, bool wait)
 {
 	// plane must be removed by core1 during vblank:
 
@@ -399,6 +402,9 @@ void VideoController::removePlane(VideoPlanePtr plane)
 				return;
 			}
 		});
+
+	if (wait)
+		while (onetime_action) __wfe();
 }
 
 void VideoController::setVBlankAction(const VBlankAction& fu) noexcept

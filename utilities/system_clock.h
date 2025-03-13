@@ -27,10 +27,10 @@ extern void	  sysclock_changed(uint32 new_clock) noexcept;
 
 struct sysclock_params
 {
-	uint		 vco, div1, div2, err;
+	uint		 sysclock, vco, div1, div2, err;
 	vreg_voltage voltage;
 };
-extern constexpr sysclock_params calc_sysclock_params(uint32 f) noexcept;
+extern constexpr sysclock_params calc_sysclock_params(uint32 f, bool full_mhz = true) noexcept;
 extern constexpr vreg_voltage	 calc_vreg_voltage_for_sysclock(uint32 f) noexcept;
 inline vreg_voltage				 vreg_get_voltage();
 
@@ -53,7 +53,7 @@ constexpr vreg_voltage calc_vreg_voltage_for_sysclock(uint32 f) noexcept
 }
 
 
-constexpr sysclock_params calc_sysclock_params(uint32 f) noexcept
+constexpr sysclock_params calc_sysclock_params(uint32 f, bool full_mhz) noexcept
 {
 	// the system clock is derived from the crystal by scaling up for the vco and two 3-bit dividers,
 	// thus system_clock = crystal * vco_cnt / div1 / div2
@@ -77,7 +77,7 @@ constexpr sysclock_params calc_sysclock_params(uint32 f) noexcept
 	// 300 MHz freezes
 
 	constexpr uint	xtal = XOSC_KHZ / PLL_COMMON_REFDIV * 1000; // 12 MHz
-	sysclock_params best {0, 0, 0, 666 MHz, calc_vreg_voltage_for_sysclock(f)};
+	sysclock_params best {666 MHz, 0, 0, 0, 666 MHz, calc_vreg_voltage_for_sysclock(f)};
 
 #ifndef PICO_PLL_VCO_MIN_FREQ_HZ // SDK 1.5.1
   #define PICO_PLL_VCO_MIN_FREQ_HZ (PICO_PLL_VCO_MIN_FREQ_KHZ * 1000)
@@ -94,16 +94,18 @@ constexpr sysclock_params calc_sysclock_params(uint32 f) noexcept
 			if (div < div_min) continue;
 			if (div > div_max) break;
 
-			uint vco = (f * div + xtal / 2) / xtal * xtal; // ~ 1 GHz
-			uint err = uint(abs(int(f) - int(vco / div)));
+			uint vco   = (f * div + xtal / 2) / xtal * xtal; // ~ 1 GHz
+			uint new_f = vco / div;
+			uint err   = uint(abs(int(f) - int(new_f)));
 
 			if (err >= best.err) continue;
-			if (f >= 40 MHz && err % 1000000) continue; // video backend needs full MHz
+			if (full_mhz && new_f % 1000000) continue;
 
-			best.div1 = div1;
-			best.div2 = div2;
-			best.vco  = vco;
-			best.err  = err;
+			best.sysclock = new_f;
+			best.div1	  = div1;
+			best.div2	  = div2;
+			best.vco	  = vco;
+			best.err	  = err;
 			if (err == 0) return best;
 		}
 	return best;
