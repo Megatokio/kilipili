@@ -31,6 +31,8 @@
   #error "i2s pins not defined"
 #elif defined PICO_AUDIO_PWM
 #elif defined PICO_AUDIO_SIGMA_DELTA
+#elif defined PICO_AUDIO_LEFT_PIN || defined PICO_AUDIO_RIGHT_PIN || defined PICO_AUDIO_MONO_PIN
+  #error "PICO_AUDIO_PWM or PICO_AUDIO_SIGMA_DELTA not defined"
 #else
   #define PICO_AUDIO_NONE
 #endif
