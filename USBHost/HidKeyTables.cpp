@@ -443,6 +443,114 @@ static constexpr uchar ger_shift[HidKeyTable::table_size] =
 	'=',  // 0x67  keypad
 };
 
+static constexpr uchar ger_alt[HidKeyTable::table_size] = 
+{
+	0,	  // 0x00
+	0,	  // 0x01
+	0,	  // 0x02
+	0,	  // 0x03
+	'a',  // 0x04
+	'b',  // 0x05
+	'c',  // 0x06
+	'd',  // 0x07
+	'e',  // 0x08
+	'f',  // 0x09
+	'g',  // 0x0a
+	'h',  // 0x0b
+	'i',  // 0x0c
+	'j',  // 0x0d
+	'k',  // 0x0e
+	'l',  // 0x0f
+	0xb5, // 0x10  "µ"  (M)  <<<<<
+	'n',  // 0x11
+	0xf8, // 0x12  "o"  <<<<<
+	'p',  // 0x13
+	'@',  // 0x14  "@"  (Q)  <<<<<
+	'r',  // 0x15
+	's',  // 0x16
+	't',  // 0x17
+	'u',  // 0x18
+	'v',  // 0x19
+	'w',  // 0x1a
+	'x',  // 0x1b
+	'z',  // 0x1c
+	'y',  // 0x1d
+	0xb9, // 0x1e  "¹"  (1)  <<<<<
+	0xb2, // 0x1f  "²"  (2)  <<<<<
+	0xb3, // 0x20  "³"  (3)  <<<<<
+	'4',  // 0x21
+	'5',  // 0x22
+	'6',  // 0x23
+	'{',  // 0x24  "7" <<<<<
+	'[',  // 0x25  "8" <<<<<
+	']',  // 0x26  "9" <<<<<
+	'}',  // 0x27  "0" <<<<<
+	13,	  // 0x28
+	27,	  // 0x29
+	127,  // 0x2a  backspace
+	9,	  // 0x2b
+	32,	  // 0x2c
+	'\\', // 0x2d  "ß"  <<<<<  
+	'\'', // 0x2e
+	252,  // 0x2f  "ü"
+	'~',  // 0x30  "+"  <<<<<
+	0,	  // 0x31	 not present on German keyboard
+	'#',  // 0x32  key left of return key
+	246,  // 0x33  "ö"
+	228,  // 0x34  "ä"
+	'^',  // 0x35
+	0xb7, // 0x36  "·"  (,)  <<<<<
+	'.',  // 0x37  
+	0xb1, // 0x38  "±"  (-)  <<<<<
+	0,	  // 0x39  caps lock
+	0,	  // 0x3a  F1
+	0,	  // 0x3b  F2
+	0,	  // 0x3c  F3
+	0,	  // 0x3d  F4
+	0,	  // 0x3e  F5
+	0,	  // 0x3f  F6
+	0,	  // 0x40  F7
+	0,	  // 0x41  F8
+	0,	  // 0x42  F9
+	0,	  // 0x43  F10
+	0,	  // 0x44  F11
+	0,	  // 0x45  F12
+	0,	  // 0x46  print screen
+	0,	  // 0x47  scroll lock
+	0,	  // 0x48  pause
+	0,	  // 0x49  insert
+	0,	  // 0x4a  home
+	0,	  // 0x4b  page up
+	0,	  // 0x4c  forward delete
+	0,	  // 0x4d  end
+	0,	  // 0x4e  page down
+	0,	  // 0x4f  right
+	0,	  // 0x50  left
+	0,	  // 0x51  down
+	0,	  // 0x52  up
+	0,	  // 0x53  num lock
+	'/',  // 0x54  keypad
+	'*',  // 0x55  keypad
+	'-',  // 0x56  keypad
+	'+',  // 0x57  keypad
+	13,	  // 0x58  keypad
+	'1',  // 0x59  keypad 1 / end
+	'2',  // 0x5a  keypad 2 / down
+	'3',  // 0x5b  keypad 3 / pg up
+	'4',  // 0x5c  keypad 4 / left
+	'5',  // 0x5d  keypad 5
+	'6',  // 0x5e  keypad 6 / right
+	'7',  // 0x5f  keypad 7 / home
+	'8',  // 0x60  keypad 8 / up
+	'9',  // 0x61  keypad 9 / pg up
+	'0',  // 0x62  keypad 0 / insert
+	'.',  // 0x63  keypad . / delete
+	'|',  // 0x64  key right of left shift"<"  <<<<<
+	0,	  // 0x65  menu
+	0,	  // 0x66  power
+	'=',  // 0x67  keypad
+};
+
 constexpr HidKeyTable key_table_us = 
 {
 	.name			= "US",
@@ -457,8 +565,8 @@ constexpr HidKeyTable key_table_ger =
 	.name			= "DE",
 	.solo           = ger_solo,
 	.with_shift     = ger_shift,
-	.with_alt       = ger_solo,
-	.with_shift_alt = ger_shift
+	.with_alt       = ger_alt,
+	.with_shift_alt = ger_alt
 };
 
 } // namespace kio::USB
