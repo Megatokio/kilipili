@@ -2166,6 +2166,7 @@ int AnsiTerm::getc()
 				display->printChar(' ');
 				display->cursorLeft();
 			}
+			display->showCursor();
 			return uchar(c); // printable char, backspace or return
 		}
 
