@@ -133,7 +133,7 @@ constexpr Color vga8_colors[256] =
 	vga::bright_cyan,
 	vga::bright_white,
 
-#define RGB(R, G, B) Color::fromRGB4(R * 6, G * 6, B * 6)
+#define RGB(R, G, B) Color::fromRGB8(R * 51, G * 51, B * 51)
 #define RGx(R, G)	 RGB(R, G, 0), RGB(R, G, 1), RGB(R, G, 2), RGB(R, G, 3), RGB(R, G, 4), RGB(R, G, 5)
 #define Rxx(R)		 RGx(R, 0), RGx(R, 1), RGx(R, 2), RGx(R, 3), RGx(R, 4), RGx(R, 5)
 
