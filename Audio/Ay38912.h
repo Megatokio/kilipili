@@ -411,7 +411,7 @@ private:
 //
 
 template<uint NCH, uint QSZ>
-Ay38912_sync<NCH, QSZ>::Ay38912_sync(float frequency, AyStereoMix mix, float volume) noexcept : //
+Ay38912_sync<NCH, QSZ>::Ay38912_sync(float frequency, AyStereoMix mix, float volume) noexcept :
 	super(frequency, mix, volume)
 {}
 

@@ -293,7 +293,7 @@ void Ay38912<nc>::setClock(float new_ay_clock) noexcept
 
 	// calculate clock which will result in a clock not slower than the requested one:
 	ay_clock	   = new_ay_clock;
-	ccx_per_sample = int(new_ay_clock * (1 << ccx_fract_bits) / hw_sample_frequency);
+	ccx_per_sample = 1 + int(new_ay_clock * (1 << ccx_fract_bits) / hw_sample_frequency);
 	debugstr("Ay: ccx_per_sample = %d\n", ccx_per_sample);
 	setVolume(volume);
 }
