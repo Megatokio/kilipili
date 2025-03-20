@@ -66,6 +66,7 @@ extern FileType getFileType(cstr path) noexcept;
 inline bool		isaDirectory(cstr path) noexcept { return getFileType(path) == FileType::DirectoryFile; }
 inline bool		isaFile(cstr path) noexcept { return getFileType(path) == FileType::RegularFile; }
 inline bool		exists(cstr path) noexcept { return getFileType(path) != FileType::NoFile; }
+extern ADDR		getFileSize(cstr path) throws;
 
 /* 	Open a file or directory.
 	FilePtr and DirectoryPtr keep their FileSystem alive.
@@ -108,6 +109,7 @@ public:
 	virtual void	 rename(cstr path, cstr name) throws				   = 0;
 	virtual void	 setFmode(cstr path, FileMode mode, uint8 mask) throws = 0;
 	virtual void	 setMtime(cstr path, uint32 mtime) throws			   = 0;
+	virtual ADDR	 getFileSize(cstr path)								   = 0;
 
 	void setWorkDir(cstr path);
 	cstr getWorkDir() const noexcept;

@@ -343,6 +343,15 @@ FilePtr openFile(cstr path, FileOpenMode flags) throws
 	return mount(path)->openFile(path, flags);
 }
 
+ADDR getFileSize(cstr path) throws
+{
+	trace("getFileSize");
+
+	TempMemSave _;
+	path = makeFullPath(path);
+	return mount(path)->getFileSize(path);
+}
+
 FileSystemPtr getWorkDevice()
 {
 	return cwd; //

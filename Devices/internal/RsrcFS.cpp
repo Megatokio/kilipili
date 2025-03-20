@@ -127,6 +127,18 @@ FilePtr RsrcFS::openFile(cstr path, FileOpenMode mode)
 	else return new RsrcFile(p + 4, usize(p));												  // uncompressed
 }
 
+ADDR RsrcFS::getFileSize(cstr path) throws
+{
+	trace(__func__);
+	assert(path);
+
+	path	  = strchr(makeFullPath(path), ':') + 2;
+	cuint8* p = next_direntry(resource_file_data, path);
+	if (!p) throw FILE_NOT_FOUND;
+	return usize(skip(p));
+}
+
+
 FileType RsrcFS::getFileType(cstr path) noexcept
 {
 	trace(__func__);

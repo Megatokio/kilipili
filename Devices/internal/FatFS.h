@@ -23,6 +23,7 @@ public:
 	virtual void	 rename(cstr path, cstr name) throws override;
 	virtual void	 setFmode(cstr path, FileMode mode, uint8 mask) throws override;
 	virtual void	 setMtime(cstr path, uint32 mtime) throws override;
+	virtual ADDR	 getFileSize(cstr path) throws override;
 
 private:
 	FATFS fatfs;

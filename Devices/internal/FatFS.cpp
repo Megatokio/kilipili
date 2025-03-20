@@ -132,6 +132,21 @@ FilePtr FatFS::openFile(cstr path, FileOpenMode flags)
 	return new FatFile(this, path, flags);
 }
 
+ADDR FatFS::getFileSize(cstr path) throws
+{
+	trace("FatFS::getFileSize");
+
+	path = makeFullPath(path);
+
+	FILINFO finfo;
+	FRESULT err = f_stat(path, &finfo);
+	if (err != FR_OK) throw tostr(err);
+
+	if (finfo.fsize == ADDR(finfo.fsize)) return ADDR(finfo.fsize);
+	debugstr("FatFile: file size exceeds 4GB\n");
+	return 0xffffffffu;
+}
+
 FileType FatFS::getFileType(cstr path) noexcept
 {
 	trace("FatFS::getFileType");

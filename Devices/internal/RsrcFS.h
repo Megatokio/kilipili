@@ -58,6 +58,7 @@ public:
 	virtual void	 rename(cstr, cstr) throws override { throw NOT_WRITABLE; }
 	virtual void	 setFmode(cstr, FileMode, uint8) throws override { throw NOT_WRITABLE; }
 	virtual void	 setMtime(cstr, uint32) throws override { throw NOT_WRITABLE; }
+	virtual ADDR	 getFileSize(cstr path) throws override;
 };
 
 
