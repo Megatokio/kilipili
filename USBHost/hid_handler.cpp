@@ -27,6 +27,7 @@
 */
 
 #include "cdefs.h"
+#include "utilities/Trace.h"
 #if USB_ENABLE_HOST
 
 /*
@@ -75,6 +76,7 @@ void initUSBHost() noexcept
 int pollUSB(void*) noexcept
 {
 	// Dispatcher Handler function
+	trace(__func__);
 	tuh_task();
 	return 250; // µsec
 }

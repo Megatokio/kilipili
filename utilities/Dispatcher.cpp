@@ -103,8 +103,6 @@ void Dispatcher::removeHandler(Handler* handler, const void* data)
 
 void Dispatcher::run(int timeout) noexcept
 {
-	trace(__func__);
-
 	if (timeout)
 	{
 		uint8 n = num_tasks;
@@ -114,6 +112,8 @@ void Dispatcher::run(int timeout) noexcept
 	uint8 n = const_cast<volatile uint8&>(num_tasks);
 	if (n == 0) return;
 	if (tasks[n - 1].when > now()) return;
+
+	trace("Dispatcher::run");
 
 	uint zz = lock();
 
