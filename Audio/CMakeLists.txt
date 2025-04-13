@@ -67,7 +67,6 @@ target_include_directories(kilipili_audio PUBLIC
 target_link_libraries(kilipili_audio PUBLIC  
 	${audio_libraries}
 	kilipili_common
-	kilipili_utilities	
 	pico_stdlib
 	hardware_dma
 	hardware_pio

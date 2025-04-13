@@ -5,12 +5,12 @@
 // a collection of frequently used header files
 
 #pragma once
-//#include "Dispatcher.h"
-//#include "Logger.h"
-//#include "Trace.h"
+#include "Dispatcher.h"
+#include "Logger.h"
+#include "Trace.h"
 #include "basic_math.h"
 #include "cdefs.h"
 #include "cstrings.h"
 #include "standard_types.h"
 #include "tempmem.h"
-//#include "utilities.h"
+#include "timing.h"

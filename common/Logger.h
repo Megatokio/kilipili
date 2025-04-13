@@ -4,6 +4,8 @@
 
 #pragma once
 #include "Mutex.h"
+#include "cdefs.h"
+#include "standard_types.h"
 #include <stdarg.h>
 
 namespace kio

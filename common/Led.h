@@ -4,7 +4,6 @@
 
 #pragma once
 #include <hardware/gpio.h>
-#include <stdio.h>
 
 
 namespace kio

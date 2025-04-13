@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Ay38912.h"
+#include "common/Trace.h"
 #include "common/cdefs.h"
-#include "utilities/Trace.h"
 #include <cmath>
 #include <cstring>
 

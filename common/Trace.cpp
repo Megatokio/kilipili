@@ -2,13 +2,11 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#undef stackinfo
-#if !defined MAKE_TOOLS
+#include "Trace.h"
+#include "basic_math.h"
+#include <stdio.h>
 
-  #include "Trace.h"
-  #include "basic_math.h"
-  #include <stdio.h>
-
+#if !defined OPTION_STACK_TRACE || OPTION_STACK_TRACE
 
 namespace kio
 {

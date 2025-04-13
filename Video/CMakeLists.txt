@@ -96,7 +96,6 @@ target_link_libraries(kilipili_video PUBLIC
 	${video_libraries}
 	kilipili_common
 	kilipili_graphics
-	kilipili_utilities
 	pico_stdlib
 	hardware_pio
 	hardware_dma

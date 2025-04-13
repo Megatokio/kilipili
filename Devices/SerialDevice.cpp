@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "SerialDevice.h"
+#include "common/timing.h"
 #include "tempmem.h"
-#include "utilities/utilities.h"
 #include <memory>
 #include <stdarg.h>
 #include <string.h>

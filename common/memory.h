@@ -20,16 +20,6 @@
 
 namespace kio
 {
-
-inline CC	now() noexcept { return CC(time_us_32()); }
-extern void sleep_us(int usec) noexcept; // power saving mode
-inline void sleep_ms(int msec) noexcept { sleep_us(msec * 1000); }
-
-inline void wfe() noexcept;
-inline void wfi() noexcept;
-extern void wfe_or_timeout(int timeout_usec) noexcept;
-
-
 extern size_t			   heap_start() noexcept;
 extern size_t			   heap_end() noexcept;
 extern __deprecated size_t heap_size() noexcept; // use heap_total_size() in malloc.h
@@ -64,26 +54,6 @@ extern void print_core0_scratch_y_usage();
 extern void print_core1_scratch_x_usage();
 extern void print_flash_usage();
 extern void print_system_info(uint = ~0u);
-
-
-//
-// **************** Implementations *************************
-//
-
-inline void wfe() noexcept
-{
-	idle_start();
-	__asm volatile("wfe");
-	idle_end();
-}
-
-inline void wfi() noexcept
-{
-	idle_start();
-	__asm volatile("wfi");
-	idle_end();
-}
-
 
 } // namespace kio
 

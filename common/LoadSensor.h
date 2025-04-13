@@ -3,9 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#ifdef MAKE_TOOLS
-  #include "glue.h"
-#else
+#ifdef LIB_PICO_STDLIB
 
   #include <hardware/pwm.h>
   #include <pico/stdlib.h>
@@ -66,6 +64,16 @@ namespace kio
 
 inline void idle_start() noexcept { LoadSensor::idle_start(); }
 inline void idle_end() noexcept { LoadSensor::idle_end(); }
+
+} // namespace kio
+
+#else
+
+namespace kio
+{
+
+inline void idle_start() noexcept {}
+inline void idle_end() noexcept {}
 
 } // namespace kio
 

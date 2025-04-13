@@ -5,11 +5,11 @@
 #include "AudioController.h"
 #include "AudioSource.h"
 #include "audio_options.h"
+#include "common/system_clock.h"
+#include "common/timing.h"
 #include "i2s_audio.pio.h"
 #include "pwm_audio.pio.h"
 #include "sid_audio.pio.h"
-#include "utilities.h"
-#include "utilities/system_clock.h"
 #include <cstdio>
 #include <cstring>
 #include <hardware/dma.h>

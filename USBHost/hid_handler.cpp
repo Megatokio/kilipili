@@ -26,8 +26,8 @@
 * THE SOFTWARE.
 */
 
-#include "cdefs.h"
-#include "utilities/Trace.h"
+#include "common/Trace.h"
+#include "common/cdefs.h"
 #if USB_ENABLE_HOST
 
 /*

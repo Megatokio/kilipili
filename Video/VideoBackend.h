@@ -5,7 +5,7 @@
 #pragma once
 #include "VgaMode.h"
 #include "cdefs.h"
-#include "utilities.h"
+#include "timing.h"
 
 namespace kio::Video
 {

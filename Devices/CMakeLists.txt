@@ -61,7 +61,6 @@ else()
 		pico_stdio
 		hardware_spi
 		hardware_flash
-		kilipili_utilities
 	)
 endif()
 

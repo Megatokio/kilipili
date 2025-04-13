@@ -13,7 +13,6 @@ set(PICO_BOARD_HEADER_DIRS ${PICO_BOARD_HEADER_DIRS} CACHE STRING "PICO board he
 
 # dependencies:
 add_subdirectory(common)
-add_subdirectory(utilities)
 add_subdirectory(Graphics)
 add_subdirectory(Video)
 add_subdirectory(Audio)
@@ -31,7 +30,6 @@ target_include_directories(kilipili PUBLIC
 # dependencies. this also adds the include paths:
 target_link_libraries(kilipili PUBLIC
 	kilipili_common
-	kilipili_utilities
 	kilipili_graphics
 	kilipili_video
 	kilipili_audio

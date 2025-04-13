@@ -3,9 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Dispatcher.h"
+#include "LoadSensor.h"
 #include "Trace.h"
 #include "cdefs.h"
-#include "utilities.h"
 #include <cstdio>
 #include <pico/sync.h>
 
@@ -19,6 +19,8 @@
 
 
 namespace kio
+{
+namespace Dispatcher
 {
 
 static spin_lock_t* spinlock = spin_lock_instance(next_striped_spin_lock_num());
@@ -42,6 +44,23 @@ struct Task
 static Task	 tasks[DISPATCHER_MAX_TASKS];
 static uint8 num_tasks = 0;
 
+
+static inline CC now() noexcept
+{
+	//instead of #include "utilities.h":
+	return CC(time_us_32());
+}
+
+static void wfe_or_timeout(int timeout_usec) noexcept
+{
+	//instead of #include "utilities.h":
+	if (timeout_usec > 0)
+	{
+		idle_start();
+		::best_effort_wfe_or_timeout(from_us_since_boot(time_us_64() + uint(timeout_usec)));
+		idle_end();
+	}
+}
 
 static inline void remove(int i)
 {
@@ -70,38 +89,38 @@ static int index_of(Handler* handler, const void* data)
 	return i;
 }
 
-void Dispatcher::addWithDelay(Handler* handler, const void* data, int32 delay)
+void addWithDelay(Handler* handler, const void* data, int32 delay)
 {
 	Lock _;
 	add(handler, data, now() + delay);
 }
 
-void Dispatcher::addAtTime(Handler* handler, const void* data, CC when)
+void addAtTime(Handler* handler, const void* data, CC when)
 {
 	Lock _;
 	add(handler, data, when);
 }
 
-void Dispatcher::addHandler(Handler* handler, const void* data)
+void addHandler(Handler* handler, const void* data)
 {
 	Lock _;
 	add(handler, data, now());
 }
 
-void Dispatcher::addIfNew(Handler* handler, const void* data)
+void addIfNew(Handler* handler, const void* data)
 {
 	Lock _;
 	if (index_of(handler, data) < 0) add(handler, data, now());
 }
 
-void Dispatcher::removeHandler(Handler* handler, const void* data)
+void removeHandler(Handler* handler, const void* data)
 {
 	Lock _;
 	int	 i = index_of(handler, data);
 	if (i >= 0) remove(i);
 }
 
-void Dispatcher::run(int timeout) noexcept
+void run(int timeout) noexcept
 {
 	if (timeout)
 	{
@@ -143,6 +162,9 @@ void Dispatcher::run(int timeout) noexcept
 	unlock(zz);
 }
 
+} // namespace Dispatcher
+
+
 int blinkOnboardLed(void*) noexcept
 {
 	trace(__func__);
@@ -175,7 +197,6 @@ int blinkOnboardLed(void*) noexcept
 	return -500 * 1000; // 1 Hz drift-free
 #endif
 }
-
 
 } // namespace kio
 

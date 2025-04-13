@@ -15,6 +15,7 @@
 */
 
 #include "LzhDecoder.h"
+#include <cstring>
 #include <memory.h>
 
 namespace kio::Devices

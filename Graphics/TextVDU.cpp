@@ -4,8 +4,8 @@
 
 #include "TextVDU.h"
 #include "USBHost/USBKeyboard.h"
-#include "cstrings.h"
-#include "utilities/Trace.h"
+#include "common/Trace.h"
+#include "common/cstrings.h"
 #include <memory>
 #include <stdarg.h>
 #include <string.h>

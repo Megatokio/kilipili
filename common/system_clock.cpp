@@ -4,8 +4,9 @@
 
 #include "system_clock.h"
 #include "cdefs.h"
-#include "utilities.h"
+#include "timing.h"
 #include <cstdio>
+#include <pico/stdio.h>
 
 // possible callback for the application:
 __weak_symbol void sysclockChanged(uint32 new_clock) noexcept;
@@ -103,7 +104,7 @@ Error set_system_clock(uint32 new_clock, uint32 max_error)
 {
 	uint32 old_clock = get_system_clock();
 	if (new_clock == old_clock) return NO_ERROR;
-	if (new_clock > SYSCLOCK_fMAX) return UNSUPPORTED_SYSTEM_CLOCK;
+	if (new_clock > VIDEO_MAX_SYSCLOCK_MHz MHz) return UNSUPPORTED_SYSTEM_CLOCK;
 
 	auto params = calc_sysclock_params(new_clock);
 	uint cv		= 85 + (params.voltage - VREG_VOLTAGE_0_85) * 5; // centivolt

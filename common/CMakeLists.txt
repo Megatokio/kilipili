@@ -22,6 +22,12 @@ if(${MAKE_TOOLS})
 		${CMAKE_CURRENT_LIST_DIR}/linux)
 else()
 	set(common_sources 
+		timing.cpp
+		memory.cpp
+		system_clock.cpp
+		stack_guard.cpp
+		Dispatcher.cpp
+		LoadSensor.cpp
 		pico/little_big_endian.h
 		pico/glue.cpp
 		pico/glue.h
@@ -29,6 +35,7 @@ else()
 	set(common_includes 
 		${CMAKE_CURRENT_LIST_DIR}/pico)
 	set(common_libraries 
+		hardware_pwm
 		pico_stdlib)
 endif()
 
@@ -36,6 +43,20 @@ endif()
 add_library(kilipili_common STATIC  
 	${common_sources}  
 	dummy.cpp
+	timing.h
+	memory.h
+	system_clock.h 
+	malloc.h
+	#malloc.cpp  <-- must be included in add_executable directly
+	Led.h
+	stack_guard.h 
+	Dispatcher.h 
+	LoadSensor.h
+	Mutex.h
+	Logger.h 
+	Logger.cpp
+	Trace.cpp
+	Trace.h
 	cdefs.h
 	standard_types.h
 	no_copy_move.h

@@ -6,10 +6,10 @@
 #include "Devices/Directory.h"
 #include "Devices/File.h"
 #include "Devices/FileSystem.h"
-#include "Trace.h"
+#include "common/Logger.h"
+#include "common/Trace.h"
 #include "common/cdefs.h"
-#include "cstrings.h"
-#include "utilities/Logger.h"
+#include "common/cstrings.h"
 #include <hardware/sync.h>
 
 namespace kio::Audio

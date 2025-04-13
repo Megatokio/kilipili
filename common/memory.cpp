@@ -4,7 +4,7 @@
 
 extern "C" __attribute__((__weak__)) const char* check_heap(); // returns nullptr or error text
 
-#include "utilities.h"
+#include "memory.h"
 #include "Trace.h"
 #include "cdefs.h"
 #include "malloc.h"
@@ -172,26 +172,6 @@ void print_system_info(uint)
 
 // ===============================================================
 
-
-void sleep_us(int delay_usec) noexcept
-{
-	if (delay_usec > 0)
-	{
-		idle_start();
-		::sleep_us(uint(delay_usec));
-		idle_end();
-	}
-}
-
-void wfe_or_timeout(int timeout_usec) noexcept
-{
-	if (timeout_usec > 0)
-	{
-		idle_start();
-		::best_effort_wfe_or_timeout(from_us_since_boot(time_us_64() + uint(timeout_usec)));
-		idle_end();
-	}
-}
 
 void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 {

@@ -5,10 +5,10 @@
 #include "VideoBackend.h"
 #include "ScanlineBuffer.h"
 #include "VgaMode.h"
-#include "basic_math.h"
+#include "common/basic_math.h"
+#include "common/system_clock.h"
 #include "scanline.pio.h"
 #include "timing.pio.h"
-#include "utilities/system_clock.h"
 #include "video_options.h"
 #include <hardware/clocks.h>
 #include <hardware/dma.h>
@@ -16,7 +16,6 @@
 #include <hardware/pio.h>
 #include <pico/sync.h>
 #include <stdio.h>
-#include <string.h>
 
 namespace kio::Video
 {
@@ -393,8 +392,6 @@ static void stop_sm_and_dma() noexcept
 	// stop sm:
 	pio_set_sm_mask_enabled(video_pio, (1u << SCANLINE_SM) | (1u << TIMING_SM), false);
 }
-
-static constexpr uint32 full_mhz(uint32 f) noexcept { return (f + 1 MHz / 2) / (1 MHz) * (1 MHz); }
 
 sysclock_params calc_new_sysclock(uint32 min_clock, uint32 pixel_clock)
 {

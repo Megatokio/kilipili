@@ -4,15 +4,15 @@
 
 #pragma once
 #include "basic_math.h"
-#include <hardware/timer.h>
 
 /*
 	The Dispatcher allows you to run state machines in parallel to the main program
 	and to convert interrupts into synchronous events.
-	The Dispatcher has only static functions and requires no real instance.
 */
 
 namespace kio
+{
+namespace Dispatcher
 {
 
 /*	Type of function which can be registered with the Dispatcher.
@@ -26,27 +26,24 @@ namespace kio
 */
 using Handler = int(void* data) noexcept;
 
-class Dispatcher
-{
-public:
-	/*	Add a handler optionally with void data pointer.
+/*	Add a handler optionally with void data pointer.
 		Handler will be called on next run() or after delay or at set time cc.
 		addHandler() is ideal for converting interrupts into synchronous events.
 		addWithDelay() and addAtTime() are ideal for one-shot or repeating timers.
 	*/
-	static void addHandler(Handler*, const void* data = nullptr);
-	static void addIfNew(Handler*, const void* data = nullptr);
-	static void addWithDelay(Handler*, const void* data, int32 delay);
-	static void addAtTime(Handler*, const void* data, CC when);
+extern void addHandler(Handler*, const void* data = nullptr);
+extern void addIfNew(Handler*, const void* data = nullptr);
+extern void addWithDelay(Handler*, const void* data, int32 delay);
+extern void addAtTime(Handler*, const void* data, CC when);
 
-	/*	Remove a handler, either identified by the function or if needed by function and data.
+/*	Remove a handler, either identified by the function or if needed by function and data.
 		Be cautious if you remove a handler from an interrupt or from core 1:
 		In a race condition the handler may be still executed while or after you removed it.
 		(Removing the handler from a synchronous event or telling it to return 0 may help.)
 	*/
-	static void removeHandler(Handler*, const void* data = nullptr);
+extern void removeHandler(Handler*, const void* data = nullptr);
 
-	/*	Run the next handler if scheduled time is reached.
+/*	Run the next handler if scheduled time is reached.
 		Always calls only one handler at a time.
 		If timeout>0 then wait for timeout or the next scheduled time. ("idle")
 	***	Returns quickly if timeout==0 and no handler needs to run  
@@ -57,19 +54,16 @@ public:
 		=> a handler cannot be removed from within and not safely from the other core.
 		   to remove a handler from within the handler can simply return 0.
 	*/
-	static void run(int timeout = 0) noexcept;
+extern void run(int timeout = 0) noexcept;
 
-private:
-	Dispatcher() noexcept = default;
-};
+} // namespace Dispatcher
 
 
 // short name:
 inline void disp(int timeout = 0) noexcept { Dispatcher::run(timeout); }
 
-
 // A Handler which blinks the on-board LED of the Pico board
-extern Handler blinkOnboardLed;
+extern Dispatcher::Handler blinkOnboardLed;
 
 
 } // namespace kio

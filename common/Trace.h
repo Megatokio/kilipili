@@ -3,12 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "glue.h"
+#include "standard_types.h"
 
-#if !defined MAKE_TOOLS
-//#if defined DEBUG && !defined MAKE_TOOLS
-
-  #include "standard_types.h"
-  #include <pico/sync.h>
+#if !defined OPTION_STACK_TRACE || OPTION_STACK_TRACE
 
 namespace kio
 {
@@ -34,21 +32,18 @@ public:
 
 	static Path path[2];
 
-	Trace(cstr func) noexcept { path[get_core_num()].push(func); }
+	Trace(cstr name) noexcept { path[get_core_num()].push(name); }
 	~Trace() noexcept { path[get_core_num()].pop(); }
 
 	static void print(uint core);
 };
 
-  #define trace(func) Trace _trace(func)
+  #define trace(name) Trace _trace(name)
 
 } // namespace kio
 
 #else
 
-namespace kio
-{
-inline void trace(cstr) {}
-} // namespace kio
+  #define trace(name) void(0)
 
 #endif

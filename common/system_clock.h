@@ -10,8 +10,8 @@
 #include <hardware/vreg.h>
 
 
-#ifndef SYSCLOCK_fMAX
-  #define SYSCLOCK_fMAX (290 MHz)
+#ifndef VIDEO_MAX_SYSCLOCK_MHz
+  #define VIDEO_MAX_SYSCLOCK_MHz 290
 #endif
 
 

@@ -3,11 +3,22 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "stack_guard.h"
-#include "utilities.h"
+#include "cdefs.h"
+#include "standard_types.h"
+#include <pico.h>
 #include <string.h>
+
+extern char __scratch_x_end__;
+extern char __scratch_y_end__;
 
 namespace kio
 {
+
+static size_t stack_bottom(uint core) noexcept
+{
+	//instead of #include "utilities.h":
+	return size_t(core == 0 ? &__scratch_y_end__ : &__scratch_x_end__);
+}
 
 void init_stack_guard()
 {
