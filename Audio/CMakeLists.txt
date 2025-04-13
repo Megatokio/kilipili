@@ -14,7 +14,28 @@ set(AUDIO_INPUT_BUFFER_SIZE 64 CACHE STRING "size of input_buffer[] in fill_buff
 set_property(CACHE AUDIO_DMA_BUFFER_SIZE PROPERTY STRINGS 64 128 256 512 1024)
 set_property(CACHE AUDIO_INPUT_BUFFER_SIZE PROPERTY STRINGS 32 48 64)
 
-set(audio_sources
+
+set(audio_sources)
+set(audio_includes)
+set(audio_defines)
+set(audio_libraries)
+
+
+if(${MAKE_TOOLS})
+	#set(audio_sources)
+	#set(audio_includes)
+	#set(audio_defines)
+	#set(audio_libraries)
+else()
+	#set(audio_sources)
+	#set(audio_includes)
+	#set(audio_defines)
+	#set(audio_libraries)
+endif()
+
+
+add_library(kilipili_audio STATIC  
+	${audio_sources}
 	audio_options.h
 	AudioSample.h
 	AudioSource.h 
@@ -26,50 +47,37 @@ set(audio_sources
 	Ay38912.cpp 
 	Ay38912.h
 	YMMusicPlayer.h 
-	YMMusicPlayer.cpp 
+	YMMusicPlayer.cpp
+	audio.h 
 )
 
-set(audio_defines
+target_compile_definitions(kilipili_audio PUBLIC  
+	${audio_defines}  
 	AUDIO_DMA_BUFFER_SIZE=${AUDIO_DMA_BUFFER_SIZE}
 	AUDIO_DEFAULT_SAMPLE_FREQUENCY=${AUDIO_DEFAULT_SAMPLE_FREQUENCY}
 	AUDIO_INPUT_BUFFER_ON_STACK=${AUDIO_INPUT_BUFFER_ON_STACK}
 	AUDIO_INPUT_BUFFER_SIZE=${AUDIO_INPUT_BUFFER_SIZE}
 )
 
-set(audio_includes
+target_include_directories(kilipili_audio PUBLIC  
+	${audio_includes} 
 	${CMAKE_CURRENT_LIST_DIR}
 )
 
-set(audio_libraries
+target_link_libraries(kilipili_audio PUBLIC  
+	${audio_libraries}
 	kilipili_common
-	kilipili_utilities
+	kilipili_utilities	
 	pico_stdlib
 	hardware_dma
 	hardware_pio
 )
-
-
-if(${MAKE_TOOLS})
-	#set(audio_sources)
-	#set(audio_headers)
-	#set(audio_defines)
-	#set(audio_libraries)
-else()
-	#set(audio_sources)
-	#set(audio_headers)
-	#set(audio_defines)
-	#set(audio_libraries)
-endif()
-
-
-add_library               (kilipili_audio STATIC  ${audio_sources}  )
-target_compile_definitions(kilipili_audio PUBLIC  ${audio_defines}  )
-target_include_directories(kilipili_audio PUBLIC  ${audio_includes} )
-target_link_libraries     (kilipili_audio PUBLIC  ${audio_libraries})
-
 
 if(NOT ${MAKE_TOOLS})
 	pico_generate_pio_header(kilipili_audio ${CMAKE_CURRENT_LIST_DIR}/i2s_audio.pio)
 	pico_generate_pio_header(kilipili_audio ${CMAKE_CURRENT_LIST_DIR}/pwm_audio.pio)
 	pico_generate_pio_header(kilipili_audio ${CMAKE_CURRENT_LIST_DIR}/sid_audio.pio)
 endif()
+
+
+

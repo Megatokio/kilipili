@@ -17,13 +17,9 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DRELEASE -DNDEBUG")
 set(CMAKE_CXX_FLAGS          "${CMAKE_CXX_FLAGS}         -DMAKE_TOOLS")
 set(CMAKE_CXX_FLAGS          "${CMAKE_CXX_FLAGS}         -DDEBUG -DUNIT_TEST")
 
-	 
-set(PICO_BOARD_HEADER_DIRS  "${CMAKE_CURRENT_LIST_DIR}/kilipili/boards")
-set(PICO_BOARD_HEADER_DIRS ${PICO_BOARD_HEADER_DIRS} CACHE STRING "PICO board header directories" FORCE)
-set(PICO_BOARD "vgaboard" CACHE STRING "the target board")	
-
 
 set(MAKE_TOOLS ON)
+set(PICO_BOARD "vgaboard" CACHE STRING "the target board, e.g. \"vgaboard\"")
 
 add_subdirectory(kilipili/common)
 add_subdirectory(kilipili/Graphics)
@@ -72,7 +68,7 @@ add_executable(RsrcFileWriter
 
 target_compile_definitions(RsrcFileWriter PUBLIC
 	MAKE_TOOLS=1
-	PICO_BOARD="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
+	PICO_BOARD_H="boards/${PICO_BOARD}.h"
 	)
 
 # add current dir to 'include search path':

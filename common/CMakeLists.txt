@@ -6,7 +6,35 @@ cmake_minimum_required(VERSION 3.13)
 # common/CMakeLists.txt 
 
 
-set(common_sources
+set(common_sources)
+set(common_defines)
+set(common_includes)
+set(common_libraries)
+
+
+if(${MAKE_TOOLS})
+	set(common_sources
+		linux/little_big_endian.h
+		linux/glue.cpp
+		linux/glue.h
+		linux/tempmem.cpp)
+	set(common_includes
+		${CMAKE_CURRENT_LIST_DIR}/linux)
+else()
+	set(common_sources 
+		pico/little_big_endian.h
+		pico/glue.cpp
+		pico/glue.h
+		pico/tempmem.cpp)
+	set(common_includes 
+		${CMAKE_CURRENT_LIST_DIR}/pico)
+	set(common_libraries 
+		pico_stdlib)
+endif()
+
+
+add_library(kilipili_common STATIC  
+	${common_sources}  
 	dummy.cpp
 	cdefs.h
 	standard_types.h
@@ -30,51 +58,22 @@ set(common_sources
 	DiskLight.h
 )
 
-set(common_defines
+target_compile_definitions(kilipili_common PUBLIC  
+	${common_defines}  
 	ON=1 OFF=0
 	PICO_MALLOC_PANIC=0
 	PICO_STDIO_ENABLE_CRLF_SUPPORT=1
 )
 
-set(common_includes
+target_include_directories(kilipili_common PUBLIC  
+	${common_includes} 
 	${CMAKE_CURRENT_LIST_DIR}
 	${CMAKE_CURRENT_LIST_DIR}/..
 )
 
-set(common_libraries
+target_link_libraries(kilipili_common PUBLIC
+	${common_libraries}
 )
-
-
-if(${MAKE_TOOLS})
-	set(common_sources
-		${common_sources}
-		linux/little_big_endian.h
-		linux/glue.cpp
-		linux/glue.h
-		linux/tempmem.cpp)
-	set(common_includes
-		${common_includes}
-		${CMAKE_CURRENT_LIST_DIR}/linux)
-else()
-	set(common_sources 
-		${common_sources}
-		pico/little_big_endian.h
-		pico/glue.cpp
-		pico/glue.h
-		pico/tempmem.cpp)
-	set(common_includes 
-		${common_includes}
-		${CMAKE_CURRENT_LIST_DIR}/pico)
-	set(common_libraries 
-		${common_libraries}
-		pico_stdlib)
-endif()
-
-
-add_library               (kilipili_common STATIC  ${common_sources}  )
-target_compile_definitions(kilipili_common PUBLIC  ${common_defines}  )
-target_include_directories(kilipili_common PUBLIC  ${common_includes} )
-target_link_libraries     (kilipili_common PUBLIC  ${common_libraries})
 
 
 

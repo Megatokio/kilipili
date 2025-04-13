@@ -6,8 +6,8 @@
 // pull in board description file for targeted board:
 #ifndef MAKE_TOOLS
   #include <pico/config.h>
-#elif defined PICO_BOARD
-  #include PICO_BOARD
+#elif defined PICO_BOARD_H
+  #include PICO_BOARD_H
 #endif
 
 

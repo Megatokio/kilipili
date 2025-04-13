@@ -14,7 +14,31 @@ set(USB_DEFAULT_KEYTABLE "key_table_ger" CACHE STRING "USB keyboard: default key
 set_property(CACHE USB_DEFAULT_KEYTABLE PROPERTY STRINGS key_table_us key_table_ger)
 
 
-set(usb_sources
+set(usb_sources)
+set(usb_defines)
+set(usb_includes)
+set(usb_libraries)
+
+
+if(${MAKE_TOOLS})
+	set(USB_ENABLE_HOST ON)
+elseif(${PICO_STDIO_USB})    
+	# if USB is used for STDIO then we are obviously in Device Mode:
+	set(USB_ENABLE_HOST OFF)
+else()
+	set(usb_sources
+		hid_handler.cpp 		
+		msc_handler.cpp
+		cdc_handler.cpp 
+	)
+	set(usb_libraries
+		tinyusb_host 
+	)
+endif()
+
+
+add_library(kilipili_usb_host STATIC  
+	${usb_sources}  
 	hid_handler.h
 	USBKeyboard.h
 	USBKeyboard.cpp
@@ -26,9 +50,11 @@ set(usb_sources
 	HidKeys.cpp
 	HidKeyTables.cpp
 	HidKeyTables.h
+	usb.h
 )
 
-set(usb_defines
+target_compile_definitions(kilipili_usb_host PUBLIC  
+	${usb_defines}  
 	ON=1 OFF=0
 	USB_ENABLE_HOST=${USB_ENABLE_HOST}
 	USB_KEY_DELAY1=${USB_KEY_DELAY1}
@@ -36,40 +62,15 @@ set(usb_defines
 	USB_DEFAULT_KEYTABLE=${USB_DEFAULT_KEYTABLE}
 )
 
-set(usb_includes
+target_include_directories(kilipili_usb_host PUBLIC  
+	${usb_includes} 
 	${CMAKE_CURRENT_LIST_DIR}
 )
 
-set(usb_libraries
+target_link_libraries(kilipili_usb_host PUBLIC  
+	${usb_libraries}
 	kilipili_common
 )
-
-
-if(${MAKE_TOOLS})
-	set(USB_ENABLE_HOST OFF)
-elseif(${PICO_STDIO_USB})    
-	# if USB is used for STDIO then we are obviously in Device Mode:
-	set(USB_ENABLE_HOST OFF)
-else()
-	set(usb_sources
-		${usb_sources}
-		hid_handler.cpp 		
-		msc_handler.cpp
-		cdc_handler.cpp 
-	)
-	set(usb_libraries
-		${usb_libraries}
-		tinyusb_host 
-	)
-endif()
-
-
-add_library               (kilipili_usb_host STATIC  ${usb_sources}  )
-target_compile_definitions(kilipili_usb_host PUBLIC  ${usb_defines}  )
-target_include_directories(kilipili_usb_host PUBLIC  ${usb_includes} )
-target_link_libraries     (kilipili_usb_host PUBLIC  ${usb_libraries})
-
-
 
 
 

@@ -20,47 +20,64 @@ set_property(CACHE VIDEO_INTERP1_MODE PROPERTY STRINGS "-1" 0 1 2 3 5)
 set_property(CACHE VIDEO_INTERP1_MODE PROPERTY STRINGS "-1" 0 1 2 3 5)
 
 
-set(video_sources
-	FrameBuffer.h
-	FrameBuffer.cpp
-	MousePointer.cpp
-	MousePointer.h
-	ScanlineRenderer.cpp
-	ScanlineRenderer.h
-	VideoPlane.h
-	VideoPlane.cpp
-	VideoController.cpp
-	VideoController.h
+set(video_sources)
+set(video_headers)
+set(video_defines)
+set(video_libraries)
+
+
+if(${MAKE_TOOLS})
+else()
+endif()
+
+
+add_library(kilipili_video STATIC  
+	${video_sources}  
 	VgaMode.h
-	scanline.pio
 	video_options.h
-	timing.pio
-	ScanlineBuffer.h 
-	ScanlineBuffer.cpp
-	VideoBackend.cpp
-	VideoBackend.h
 	Shape.h
-	Sprite.h
-	Sprite.cpp
-	AnimatedSprite.h
-	SingleSpritePlane.h
-	SingleSpritePlane.cpp
-	MultiSpritesPlane.cpp
-	MultiSpritesPlane.h
-	UniColorBackdrop.h
-	UniColorBackdrop.cpp  
 	Frames.h
+	Interp.h  
+	scanline.pio
+	timing.pio
+	AnimatedSprite.h
+	Sprite.cpp      	
+	Sprite.h
+	FrameBuffer.h   	
+	FrameBuffer.cpp
+	MousePointer.h  	
+	MousePointer.cpp
+	VideoPlane.h    	
+	VideoPlane.cpp
+	VideoController.h	
+	VideoController.cpp
+	ScanlineBuffer.h 	
+	ScanlineBuffer.cpp
+	VideoBackend.h  	
+	VideoBackend.cpp
+	HamImageInfo.h  	
+	HamImageInfo.cpp
+	Passepartout.h  	
+	Passepartout.cpp
+	VerticalLayout.h	
+	VerticalLayout.cpp
+	HorizontalLayout.h	
+	HorizontalLayout.cpp
+	ScanlineRenderer.h	
+	ScanlineRenderer.cpp
+	MultiSpritesPlane.h	
+	MultiSpritesPlane.cpp
+	SingleSpritePlane.h	
+	SingleSpritePlane.cpp
+	UniColorBackdrop.h 	
+	UniColorBackdrop.cpp  
 	HamImageVideoPlane.h 
 	HamImageVideoPlane.cpp
-	HamImageInfo.h 
-	HamImageInfo.cpp
-	Passepartout.h Passepartout.cpp
-	Interp.h  
-	VerticalLayout.h VerticalLayout.cpp
-	HorizontalLayout.h HorizontalLayout.cpp
+	video.h
 )
 
-set(video_defines PUBLIC
+target_compile_definitions(kilipili_video PUBLIC  
+	${video_defines}  
 	VIDEO_OPTIMISTIC_A1W8=${VIDEO_OPTIMISTIC_A1W8}
 	VIDEO_SUPPORT_200x150_A1W8=${VIDEO_SUPPORT_200x150_A1W8}
 	VIDEO_SUPPORT_400x300_A1W8=${VIDEO_SUPPORT_400x300_A1W8}
@@ -70,14 +87,16 @@ set(video_defines PUBLIC
 	VIDEO_INTERP1_MODE=${VIDEO_INTERP1_MODE}
 )
 
-set(video_includes PUBLIC
+target_include_directories(kilipili_video PUBLIC  
+	${video_includes} 
 	${CMAKE_CURRENT_LIST_DIR}
 )
 
-set(video_libraries
+target_link_libraries(kilipili_video PUBLIC  
+	${video_libraries}
 	kilipili_common
-	kilipili_utilities
 	kilipili_graphics
+	kilipili_utilities
 	pico_stdlib
 	hardware_pio
 	hardware_dma
@@ -86,27 +105,9 @@ set(video_libraries
 	hardware_exception
 )
 
-
-if(${MAKE_TOOLS})
-	#set(video_sources)
-	#set(video_headers)
-	#set(video_defines)
-	#set(video_libraries)
-else()
-	#set(video_sources)
-	#set(video_headers)
-	#set(video_defines)
-	#set(video_libraries)	
-endif()
-
-
-add_library               (kilipili_video STATIC  ${video_sources}  )
-target_compile_definitions(kilipili_video PUBLIC  ${video_defines}  )
-target_include_directories(kilipili_video PUBLIC  ${video_includes} )
-target_link_libraries     (kilipili_video PUBLIC  ${video_libraries})
-
 pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/timing.pio)
 pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/scanline.pio)
+
 
 
 

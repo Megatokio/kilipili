@@ -5,7 +5,7 @@
 #include "ImageFileWriter.h"
 #include "Devices/StdFile.h"
 #include "cstrings.h"
-#include PICO_BOARD
+#include PICO_BOARD_H
 #include "Devices/HeatShrinkEncoder.h"
 #include "Graphics/Color.h"
 #include "RsrcFileEncoder.h"
