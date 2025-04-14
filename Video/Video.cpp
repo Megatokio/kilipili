@@ -2,7 +2,7 @@
 // BSD 2-clause license
 // https://spdx.org/licenses/BSD-2-Clause.html
 
-#include "VideoController.h"
+#include "Video.h"
 #include "ScanlineBuffer.h"
 #include "ScanlineRenderer.h"
 #include "VideoBackend.h"
@@ -126,7 +126,7 @@ static void initialize() noexcept
 	assert(get_core_num() == 0);
 
 	is_initialized = true;
-	VideoBackend::initialize();
+	initialize_video_backend();
 	spinlock		= spin_lock_init(uint(spin_lock_claim_unused(true)));
 	requested_state = STOPPED;
 	multicore_launch_core1([] {
@@ -139,7 +139,7 @@ static void initialize() noexcept
 	});
 }
 
-void VideoController::startVideo(const VgaMode& mode, uint32 system_clock, uint scanline_buffer_count)
+void startVideo(const VgaMode& mode, uint32 system_clock, uint scanline_buffer_count)
 {
 	if unlikely (!is_initialized) initialize();
 	assert(get_core_num() == 0);
@@ -157,7 +157,7 @@ void VideoController::startVideo(const VgaMode& mode, uint32 system_clock, uint 
 	while (state != RUNNING) { wfe(); }
 }
 
-void VideoController::stopVideo() noexcept
+void stopVideo() noexcept
 {
 	if unlikely (!is_initialized) initialize();
 	assert(get_core_num() == 0);
@@ -201,7 +201,7 @@ static void __noreturn core1_runner() noexcept
 
 			if (requested_state == RUNNING)
 			{
-				VideoBackend::start(vga_mode, requested_system_clock);
+				start_video_backend(vga_mode, requested_system_clock);
 				state = RUNNING;
 				__sev();
 
@@ -218,7 +218,7 @@ static void __noreturn core1_runner() noexcept
 					assert(requested_state == STOPPED);
 				}
 
-				VideoBackend::stop();
+				stop_video_backend();
 				while (num_planes) { planes[--num_planes] = nullptr; }
 				scanline_buffer.teardown();
 				vblank_action  = nullptr;
@@ -371,7 +371,7 @@ static void RAM video_runner(int row0, uint32 cc_at_line_start)
 	}
 }
 
-void VideoController::addPlane(VideoPlanePtr plane, bool wait)
+void addVideoPlane(VideoPlanePtr plane, bool wait)
 {
 	assert(plane != nullptr);
 	assert_lt(num_planes, max_planes);
@@ -388,7 +388,7 @@ void VideoController::addPlane(VideoPlanePtr plane, bool wait)
 		while (onetime_action) __wfe();
 }
 
-void VideoController::removePlane(VideoPlanePtr plane, bool wait)
+void removeVideoPlane(VideoPlanePtr plane, bool wait)
 {
 	// plane must be removed by core1 during vblank:
 
@@ -408,7 +408,7 @@ void VideoController::removePlane(VideoPlanePtr plane, bool wait)
 		while (onetime_action) __wfe();
 }
 
-void VideoController::setVBlankAction(const VBlankAction& fu) noexcept
+void setVBlankAction(const VBlankAction& fu) noexcept
 {
 	// use addOneTimeAction() to set VBlankAction:
 	// => video_runner() doesn't need to lock spinlock before calling vblank_action().
@@ -416,7 +416,7 @@ void VideoController::setVBlankAction(const VBlankAction& fu) noexcept
 	addOneTimeAction([fu]() { vblank_action = fu; });
 }
 
-void VideoController::addOneTimeAction(const std::function<void()>& fu) noexcept
+void addOneTimeAction(const std::function<void()>& fu) noexcept
 {
 	// the spinlock is blocked for ~10 .. ~100 usec
 	// if MALLOC_EXTENDED_LOGGING=ON then up to ~3000 usec (depending on serial speed)
@@ -438,7 +438,7 @@ void VideoController::addOneTimeAction(const std::function<void()>& fu) noexcept
 	}
 }
 
-bool VideoController::isRunning() noexcept
+bool isVideoRunning() noexcept
 {
 	return state == RUNNING; //
 }

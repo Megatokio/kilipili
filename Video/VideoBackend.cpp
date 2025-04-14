@@ -4,10 +4,11 @@
 
 #include "VideoBackend.h"
 #include "ScanlineBuffer.h"
-#include "VgaMode.h"
+#include "Video.h"
 #include "common/basic_math.h"
 #include "common/system_clock.h"
 #include "scanline.pio.h"
+#include "timing.h"
 #include "timing.pio.h"
 #include "video_options.h"
 #include <hardware/clocks.h>
@@ -21,13 +22,13 @@ namespace kio::Video
 {
 
 // clang-format off
-#define pio0_hw ((pio_hw_t *)PIO0_BASE)				   // assert definition hasn't changed
-#undef pio0_hw										   // undef c-style definition
+#define pio0_hw ((pio_hw_t *)PIO0_BASE)				// assert definition hasn't changed
+#undef pio0_hw											// undef c-style definition
 #define pio0_hw reinterpret_cast<pio_hw_t*>(PIO0_BASE) // replace with c++-style definition
 
-#define dma_hw ((dma_hw_t *)DMA_BASE)				 // assert definition hasn't changed
-#undef dma_hw										 // undef c-style definition
-#define dma_hw reinterpret_cast<dma_hw_t*>(DMA_BASE) // replace with c++-style definition
+#define dma_hw ((dma_hw_t *)DMA_BASE)					// assert definition hasn't changed
+#undef dma_hw											// undef c-style definition
+#define dma_hw reinterpret_cast<dma_hw_t*>(DMA_BASE)	// replace with c++-style definition
 // clang-format on
 
 #define WRAP(X)	 #X
@@ -415,7 +416,7 @@ sysclock_params calc_new_sysclock(uint32 min_clock, uint32 pixel_clock)
 	return best;
 }
 
-void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
+void start_video_backend(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 {
 	assert(get_core_num() == 1);
 	assert(scanline_buffer.is_valid());
@@ -501,7 +502,7 @@ void VideoBackend::start(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 	debugstr("us_per_frame = %u, fract = %u/%u\n", us_per_frame, cc_per_frame_fract, cc_per_us);
 }
 
-void VideoBackend::stop() noexcept
+void stop_video_backend() noexcept
 {
 	assert(get_core_num() == 1);
 	assert(state != not_initialized);
@@ -523,7 +524,7 @@ void VideoBackend::stop() noexcept
 	while (hw->read_addr != uint32(&two_black_pixels)) {}
 }
 
-void VideoBackend::initialize() noexcept
+void initialize_video_backend() noexcept
 {
 	// any core
 

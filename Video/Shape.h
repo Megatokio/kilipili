@@ -6,7 +6,7 @@
 #include "Color.h"
 #include "Pixmap_wAttr.h"
 #include "RCPtr.h"
-#include "VideoBackend.h"
+#include "Video.h"
 #include "cdefs.h"
 #include "geometry.h"
 

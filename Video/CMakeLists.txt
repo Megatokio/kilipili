@@ -49,8 +49,8 @@ add_library(kilipili_video STATIC
 	MousePointer.cpp
 	VideoPlane.h    	
 	VideoPlane.cpp
-	VideoController.h	
-	VideoController.cpp
+	Video.h	
+	Video.cpp
 	ScanlineBuffer.h 	
 	ScanlineBuffer.cpp
 	VideoBackend.h  	
@@ -73,7 +73,6 @@ add_library(kilipili_video STATIC
 	UniColorBackdrop.cpp  
 	HamImageVideoPlane.h 
 	HamImageVideoPlane.cpp
-	video.h
 )
 
 target_compile_definitions(kilipili_video PUBLIC  

@@ -5,32 +5,13 @@
 #pragma once
 #include "VgaMode.h"
 #include "cdefs.h"
-#include "timing.h"
 
 namespace kio::Video
 {
 
 extern VgaMode vga_mode; // VGAMode in use
 
-extern uint32		   cc_per_scanline;		// cc per logical scanline (scaled by vss)
-extern uint32		   cc_per_frame;		//
-extern uint			   cc_per_px;			// cpu clock cycles per pixel
-extern uint			   cc_per_us;			// cpu clock cycles per microsecond
-extern volatile bool   in_vblank;			// set while in vblank (set and reset ~2 scanlines early)
-extern volatile int	   line_at_frame_start; // rolling line number at start of current frame
-extern volatile uint32 time_us_at_frame_start;
-extern volatile uint32 time_cc_at_frame_start;
-extern volatile int	   current_frame;
-
 extern uint32 time_cc_32() noexcept; // equivalent to time_us_32() but for cpu clock cycles
-
-
-/** get currently displayed line number.
-	can be less than 0 (-1 or -2) immediately before frame start.
-	is greater or equal to `vga_mode.height` in vblank after the active display area.
-*/
-inline int current_scanline() noexcept;
-
 
 /** class VideoBackend implements the hardware part of the video controller.
 
@@ -87,60 +68,31 @@ inline int current_scanline() noexcept;
 		synchronized again. The DMA displays pixels from a rolling (circular) scanline buffer.
 	  -	There is no interrupt per scanline: elimination of this interrupt was required to make 
 		screen resolution 1024*768 work. Together with the fact, that the pixels are read from
-		a curcular buffer, there is no way to tell where the display currently is other than 
+		a circular buffer, there is no way to tell where the display currently is other than 
 		very precise counting. This is the reason why the system clock must be a multiple of 1 MHz.
 	  	The video frontend must know which row is currently actually displayed in order to
 		synchronize it filling the scanline buffer, not lagging behind and not overwriting pixels 
 		before they are displayed.
 */
-class VideoBackend
-{
-public:
-	/**
-		Initialize the hardware and claim the DMA channels and state machines	  
-	*/
-	static void initialize() noexcept; // panics
 
-	/**
-		Start video display in the requested resolution found in VgaMode.
-		Pixels will be display from the cyclic scanline_buffer, 
-		starting at scanline_buffer[0] for the first scanline in the first frame.
-	*/
-	static void start(const VgaMode&, uint32 min_sys_clock = 0) throws;
+/**
+	Initialize the hardware and claim the DMA channels and state machines	  
+*/
+extern void initialize_video_backend() noexcept; // panics
 
-	/**
-		Stop video display, releasing all resources.
-		Actually does not stop video output but outputs a black screen.
-		The scanline_buffer can now be purged and initialized for the new video mode to come.
-	*/
-	static void stop() noexcept;
-};
+/**
+	Start video display in the requested resolution found in VgaMode.
+	Pixels will be display from the cyclic scanline_buffer, 
+	starting at scanline_buffer[0] for the first scanline in the first frame.
+*/
+extern void start_video_backend(const VgaMode&, uint32 min_sys_clock = 0) throws;
 
-
-inline void waitForVBlank() noexcept
-{
-	while (!in_vblank) { wfe(); }
-}
-
-inline void waitForScanline(int scanline) noexcept
-{
-	// TODO: we no longer get events for every scanline!
-	//		 we could setup a timer
-	if (uint(scanline) >= uint(vga_mode.height)) return waitForVBlank();
-	idle_start();
-	while (current_scanline() - scanline < 0) {} // wfe();
-	idle_end();
-}
-
-inline int current_scanline() noexcept
-{
-	uint time_us_in_frame = time_us_32() - time_us_at_frame_start;
-	uint cc_in_frame	  = time_us_in_frame * cc_per_us;
-	return int(cc_in_frame) / int(cc_per_scanline);
-}
-
-inline int screen_width() noexcept { return vga_mode.width; }
-inline int screen_height() noexcept { return vga_mode.height; }
+/**
+	Stop video display, releasing all resources.
+	Actually does not stop_video_output video output but outputs a black screen.
+	The scanline_buffer can now be purged and initialized for the new video mode to come.
+*/
+extern void stop_video_backend() noexcept;
 
 
 } // namespace kio::Video

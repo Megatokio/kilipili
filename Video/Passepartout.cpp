@@ -4,7 +4,7 @@
 
 #include "Passepartout.h"
 #include "Graphics/Color.h"
-#include "VideoBackend.h"
+#include "Video.h"
 
 #define XRAM __attribute__((section(".scratch_x.PPT" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
 #define RAM	 __attribute__((section(".time_critical.PPT" __XSTRING(__LINE__)))) // general ram
