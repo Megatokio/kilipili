@@ -39,8 +39,8 @@ add_library(kilipili_audio STATIC
 	audio_options.h
 	AudioSample.h
 	AudioSource.h 
-	AudioController.h 
-	AudioController.cpp
+	Audio.h 
+	Audio.cpp
 	i2s_audio.pio
 	pwm_audio.pio
 	sid_audio.pio
@@ -48,7 +48,6 @@ add_library(kilipili_audio STATIC
 	Ay38912.h
 	YMMusicPlayer.h 
 	YMMusicPlayer.cpp
-	audio.h 
 )
 
 target_compile_definitions(kilipili_audio PUBLIC  

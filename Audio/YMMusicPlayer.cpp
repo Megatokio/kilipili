@@ -245,7 +245,7 @@ int YMMusicPlayer::run() noexcept
 
 			super::reset(ay_clock, stereo_mix, frame_rate);
 
-			if (!is_live) AudioController::addAudioSource(this);
+			if (!is_live) addAudioSource(this);
 			is_live = true;
 		}
 		else if (ymmusic_dir)
@@ -284,7 +284,7 @@ int YMMusicPlayer::run() noexcept
 			if (avail() == 0)
 			{
 				is_live = false;
-				AudioController::removeAudioSource(this);
+				removeAudioSource(this);
 			}
 		}
 		else return 100 * 1000;
