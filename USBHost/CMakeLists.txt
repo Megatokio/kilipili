@@ -50,7 +50,6 @@ add_library(kilipili_usb_host STATIC
 	HidKeys.cpp
 	HidKeyTables.cpp
 	HidKeyTables.h
-	usb.h
 )
 
 target_compile_definitions(kilipili_usb_host PUBLIC  

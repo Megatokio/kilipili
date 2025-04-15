@@ -52,7 +52,6 @@ add_library(kilipili_graphics STATIC
 	systemfont.h
 	AnsiTerm.cpp 
 	AnsiTerm.h
-	graphics.h
 )
 
 target_compile_definitions(kilipili_graphics PUBLIC  

@@ -20,6 +20,13 @@ add_subdirectory(Devices)
 add_subdirectory(USBHost)
 
 add_library(kilipili STATIC
+	common.h
+	graphics.h
+	video.h
+	audio.h
+	devices.h
+	usb_host.h
+	kilipili.h
 )
 
 # add current dir to 'include search path':

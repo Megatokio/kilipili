@@ -3,7 +3,6 @@
 // https://spdx.org/licenses/BSD-2-Clause.html
 
 #pragma once
-#include "FrameBuffer.h"
 #include "VgaMode.h"
 #include "VideoPlane.h"
 #include "timing.h"
