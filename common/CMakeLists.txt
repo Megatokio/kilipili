@@ -42,41 +42,43 @@ endif()
 
 add_library(kilipili_common STATIC  
 	${common_sources}  
-	dummy.cpp
-	timing.h
-	memory.h
-	system_clock.h 
-	malloc.h
 	#malloc.cpp  <-- must be included in add_executable directly
-	Led.h
-	stack_guard.h 
+	Array.h
+	DiskLight.h
 	Dispatcher.h 
+	Led.h
 	LoadSensor.h
-	Mutex.h
-	Logger.h 
 	Logger.cpp
+	Logger.h 
+	Mutex.h
+	Queue.h
+	RCPtr.h
 	Trace.cpp
 	Trace.h
-	cdefs.h
-	standard_types.h
-	no_copy_move.h
-	basic_math.h
-	tempmem.h
-	cstrings.h
-	cstrings.cpp
-	Queue.h
-	geometry.h
-	geometry.cpp
-	RCPtr.h
-	algorithms.h
-	Xoshiro256.cpp
-	Xoshiro256.h	
 	Xoshiro128.cpp
 	Xoshiro128.h	
+	Xoshiro256.cpp
+	Xoshiro256.h	
+	algorithms.h
+	basic_math.h
+	cdefs.h
+	cstrings.cpp
+	cstrings.h
+	dummy.cpp
+	geometry.cpp
+	geometry.h
+	malloc.h
+	memory.h
+	no_copy_move.h
+	relational_operators.h
 	sdbm_hash.h
-	LzhDecoder.cpp
-	LzhDecoder.h
-	DiskLight.h
+	sort.h
+	stack_guard.h 
+	standard_types.h
+	system_clock.h 
+	template_helpers.h
+	tempmem.h
+	timing.h
 )
 
 target_compile_definitions(kilipili_common PUBLIC  
