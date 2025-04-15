@@ -72,10 +72,3 @@ extern HidMouseEventHandler	   defaultHidMouseEventHandler;
 
 
 } // namespace kio::USB
-
-namespace kio::USB::Mock
-{
-extern void setMousePresent(bool f = true);
-extern void addKeyboardReport(const HidKeyboardReport&);
-extern void addMouseReport(const HidMouseReport&);
-} // namespace kio::USB::Mock

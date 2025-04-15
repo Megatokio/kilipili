@@ -122,6 +122,7 @@ add_executable(UnitTest
 	unit_test/Mock/MockTextVDU.cpp
 	unit_test/Mock/MockTextVDU.h
 	unit_test/Mock/mock_hid_handler.cpp
+	unit_test/Mock/mock_hid_handler.h
 	)
 
 target_compile_definitions(UnitTest PUBLIC

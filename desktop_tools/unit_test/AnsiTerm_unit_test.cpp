@@ -10,8 +10,8 @@
 #include "USBHost/HidKeyTables.h"
 #include "USBHost/USBKeyboard.h"
 #include "USBHost/USBMouse.h"
-#include "USBHost/hid_handler.h"
 #include "doctest.h"
+#include "mock_hid_handler.h"
 
 namespace kio::Test
 {

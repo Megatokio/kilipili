@@ -26,16 +26,14 @@
 * THE SOFTWARE.
 */
 
-#include "common/Trace.h"
-#include "common/cdefs.h"
 #if USB_ENABLE_HOST
 
-/*
-	TUH = TinyUSB Host
-	HID = Human Interface Device
-*/
+// TUH = TinyUSB Host
+// HID = Human Interface Device
 
   #include "hid_handler.h"
+  #include "common/Trace.h"
+  #include "common/cdefs.h"
   #include "standard_types.h"
   #include <hardware/timer.h>
   #include <tusb.h>
