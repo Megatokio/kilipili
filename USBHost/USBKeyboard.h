@@ -66,8 +66,8 @@ extern void setHidKeyTranslationTable(const HidKeyTable& table);
 
 using KeyEventHandler = void(const KeyEvent&);
 extern KeyEventHandler* setKeyEventHandler(KeyEventHandler*); // set a callback, or ...
-extern KeyEvent			getKeyEvent();						  // ... get next key up/down event
+extern KeyEvent			getKeyEvent(bool autorepeat = true);  // ... get next key up/down event
 extern int				getChar();							  // ... get next char
-extern bool				keyEventAvailable() noexcept;
+extern bool				keyEventAvailable(bool autorepeat = true) noexcept;
 
 } // namespace kio::USB

@@ -5,6 +5,8 @@
 #include "USBKeyboard.h"
 #include "common/Queue.h"
 #include "common/basic_math.h"
+#include "common/cdefs.h"
+#include "common/timing.h"
 #include "hid_handler.h"
 #include <cstdio>
 #include <cstring>
@@ -50,41 +52,39 @@ static HIDKey	 repeat_key		  = NO_KEY;
 static Modifiers repeat_modifiers = NO_MODIFIERS;
 static CC		 repeat_next;
 
-bool keyEventAvailable() noexcept
+bool keyEventAvailable(bool autorepeat) noexcept
 {
 	if (key_event_queue.avail()) return true;
-	if (repeat_key == NO_KEY) return false;
-	return CC(time_us_32()) >= repeat_next;
+	return (autorepeat && repeat_key != NO_KEY && now() >= repeat_next);
 }
 
-KeyEvent getKeyEvent()
+KeyEvent getKeyEvent(bool autorepeat)
 {
 	// get next KeyEvent
-	// if no event handler is installed
-	// returns KeyEvent with event.hidkey = NO_KEY and event.down = false  if no event available
+	// if no KeyEventHandler is installed
 
 	// if (key_event_queue.avail()) return key_event_queue.get();
-	// if repeat_key avail return repeat_key.
-	// else return KeyEvent {};
+	// if autorepeat and repeat_key available return repeat_key.
+	// else return KeyEvent with event.hidkey = NO_KEY and event.down = false
 
 	if (key_event_queue.avail())
 	{
 		const KeyEvent event = key_event_queue.get();
 
 		if (event.hidkey == repeat_key) repeat_key = NO_KEY;
-		if (event.down && event.hidkey < KEY_CONTROL_LEFT)
+		if (event.down && !isaModifier(event.hidkey))
 		{
 			repeat_key		 = event.hidkey;
 			repeat_modifiers = event.modifiers;
-			repeat_next		 = CC(time_us_32()) + USB_KEY_DELAY1 * 1000;
+			repeat_next		 = now() + USB_KEY_DELAY1 * 1000;
 		}
 
 		return event;
 	}
 
-	if (repeat_key != NO_KEY && CC(time_us_32()) >= repeat_next)
+	if (autorepeat && repeat_key != NO_KEY && now() >= repeat_next)
 	{
-		repeat_next = CC(time_us_32()) + USB_KEY_DELAY * 1000;
+		repeat_next = now() + USB_KEY_DELAY * 1000;
 		return KeyEvent {true, repeat_modifiers, repeat_key};
 	}
 
@@ -97,12 +97,13 @@ int getChar()
 	// return -1 if no char available
 	// keys with no entry in the translation table are returned as
 	//		HID_KEY_OTHER + HidKey + modifiers<<16
+	// does not return key up and modifier events
 
 	while (keyEventAvailable())
 	{
 		const KeyEvent event = getKeyEvent();
 
-		if (event.down)
+		if (event.down && !isaModifier(event.hidkey))
 		{
 			int c = uchar(event.getchar());
 			if (!c) c = HID_KEY_OTHER + event.hidkey + (event.modifiers << 16); // non-priting char
@@ -148,30 +149,28 @@ void __weak_symbol defaultHidKeyboardEventHandler(const HidKeyboardReport& new_r
 	// which receives the USB Host events
 
 	static HidKeyboardReport old_report;
-
-	bool event_sent = false;
+	Modifiers				 modifiers = old_report.modifiers;
 
 	for (uint i = 0; i < 6; i++)
 	{
 		HIDKey key = old_report.keys[i];
-		if (key && !find(new_report, key))
-		{
-			key_event_handler(KeyEvent(false, old_report.modifiers, key));
-			event_sent = true;
-		}
+		if (key && !find(new_report, key)) key_event_handler(KeyEvent(false, modifiers, key));
 	}
+
+	while (uint8 toggled = modifiers ^ new_report.modifiers)
+	{
+		uint i	  = msbit(toggled);
+		modifiers = Modifiers(modifiers ^ (1 << i));
+		bool down = modifiers & (1 << i);
+
+		key_event_handler(KeyEvent(down, modifiers, HIDKey(KEY_CONTROL_LEFT + i)));
+	}
+
 	for (uint i = 0; i < 6; i++)
 	{
 		HIDKey key = new_report.keys[i];
-		if (key && !find(old_report, key))
-		{
-			key_event_handler(KeyEvent(true, new_report.modifiers, key));
-			event_sent = true;
-		}
+		if (key && !find(old_report, key)) key_event_handler(KeyEvent(true, modifiers, key));
 	}
-
-	if (!event_sent) // only modifier key toggled
-		key_event_handler(KeyEvent(new_report.modifiers & ~old_report.modifiers, new_report.modifiers, NO_KEY));
 
 	old_report = new_report;
 }
