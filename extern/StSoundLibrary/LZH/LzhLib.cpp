@@ -37,9 +37,10 @@
 *
 -----------------------------------------------------------------------------*/
 
-#include <memory.h>
 #include "../YmTypes.h"
 #include "LZH.H"
+#include <cstrings.h>
+#include <memory.h>
 
 /*
  * Additions
