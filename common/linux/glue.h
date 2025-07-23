@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "basic_math.h"
 #include "standard_types.h"
 
 /* get 32 bit microsecond timestamp. overflows every ~71 minutes
@@ -23,6 +24,7 @@ extern bool	  best_effort_wfe_or_timeout(uint64);
 namespace kio
 {
 
+inline CC	now() noexcept { return CC(time_us_32()); }
 inline void sleep_us(int usec) noexcept { (void)usec; }
 inline void wfe() noexcept {}
 inline void __wfe() noexcept {}
