@@ -138,32 +138,39 @@ The following utilities are built by *desktop_tools/CmakeLists.txt*:
 // VGA Video 800 x 600 pixel
 // with 8x12 pixel true color attributes (this is the character size used in TextVDU)
 
-#include "kilipili/Graphics/Pixmap_wAttr.h"
-#include "kilipili/Graphics/TextVDU.h"
-#include "kilipili/USBHost/hid_handler.h"
-#include "kilipili/Video/FrameBuffer.h"
-#include "kilipili/Video/VideoController.h"
-#include "pico/stdio.h"
+#include <kilipili.h>
+#include <pico/stdlib.h>
+#include <stdio.h>
 
 int main()
 {
+	using namespace kio;
+	using namespace kio::USB;
 	using namespace kio::Video;
 	using namespace kio::Graphics;
 
 	stdio_init_all();
-	kio::USB::initUSBHost();
+	printf("Hello world\n"); // print to stdio
+	initUSBHost();
 
-	auto* pixmap		  = new Pixmap<colormode_a1w8_rgb>(800, 600, attrheight_12px);
-	auto* framebuffer	  = new FrameBuffer(pixmap, nullptr);
-	auto& videocontroller = VideoController::getRef();
-	videocontroller.addPlane(framebuffer);
-	videocontroller.startVideo(vga_mode_800x600_60);
+	auto* pixmap	  = new Pixmap<colormode_a1w8_rgb>(800, 600, attrheight_12px);
+	auto* framebuffer = new FrameBuffer(pixmap, nullptr);
+	addVideoPlane(framebuffer);
+	startVideo(vga_mode_800x600_60);
 
-	TextVDU* picoterm = new TextVDU(pixmap);
-	picoterm->cls();
-	picoterm->identify();
+	TextVDU* textvdu = new TextVDU(pixmap);
+	textvdu->cls();
+	textvdu->printf("Hello world ... %s mode\n", debug ? "DEBUG" : "RELEASE"); // print on video screen
+	textvdu->identify();													   // print on video screen
+	pixmap->drawRect(100, 50, 400, 300, red, 1);							   // draw on video screen
 
-	for (;;) {} // your main action
+	Dispatcher::addHandler(&blinkOnboardLed);
+	Dispatcher::addHandler(&pollUSB);
+
+	for (;;)
+	{
+		Dispatcher::run(1000); // blink the LED
+	}
 }
 ```
 
