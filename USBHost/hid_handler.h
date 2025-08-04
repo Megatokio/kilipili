@@ -21,7 +21,7 @@ extern bool keyboardPresent() noexcept;
 extern bool mousePresent() noexcept;
 #else
 inline void initUSBHost() noexcept {}
-inline int	pollUSB(void* = nullptr) noexcept { return 1000 * 1000; }
+inline int	pollUSB(void* = nullptr) noexcept { return 0; }
 inline bool keyboardPresent() noexcept { return false; }
 inline bool mousePresent() noexcept { return false; }
 #endif
