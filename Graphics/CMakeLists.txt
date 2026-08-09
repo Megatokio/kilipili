@@ -50,8 +50,6 @@ add_library(kilipili_graphics STATIC
 	Pixmap_wAttr.cpp
 	systemfont.cpp 
 	systemfont.h
-	AnsiTerm.cpp 
-	AnsiTerm.h
 )
 
 target_compile_definitions(kilipili_graphics PUBLIC  

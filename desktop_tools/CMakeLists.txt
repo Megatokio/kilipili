@@ -92,7 +92,6 @@ add_executable(UnitTest
 	unit_test/Canvas_unit_test.cpp
 	unit_test/BitBlit_unit_test.cpp
 	unit_test/TextVDU_unit_test.cpp
-	unit_test/AnsiTerm_unit_test.cpp
 	unit_test/AudioSource_unit_test.cpp
 	unit_test/AudioSample_unit_test.cpp
 	unit_test/tempmem.test.cpp
@@ -119,10 +118,6 @@ add_executable(UnitTest
 	unit_test/Mock/MockFlash.cpp
 	unit_test/Mock/MockPixmap.cpp
 	unit_test/Mock/MockPixmap.h
-	unit_test/Mock/MockTextVDU.cpp
-	unit_test/Mock/MockTextVDU.h
-	unit_test/Mock/mock_hid_handler.cpp
-	unit_test/Mock/mock_hid_handler.h
 	)
 
 target_compile_definitions(UnitTest PUBLIC

@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "BlockDeviceFile.h"
-#if defined MAKE_TOOLS && MAKE_TOOLS
+#ifdef MAKE_TOOLS
   #define logline(...) (void)0
 #else
   #include "Logger.h"
