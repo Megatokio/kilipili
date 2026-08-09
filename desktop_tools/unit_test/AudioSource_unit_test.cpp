@@ -9,7 +9,7 @@
 #include <cstdio>
 
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 float hw_sample_frequency = 44100; // normally in AudioController.cpp
 
@@ -24,14 +24,14 @@ doctest::String toString(AudioSample<2, SAMPLE> s)
 {
 	return usingstr("<%i,%i>", s.l, s.r);
 }
-} // namespace kio::Audio
+} // namespace kilipili::Audio
 
 
-namespace kio::Test
+namespace kilipili::Test
 {
 
-using namespace kio;
-using namespace kio::Audio;
+using namespace kilipili;
+using namespace kilipili::Audio;
 
 
 TEST_CASE("Audio::AudioSource ctor, instantiation")
@@ -528,7 +528,7 @@ TEST_CASE("Audio::HF_DC_Filter")
 	HF_DC_Filter<2> f2(new SineWaveSource<2>(100,1));
 }
 
-} // namespace kio::Test
+} // namespace kilipili::Test
 
 
 /*

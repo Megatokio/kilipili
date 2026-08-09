@@ -20,10 +20,10 @@
 #include <dirent.h>
 #include <stdlib.h>
 
-using namespace kio::Devices;
+using namespace kilipili::Devices;
 
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 
@@ -803,7 +803,7 @@ uint32 YMMFileConverter::convertFile(cstr infilepath, File* outfile, int verbose
 	return uint32(outfile->getSize());
 }
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio
 
 
 /*

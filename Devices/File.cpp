@@ -4,7 +4,7 @@
 
 #include "File.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 Flags File::flags_for_mode(FileOpenMode mode) noexcept
@@ -43,4 +43,4 @@ char File::getc()
 	return last_char;
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

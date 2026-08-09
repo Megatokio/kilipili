@@ -6,7 +6,7 @@
 #include "Pixmap.h"
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 // how ugly can it be?
@@ -482,7 +482,7 @@ extern template class Pixmap<colormode_a2w4>;
 extern template class Pixmap<colormode_a2w8>;
 
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
 /*

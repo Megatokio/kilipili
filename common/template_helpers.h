@@ -5,7 +5,7 @@
 
 #include <type_traits>
 
-namespace kio
+namespace kilipili
 { 
 
 // select type T1 or T2:
@@ -76,4 +76,4 @@ struct _has_operator_eq
 template<typename T>
 constexpr bool has_operator_eq = _has_operator_eq<T>::value;
 
-}; // namespace kio
+}; // namespace kilipili

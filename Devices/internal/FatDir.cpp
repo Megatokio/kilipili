@@ -12,7 +12,7 @@
 #include <pico/stdio.h>
 #include <utility>
 
-namespace kio ::Devices
+namespace kilipili ::Devices
 {
 
 template<>
@@ -37,7 +37,7 @@ FatDir::FatDir(RCPtr<FileSystem>fs, cstr path) throws : //
 {
 	trace(__func__);
 	//assert(dynamic_cast<FatFS*>(this->fs.ptr()));
-	assert(kio::find(path, ":/"));
+	assert(kilipili::find(path, ":/"));
 
 	FRESULT err = f_opendir(&fatdir, path);
 	if (err) throw tostr(err);
@@ -74,7 +74,7 @@ FileInfo FatDir::next(cstr pattern) throws
 }
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 
 /*

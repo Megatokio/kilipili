@@ -16,7 +16,7 @@ extern char __flash_binary_end;
 #endif
 
 
-namespace kio::Flash
+namespace kilipili::Flash
 {
 
 #if defined UNIT_TEST && UNIT_TEST
@@ -280,4 +280,4 @@ void readData(uint32 addr, void* data, uint32 size) noexcept
 }
 
 
-} // namespace kio::Flash
+} // namespace kilipili::Flash

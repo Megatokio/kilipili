@@ -8,7 +8,7 @@
 #include "template_helpers.h"
 
 
-namespace kio
+namespace kilipili
 {
 
 /*	Threshold Sorter (alternating buffer variant)		adaptable via #defines
@@ -177,7 +177,7 @@ inline void rsort(TYPE* a, TYPE* e)
 	sort(a, e, gt);
 }
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

@@ -18,7 +18,7 @@
 //  #include <pico/stdlib.h>
 
 
-namespace kio
+namespace kilipili
 {
 
 inline CC	now() noexcept { return CC(time_us_32()); }
@@ -42,7 +42,7 @@ inline void wfi() noexcept
 extern void wfe_or_timeout(int timeout_usec) noexcept;
 
 
-} // namespace kio
+} // namespace kilipili
 
 #endif
 

@@ -4,7 +4,7 @@
 
 #pragma once
 
-namespace kio::USB
+namespace kilipili::USB
 {
 
 class USBGamePad
@@ -13,4 +13,4 @@ public:
 	USBGamePad();
 };
 
-} // namespace kio::USB
+} // namespace kilipili::USB

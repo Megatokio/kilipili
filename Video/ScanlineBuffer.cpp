@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 ScanlineBuffer scanline_buffer;
@@ -54,4 +54,4 @@ void ScanlineBuffer::teardown() noexcept
 }
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video

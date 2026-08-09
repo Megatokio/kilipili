@@ -10,7 +10,7 @@
 	and to convert interrupts into synchronous events.
 */
 
-namespace kio
+namespace kilipili
 {
 namespace Dispatcher
 {
@@ -66,4 +66,4 @@ inline void disp(int timeout = 0) noexcept { Dispatcher::run(timeout); }
 extern Dispatcher::Handler blinkOnboardLed;
 
 
-} // namespace kio
+} // namespace kilipili

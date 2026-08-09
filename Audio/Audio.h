@@ -13,7 +13,7 @@
 */
 
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 // enumeration of supported types of audio hardware.
@@ -127,7 +127,7 @@ extern void removeAudioSource(RCPtr<HwAudioSource>) noexcept;
 
 extern void removeAllAudioSources() noexcept;
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio
 
 /*
 

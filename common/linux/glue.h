@@ -21,7 +21,7 @@ extern bool	  best_effort_wfe_or_timeout(uint64);
 
 // #######################################################################
 
-namespace kio
+namespace kilipili
 {
 
 inline CC	now() noexcept { return CC(time_us_32()); }
@@ -35,7 +35,7 @@ inline void __dmb() noexcept {}
 extern void flash_range_erase(uint32 flash_offs, uint32 count);
 extern void flash_range_program(uint32 flash_offs, const uint8* data, uint32 count);
 
-} // namespace kio
+} // namespace kilipili
 
 
 #define kilipili_lock_spinlock()   (void)0

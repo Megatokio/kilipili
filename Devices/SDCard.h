@@ -11,7 +11,7 @@
 #include <hardware/spi.h>
 
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 struct CID
@@ -119,7 +119,7 @@ private:
 	void __attribute__((noreturn)) throwR1ResponseError(uint8 r1);
 };
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

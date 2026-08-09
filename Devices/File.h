@@ -6,7 +6,7 @@
 #include "SerialDevice.h"
 
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 /* Interface class `File`
@@ -66,7 +66,7 @@ private:
 };
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 
 /*

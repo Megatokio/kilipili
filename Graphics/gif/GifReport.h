@@ -6,11 +6,11 @@
 #include "Devices/devices_types.h"
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 using FilePtr = Devices::FilePtr;
 
 extern void LogGifFile(FilePtr);
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics

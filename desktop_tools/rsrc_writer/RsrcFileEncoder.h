@@ -6,7 +6,7 @@
 #include "Devices/File.h"
 #include "standard_types.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 /*	the RsrcFileEncoder encodes the input data into comma separated ascii encoded values.
@@ -53,4 +53,4 @@ private:
 };
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

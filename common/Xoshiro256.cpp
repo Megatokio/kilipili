@@ -24,7 +24,7 @@ See	<http://prng.di.unimi.it>
 #endif
 
 
-namespace kio
+namespace kilipili
 {
 
 static inline uint64 rotl(const uint64 x, int k) noexcept { return (x << k) | (x >> (64 - k)); }
@@ -202,4 +202,4 @@ Xoshiro256::Xoshiro256(uint32 seed) noexcept
 	next();
 }
 
-} // namespace kio
+} // namespace kilipili

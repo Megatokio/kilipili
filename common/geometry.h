@@ -8,7 +8,7 @@
 #include <utility>
 
 
-namespace kio
+namespace kilipili
 {
 
 using coord = int;
@@ -159,7 +159,7 @@ struct Rect
 };
 
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

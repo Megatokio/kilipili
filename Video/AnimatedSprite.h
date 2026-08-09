@@ -8,7 +8,7 @@
 #include "geometry.h"
 #include "string.h"
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 /* ————————————————————————————————————————————————————————————
@@ -198,7 +198,7 @@ bool AnimatedSprite<Shape>::next_frame() noexcept
 	return super::replace(frames[current_frame].shape);
 }
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 /*
 

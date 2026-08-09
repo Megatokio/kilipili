@@ -8,7 +8,7 @@
 #include "standard_types.h"
 #include <stdarg.h>
 
-namespace kio
+namespace kilipili
 {
 
 /*
@@ -53,4 +53,4 @@ extern Logger logger;
 template<>
 void Logger::log<0>(cstr msg, ...) noexcept;
 
-} // namespace kio
+} // namespace kilipili

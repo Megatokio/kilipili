@@ -5,7 +5,7 @@
 #include "Pixmap.h"
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 template<ColorMode CM>
@@ -202,4 +202,4 @@ template class Pixmap<colormode_rgb>;
 #endif
 
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics

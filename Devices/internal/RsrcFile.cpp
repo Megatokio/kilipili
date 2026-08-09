@@ -6,7 +6,7 @@
 #include "common/DiskLight.h"
 #include <cstring>
 
-namespace kio ::Devices
+namespace kilipili ::Devices
 {
 
 RsrcFile::RsrcFile(const uchar* data, uint32 size) : //
@@ -40,7 +40,7 @@ SIZE RsrcFile::read(void* data, SIZE size, bool partial)
 }
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

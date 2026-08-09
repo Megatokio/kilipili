@@ -8,7 +8,7 @@
 #include "cdefs.h"
 #include "cstrings.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 uint8 fatFS_mode_for_File_mode(FileOpenMode m)
@@ -40,7 +40,7 @@ FatFile::FatFile(FatFSPtr device, cstr path, FileOpenMode mode) : //
 	device(device)
 {
 	trace(__func__);
-	assert(kio::find(path, ":/"));
+	assert(kilipili::find(path, ":/"));
 
 	FRESULT err = f_open(&fatfile, path, fatFS_mode_for_File_mode(mode));
 	if (err) throw tostr(err);
@@ -180,7 +180,7 @@ FatFile::~FatFile() noexcept
 	}
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

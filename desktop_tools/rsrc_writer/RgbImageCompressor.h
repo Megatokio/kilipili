@@ -76,7 +76,7 @@
 	  More rel_codes typically lead to lower total deviation but at the cost of some more pixels with high deviation.
 */
 
-namespace kio
+namespace kilipili
 {
 
 using Color = Graphics::Color;
@@ -129,10 +129,10 @@ private:
 };
 
 
-} // namespace kio
+} // namespace kilipili
 
 
-inline cstr tostr(kio::DitherMode dithermode)
+inline cstr tostr(kilipili::DitherMode dithermode)
 {
 	static cstr name[] = {"none", "pattern", "diffusion"};
 	return name[int(dithermode)];

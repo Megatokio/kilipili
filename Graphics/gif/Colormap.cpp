@@ -5,7 +5,7 @@
 #include "Colormap.h"
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 int Colormap::addColor(const Comp q[3]) throws /*bad alloc*/
@@ -62,7 +62,7 @@ int Colormap::findColor(Comp r, Comp g, Comp b) const
 	return not_found;
 }
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 /*
 

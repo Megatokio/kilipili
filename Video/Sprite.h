@@ -8,7 +8,7 @@
 #include "no_copy_move.h"
 #include <pico/sync.h>
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 extern volatile int hot_row;		  // the currently displayed screen row
@@ -105,7 +105,7 @@ public:
 };
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 /*
 

@@ -5,7 +5,7 @@
 #include "RsrcFileEncoder.h"
 #include "cstrings.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 RsrcFileEncoder::RsrcFileEncoder(FilePtr file, cstr rsrc_fname, bool write_fsize) :
@@ -90,7 +90,7 @@ void RsrcFileEncoder::setFpos(ADDR new_fpos)
 }
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

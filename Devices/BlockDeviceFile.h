@@ -7,7 +7,7 @@
 #include "File.h"
 #include "basic_math.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 /*
@@ -56,4 +56,4 @@ public:
 };
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

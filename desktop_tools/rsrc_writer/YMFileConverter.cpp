@@ -29,9 +29,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-using namespace kio::Devices;
+using namespace kilipili::Devices;
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 YMFileConverter::~YMFileConverter() { delete[] register_data; }
@@ -264,7 +264,7 @@ YMFileConverter::YMFileConverter(cstr fpath, bool verbose)
 	import_file(file, fpath, verbose);
 }
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio
 
 /*
 

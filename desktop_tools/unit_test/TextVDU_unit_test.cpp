@@ -8,8 +8,8 @@
 #include "TextVDU.h"
 #include "doctest.h"
 
-using namespace kio::Graphics;
-using namespace kio;
+using namespace kilipili::Graphics;
+using namespace kilipili;
 
 static_assert(TextVDU::CHAR_HEIGHT == 12);
 static_assert(TextVDU::CHAR_WIDTH == 8);
@@ -17,21 +17,21 @@ static_assert(Color::total_colorbits >= 15); // we get the defaults from vgaboar
 
 // defined in main_unit_test.cpp:
 
-namespace kio
+namespace kilipili
 {
 extern doctest::String toString(Array<cstr>);
 }
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 extern doctest::String toString(ColorMode);
 }
 
 
-namespace kio::Test
+namespace kilipili::Test
 {
 
-using Pixmap	 = kio::Graphics::Mock::Pixmap;
-using RealPixmap = kio::Graphics::Pixmap<colormode_a1w8>;
+using Pixmap	 = kilipili::Graphics::Mock::Pixmap;
+using RealPixmap = kilipili::Graphics::Pixmap<colormode_a1w8>;
 
 TEST_CASE("TextVDU: constructor")
 {
@@ -1618,7 +1618,7 @@ TEST_CASE("TextVDU: applyAttributes()") //
 }
 
 
-} // namespace kio::Test
+} // namespace kilipili::Test
 
 
 /*

@@ -20,7 +20,7 @@ static constexpr uint prefs_size = FLASH_PREFERENCES;
 static constexpr uint prefs_size = 0;
 #endif
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 static FileSystem* file_systems[FF_VOLUMES] = {}; // all NULL
@@ -630,7 +630,7 @@ void FileSystem::setWorkDir(cstr path)
 	workdir = newcopy(path);
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

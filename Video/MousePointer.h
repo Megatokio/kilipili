@@ -6,7 +6,7 @@
 #include "AnimatedSprite.h"
 #include "SingleSpritePlane.h"
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 enum MousePointerID {
@@ -50,10 +50,10 @@ extern template class MousePointer<Sprite<SoftenedShape>>;
 extern template class MousePointer<AnimatedSprite<Shape>>;
 extern template class MousePointer<AnimatedSprite<SoftenedShape>>;
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
-namespace kio::USB
+namespace kilipili::USB
 {
 extern Point getMousePosition() noexcept;
 }

@@ -34,7 +34,7 @@
 */
 
 
-namespace kio
+namespace kilipili
 {
 
 extern str emptystr; // non-const version of ""
@@ -103,7 +103,7 @@ struct TempMemSave
 	~TempMemSave() noexcept;
 };
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

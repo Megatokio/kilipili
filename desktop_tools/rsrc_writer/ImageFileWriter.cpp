@@ -22,7 +22,7 @@
 #endif
 
 
-namespace kio
+namespace kilipili
 {
 using namespace Graphics;
 using namespace Devices;
@@ -256,7 +256,7 @@ void ImageFileWriter::store_pixel(File* file, uint8* p)
 }
 
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

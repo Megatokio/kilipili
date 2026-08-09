@@ -6,7 +6,7 @@
 #include "Color.h"
 #include "VideoPlane.h"
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 class UniColorBackdrop : public VideoPlane
@@ -20,4 +20,4 @@ private:
 	uint32 color;
 };
 
-} // namespace kio::Video
+} // namespace kilipili::Video

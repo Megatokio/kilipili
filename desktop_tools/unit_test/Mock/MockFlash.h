@@ -6,7 +6,7 @@
 #include "Array.h"
 #include "standard_types.h"
 
-namespace kio
+namespace kilipili
 {
 
 class MockFlash
@@ -23,4 +23,4 @@ public:
 	bool&		  error;
 };
 
-} // namespace kio
+} // namespace kilipili

@@ -14,7 +14,7 @@ extern "C" __attribute__((__weak__)) const char* check_heap(); // returns nullpt
 #include <string.h>
 #include <sys/unistd.h>
 
-namespace kio
+namespace kilipili
 {
 
 void sleep_us(int delay_usec) noexcept
@@ -38,7 +38,7 @@ void wfe_or_timeout(int timeout_usec) noexcept
 }
 
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

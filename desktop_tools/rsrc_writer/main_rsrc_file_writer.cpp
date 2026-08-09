@@ -22,12 +22,12 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "extern/stb/stb_image_write.h"
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 float hw_sample_frequency; // normally in AudioController.cpp
 }
 
-namespace kio
+namespace kilipili
 {
 void panic(const char* fmt, ...)
 {
@@ -400,7 +400,7 @@ static void convert_dir(cstr indir, cstr outdir, cstr subdir)
 	}
 	closedir(dir);
 }
-} // namespace kio
+} // namespace kilipili
 
 
 int main(int argc, cstr argv[])
@@ -408,7 +408,7 @@ int main(int argc, cstr argv[])
 	// 1 argument: job file
 	// 2++ arguments: indir, outdir, format and options
 
-	using namespace kio;
+	using namespace kilipili;
 
 	if (argc >= 2 && eq(argv[1], "-v"))
 	{

@@ -23,7 +23,7 @@
 #endif
 
 
-namespace kio::USB
+namespace kilipili::USB
 {
 
 bool ctrl_alt_del_detected = false;
@@ -176,7 +176,7 @@ void __weak_symbol defaultHidKeyboardEventHandler(const HidKeyboardReport& new_r
 }
 
 
-} // namespace kio::USB
+} // namespace kilipili::USB
 
 
 /*

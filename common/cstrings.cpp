@@ -23,7 +23,7 @@
 //#endif
 
 
-namespace kio
+namespace kilipili
 {
 
 uint strlen(cstr s) noexcept
@@ -1594,4 +1594,4 @@ cstr parent_directory_from_path(cstr path)
 	return *path ? path : "./";
 }
 
-} // namespace kio
+} // namespace kilipili

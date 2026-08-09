@@ -14,7 +14,7 @@
   #endif
 
 
-namespace kio::LoadSensor
+namespace kilipili::LoadSensor
 {
 
 void start() noexcept;
@@ -56,26 +56,26 @@ inline void isr_end(uint32_t old_idle_state) noexcept
 	hw_set_bits(csr, old_idle_state);
 }
 
-}; // namespace kio::LoadSensor
+}; // namespace kilipili::LoadSensor
 
 
-namespace kio
+namespace kilipili
 {
 
 inline void idle_start() noexcept { LoadSensor::idle_start(); }
 inline void idle_end() noexcept { LoadSensor::idle_end(); }
 
-} // namespace kio
+} // namespace kilipili
 
 #else
 
-namespace kio
+namespace kilipili
 {
 
 inline void idle_start() noexcept {}
 inline void idle_end() noexcept {}
 
-} // namespace kio
+} // namespace kilipili
 
 #endif
 

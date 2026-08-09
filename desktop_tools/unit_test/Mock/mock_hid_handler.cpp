@@ -6,7 +6,7 @@
 #include "hid_handler.h"
 #include <common/Queue.h>
 
-namespace kio::USB
+namespace kilipili::USB
 {
 struct HidReport
 {
@@ -68,4 +68,4 @@ void addKeyboardReport(const HidKeyboardReport& r) { hid_reports.put(HidReport(r
 void addMouseReport(const HidMouseReport& r) { hid_reports.put(HidReport(r)); }
 } // namespace Mock
 
-} // namespace kio::USB
+} // namespace kilipili::USB

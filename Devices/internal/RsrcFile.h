@@ -6,7 +6,7 @@
 #include "File.h"
 
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 /*
@@ -34,4 +34,4 @@ private:
 	friend class RsrcFS;
 };
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

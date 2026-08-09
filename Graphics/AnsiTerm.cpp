@@ -14,14 +14,14 @@
 #include "common/cstrings.h"
 #include <memory>
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 extern void __weak_symbol beep(float frequency_hz = 880, float volume = .5f, uint32 duration_ms = 600);
 }
 
 // ##########################################################
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 using AutoWrap = TextVDU::AutoWrap;
@@ -401,7 +401,7 @@ void AnsiTerm::handle_C0(char c)
 	{
 	case 0x07: // BELL
 	{
-		if (kio::Audio::beep) kio::Audio::beep();
+		if (kilipili::Audio::beep) kilipili::Audio::beep();
 		return;
 	}
 	case 0x08: // BS - backspace (data)
@@ -2373,7 +2373,7 @@ uint AnsiTerm::read(char* text, uint size)
 	return size;
 }
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
 /*

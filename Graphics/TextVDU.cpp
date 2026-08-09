@@ -10,7 +10,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 // ------------------------------------------------------------
@@ -861,7 +861,7 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 		}
 	}
 }
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 /*
 

@@ -11,7 +11,7 @@
 extern char __scratch_x_end__;
 extern char __scratch_y_end__;
 
-namespace kio
+namespace kilipili
 {
 
 static size_t stack_bottom(uint core) noexcept
@@ -53,4 +53,4 @@ uint calc_stack_guard_min_free(uint core)
 	return n;
 }
 
-} // namespace kio
+} // namespace kilipili

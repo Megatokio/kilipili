@@ -23,7 +23,7 @@
 #define RAM	 __attribute__((section(".time_critical.VC" __XSTRING(__LINE__)))) // general ram
 
 
-using namespace kio::Video;
+using namespace kilipili::Video;
 
 static volatile bool lockout_requested = false;
 
@@ -33,10 +33,10 @@ __weak_symbol void suspend_core1() noexcept
 	assert(get_core_num() == 0);
 	assert(lockout_requested == false);
 
-	while (locked_out) kio::wfe(); // because we don't wait in resume_core1()
+	while (locked_out) kilipili::wfe(); // because we don't wait in resume_core1()
 	lockout_requested = true;
 	__sev();
-	while (!locked_out) kio::wfe();
+	while (!locked_out) kilipili::wfe();
 }
 
 __weak_symbol void resume_core1() noexcept
@@ -51,7 +51,7 @@ __weak_symbol void resume_core1() noexcept
 
 __noreturn RAM static void hard_fault_handler() noexcept
 {
-	if (!locked_out) kio::panic("HARDFAULT_EXCEPTION");
+	if (!locked_out) kilipili::panic("HARDFAULT_EXCEPTION");
 
 #ifdef PICO_DEFAULT_LED_PIN
 	if constexpr (0)
@@ -74,15 +74,15 @@ __noreturn RAM static void hard_fault_handler() noexcept
 
 // =========================================================
 
-namespace kio::USB
+namespace kilipili::USB
 {
 __weak void setMouseLimits(int, int) noexcept {}
-} // namespace kio::USB
+} // namespace kilipili::USB
 
 
 // =========================================================
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 uint		  scanlines_missed = 0;
@@ -444,7 +444,7 @@ bool isVideoRunning() noexcept
 }
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

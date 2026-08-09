@@ -20,7 +20,7 @@
 
 // ====================================================================
 
-namespace kio::USB
+namespace kilipili::USB
 {
 
 static Queue<MouseEvent, 4, uint16> mouse_event_queue;
@@ -125,7 +125,7 @@ void __weak_symbol defaultHidMouseEventHandler(const HidMouseReport& report) noe
 	old_y		= event.y;
 }
 
-} // namespace kio::USB
+} // namespace kilipili::USB
 
 /*
 

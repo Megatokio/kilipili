@@ -4,7 +4,7 @@
 
 #include "DevNull.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 DevNull dev_null;
@@ -12,4 +12,4 @@ DevNull dev_null;
 DevNull::DevNull() noexcept : SerialDevice(writable) {}
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

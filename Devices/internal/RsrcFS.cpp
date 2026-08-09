@@ -10,7 +10,7 @@
 #include <cstring>
 
 
-namespace kio ::Devices
+namespace kilipili ::Devices
 {
 
 inline cuptr skip(cuptr p)
@@ -223,7 +223,7 @@ FileInfo RsrcDir::next(cstr pattern) throws
 	return FileInfo(nullptr, 0, notime, NoFile, WriteProtected);
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

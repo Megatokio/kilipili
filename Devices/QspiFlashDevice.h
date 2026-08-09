@@ -6,7 +6,7 @@
 #include "BlockDevice.h"
 
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 /*
@@ -54,4 +54,4 @@ extern template class QspiFlashDevice<8>;
 extern template class QspiFlashDevice<9>;
 extern template class QspiFlashDevice<12>;
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

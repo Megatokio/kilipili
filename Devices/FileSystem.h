@@ -7,7 +7,7 @@
 
 extern const unsigned char resource_file_data[] __weak_symbol;
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 // =================================================== //
@@ -124,7 +124,7 @@ protected:
 };
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

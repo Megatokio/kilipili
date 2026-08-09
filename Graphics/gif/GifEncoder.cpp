@@ -11,7 +11,7 @@
 
 #include "GifEncoder.h"
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 #ifndef GIF_FILE_CREATOR
@@ -328,7 +328,7 @@ void GifEncoder::writeImage(Pixelmap& pmap, const Colormap& cmap) throws
 	writePixelmap(cmap.usedBits(), pmap);
 }
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 /*
 

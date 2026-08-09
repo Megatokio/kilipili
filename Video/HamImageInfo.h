@@ -6,12 +6,12 @@
 #include "Color.h"
 #include "standard_types.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 class File;
 }
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 struct HamImageInfo
@@ -39,4 +39,4 @@ private:
 };
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video

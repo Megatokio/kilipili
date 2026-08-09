@@ -18,7 +18,7 @@
   #include <pico/stdlib.h>
 
 
-namespace kio
+namespace kilipili
 {
 extern size_t			   heap_start() noexcept;
 extern size_t			   heap_end() noexcept;
@@ -55,7 +55,7 @@ extern void print_core1_scratch_x_usage();
 extern void print_flash_usage();
 extern void print_system_info(uint = ~0u);
 
-} // namespace kio
+} // namespace kilipili
 
 #endif
 

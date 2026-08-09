@@ -14,7 +14,7 @@
 #include "extern/stb/stb_image_write.h"
 
 
-namespace kio
+namespace kilipili
 {
 void panic(const char* fmt, ...)
 {
@@ -72,14 +72,14 @@ static void convert_dir(cstr indir, cstr outdir, cstr subdir)
 	}
 	closedir(dir);
 }
-} // namespace kio
+} // namespace kilipili
 
 
 int main(int argc, cstr* argv)
 {
 	// 2++ arguments: indir, outdir, options
 
-	using namespace kio;
+	using namespace kilipili;
 	argc -= 1, argv += 1; // prog path
 
 	try

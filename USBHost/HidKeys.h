@@ -6,7 +6,7 @@
 #include "standard_types.h"
 
 
-namespace kio::USB
+namespace kilipili::USB
 {
 
 enum HIDKey : uint8 {
@@ -206,8 +206,8 @@ enum Modifiers : uint8 {
 };
 
 
-} // namespace kio::USB
+} // namespace kilipili::USB
 
 
-extern cstr tostr(kio::USB::HIDKey key);
-extern cstr tostr(kio::USB::Modifiers, bool left_right_unified = true) noexcept;
+extern cstr tostr(kilipili::USB::HIDKey key);
+extern cstr tostr(kilipili::USB::Modifiers, bool left_right_unified = true) noexcept;

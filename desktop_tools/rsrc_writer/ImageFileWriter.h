@@ -36,7 +36,7 @@ file:
 		t	1  = has_transp
 */
 
-namespace kio
+namespace kilipili
 {
 
 class ImageFileWriter
@@ -85,13 +85,13 @@ private:
 	void store(File*, Graphics::Color);
 };
 
-} // namespace kio
+} // namespace kilipili
 
 
-inline cstr tostr(kio::ImageFileWriter::ColorModel c)
+inline cstr tostr(kilipili::ImageFileWriter::ColorModel c)
 {
-	if (c == kio::ImageFileWriter::ColorModel::grey) return "grey";
-	if (c == kio::ImageFileWriter::ColorModel::rgb) return "rgb";
+	if (c == kilipili::ImageFileWriter::ColorModel::grey) return "grey";
+	if (c == kilipili::ImageFileWriter::ColorModel::rgb) return "rgb";
 	else return "hwcolor";
 }
 

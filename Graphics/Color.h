@@ -8,7 +8,7 @@
 #include "tempmem.h"
 #include <cstdio>
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 /*
@@ -317,12 +317,12 @@ constexpr Color light_grey = white;
 constexpr Color dark_grey  = bright_black;
 } // namespace vga
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
-inline cstr tostr(kio::Graphics::Color c)
+inline cstr tostr(kilipili::Graphics::Color c)
 {
-	using namespace kio::Graphics;
+	using namespace kilipili::Graphics;
 	char bu[20];
 
 #if (ORDER_GREY)
@@ -335,5 +335,5 @@ inline cstr tostr(kio::Graphics::Color c)
 		c.blue(8) + c.grey(8 - Color::bbits));
 #endif
 
-	return kio::dupstr(bu);
+	return kilipili::dupstr(bu);
 }

@@ -6,8 +6,8 @@
 
 #define __LITTLE_ENDIAN__ 1
 
-namespace kio
+namespace kilipili
 {
 static constexpr bool little_endian = 1;
 static constexpr bool big_endian	= 0;
-} // namespace kio
+} // namespace kilipili

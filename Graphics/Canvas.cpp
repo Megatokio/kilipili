@@ -6,7 +6,7 @@
 #include "fixint.h"
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 void Canvas::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
@@ -895,7 +895,7 @@ a:
 }
 
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
 /*

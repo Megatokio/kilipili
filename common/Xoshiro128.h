@@ -10,7 +10,7 @@
 	Family of RNG to produce 32 bit random numbers
 */
 
-namespace kio
+namespace kilipili
 {
 
 using RNGState128 = uint32[4];
@@ -44,4 +44,4 @@ private:
 	void _skip(const uint32 bits[4]) noexcept;
 };
 
-} // namespace kio
+} // namespace kilipili

@@ -35,7 +35,7 @@
 #include <string.h>
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 using Comp = uint8;
@@ -157,7 +157,7 @@ private:
 	}
 };
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 /*
 

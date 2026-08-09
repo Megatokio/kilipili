@@ -18,7 +18,7 @@
 #include <cstring>
 #include <memory.h>
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 struct __packed LzhHeader
@@ -444,4 +444,4 @@ void LzhDecoder::decode(uint count, uchar buffer[])
 }
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

@@ -5,7 +5,7 @@
 #include "Pixelmap.h"
 #include "Colormap.h"
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 void Pixelmap::init(const Pixelmap& q) throws // copy ctor
@@ -348,7 +348,7 @@ void Pixelmap::clear(int color)
 	}
 }
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
 /*

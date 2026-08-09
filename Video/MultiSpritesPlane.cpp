@@ -10,7 +10,7 @@
 #include <pico/sync.h>
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 using namespace Graphics;
@@ -328,7 +328,7 @@ template class MultiSpritesPlane<AnimatedSprite<Shape>, HasZ>;
 template class MultiSpritesPlane<AnimatedSprite<SoftenedShape>, NoZ>;
 template class MultiSpritesPlane<AnimatedSprite<SoftenedShape>, HasZ>;
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

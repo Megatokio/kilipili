@@ -5,7 +5,7 @@
 #pragma once
 #include "Devices/File.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 class StdFile : public File
@@ -44,4 +44,4 @@ private:
 };
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

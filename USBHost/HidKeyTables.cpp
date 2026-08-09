@@ -6,7 +6,7 @@
 
 // see https://deskthority.net/wiki/Scancode
 
-namespace kio::USB
+namespace kilipili::USB
 {
 
 // clang-format off
@@ -569,7 +569,7 @@ constexpr HidKeyTable key_table_ger =
 	.with_shift_alt = ger_alt
 };
 
-} // namespace kio::USB
+} // namespace kilipili::USB
 
 
 

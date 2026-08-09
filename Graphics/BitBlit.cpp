@@ -5,7 +5,7 @@
 #include "BitBlit.h"
 #include "standard_types.h"
 
-namespace kio::Graphics::bitblit
+namespace kilipili::Graphics::bitblit
 {
 
 // #############################################################
@@ -1062,7 +1062,7 @@ void draw_char<colordepth_4bpp>(uint8* zp, int z_row_offs, int x0, const uint8* 
 }
 
 
-} // namespace kio::Graphics::bitblit
+} // namespace kilipili::Graphics::bitblit
 
 /*
 

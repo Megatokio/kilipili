@@ -7,7 +7,7 @@
 
 #if defined __cpp_lib_endian
 
-namespace kio
+namespace kilipili
 {
 static constexpr bool little_endian = std::endian::native == std::endian::little;
 static constexpr bool big_endian = std::endian::native == std::endian::big;
@@ -80,7 +80,7 @@ static constexpr bool big_endian = std::endian::native == std::endian::big;
   #endif
 #endif
 
-namespace kio
+namespace kilipili
 {
 #if defined __LITTLE_ENDIAN__ && __LITTLE_ENDIAN__
 static constexpr bool little_endian = 1;

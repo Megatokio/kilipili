@@ -10,7 +10,7 @@
 #define RAM	 __attribute__((section(".time_critical.VL" __XSTRING(__LINE__)))) // general ram
 
 
-namespace kio ::Video
+namespace kilipili ::Video
 {
 
 constexpr int stopper = 8000;
@@ -85,7 +85,7 @@ template class VerticalLayout<2>;
 template class VerticalLayout<3>;
 template class VerticalLayout<4>;
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 /*
 

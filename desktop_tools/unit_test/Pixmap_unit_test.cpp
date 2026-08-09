@@ -7,8 +7,8 @@
 #include "doctest.h"
 #include <memory>
 
-using namespace kio::Graphics;
-using namespace kio;
+using namespace kilipili::Graphics;
+using namespace kilipili;
 
 // clang-format off
 #define ALL_PIXMAPS Bitmap, Pixmap_i2, Pixmap_i4, Pixmap_i8, Pixmap_rgb

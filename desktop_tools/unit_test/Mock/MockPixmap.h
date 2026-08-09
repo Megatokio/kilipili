@@ -6,7 +6,7 @@
 #include "Canvas.h"
 #include "common/Array.h"
 
-namespace kio::Graphics::Mock
+namespace kilipili::Graphics::Mock
 {
 
 class Pixmap : public Canvas
@@ -34,4 +34,4 @@ public:
 	mutable Array<cstr> log; // tempstr
 };
 
-} // namespace kio::Graphics::Mock
+} // namespace kilipili::Graphics::Mock

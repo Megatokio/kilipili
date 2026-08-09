@@ -6,11 +6,11 @@
 #include "doctest.h"
 
 
-namespace kio::Test
+namespace kilipili::Test
 {
 
-using namespace kio;
-using namespace kio::Audio;
+using namespace kilipili;
+using namespace kilipili::Audio;
 
 
 TEST_CASE("Audio::AudioSample ctor, conversion")
@@ -28,10 +28,10 @@ TEST_CASE("Audio::AudioSample ctor, conversion")
 	AudioSample<2, int>				   s8;
 	AudioSample<2, uint8>			   s10;
 	NoAudioSample					   s0;
-	AudioSample<2, kio::Audio::Sample> bu[33];
+	AudioSample<2, kilipili::Audio::Sample> bu[33];
 	MonoSample						   m;
 	MonoSample						   m2;
-	AudioSample<1, kio::Audio::Sample> m3(3);
+	AudioSample<1, kilipili::Audio::Sample> m3(3);
 	AudioSample<1, int>				   m4;
 	MonoSample						   m5(Sample(3));
 	AudioSample<1, Sample>			   m6(77);
@@ -233,7 +233,7 @@ TEST_CASE("Audio::StereoSample<int> arithmetics")
 }
 
 
-} // namespace kio::Test
+} // namespace kilipili::Test
 
 
 /*

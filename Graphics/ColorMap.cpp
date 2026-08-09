@@ -12,7 +12,7 @@
 #endif
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 // clang-format off
@@ -204,7 +204,7 @@ static struct OnInit
 	OnInit() { system_colormap.rc = 1; } // must never be `delete`ed
 } _;
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
 /*

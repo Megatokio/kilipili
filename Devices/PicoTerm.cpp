@@ -6,7 +6,7 @@
 #include "USBHost/USBKeyboard.h"
 #include "common/cstrings.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 using namespace Graphics;
@@ -157,7 +157,7 @@ char* PicoTerm::identify()
 		text->rows, text->CHAR_WIDTH, text->CHAR_HEIGHT, tostr(text->colordepth), amstr);
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

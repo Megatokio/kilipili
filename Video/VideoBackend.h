@@ -6,7 +6,7 @@
 #include "VgaMode.h"
 #include "cdefs.h"
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 extern VgaMode vga_mode; // VGAMode in use
@@ -95,4 +95,4 @@ extern void start_video_backend(const VgaMode&, uint32 min_sys_clock = 0) throws
 extern void stop_video_backend() noexcept;
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video

@@ -17,7 +17,7 @@
 #include <new>
 
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 #if defined AUDIO_INPUT_BUFFER_ON_STACK && AUDIO_INPUT_BUFFER_ON_STACK
@@ -789,7 +789,7 @@ void beep(float, float, uint32 duration_ms)
 
 #endif
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio
 
 
 /*

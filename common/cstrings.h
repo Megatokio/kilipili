@@ -12,7 +12,7 @@
 #include <type_traits>
 
 
-namespace kio
+namespace kilipili
 {
 
 template<typename T>
@@ -218,20 +218,20 @@ cstr directory_from_path(cstr path);			   // "path/…"		--> "path/"		"…"	 -> 
 cstr parent_directory_from_path(cstr path);		   // "path/name/" -> "path/";  "path/name" -> "path/"; "…" -> "./"
 cstr last_component_from_path(cstr path) noexcept; // "…/name.ext"	--> "name.ext"	"…/dir/" -> "dir/"
 
-} // namespace kio
+} // namespace kilipili
 
 
 inline cstr tostr(bool f) noexcept { return f ? "true" : "false"; }
-inline str	tostr(float n) { return kio::usingstr("%.10g", double(n)); }
-inline str	tostr(double n) { return kio::usingstr("%.14g", n); }
-inline str	tostr(long double n) { return kio::usingstr("%.22Lg", n); }
-inline str	tostr(int n) { return kio::usingstr("%i", n); }
-inline str	tostr(unsigned int n) { return kio::usingstr("%u", n); }
-inline str	tostr(long n) { return kio::usingstr("%li", n); }
-inline str	tostr(unsigned long n) { return kio::usingstr("%lu", n); }
-inline str	tostr(long long n) { return kio::usingstr("%lli", n); }
-inline str	tostr(unsigned long long n) { return kio::usingstr("%llu", n); }
-inline cstr tostr(cstr s) { return s ? kio::quotedstr(s) : "nullptr"; }
+inline str	tostr(float n) { return kilipili::usingstr("%.10g", double(n)); }
+inline str	tostr(double n) { return kilipili::usingstr("%.14g", n); }
+inline str	tostr(long double n) { return kilipili::usingstr("%.22Lg", n); }
+inline str	tostr(int n) { return kilipili::usingstr("%i", n); }
+inline str	tostr(unsigned int n) { return kilipili::usingstr("%u", n); }
+inline str	tostr(long n) { return kilipili::usingstr("%li", n); }
+inline str	tostr(unsigned long n) { return kilipili::usingstr("%lu", n); }
+inline str	tostr(long long n) { return kilipili::usingstr("%lli", n); }
+inline str	tostr(unsigned long long n) { return kilipili::usingstr("%llu", n); }
+inline cstr tostr(cstr s) { return s ? kilipili::quotedstr(s) : "nullptr"; }
 
 
 //
@@ -241,7 +241,7 @@ inline cstr tostr(cstr s) { return s ? kio::quotedstr(s) : "nullptr"; }
 //
 
 
-namespace kio
+namespace kilipili
 {
 inline constexpr bool is_space(char c) noexcept { return uchar(c) <= ' ' && c != 0; }
 inline constexpr bool is_letter(char c) noexcept { return uchar((c | 0x20) - 'a') <= 'z' - 'a'; }
@@ -379,7 +379,7 @@ inline void split(Array<cstr>& z, cptr a, cptr e, char c) throws { split(reinter
 inline void split(Array<cstr>& z, cstr s) throws { split(reinterpret_cast<Array<str>&>(z), s); }
 inline void split(Array<cstr>& z, cstr s, char c) throws { split(reinterpret_cast<Array<str>&>(z), s, c); }
 
-} // namespace kio
+} // namespace kilipili
 
 /*
 

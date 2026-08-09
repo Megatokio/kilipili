@@ -6,7 +6,7 @@
 #include <pico/stdlib.h>
 #include <pico/sync.h>
 
-namespace kio::Video
+namespace kilipili::Video
 {
 using namespace Graphics;
 
@@ -45,7 +45,7 @@ struct SpriteFoo
 void testFoo() { SingleSpritePlane<SpriteFoo> foo {ShapeFoo(), Point {}}; }
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

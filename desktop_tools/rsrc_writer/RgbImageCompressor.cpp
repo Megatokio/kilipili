@@ -20,7 +20,7 @@
 #endif
 
 
-namespace kio
+namespace kilipili
 {
 using namespace Graphics;
 using namespace Devices;
@@ -1508,9 +1508,9 @@ bool   RgbImageCompressor::deviation_linear() { return devi_linear; }
 bool   RgbImageCompressor::deviation_quadratic() { return devi_quadratic; }
 int	   RgbImageCompressor::deviation_max() { return devi_max / average_weight; }
 int	   RgbImageCompressor::deviation_factor() { return devi_fak; }
-bool   RgbImageCompressor::high_deviation_other_boost() { return kio::high_deviation_other_boost; }
+bool   RgbImageCompressor::high_deviation_other_boost() { return kilipili::high_deviation_other_boost; }
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

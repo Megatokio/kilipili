@@ -37,7 +37,7 @@
 		and the speed with which the emulated system can write new values into the AY chip.
 */
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 // actual HW sample frequency used by AudioController:
@@ -464,7 +464,7 @@ uint Ay38912_sync<NCH, QSZ>::getAudio(AudioSample<NCH>* buffer, uint num_frames)
 }
 
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio
 
 
 /*

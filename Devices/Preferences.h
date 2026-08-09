@@ -8,7 +8,7 @@
 #include <string.h>
 
 
-namespace kio
+namespace kilipili
 {
 
 // preference IDs used by lib kilipili itself are assigned from max downwards:
@@ -118,7 +118,7 @@ private:
 	Array<uint8> pending_data;
 };
 
-} // namespace kio
+} // namespace kilipili
 
 /*
 

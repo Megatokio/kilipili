@@ -8,7 +8,7 @@
 #include "standard_types.h"
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 class Pixelmap;
@@ -151,7 +151,7 @@ protected:
 	uptr pixels; // -> pixel[0,0]
 };
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 /*
 

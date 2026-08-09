@@ -10,7 +10,7 @@
 #include <common/cdefs.h>
 #include <string.h>
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 // actual HW sample frequency used by AudioController:
@@ -467,7 +467,7 @@ private:
 template<uint nc>
 HF_DC_Filter(RCPtr<AudioSource<nc>>) -> HF_DC_Filter<nc>;
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio
 
 
 /*

@@ -16,7 +16,7 @@
 #include "Pixelmap.h"
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 #define HT_SIZE		8192   /* 13 bit hash table size */
@@ -193,7 +193,7 @@ public:
 	void writeImage(Pixelmap& pm) throws { writeImage(pm, global_cmap); }
 };
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 /*
 

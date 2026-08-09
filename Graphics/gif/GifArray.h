@@ -29,7 +29,7 @@
 #include <string.h>
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 template<class T>
@@ -235,7 +235,7 @@ void GifArray<T>::Grow(int new_count) throws
 	release(old_array);
 }
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 /*
 

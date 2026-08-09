@@ -7,7 +7,7 @@
 #ifdef LIB_PICO_STDLIB
   #include <pico/mutex.h>
 
-namespace kio
+namespace kilipili
 {
 class Mutex
 {
@@ -19,12 +19,12 @@ public:
 	void lock() noexcept { mutex_enter_blocking(&mutex); }
 	void unlock() noexcept { mutex_exit(&mutex); }
 };
-} // namespace kio
+} // namespace kilipili
 
 #else
   #include <mutex>
 
-namespace kio
+namespace kilipili
 {
 using Mutex = std::mutex;
 }
@@ -36,7 +36,7 @@ using Mutex = std::mutex;
 // class which locks a mutex in it's ctor and
 // unlocks it in it's dtor
 
-namespace kio
+namespace kilipili
 {
 class Locker
 {
@@ -46,4 +46,4 @@ public:
 	Locker(Mutex& mutex) : mutex(mutex) { mutex.lock(); }
 	~Locker() { mutex.unlock(); }
 };
-} // namespace kio
+} // namespace kilipili

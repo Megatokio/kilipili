@@ -5,7 +5,7 @@
 #include "MockPixmap.h"
 #include "common/cstrings.h"
 
-namespace kio::Graphics::Mock
+namespace kilipili::Graphics::Mock
 {
 
 Pixmap::Pixmap(coord w, coord h, ColorMode CM, AttrHeight AH) : Canvas(w, h, CM, AH, false)
@@ -109,4 +109,4 @@ void Pixmap::drawChar(coord zx, coord zy, const uint8*, coord h, uint color, uin
 }
 
 
-} // namespace kio::Graphics::Mock
+} // namespace kilipili::Graphics::Mock

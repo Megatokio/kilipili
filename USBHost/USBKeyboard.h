@@ -29,7 +29,7 @@
 */
 
 
-namespace kio::USB
+namespace kilipili::USB
 {
 
 // keyboard keys can generate UCS-2 (wide) chars:
@@ -70,4 +70,4 @@ extern KeyEvent			getKeyEvent(bool autorepeat = true);  // ... get next key up/d
 extern int				getChar();							  // ... get next char
 extern bool				keyEventAvailable(bool autorepeat = true) noexcept;
 
-} // namespace kio::USB
+} // namespace kilipili::USB

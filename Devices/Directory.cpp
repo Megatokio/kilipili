@@ -5,14 +5,14 @@
 #include "Directory.h"
 #include "cstrings.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 Directory::Directory(RCPtr<FileSystem> fs, cstr full_path) : fs(std::move(fs)), dirpath(nullptr)
 {
 	assert(full_path);
-	assert(kio::find(full_path, ":/"));
+	assert(kilipili::find(full_path, ":/"));
 	this->dirpath = newcopy(full_path);
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

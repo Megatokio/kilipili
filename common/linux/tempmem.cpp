@@ -10,7 +10,7 @@
 
 // this file provides tempmem buffers on systems supporting c++11 thread_local variables.
 
-namespace kio
+namespace kilipili
 {
 
 struct Block
@@ -202,7 +202,7 @@ TempMemSave::TempMemSave() noexcept {}
 TempMemSave::~TempMemSave() noexcept {}
 
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

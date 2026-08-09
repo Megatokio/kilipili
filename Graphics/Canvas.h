@@ -27,7 +27,7 @@
 */
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 class Canvas;
@@ -286,7 +286,7 @@ inline void Canvas::drawChar(const Point& z, const uint8* bmp, coord h, uint col
 }
 
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
 /*

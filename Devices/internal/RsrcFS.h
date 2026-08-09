@@ -9,7 +9,7 @@
 
 extern const unsigned char resource_file_data[] __weak_symbol;
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 /*	class RsrcFS is the FileSystem for the resource files stored in Flash.
@@ -77,4 +77,4 @@ private:
 	bool is_in_subdirs(cstr path, cptr sep);
 };
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

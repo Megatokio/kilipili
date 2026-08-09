@@ -5,7 +5,7 @@
 #include "MockFlash.h"
 #include "Array.h"
 
-namespace kio
+namespace kilipili
 {
 
 static constexpr int	ssw	  = 8;
@@ -67,7 +67,7 @@ MockFlash::~MockFlash()
 	if (qspi == this) qspi = nullptr;
 }
 
-} // namespace kio
+} // namespace kilipili
 
 /*
 

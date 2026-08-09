@@ -18,7 +18,7 @@
 constexpr Error UNSUPPORTED_SYSTEM_CLOCK = "requested system clock is not supported";
 
 
-namespace kio
+namespace kilipili
 {
 
 inline uint32 get_system_clock() { return clock_get_hz(clk_sys); }
@@ -111,4 +111,4 @@ constexpr sysclock_params calc_sysclock_params(uint32 f, bool full_mhz) noexcept
 	return best;
 }
 
-} // namespace kio
+} // namespace kilipili

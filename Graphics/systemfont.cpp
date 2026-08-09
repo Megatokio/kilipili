@@ -4,7 +4,7 @@
 
 #include "systemfont.h"
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 // clang-format off
@@ -3862,4 +3862,4 @@ const unsigned char systemfont256x12[256 * 12] =
 
 };
 	
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics

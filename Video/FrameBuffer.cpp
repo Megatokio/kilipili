@@ -10,7 +10,7 @@
 #define RAM	 __attribute__((section(".time_critical.FB" __XSTRING(__LINE__)))) // general ram
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 using namespace Graphics;
 
@@ -174,7 +174,7 @@ template class FrameBuffer<colormode_a2w2>;
 template class FrameBuffer<colormode_a2w4>;
 template class FrameBuffer<colormode_a2w8>;
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 /*
 

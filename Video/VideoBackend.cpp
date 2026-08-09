@@ -18,7 +18,7 @@
 #include <pico/sync.h>
 #include <stdio.h>
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 // clang-format off
@@ -541,7 +541,7 @@ void initialize_video_backend() noexcept
 }
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

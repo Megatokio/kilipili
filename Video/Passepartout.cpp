@@ -10,7 +10,7 @@
 #define RAM	 __attribute__((section(".time_critical.PPT" __XSTRING(__LINE__)))) // general ram
 
 
-namespace kio ::Video
+namespace kilipili ::Video
 {
 
 using namespace Graphics;
@@ -89,7 +89,7 @@ void Passepartout::setSize(int width, int height) noexcept
 }
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

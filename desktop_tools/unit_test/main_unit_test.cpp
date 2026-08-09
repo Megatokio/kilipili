@@ -12,7 +12,7 @@
 #include "common/cdefs.h"
 
 
-namespace kio
+namespace kilipili
 {
 void panic(const char* fmt, ...)
 {
@@ -29,15 +29,15 @@ doctest::String toString(Array<cstr> log)
 	for (uint i = 1; i < log.count(); i++) { s = catstr(s, ",\n", log[i]); }
 	return catstr("{\n", s, "}");
 }
-} // namespace kio
+} // namespace kilipili
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 doctest::String toString(ColorMode cm)
 {
 	return tostr(cm); //
 }
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
 #if 0 

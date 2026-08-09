@@ -10,7 +10,7 @@
 #include <string.h>
 
 
-namespace kio
+namespace kilipili
 {
 
 template<typename T>
@@ -564,4 +564,4 @@ void bucket_sort(T* a, T* e)
 }
 
 
-} // namespace kio
+} // namespace kilipili

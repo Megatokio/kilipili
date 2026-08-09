@@ -6,7 +6,7 @@
 #include "Array.h"
 #include "doctest.h"
 
-using namespace kio;
+using namespace kilipili;
 
 static bool foo_lt(int a, int b) { return (a ^ 3) < (b ^ 3); }
 

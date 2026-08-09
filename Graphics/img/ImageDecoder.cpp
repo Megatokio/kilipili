@@ -5,7 +5,7 @@
 #include "ImageDecoder.h"
 #include "Pixmap.h"
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 ImageDecoder::ImageDecoder(FilePtr file) : file(file)
@@ -192,7 +192,7 @@ void ImageDecoder::decodeImage(store_scanline& store, int x0, int y0)
 }
 
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
 /*

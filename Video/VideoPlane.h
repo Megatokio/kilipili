@@ -10,7 +10,7 @@
 #define RAM	 __attribute__((section(".time_critical.VP" __XSTRING(__LINE__)))) // general ram
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 /*
@@ -74,7 +74,7 @@ protected:
 using VideoPlanePtr = RCPtr<VideoPlane>;
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 #undef RAM
 #undef XRAM

@@ -8,7 +8,7 @@
 #include <common/Array.h>
 #include <cstdio>
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 /*	class YMFileConverter provides some conversion functions for YM music files.
@@ -53,4 +53,4 @@ private:
 	void   interleave_registers();
 };
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio

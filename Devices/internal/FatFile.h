@@ -7,7 +7,7 @@
 #include "File.h"
 #include "ff15/source/ff.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 class FatFS;
@@ -50,6 +50,6 @@ private:
 
 using FatFilePtr = RCPtr<FatFile>;
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 extern cstr tostr(FRESULT) noexcept;

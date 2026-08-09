@@ -10,7 +10,7 @@
 	Family of RNG to produce 64 bit random numbers
 */
 
-namespace kio
+namespace kilipili
 {
 
 using RNGState256 = uint64[4];
@@ -45,4 +45,4 @@ private:
 	void _skip(const uint64 bits[4]) noexcept;
 };
 
-} // namespace kio
+} // namespace kilipili

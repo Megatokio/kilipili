@@ -16,7 +16,7 @@
 #include <pthread.h>
 
 
-using namespace kio;
+using namespace kilipili;
 
 static Xoshiro128 rng(__DATE__ "123456"); // use compile date as seed, need 16 bytes
 static uint		  random(uint n) { return n * (rng.next() >> 16) >> 16; }
@@ -95,7 +95,7 @@ TEST_CASE("tempmem: burn-in")
 			str	 d = xtempmem(n);
 			CHECK(a[n] == 0);
 			CHECK(size_t(b) % max_align == 0);
-			CHECK(memcmp(a, c, kio::strlen(a) + 1) == 0);
+			CHECK(memcmp(a, c, kilipili::strlen(a) + 1) == 0);
 			CHECK(size_t(d) % max_align == 0);
 		}
 	}

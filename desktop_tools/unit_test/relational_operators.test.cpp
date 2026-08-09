@@ -9,7 +9,7 @@
 #include "doctest.h"
 
 
-using namespace kio;
+using namespace kilipili;
 
 
 TEST_CASE("rel_op: int")

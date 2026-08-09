@@ -6,7 +6,7 @@
 #include "geometry.h"
 #include "hid_handler.h"
 
-namespace kio::USB
+namespace kilipili::USB
 {
 
 enum MouseButtons : uint8 {
@@ -80,7 +80,7 @@ extern bool mouseEventAvailable() noexcept;
 extern MouseEvent getMouseEvent() noexcept;
 
 
-} // namespace kio::USB
+} // namespace kilipili::USB
 
 /*
 

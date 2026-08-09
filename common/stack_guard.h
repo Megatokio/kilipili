@@ -6,7 +6,7 @@
 using uint = unsigned int;
 
 
-namespace kio
+namespace kilipili
 {
 
 #ifdef LIB_PICO_STDLIB
@@ -19,4 +19,4 @@ inline void test_stack_guard(uint) {}
 inline uint calc_stack_guard_min_free(uint) { return 0; }
 #endif
 
-} // namespace kio
+} // namespace kilipili

@@ -6,7 +6,7 @@
 #include <hardware/gpio.h>
 
 
-namespace kio
+namespace kilipili
 {
 
 template<unsigned int pin>
@@ -25,4 +25,4 @@ public:
 };
 
 
-} // namespace kio
+} // namespace kilipili

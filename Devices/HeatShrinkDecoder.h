@@ -6,7 +6,7 @@
 #include "File.h"
 
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 extern bool isHeatShrinkEncoded(File*);
@@ -146,4 +146,4 @@ private:
 };
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

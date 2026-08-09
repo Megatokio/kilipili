@@ -6,7 +6,7 @@
 #include "Flash.h"
 
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 #if defined FLASH_PREFERENCES && FLASH_PREFERENCES
@@ -99,7 +99,7 @@ template class QspiFlashDevice<9>;
 template class QspiFlashDevice<12>;
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

@@ -34,7 +34,7 @@ Info: What are attributes?
 */
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 
@@ -174,19 +174,19 @@ static_assert(get_colordepth(colormode_a1w1) == VIDEO_COLOR_PIN_COUNT < 4 ? colo
 static_assert(get_colordepth(colormode_a2w4) == VIDEO_COLOR_PIN_COUNT < 4 ? colordepth_4bpp : colordepth_rgb);
 static_assert(get_colordepth(colormode_a1w8) == VIDEO_COLOR_PIN_COUNT < 4 ? colordepth_4bpp : colordepth_rgb);
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
-inline cstr tostr(kio::Graphics::ColorDepth cd)
+inline cstr tostr(kilipili::Graphics::ColorDepth cd)
 {
 	static constexpr char id[][4] = {"i1", "i2", "i4", "i8", "i16"};
 	return id[cd];
 }
 
-inline cstr tostr(kio::Graphics::ColorMode cm)
+inline cstr tostr(kilipili::Graphics::ColorMode cm)
 {
 	// clang-format off
-	static constexpr char id[kio::Graphics::num_colormodes][9] = {
+	static constexpr char id[kilipili::Graphics::num_colormodes][9] = {
 		"i1", "i2", "i4", "i8", "rgb",		
 		"a1w1", "a1w2", "a1w4", "a1w8", 
 		"a2w1", "a2w2", "a2w4", "a2w8", 

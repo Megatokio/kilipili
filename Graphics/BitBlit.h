@@ -15,7 +15,7 @@
 */
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 /** Helper: calculate mask for n bits.
@@ -32,10 +32,10 @@ constexpr uint32 pixelmask = bitmask(1 << CD);
 template<ColorDepth CD>
 constexpr uint32 flood_filled_color(uint color) noexcept;
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
-namespace kio::Graphics::bitblit
+namespace kilipili::Graphics::bitblit
 {
 
 /** Read single pixel from Pixmap.
@@ -336,7 +336,7 @@ void copy_rect_of_bits(
 void copy_rect_of_bytes(uint8* zp, int zrow_offset, const uint8* qp, int qrow_offset, int w, int h) noexcept;
 
 
-} // namespace kio::Graphics::bitblit
+} // namespace kilipili::Graphics::bitblit
 
 
 //
@@ -348,7 +348,7 @@ void copy_rect_of_bytes(uint8* zp, int zrow_offset, const uint8* qp, int qrow_of
 //
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 template<>
 constexpr uint32 flood_filled_color<colordepth_1bpp>(uint color) noexcept
@@ -380,10 +380,10 @@ constexpr uint32 flood_filled_color(uint color) noexcept
 {
 	return flood_filled_color<get_colordepth(CM)>(color);
 }
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
-namespace kio::Graphics::bitblit
+namespace kilipili::Graphics::bitblit
 {
 
 inline constexpr uint16 double_bits(uint8 bits) noexcept
@@ -818,7 +818,7 @@ int compare_row(const uint8* zp, const uint8* qp, int width) noexcept
 }
 
 
-} // namespace kio::Graphics::bitblit
+} // namespace kilipili::Graphics::bitblit
 
 
 /*

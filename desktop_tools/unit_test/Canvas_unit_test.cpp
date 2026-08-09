@@ -8,8 +8,8 @@
 #include "doctest.h"
 #include <memory>
 
-using namespace kio::Graphics;
-using namespace kio;
+using namespace kilipili::Graphics;
+using namespace kilipili;
 
 
 TEST_CASE("Canvas: is_inside()") { CHECK(1 == 1); }

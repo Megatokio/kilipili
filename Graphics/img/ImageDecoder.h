@@ -9,7 +9,7 @@
 #include "standard_types.h"
 #include <functional>
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 /*	Image file format:
@@ -88,4 +88,4 @@ private:
 };
 
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics

@@ -5,7 +5,7 @@
 #pragma once
 #include "SerialDevice.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 class Stdio final : public SerialDevice
@@ -23,4 +23,4 @@ public:
 	virtual void printf(cstr fmt, ...) override __printflike(2, 3);
 };
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

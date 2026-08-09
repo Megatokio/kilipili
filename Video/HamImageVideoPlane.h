@@ -8,7 +8,7 @@
 #include "ScanlineRenderer.h"
 #include "VideoPlane.h"
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 /*
@@ -40,7 +40,7 @@ private:
 };
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

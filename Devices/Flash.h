@@ -14,7 +14,7 @@ __weak_symbol void suspend_core1() noexcept;
 __weak_symbol void resume_core1() noexcept;
 
 
-namespace kio::Flash
+namespace kilipili::Flash
 {
 
 /*
@@ -53,4 +53,4 @@ extern void setupMockFlash(uint8* flash, uint32 size) noexcept;
 #endif
 
 
-} // namespace kio::Flash
+} // namespace kilipili::Flash

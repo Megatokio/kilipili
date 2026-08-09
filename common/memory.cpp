@@ -37,7 +37,7 @@ extern char __data_start__; // TODO: ram_vector_table
 
 // =========================================
 
-namespace kio
+namespace kilipili
 {
 size_t heap_start() noexcept { return size_t(&end); }
 size_t heap_end() noexcept { return size_t(&__StackLimit); }
@@ -201,7 +201,7 @@ void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 }
 
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

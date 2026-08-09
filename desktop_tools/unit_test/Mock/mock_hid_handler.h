@@ -6,9 +6,9 @@
 #pragma once
 #include "USBHost/hid_handler.h"
 
-namespace kio::USB::Mock
+namespace kilipili::USB::Mock
 {
 extern void setMousePresent(bool f = true);
 extern void addKeyboardReport(const HidKeyboardReport&);
 extern void addMouseReport(const HidMouseReport&);
-} // namespace kio::USB::Mock
+} // namespace kilipili::USB::Mock

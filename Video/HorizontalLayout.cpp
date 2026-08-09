@@ -11,7 +11,7 @@
 #define RAM	 __attribute__((section(".time_critical.HL" __XSTRING(__LINE__)))) // general ram
 
 
-namespace kio ::Video
+namespace kilipili ::Video
 {
 
 constexpr int ss = msbit(sizeof(Graphics::Color));
@@ -87,7 +87,7 @@ template class HorizontalLayout<3>;
 template class HorizontalLayout<4>;
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 /*
 

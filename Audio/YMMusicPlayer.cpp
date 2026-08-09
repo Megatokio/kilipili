@@ -12,7 +12,7 @@
 #include "common/cstrings.h"
 #include <hardware/sync.h>
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 
@@ -357,7 +357,7 @@ void YMMusicPlayer::setVolume(float v)
 	super::setVolume(v);
 }
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio
 
 /*
 

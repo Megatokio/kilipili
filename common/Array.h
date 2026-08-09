@@ -15,7 +15,7 @@
 #include <string.h>
 #include <type_traits>
 
-namespace kio
+namespace kilipili
 {
 
 #define ref_or_value(T) select_type<std::is_scalar_v<T>, T, const T&>
@@ -240,17 +240,17 @@ public:
 	void sort(uint a, uint e) noexcept
 	{
 		if (e > cnt) e = cnt;
-		if (a < e) kio::sort(data + a, data + e);
+		if (a < e) kilipili::sort(data + a, data + e);
 	}
 	void rsort(uint a, uint e) noexcept
 	{
 		if (e > cnt) e = cnt;
-		if (a < e) kio::rsort(data + a, data + e);
+		if (a < e) kilipili::rsort(data + a, data + e);
 	}
 	void sort(uint a, uint e, compare_fu(T) lt) noexcept
 	{
 		if (e > cnt) e = cnt;
-		if (a < e) kio::sort(data + a, data + e, lt);
+		if (a < e) kilipili::sort(data + a, data + e, lt);
 	}
 
 	void revert() noexcept { revert(0, cnt); }
@@ -259,15 +259,15 @@ public:
 	void shuffle() noexcept { shuffle(0, cnt); }
 	void sort() noexcept
 	{
-		if (cnt) kio::sort(data, data + cnt);
+		if (cnt) kilipili::sort(data, data + cnt);
 	} // uses lt()
 	void rsort() noexcept
 	{
-		if (cnt) kio::rsort(data, data + cnt);
+		if (cnt) kilipili::rsort(data, data + cnt);
 	} // uses gt()
 	void sort(compare_fu(T) lt) noexcept
 	{
-		if (cnt) kio::sort(data, data + cnt, lt);
+		if (cnt) kilipili::sort(data, data + cnt, lt);
 	}
 
 	void swap(uint i, uint j) noexcept
@@ -723,19 +723,19 @@ void Array<T>::shuffle(uint a, uint e) noexcept
 	for (uint i = 0; i < n; i++) { std::swap(p[i], p[random() % n]); }
 }
 
-} // namespace kio
+} // namespace kilipili
 
 
 // 1-line description of array for debugging and logging:
 
 template<typename T>
-inline str tostr(const kio::Array<T>& array)
+inline str tostr(const kilipili::Array<T>& array)
 {
 	return usingstr("Array<T>[%u]", array.count());
 }
 
-inline str tostr(const kio::Array<cstr>& array) { return kio::usingstr("Array<cstr>[%u]", array.count()); }
-inline str tostr(const kio::Array<str>& array) { return kio::usingstr("Array<str>[%u]", array.count()); }
+inline str tostr(const kilipili::Array<cstr>& array) { return kilipili::usingstr("Array<cstr>[%u]", array.count()); }
+inline str tostr(const kilipili::Array<str>& array) { return kilipili::usingstr("Array<str>[%u]", array.count()); }
 
 
 /* 

@@ -9,7 +9,7 @@
 #include <new>
 #include <utility>
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 template<typename Shape>
@@ -210,4 +210,4 @@ void Frames<Shape>::alloc_and_copy(const Frame* frames, uint count) throws
 }
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video

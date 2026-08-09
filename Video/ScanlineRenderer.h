@@ -41,7 +41,7 @@
 */
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 using ColorMode = Graphics::ColorMode;
 using Color		= Graphics::Color;
@@ -130,7 +130,7 @@ struct HamImageScanlineRenderer
 };
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

@@ -7,7 +7,7 @@
 #include <string.h>
 
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 void BlockDevice::clamp_blocks(LBA block, SIZE count) const throws
@@ -124,7 +124,7 @@ ADDR BlockDevice::totalSize() const noexcept
 	return 0xffffffffu << ss_write;
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

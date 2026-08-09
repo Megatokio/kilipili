@@ -39,7 +39,7 @@
 		uchar       tag
 */
 
-namespace kio
+namespace kilipili
 {
 
   #if defined UNIT_TEST && UNIT_TEST
@@ -253,7 +253,7 @@ void Preferences::dump_store()
 	}
 }
 
-} // namespace kio
+} // namespace kilipili
 
 #endif
 

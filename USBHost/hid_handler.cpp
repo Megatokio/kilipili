@@ -52,7 +52,7 @@ static struct
 static uint8 mouses	   = 0;
 static uint8 keyboards = 0;
 
-namespace kio::USB
+namespace kilipili::USB
 {
 void initUSBHost() noexcept
 {
@@ -162,7 +162,7 @@ static void process_generic_report(uint8 dev_addr, uint8 instance, const uint8* 
 	}
 }
 
-} // namespace kio::USB
+} // namespace kilipili::USB
 
 
 //--------------------------------------------------------------------
@@ -215,7 +215,7 @@ extern "C" void tuh_hid_report_received_cb(uint8 dev_addr, uint8 instance, const
 {
 	// Received report from device via interrupt endpoint
 
-	using namespace kio::USB;
+	using namespace kilipili::USB;
 
 	switch (tuh_hid_interface_protocol(dev_addr, instance))
 	{

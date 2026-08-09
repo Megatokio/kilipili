@@ -4,7 +4,7 @@
 
 #pragma once
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 extern const unsigned char systemfont256x12[256 * 12];
@@ -75,4 +75,4 @@ enum:char
 };
 // clang-format on
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics

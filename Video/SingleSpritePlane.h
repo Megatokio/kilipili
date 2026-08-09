@@ -12,7 +12,7 @@
 #define RAM	 __attribute__((section(".time_critical.SSP" __XSTRING(__LINE__)))) // general ram
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 /*
@@ -189,7 +189,7 @@ void RAM SingleSpritePlane<Sprite>::renderScanline(int row, int __unused width, 
 }
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 #undef RAM
 #undef XRAM

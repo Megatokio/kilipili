@@ -6,7 +6,7 @@
 #include "extern/StSoundLibrary/StSoundLibrary.h"
 #include <cstdio>
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 struct WAVHeader
@@ -81,4 +81,4 @@ void exportStSoundWavFile(cstr filename, cstr destfile)
 	ymMusicDestroy(pMusic);
 }
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio

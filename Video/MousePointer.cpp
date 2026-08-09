@@ -17,7 +17,7 @@
 // =============================================================
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 using namespace Graphics;
@@ -274,4 +274,4 @@ template class MousePointer<AnimatedSprite<Shape>>;
 //template class MousePointer<AnimatedSprite<SoftenedShape>>;
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video

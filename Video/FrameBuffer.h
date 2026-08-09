@@ -9,7 +9,7 @@
 #include "VideoPlane.h"
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 /*	_____________________________________________________________________________________
@@ -307,7 +307,7 @@ FrameBuffer(Graphics::Pixmap<CM>*) -> FrameBuffer<CM>;
 template<ColorMode CM>
 FrameBuffer(RCPtr<Graphics::Pixmap<CM>>) -> FrameBuffer<CM>;
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

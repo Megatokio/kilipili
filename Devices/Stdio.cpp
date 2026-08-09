@@ -8,7 +8,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 uint32 Stdio::ioctl(IoCtl ctl, void*, void*)
@@ -106,4 +106,4 @@ void Stdio::printf(cstr fmt, ...)
 }
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

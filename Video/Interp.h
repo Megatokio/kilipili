@@ -8,7 +8,7 @@
 #include "standard_types.h"
 #include <hardware/interp.h>
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 struct InterpConfig
@@ -78,4 +78,4 @@ struct Interp : public interp_hw_t
 };
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video

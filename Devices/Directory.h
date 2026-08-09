@@ -6,7 +6,7 @@
 #include "FileSystem.h"
 #include "devices_types.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 
@@ -49,4 +49,4 @@ inline FileInfo Directory::find(cstr pattern) throws
 	return next(pattern);
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

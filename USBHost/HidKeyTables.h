@@ -6,7 +6,7 @@
 #include "standard_types.h"
 
 
-namespace kio::USB
+namespace kilipili::USB
 {
 
 struct HidKeyTable
@@ -29,4 +29,4 @@ struct HidKeyTable
 extern const HidKeyTable key_table_us;
 extern const HidKeyTable key_table_ger;
 
-} // namespace kio::USB
+} // namespace kilipili::USB

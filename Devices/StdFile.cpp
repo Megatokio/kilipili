@@ -5,7 +5,7 @@
 #include "StdFile.h"
 #include <cstring>
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 static cstr modestr_for_mode(FileOpenMode mode)
@@ -153,7 +153,7 @@ void StdFile::close()
 	}
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 /*
 

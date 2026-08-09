@@ -9,7 +9,7 @@
 #define RAM	 __attribute__((section(".time_critical.UCBD" __XSTRING(__LINE__)))) // general ram
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 using namespace Graphics;
@@ -35,4 +35,4 @@ void RAM UniColorBackdrop::render(VideoPlane* vp, int __unused row, int width, u
 	}
 }
 
-} // namespace kio::Video
+} // namespace kilipili::Video

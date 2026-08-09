@@ -8,7 +8,7 @@
 
 #define LOG(...) log.append(usingstr(__VA_ARGS__))
 
-namespace kio::Graphics::Mock
+namespace kilipili::Graphics::Mock
 {
 using namespace Graphics;
 
@@ -339,7 +339,7 @@ void TextVDU::scrollScreenRight(int cols) noexcept
 }
 
 
-} // namespace kio::Graphics::Mock
+} // namespace kilipili::Graphics::Mock
 
 /*
 

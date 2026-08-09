@@ -70,7 +70,7 @@
 #endif
 
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 class AnsiTerm final : public RCObject
@@ -207,4 +207,4 @@ private:
 	void put_csi_response(cstr fmt, ...) __printflike(2, 3);
 };
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics

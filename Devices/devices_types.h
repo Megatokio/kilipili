@@ -8,7 +8,7 @@
 #include "tempmem.h"
 #include <memory>
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 using SIZE = uint; // byte count for read/write/erase
@@ -170,9 +170,9 @@ struct IoCtl
 
 	enum Arg {
 		NONE = 0,
-		SIZE = sizeof(kio::Devices::SIZE),
-		ADDR = sizeof(kio::Devices::ADDR),
-		LBA	 = sizeof(kio::Devices::LBA),
+		SIZE = sizeof(kilipili::Devices::SIZE),
+		ADDR = sizeof(kilipili::Devices::ADDR),
+		LBA	 = sizeof(kilipili::Devices::LBA),
 	};
 
 	uint cmd  : 16;
@@ -199,4 +199,4 @@ inline Flags operator|(Flags a, Flags b) { return Flags(uint(a) | uint(b)); }
 inline Flags operator&(Flags a, int b) { return Flags(uint(a) & uint(b)); }
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

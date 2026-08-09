@@ -38,7 +38,7 @@
    ————————————————————————————————————————————————————————— */
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 using Color = Graphics::Color;
 
@@ -69,8 +69,8 @@ private:
 	Pixels() noexcept  = delete;
 	~Pixels() noexcept = default;
 
-	friend class kio::RCPtr<Pixels>;
-	friend class kio::RCPtr<const Pixels>;
+	friend class kilipili::RCPtr<Pixels>;
+	friend class kilipili::RCPtr<const Pixels>;
 };
 
 
@@ -481,7 +481,7 @@ Shape::Shape(const Pixmap& pm, int transparent_pixel, const Dist& hotspot, const
 }
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

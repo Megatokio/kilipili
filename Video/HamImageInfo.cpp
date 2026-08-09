@@ -7,7 +7,7 @@
 #include "little_big_endian.h"
 #include <string.h>
 
-namespace kio::Video
+namespace kilipili::Video
 {
 using namespace Graphics;
 
@@ -108,4 +108,4 @@ HamImageInfo::HamImageInfo(File* file)
 }
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video

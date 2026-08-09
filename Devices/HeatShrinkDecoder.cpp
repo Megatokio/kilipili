@@ -29,7 +29,7 @@
 #define MIN_LOOKAHEAD_BITS 3
 
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 bool isHeatShrinkEncoded(File* file)
@@ -423,7 +423,7 @@ auto HeatShrinkDecoder::decoder_finish() -> HSD_finish_res
 }
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 
 /*

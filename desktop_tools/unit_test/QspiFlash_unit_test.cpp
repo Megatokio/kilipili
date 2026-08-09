@@ -12,13 +12,13 @@
 
 // defined in main_unit_test.cpp:
 
-namespace kio
+namespace kilipili
 {
 extern doctest::String toString(Array<cstr>);
 
 namespace Test
 {
-using namespace kio::Devices;
+using namespace kilipili::Devices;
 
 static constexpr int			 ssw   = 8; // or 9
 static constexpr int			 sse   = 12;
@@ -667,7 +667,7 @@ TEST_CASE("Preferences")
 
 } // namespace Test
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

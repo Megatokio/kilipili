@@ -6,7 +6,7 @@
 #include "tempmem.h"
 #include <cstdio>
 
-namespace kio
+namespace kilipili
 {
 
 Logger logger;
@@ -105,4 +105,4 @@ void Logger::log<0>(cstr msg, ...) noexcept
 }
 
 
-} // namespace kio
+} // namespace kilipili

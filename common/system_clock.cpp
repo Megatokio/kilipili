@@ -11,17 +11,17 @@
 // possible callback for the application:
 __weak_symbol void sysclockChanged(uint32 new_clock) noexcept;
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 __weak_symbol void sysclockChanged(uint32 new_clock) noexcept;
 }
-namespace kio::LoadSensor
+namespace kilipili::LoadSensor
 {
 __weak_symbol void recalibrate() noexcept;
 }
 
 
-namespace kio
+namespace kilipili
 {
 static_assert(calc_vreg_voltage_for_sysclock(19 MHz) == VREG_VOLTAGE_0_85);
 static_assert(calc_vreg_voltage_for_sysclock(20 MHz) == VREG_VOLTAGE_0_90);
@@ -149,7 +149,7 @@ void sysclock_changed(uint32 new_clock) noexcept
 	if (::sysclockChanged) ::sysclockChanged(new_clock);
 }
 
-} // namespace kio
+} // namespace kilipili
 
 /*
 

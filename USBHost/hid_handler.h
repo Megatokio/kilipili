@@ -5,7 +5,7 @@
 #pragma once
 #include "HidKeys.h"
 
-namespace kio::USB
+namespace kilipili::USB
 {
 
 /*
@@ -71,4 +71,4 @@ extern HidKeyboardEventHandler defaultHidKeyboardEventHandler;
 extern HidMouseEventHandler	   defaultHidMouseEventHandler;
 
 
-} // namespace kio::USB
+} // namespace kilipili::USB

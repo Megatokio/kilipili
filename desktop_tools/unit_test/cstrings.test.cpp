@@ -14,7 +14,7 @@
 //#include "utf8.h"
 
 
-using namespace kio;
+using namespace kilipili;
 
 
 TEST_CASE("cstrings: emptystr")
@@ -170,7 +170,7 @@ TEST_CASE("cstrings: hexchar")
 
 TEST_CASE("cstrings: strlen")
 {
-	CHECK_EQ(kio::strlen("123"), 3); //
+	CHECK_EQ(kilipili::strlen("123"), 3); //
 }
 
 TEST_CASE("cstrings: lt")
@@ -428,7 +428,7 @@ TEST_CASE("cstrings: fromhtmlstr")
 TEST_CASE("cstrings: toutf8str")
 {
 	static const uchar s[] = {'a', 0xC4, 0xFF, 0};
-	CHECK(kio::strlen(toutf8str(cstr(s))) == 5);
+	CHECK(kilipili::strlen(toutf8str(cstr(s))) == 5);
 	CHECK(eq(toutf8str(cstr(s)), "aÄÿ"));
 }
 

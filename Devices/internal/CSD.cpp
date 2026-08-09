@@ -4,7 +4,7 @@
 
 #include "CSD.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 const uint8			CSD::v[16] = {0, 10, 12, 13, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 70, 80};
@@ -52,4 +52,4 @@ uint32 CSD::max_clock()
 	return v[get(102, 99)] * u[get(97, 96)];
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

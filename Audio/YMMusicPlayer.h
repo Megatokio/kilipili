@@ -9,7 +9,7 @@
 #include "basic_math.h"
 
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 class YMMusicPlayer : public Ay38912_player<hw_num_channels>
@@ -101,7 +101,7 @@ private:
 };
 
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio
 
 
 /*

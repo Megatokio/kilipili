@@ -8,7 +8,7 @@
 
 #if !defined OPTION_STACK_TRACE || OPTION_STACK_TRACE
 
-namespace kio
+namespace kilipili
 {
 
 Trace::Path Trace::path[2];
@@ -22,6 +22,6 @@ void Trace::print(uint core)
 	}
 }
 
-} // namespace kio
+} // namespace kilipili
 
 #endif

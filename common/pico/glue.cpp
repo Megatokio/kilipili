@@ -24,7 +24,7 @@ static struct OnInit
 
 #include "RCPtr.h"
 
-namespace kio
+namespace kilipili
 {
 
 struct SubClass : public RCObject
@@ -65,4 +65,4 @@ void foo()
 	NVPtr nvp3(vmtps);
 }
 
-} // namespace kio
+} // namespace kilipili

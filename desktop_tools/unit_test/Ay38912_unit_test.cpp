@@ -19,17 +19,17 @@
   #include <dirent.h>
   #include <zlib.h>
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 extern float hw_sample_frequency; // normally in AudioController.cpp
 }
 
 
-namespace kio::Test
+namespace kilipili::Test
 {
 
-using namespace kio;
-using namespace kio::Audio;
+using namespace kilipili;
+using namespace kilipili::Audio;
 
 
 TEST_CASE("Audio::Ay38912 ctor")
@@ -1561,7 +1561,7 @@ TEST_CASE("Audio::Ay38912 create files in dir")
   #endif
 
 
-} // namespace kio::Test
+} // namespace kilipili::Test
 
 
 #endif // if 0

@@ -7,7 +7,7 @@
 #include "standard_types.h"
 #include <atomic>
 
-namespace kio
+namespace kilipili
 {
 
 /**
@@ -130,4 +130,4 @@ inline void Queue<T, SIZE, IDX>::copy_q2b(T* z, uint n) noexcept
 	copy(z, buffer + ri, n);
 }
 
-} // namespace kio
+} // namespace kilipili

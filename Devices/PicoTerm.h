@@ -7,7 +7,7 @@
 #include "Graphics/Canvas.h"
 #include "Graphics/TextVDU.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 class PicoTerm : public SerialDevice
@@ -73,7 +73,7 @@ protected:
 };
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 
 /*

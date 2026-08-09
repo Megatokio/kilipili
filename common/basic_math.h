@@ -8,7 +8,7 @@
 
 // basic math
 
-namespace kio
+namespace kilipili
 {
 
 template<class T, class T2>
@@ -160,7 +160,7 @@ private:
 	uint value = 0;
 };
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

@@ -11,7 +11,7 @@
 #include <pico/types.h>
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 /*
@@ -121,7 +121,7 @@ extern bool isVideoRunning() noexcept;
 extern uint			 scanlines_missed;
 extern volatile bool locked_out;
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

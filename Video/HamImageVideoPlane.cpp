@@ -10,7 +10,7 @@
 #define XRAM __attribute__((section(".scratch_x.HAM" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 using namespace Graphics;
@@ -61,7 +61,7 @@ void XRAM HamImageVideoPlane::do_render(VideoPlane* vp, __unused int row, int wi
 }
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

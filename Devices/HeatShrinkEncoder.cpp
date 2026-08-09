@@ -26,7 +26,7 @@ static constexpr uint8 MAX_WINDOW_BITS	  = 14; // orig: 15, but does not work
 static constexpr uint8 MIN_LOOKAHEAD_BITS = 4;	// orig: 3
 
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 HeatShrinkEncoder::HeatShrinkEncoder(FilePtr file, uint8 windowbits, uint8 lookaheadbits, bool write_magic) :
@@ -569,7 +569,7 @@ void HeatShrinkEncoder::save_backlog()
 }
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 
 /*

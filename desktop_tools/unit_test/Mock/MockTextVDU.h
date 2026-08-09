@@ -8,13 +8,13 @@
 #undef CHAR_WIDTH
 
 
-namespace kio::Graphics::Mock
+namespace kilipili::Graphics::Mock
 {
 
-class TextVDU : public kio::Graphics::TextVDU
+class TextVDU : public kilipili::Graphics::TextVDU
 {
 public:
-	using super = kio::Graphics::TextVDU;
+	using super = kilipili::Graphics::TextVDU;
 
 	static constexpr int CHAR_WIDTH	 = super::CHAR_WIDTH;
 	static constexpr int CHAR_HEIGHT = super::CHAR_HEIGHT;
@@ -105,7 +105,7 @@ private:
 };
 
 
-} // namespace kio::Graphics::Mock
+} // namespace kilipili::Graphics::Mock
 
 /*
 

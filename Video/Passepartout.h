@@ -6,7 +6,7 @@
 #include "VideoPlane.h"
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 class Passepartout final : public VideoPlane
@@ -32,7 +32,7 @@ private:
 };
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 /*
 

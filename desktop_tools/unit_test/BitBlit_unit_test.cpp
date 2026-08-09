@@ -9,9 +9,9 @@
 
 // clang-format off
 
-using namespace kio::Graphics::bitblit;
-using namespace kio::Graphics;
-using namespace kio;
+using namespace kilipili::Graphics::bitblit;
+using namespace kilipili::Graphics;
+using namespace kilipili;
 
 
 // #######################################################
@@ -514,7 +514,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		attr_clear_rect<attrmode_1bpp,kio::Graphics::colordepth_16bpp>
+		attr_clear_rect<attrmode_1bpp,kilipili::Graphics::colordepth_16bpp>
 				(pixmap.px+width, width, x0, w, h, flip(uint16(0xABCD)));
 		CHECK_EQ(pixmap, expect);
 	}
@@ -533,7 +533,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		attr_clear_rect<attrmode_2bpp,kio::Graphics::colordepth_16bpp>
+		attr_clear_rect<attrmode_2bpp,kilipili::Graphics::colordepth_16bpp>
 				(pixmap.px+width, width, x0, w, h, flip(uint16(0xABCD)));
 		CHECK_EQ(pixmap, expect);
 	}
@@ -554,7 +554,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		attr_clear_rect<attrmode_1bpp,kio::Graphics::colordepth_8bpp>
+		attr_clear_rect<attrmode_1bpp,kilipili::Graphics::colordepth_8bpp>
 				(pixmap.px+width, width, x0, w, h, flip(uint8(0xAB)));
 		CHECK_EQ(pixmap, expect);
 	}
@@ -573,7 +573,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		Buffer<width> pixmap(q);
 		Buffer<width> expect(z);
 
-		attr_clear_rect<attrmode_2bpp,kio::Graphics::colordepth_8bpp>
+		attr_clear_rect<attrmode_2bpp,kilipili::Graphics::colordepth_8bpp>
 				(pixmap.px, 0, x0, w, h, flip(uint8(0xAB)));
 		CHECK_EQ(pixmap, expect);
 	}
@@ -597,7 +597,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		attr_clear_rect<attrmode_1bpp,kio::Graphics::colordepth_4bpp>
+		attr_clear_rect<attrmode_1bpp,kilipili::Graphics::colordepth_4bpp>
 				(pixmap.px+width, width, x0, w, h, flip(uint8(0xE0)));
 		CHECK_EQ(pixmap, expect);
 	}
@@ -621,7 +621,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		attr_clear_rect<attrmode_1bpp,kio::Graphics::colordepth_4bpp>
+		attr_clear_rect<attrmode_1bpp,kilipili::Graphics::colordepth_4bpp>
 				(pixmap.px+width, width, x0, w, h, flip(uint8(0xE0)));
 		CHECK_EQ(pixmap, expect);
 	}
@@ -639,7 +639,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		Buffer<width,height> pixmap(q);
 		Buffer<width,height> expect(z);
 
-		attr_clear_rect<attrmode_2bpp,kio::Graphics::colordepth_4bpp>
+		attr_clear_rect<attrmode_2bpp,kilipili::Graphics::colordepth_4bpp>
 				(pixmap.px+width, width, x0, w, h, flip(uint8(0xE0)));
 		CHECK_EQ(pixmap, expect);
 	}
@@ -667,15 +667,15 @@ TEST_CASE("BitBlit: set_pixel, get_pixel")
 		Buffer<width,height> expect(z);
 		
 		for(int i=0;i<8;i++) 
-			set_pixel<kio::Graphics::colordepth_1bpp>(pixmap.px+width+i*width,24+i*3,1);
+			set_pixel<kilipili::Graphics::colordepth_1bpp>(pixmap.px+width+i*width,24+i*3,1);
 
 		CHECK_EQ(pixmap, expect);
 		
 		for(int i=0;i<8;i++) 
 		{
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_1bpp>(pixmap.px+width+i*width,24+i*3),1);
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_1bpp>(pixmap.px+width+i*width,24+i*3-1),0);
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_1bpp>(pixmap.px+width+i*width,24+i*3+1),0);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_1bpp>(pixmap.px+width+i*width,24+i*3),1);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_1bpp>(pixmap.px+width+i*width,24+i*3-1),0);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_1bpp>(pixmap.px+width+i*width,24+i*3+1),0);
 		}		
 	}
 	
@@ -699,15 +699,15 @@ TEST_CASE("BitBlit: set_pixel, get_pixel")
 		Buffer<width,height> expect(z);
 		
 		for(int i=0;i<8;i++) 
-			set_pixel<kio::Graphics::colordepth_2bpp>(pixmap.px+width+i*width,12+i*3,3);
+			set_pixel<kilipili::Graphics::colordepth_2bpp>(pixmap.px+width+i*width,12+i*3,3);
 
 		CHECK_EQ(pixmap, expect);
 		
 		for(int i=0;i<8;i++) 
 		{
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_2bpp>(pixmap.px+width+i*width,12+i*3),3);
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_2bpp>(pixmap.px+width+i*width,12+i*3-1),0);
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_2bpp>(pixmap.px+width+i*width,12+i*3+1),0);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_2bpp>(pixmap.px+width+i*width,12+i*3),3);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_2bpp>(pixmap.px+width+i*width,12+i*3-1),0);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_2bpp>(pixmap.px+width+i*width,12+i*3+1),0);
 		}		
 	}
 	
@@ -731,15 +731,15 @@ TEST_CASE("BitBlit: set_pixel, get_pixel")
 		Buffer<width,height> expect(z);
 		
 		for(int i=0;i<8;i++) 
-			set_pixel<kio::Graphics::colordepth_4bpp>(pixmap.px+width+i*width,2+i*3,15);
+			set_pixel<kilipili::Graphics::colordepth_4bpp>(pixmap.px+width+i*width,2+i*3,15);
 
 		CHECK_EQ(pixmap, expect);
 		
 		for(int i=0;i<8;i++) 
 		{
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_4bpp>(pixmap.px+width+i*width,2+i*3),15);
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_4bpp>(pixmap.px+width+i*width,2+i*3-1),0);
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_4bpp>(pixmap.px+width+i*width,2+i*3+1),0);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_4bpp>(pixmap.px+width+i*width,2+i*3),15);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_4bpp>(pixmap.px+width+i*width,2+i*3-1),0);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_4bpp>(pixmap.px+width+i*width,2+i*3+1),0);
 		}		
 	}
 
@@ -763,15 +763,15 @@ TEST_CASE("BitBlit: set_pixel, get_pixel")
 		Buffer<width,height> expect(z);
 		
 		for(int i=0;i<8;i++) 
-			set_pixel<kio::Graphics::colordepth_8bpp>(pixmap.px+width+i*width,1+i,255);
+			set_pixel<kilipili::Graphics::colordepth_8bpp>(pixmap.px+width+i*width,1+i,255);
 
 		CHECK_EQ(pixmap, expect);
 		
 		for(int i=0;i<8;i++) 
 		{
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_8bpp>(pixmap.px+width+i*width,1+i),255);
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_8bpp>(pixmap.px+width+i*width,1+i-1),0);
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_8bpp>(pixmap.px+width+i*width,1+i+1),0);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_8bpp>(pixmap.px+width+i*width,1+i),255);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_8bpp>(pixmap.px+width+i*width,1+i-1),0);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_8bpp>(pixmap.px+width+i*width,1+i+1),0);
 		}		
 	}
 
@@ -795,15 +795,15 @@ TEST_CASE("BitBlit: set_pixel, get_pixel")
 		Buffer<width,height> expect(z);
 		
 		for(int i=0;i<8;i++) 
-			set_pixel<kio::Graphics::colordepth_16bpp>(pixmap.px+width+i*width, 1+i, flip(uint16(0xF9F9u)));
+			set_pixel<kilipili::Graphics::colordepth_16bpp>(pixmap.px+width+i*width, 1+i, flip(uint16(0xF9F9u)));
 
 		CHECK_EQ(pixmap, expect);
 		
 		for(int i=0;i<8;i++) 
 		{
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_16bpp>(pixmap.px+width+i*width, 1+i), flip(uint16(0xF9F9u)));
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_16bpp>(pixmap.px+width+i*width, 1+i-1), 0);
-			CHECK_EQ(get_pixel<kio::Graphics::colordepth_16bpp>(pixmap.px+width+i*width, 1+i+1), 0);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_16bpp>(pixmap.px+width+i*width, 1+i), flip(uint16(0xF9F9u)));
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_16bpp>(pixmap.px+width+i*width, 1+i-1), 0);
+			CHECK_EQ(get_pixel<kilipili::Graphics::colordepth_16bpp>(pixmap.px+width+i*width, 1+i+1), 0);
 		}		
 	}
 }
@@ -818,10 +818,10 @@ TEST_CASE("BitBlit: compare_row")
 		Buffer<width> pixmap1(p1);
 		Buffer<width> pixmap2(p1);
 
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_16bpp>(pixmap1.px, pixmap2.px, 8), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_16bpp>(pixmap1.px, pixmap2.px, 8), 0);
 		pixmap2.px[15]++;
-		CHECK_NE(compare_row<kio::Graphics::colordepth_16bpp>(pixmap1.px, pixmap2.px, 8), 0);
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_16bpp>(pixmap1.px, pixmap2.px, 7), 0);		
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_16bpp>(pixmap1.px, pixmap2.px, 8), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_16bpp>(pixmap1.px, pixmap2.px, 7), 0);		
 	}
 	
 	// colordepth i8
@@ -832,10 +832,10 @@ TEST_CASE("BitBlit: compare_row")
 		Buffer<width> pixmap1(p1);
 		Buffer<width> pixmap2(p1);
 
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_8bpp>(pixmap1.px, pixmap2.px, 16), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_8bpp>(pixmap1.px, pixmap2.px, 16), 0);
 		pixmap2.px[15]++;
-		CHECK_NE(compare_row<kio::Graphics::colordepth_8bpp>(pixmap1.px, pixmap2.px, 16), 0);
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_8bpp>(pixmap1.px, pixmap2.px, 15), 0);		
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_8bpp>(pixmap1.px, pixmap2.px, 16), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_8bpp>(pixmap1.px, pixmap2.px, 15), 0);		
 	}
 	
 	// colordepth i4
@@ -846,14 +846,14 @@ TEST_CASE("BitBlit: compare_row")
 		Buffer<width> pixmap1(p1);
 		Buffer<width> pixmap2(p1);
 
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 16), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 16), 0);
 		pixmap2.px[7] += 1;
-		CHECK_NE(compare_row<kio::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 16), 0);
-		CHECK_NE(compare_row<kio::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 15), 0);		
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 14), 0);		
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 16), 0);
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 15), 0);		
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 14), 0);		
 		pixmap2.px[7] += 16-1;
-		CHECK_NE(compare_row<kio::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 16), 0);
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 15), 0);		
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 16), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_4bpp>(pixmap1.px, pixmap2.px, 15), 0);		
 	}
 	
 	// colordepth i2
@@ -864,18 +864,18 @@ TEST_CASE("BitBlit: compare_row")
 		Buffer<width> pixmap1(p1);
 		Buffer<width> pixmap2(p1);
 
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 32), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 32), 0);
 		pixmap2.px[7] += 0x40;
-		CHECK_NE(compare_row<kio::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 32), 0);
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 31), 0);		
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 32), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 31), 0);		
 		pixmap2.px[7] -= 0x40;
 		pixmap2.px[7] += 0x20;
-		CHECK_NE(compare_row<kio::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 31), 0);
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 30), 0);		
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 31), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 30), 0);		
 		pixmap2.px[7] -= 0x20;
 		pixmap2.px[7] += 0x01;
-		CHECK_NE(compare_row<kio::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 29), 0);
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 28), 0);		
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 29), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_2bpp>(pixmap1.px, pixmap2.px, 28), 0);		
 	}
 	
 	// colordepth i1
@@ -886,24 +886,24 @@ TEST_CASE("BitBlit: compare_row")
 		Buffer<width> pixmap1(p1);
 		Buffer<width> pixmap2(p1);
 
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 32), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 32), 0);
 		pixmap2.px[3] += 0x80;
-		CHECK_NE(compare_row<kio::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 32), 0);
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 31), 0);		
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 32), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 31), 0);		
 		pixmap2.px[3] -= 0x80;
 		pixmap2.px[3] += 0x40;
-		CHECK_NE(compare_row<kio::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 31), 0);
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 30), 0);		
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 31), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 30), 0);		
 		pixmap2.px[3] -= 0x40;
 		pixmap2.px[3] += 0x01;
-		CHECK_NE(compare_row<kio::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 25), 0);
-		CHECK_EQ(compare_row<kio::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 24), 0);		
+		CHECK_NE(compare_row<kilipili::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 25), 0);
+		CHECK_EQ(compare_row<kilipili::Graphics::colordepth_1bpp>(pixmap1.px, pixmap2.px, 24), 0);		
 	}
 }
 
 TEST_CASE("BitBlit: draw_bitmap<1bpp>")
 {
-	constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+	constexpr ColorDepth CD = kilipili::Graphics::colordepth_1bpp;
 	
 	// left aligned, color=1
 	{
@@ -1062,7 +1062,7 @@ TEST_CASE("BitBlit: draw_bitmap<1bpp>")
 
 TEST_CASE("BitBlit: draw_bitmap<2bpp>")
 {
-	constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+	constexpr ColorDepth CD = kilipili::Graphics::colordepth_2bpp;
 
 	// x1 not|aligned
 	// x2 not|aligned
@@ -1148,7 +1148,7 @@ TEST_CASE("BitBlit: draw_bitmap<2bpp>")
 
 TEST_CASE("BitBlit: draw_bitmap<4bpp>")
 {
-	constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+	constexpr ColorDepth CD = kilipili::Graphics::colordepth_4bpp;
 
 	// x1 not|aligned
 	// x2 not|aligned
@@ -1234,7 +1234,7 @@ TEST_CASE("BitBlit: draw_bitmap<4bpp>")
 
 TEST_CASE("BitBlit: draw_bitmap<8bpp>")
 {
-	constexpr ColorDepth CD = kio::Graphics::colordepth_8bpp;
+	constexpr ColorDepth CD = kilipili::Graphics::colordepth_8bpp;
 
 	// x1 not|aligned
 	// x2 not|aligned
@@ -1320,7 +1320,7 @@ TEST_CASE("BitBlit: draw_bitmap<8bpp>")
 
 TEST_CASE("BitBlit: draw_bitmap<16bpp>")
 {
-	constexpr ColorDepth CD = kio::Graphics::colordepth_16bpp;
+	constexpr ColorDepth CD = kilipili::Graphics::colordepth_16bpp;
 
 	// x1 not|aligned
 	// x2 not|aligned
@@ -1406,7 +1406,7 @@ TEST_CASE("BitBlit: draw_bitmap<16bpp>")
 
 TEST_CASE("BitBlit: draw_char<1bpp>")
 {
-	constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+	constexpr ColorDepth CD = kilipili::Graphics::colordepth_1bpp;
 	
 	constexpr int width = 8, height = 14;
 	constexpr int chr_roffs=1, chr_height=12; // chr_width=8, 
@@ -1477,7 +1477,7 @@ TEST_CASE("BitBlit: draw_char<1bpp>")
 
 TEST_CASE("BitBlit: draw_char<2bpp>")
 {
-	constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+	constexpr ColorDepth CD = kilipili::Graphics::colordepth_2bpp;
 	
 	constexpr int width = 16, height = 14;
 	constexpr int chr_roffs=1, chr_height=12; // chr_width=8, 
@@ -1548,7 +1548,7 @@ TEST_CASE("BitBlit: draw_char<2bpp>")
 
 TEST_CASE("BitBlit: draw_char<4bpp>")
 {
-	constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+	constexpr ColorDepth CD = kilipili::Graphics::colordepth_4bpp;
 	
 	constexpr int width = 32, height = 14;
 	constexpr int chr_roffs=1, chr_height=12; // chr_width=8, 
@@ -1679,7 +1679,7 @@ TEST_CASE("BitBlit: draw_hline")
 	Buffer<width, height> expect(q);
 	
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_1bpp;
 		
 		for(uint bg=0; bg<=1; bg++)
 		{
@@ -1701,7 +1701,7 @@ TEST_CASE("BitBlit: draw_hline")
 	}
 	
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_2bpp;
 		
 		for(uint bg=0; bg<=3; bg++)
 		{
@@ -1723,7 +1723,7 @@ TEST_CASE("BitBlit: draw_hline")
 	}
 	
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_4bpp;
 		
 		for(uint bg=0; bg<=15; bg+=5)
 		{
@@ -1745,7 +1745,7 @@ TEST_CASE("BitBlit: draw_hline")
 	}
 
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_8bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_8bpp;
 		
 		for(uint bg=0; bg<=255; bg+=51)
 		{
@@ -1773,7 +1773,7 @@ TEST_CASE("BitBlit: draw_hline")
 		Buffer<width, height> pixmap(q);
 		Buffer<width, height> expect(q);
 		
-		constexpr ColorDepth CD = kio::Graphics::colordepth_16bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_16bpp;
 		
 		for(uint bg = 0; bg<=0xffff; bg+=0xffff/3)
 		{
@@ -1808,7 +1808,7 @@ TEST_CASE("BitBlit: draw_vline")
 	Buffer<width2,height> expect2(q2);
 	
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_1bpp;
 		
 		for(uint bg=0; bg<=1; bg++)
 		{
@@ -1835,7 +1835,7 @@ TEST_CASE("BitBlit: draw_vline")
 	}
 	
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_2bpp;
 		
 		for(uint bg=0; bg<=3; bg+=3)
 		{
@@ -1862,7 +1862,7 @@ TEST_CASE("BitBlit: draw_vline")
 	}
 	
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_4bpp;
 		
 		for(uint bg=0; bg<=15; bg+=15)
 		{
@@ -1889,7 +1889,7 @@ TEST_CASE("BitBlit: draw_vline")
 	}
 	
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_8bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_8bpp;
 		
 		for(uint bg=0; bg<=255; bg+=255)
 		{
@@ -1916,7 +1916,7 @@ TEST_CASE("BitBlit: draw_vline")
 	}
 	
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_16bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_16bpp;
 		
 		for(uint bg=0; bg<=0xffff; bg+=0xffff)
 		{
@@ -1997,7 +1997,7 @@ TEST_CASE("BitBlit: xor_rect, xor_rect_of_bits")
 {
 	// 1bpp:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_1bpp;
 
 		constexpr int width = 8, height = 8;
 		const uint16 q[] = { 
@@ -2048,7 +2048,7 @@ TEST_CASE("BitBlit: xor_rect, xor_rect_of_bits")
 	
 	// 2bpp:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_2bpp;
 
 		constexpr int width = 16, height = 8;
 		const uint16 q[] = { 
@@ -2099,7 +2099,7 @@ TEST_CASE("BitBlit: xor_rect, xor_rect_of_bits")
 	
 	// 4bpp:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_4bpp;
 
 		constexpr int width = 16, height = 8;
 		const uint16 q[] = { 
@@ -2150,7 +2150,7 @@ TEST_CASE("BitBlit: xor_rect, xor_rect_of_bits")
 	
 	// 8bpp:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_8bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_8bpp;
 
 		constexpr int width = 32, height = 8;
 		const uint16 q[] = { 
@@ -2201,7 +2201,7 @@ TEST_CASE("BitBlit: xor_rect, xor_rect_of_bits")
 	
 	// 16bpp:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_16bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_16bpp;
 
 		constexpr int width = 32, height = 8;
 		const uint16 q[] = { 
@@ -2252,7 +2252,7 @@ TEST_CASE("BitBlit: xor_rect, xor_rect_of_bits")
 
 	// odd row offset:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_1bpp;
 
 		constexpr int width = 11, height = 8;
 		const uint16 q[] = { 
@@ -2318,7 +2318,7 @@ TEST_CASE("BitBlit: copy_rect, copy_rect_of_bits, copy_rect_of_bytes")
 	
 	// 1bpp:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_1bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_1bpp;
 
 		constexpr int width = 28, height = 9;
 		constexpr int width2 = 27;
@@ -2501,7 +2501,7 @@ TEST_CASE("BitBlit: copy_rect, copy_rect_of_bits, copy_rect_of_bytes")
 	
 	// 2bpp:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_2bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_2bpp;
 
 		constexpr int width = 28, height = 9;
 		constexpr int width2 = 27;
@@ -2625,7 +2625,7 @@ TEST_CASE("BitBlit: copy_rect, copy_rect_of_bits, copy_rect_of_bytes")
 	
 	// 4bpp:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_4bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_4bpp;
 
 		constexpr int width = 28, height = 9;
 		constexpr int width2 = 27;
@@ -2749,7 +2749,7 @@ TEST_CASE("BitBlit: copy_rect, copy_rect_of_bits, copy_rect_of_bytes")
 	
 	// 8bpp:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_8bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_8bpp;
 
 		constexpr int width = 28, height = 9;
 		constexpr int width2 = 27;
@@ -2873,7 +2873,7 @@ TEST_CASE("BitBlit: copy_rect, copy_rect_of_bits, copy_rect_of_bytes")
 	
 	// 16bpp:
 	{
-		constexpr ColorDepth CD = kio::Graphics::colordepth_16bpp;
+		constexpr ColorDepth CD = kilipili::Graphics::colordepth_16bpp;
 
 		constexpr int width = 28, height = 9;
 		constexpr int width2 = 26;

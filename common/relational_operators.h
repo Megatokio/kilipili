@@ -7,7 +7,7 @@
 #include "template_helpers.h"
 #include <type_traits>
 
-namespace kio
+namespace kilipili
 {
 
 /*	DATA TYPE			VALUE				IDENTITY		SORT		INDEXOF/CONTAINS/REMOVE
@@ -59,7 +59,7 @@ inline Bool le(T a, T b) noexcept
 
 // specialization for classes:
 
-#define Bool typename std::enable_if_t<std::is_class<T>::value && !kio::has_operator_star<T>, bool>
+#define Bool typename std::enable_if_t<std::is_class<T>::value && !kilipili::has_operator_star<T>, bool>
 template<typename T>
 inline Bool eq(cT& a, cT& b) noexcept
 {
@@ -94,7 +94,7 @@ inline Bool le(cT& a, cT& b) noexcept
 
 // specialization for pointer classes:
 
-#define Bool typename std::enable_if_t<std::is_class<T>::value && kio::has_operator_star<T>, bool>
+#define Bool typename std::enable_if_t<std::is_class<T>::value && kilipili::has_operator_star<T>, bool>
 template<class T>
 inline Bool eq(cT& a, cT& b) noexcept
 {
@@ -294,4 +294,4 @@ inline bool is(T* a, T* b) noexcept
 
 #undef cT
 
-} // namespace kio
+} // namespace kilipili

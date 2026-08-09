@@ -6,7 +6,7 @@
 #include "common/geometry.h"
 #include "common/standard_types.h"
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 // clang-format off
@@ -345,7 +345,7 @@ constexpr VgaMode vga_mode_512x384_50 = vga_mode_1024x768_50.half();
 static_assert(vga_mode_1024x768_50.h_total() == 1368);
 static_assert(vga_mode_1024x768_50.v_total() == 806);
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 // clang-format on

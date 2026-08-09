@@ -13,14 +13,14 @@
 #include "doctest.h"
 #include "mock_hid_handler.h"
 
-namespace kio::Test
+namespace kilipili::Test
 {
 
-using namespace kio::Graphics;
+using namespace kilipili::Graphics;
 using namespace USB;
-using namespace kio;
-using TextVDU = kio::Graphics::Mock::TextVDU;
-using Pixmap  = kio::Graphics::Mock::Pixmap;
+using namespace kilipili;
+using TextVDU = kilipili::Graphics::Mock::TextVDU;
+using Pixmap  = kilipili::Graphics::Mock::Pixmap;
 
 static_assert(TextVDU::CHAR_HEIGHT == 12);
 static_assert(TextVDU::CHAR_WIDTH == 8);
@@ -28,11 +28,11 @@ static_assert(Color::total_colorbits >= 15); // we get the defaults from vgaboar
 
 // defined in main_unit_test.cpp:
 
-namespace kio
+namespace kilipili
 {
 extern doctest::String toString(Array<cstr>);
 }
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 extern doctest::String toString(ColorMode);
 }
@@ -4001,7 +4001,7 @@ TEST_CASE("CSI n Y  CVT")
 	// cursor vertical tabulation			NIMP
 }
 
-} // namespace kio::Test
+} // namespace kilipili::Test
 
 
 /*

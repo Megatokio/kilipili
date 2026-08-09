@@ -9,7 +9,7 @@
 #include <cstdio>
 
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 /*	class YMMFileConverter converts .ym music file to .ymm format.
@@ -97,4 +97,4 @@ private:
 };
 
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio

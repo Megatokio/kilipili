@@ -8,7 +8,7 @@
 
 #if !defined OPTION_STACK_TRACE || OPTION_STACK_TRACE
 
-namespace kio
+namespace kilipili
 {
 
 class Trace
@@ -40,7 +40,7 @@ public:
 
   #define trace(name) Trace _trace(name)
 
-} // namespace kio
+} // namespace kilipili
 
 #else
 

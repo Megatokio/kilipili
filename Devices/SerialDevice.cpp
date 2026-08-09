@@ -9,7 +9,7 @@
 #include <stdarg.h>
 #include <string.h>
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 uint32 SerialDevice::ioctl(IoCtl cmd, void*, void*)
@@ -110,7 +110,7 @@ void SerialDevice::printf(cstr fmt, ...)
 }
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 
 /*

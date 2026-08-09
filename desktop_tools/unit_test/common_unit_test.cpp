@@ -6,7 +6,7 @@
 #include "common/cstrings.h"
 #include "doctest.h"
 
-using namespace kio;
+using namespace kilipili;
 
 TEST_CASE("basic_math: min")
 {
@@ -37,9 +37,9 @@ TEST_CASE("basic_math: sign, abs")
 	static_assert(sign(-2) == -1);
 	static_assert(sign(2ll) == 1);
 	static_assert(sign(2ull) == 1);	 // no warning?
-	static_assert(kio::abs(0) == 0); // stdlib has a non-constexpr abs(int)
-	static_assert(kio::abs(2) == 2);
-	static_assert(kio::abs(-2) == 2);
+	static_assert(kilipili::abs(0) == 0); // stdlib has a non-constexpr abs(int)
+	static_assert(kilipili::abs(2) == 2);
+	static_assert(kilipili::abs(-2) == 2);
 	static_assert(abs(0ll) == 0);
 	static_assert(abs(2ll) == 2);
 	static_assert(abs(-2ll) == 2);

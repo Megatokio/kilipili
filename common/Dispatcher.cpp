@@ -18,7 +18,7 @@
 #endif
 
 
-namespace kio
+namespace kilipili
 {
 namespace Dispatcher
 {
@@ -198,7 +198,7 @@ int blinkOnboardLed(void*) noexcept
 #endif
 }
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*

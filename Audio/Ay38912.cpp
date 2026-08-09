@@ -14,7 +14,7 @@
 */
 
 
-namespace kio::Audio
+namespace kilipili::Audio
 {
 
 /* ===============================================================
@@ -570,7 +570,7 @@ template class Ay38912<1>;
 template class Ay38912<2>;
 
 
-} // namespace kio::Audio
+} // namespace kilipili::Audio
 
 
 /*

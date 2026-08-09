@@ -4,10 +4,10 @@
 
 #include "Sprite.h"
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 volatile int hot_row		  = 0;
 spin_lock_t* sprites_spinlock = nullptr;
 
-} // namespace kio::Video
+} // namespace kilipili::Video

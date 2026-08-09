@@ -9,7 +9,7 @@
 #include <functional>
 #undef CHAR_WIDTH
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 
 
@@ -166,7 +166,7 @@ inline void TextVDU::scrollScreenRight(int cols) noexcept
 }
 
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
 /*

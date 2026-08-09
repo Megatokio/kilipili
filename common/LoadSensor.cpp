@@ -8,7 +8,7 @@
 #include <hardware/clocks.h>
 #include <stdio.h>
 
-namespace kio::LoadSensor
+namespace kilipili::LoadSensor
 {
 
 static constexpr uint pwm0 = PWM_LOAD_SENSOR_SLICE_NUM_BASE + 0;
@@ -159,7 +159,7 @@ void getLoad(uint core_num, uint& min, uint& avg, uint& max) noexcept
 	if unlikely (min > avg) min = avg; // after set_system_clock(): core.max > max_pwm_count
 }
 
-} // namespace kio::LoadSensor
+} // namespace kilipili::LoadSensor
 
 
 /* 

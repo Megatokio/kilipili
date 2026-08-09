@@ -17,7 +17,7 @@
 #include "standard_types.h"
 #include <functional>
 
-namespace kio::Graphics
+namespace kilipili::Graphics
 {
 static constexpr int  LZ_BITS	   = 12;
 static constexpr uint LZ_SIZE	   = 1 << LZ_BITS;
@@ -101,7 +101,7 @@ private:
 };
 
 
-} // namespace kio::Graphics
+} // namespace kilipili::Graphics
 
 
 /*

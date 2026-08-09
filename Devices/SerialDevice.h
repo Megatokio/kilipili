@@ -7,7 +7,7 @@
 #include "little_big_endian.h"
 #include "no_copy_move.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 constexpr uint gets_max_len = 512; // max string length handled by gets()
@@ -124,4 +124,4 @@ public:
 inline SIZE SerialDevice::read(void*, SIZE, bool) { throw NOT_READABLE; }
 inline SIZE SerialDevice::write(const void*, SIZE, bool) { throw NOT_WRITABLE; }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

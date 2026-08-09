@@ -56,7 +56,7 @@
 
 // ============================================================================================
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 using namespace Graphics;
@@ -788,7 +788,7 @@ void XRAM HamImageScanlineRenderer::render(uint32* framebuffer, uint width, cons
 	cleanup_if_needed<ip>();
 }
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

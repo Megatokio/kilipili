@@ -53,7 +53,7 @@ static constexpr uint32 spi_clock = 10 * 1000 * 1000;
 // ==================================================
 
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 static spi_inst*	  inst_for_pin(uint pin) { return pin < 20 ? pin & 8 ? spi1 : spi0 : nullptr; }
@@ -1009,4 +1009,4 @@ void SDCard::printCardInfo(SerialDevice* sio, bool v)
 	printSCR(sio, v);
 }
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices

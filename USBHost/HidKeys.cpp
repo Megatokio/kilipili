@@ -189,7 +189,7 @@ static const char modifier[8][14] = {
 };
 
 
-cstr tostr(kio::USB::HIDKey key)
+cstr tostr(kilipili::USB::HIDKey key)
 {
 	if (key <= 0xA4) return hidkey[key];
 	if (key >= 0xE0 && key < 0xE8) return modifier[key - 0xE0];
@@ -202,7 +202,7 @@ static constexpr int numbits(uint8 z)
 	return (z >> 4) + (z & 0x0Fu);
 }
 
-cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
+cstr tostr(kilipili::USB::Modifiers mod, bool unified) noexcept
 {
 	//LEFTCTRL   = 1 << 0, // Left Control
 	//LEFTSHIFT  = 1 << 1, // Left Shift
@@ -213,7 +213,7 @@ cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
 	//RIGHTALT   = 1 << 6, // Right Alt
 	//RIGHTGUI   = 1 << 7, // Right Window
 
-	if (mod == kio::USB::NO_MODIFIERS) return "NONE";
+	if (mod == kilipili::USB::NO_MODIFIERS) return "NONE";
 	static constexpr char names[4][7] = {"CTRL+", "SHIFT+", "ALT+", "GUI+"};
 
 	char  bu[28]; // max 27: "lCTRL+lSHIFT+rCTRL+rSHIFT", '+', chr(0)
@@ -247,5 +247,5 @@ cstr tostr(kio::USB::Modifiers mod, bool unified) noexcept
 
 	assert(p > bu);
 	*--p = 0;
-	return kio::dupstr(bu);
+	return kilipili::dupstr(bu);
 }

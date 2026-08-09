@@ -6,7 +6,7 @@
 #include "cdefs.h"
 #include "devices_types.h"
 
-namespace kio::Devices
+namespace kilipili::Devices
 {
 
 /*
@@ -70,7 +70,7 @@ inline void BlockDevice::readSectors(LBA, void*, SIZE) throws { throw NOT_READAB
 inline void BlockDevice::writeSectors(LBA, const void*, SIZE) throws { throw NOT_WRITABLE; }
 
 
-} // namespace kio::Devices
+} // namespace kilipili::Devices
 
 
 /*

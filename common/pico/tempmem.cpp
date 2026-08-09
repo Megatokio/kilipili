@@ -18,7 +18,7 @@
 // this file provides cyclic tempmem buffers on the RP2040 (Raspberry Pico).
 
 
-namespace kio
+namespace kilipili
 {
 
 static char null	 = 0;
@@ -196,7 +196,7 @@ ptr xtempmem(uint size)
 	return pool->tempmem(size);
 }
 
-} // namespace kio
+} // namespace kilipili
 
 /*
 

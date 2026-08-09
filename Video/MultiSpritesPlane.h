@@ -9,7 +9,7 @@
 #include <pico/sync.h>
 
 
-namespace kio::Video
+namespace kilipili::Video
 {
 
 extern bool hotlist_overflow; // set by add_to_hotlist()
@@ -97,7 +97,7 @@ extern template class MultiSpritesPlane<AnimatedSprite<SoftenedShape>, NoZ>;
 extern template class MultiSpritesPlane<AnimatedSprite<SoftenedShape>, HasZ>;
 
 
-} // namespace kio::Video
+} // namespace kilipili::Video
 
 
 /*

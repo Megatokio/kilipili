@@ -38,7 +38,7 @@
 	MTPtr's spinlock for both. This spills over to the RCPtr which now has to use it too.
 */
 
-namespace kio
+namespace kilipili
 {
 
 // It is an error to pass a RCPtr<subclass> in assignments if T has no virtual destructor
@@ -85,7 +85,7 @@ class RCPtr
 	template<class TT>
 	friend class NVPtr;
 	template<typename T2>
-	friend class kio::RCPtr;
+	friend class kilipili::RCPtr;
 
 	using nvptr = typename std::remove_volatile_t<T>*;
 
@@ -227,7 +227,7 @@ class MTPtr
 	template<class TT>
 	friend class NVPtr;
 	template<typename T2>
-	friend class kio::MTPtr;
+	friend class kilipili::MTPtr;
 
 	using nvptr = typename std::remove_volatile<T>::type*;
 
@@ -519,7 +519,7 @@ NVPtr(const MTPtr<volatile T>&) -> NVPtr<RCPtr<volatile T>>;
 
 #undef subclass_only
 
-} // namespace kio
+} // namespace kilipili
 
 
 /*
