@@ -13,7 +13,6 @@ using namespace kilipili;
 
 static_assert(TextVDU::CHAR_HEIGHT == 12);
 static_assert(TextVDU::CHAR_WIDTH == 8);
-static_assert(Color::total_colorbits >= 15); // we get the defaults from vgaboard
 
 // defined in main_unit_test.cpp:
 
@@ -41,15 +40,15 @@ TEST_CASE("TextVDU: constructor")
 	ref << "Pixmap(80,60,a1w8,12)";
 	CHECK_EQ(pm->log, ref);
 
-	CHECK_EQ(Color(tv.default_bgcolor).raw, 0xffffu); // white
-	CHECK_EQ(Color(tv.default_fgcolor).raw, 0x0000u); // black
+	CHECK_EQ(Color(tv.default_bgcolor).raw, Color::uRGB(-1)); // white
+	CHECK_EQ(Color(tv.default_fgcolor).raw, 0x0000u);		  // black
 	CHECK_EQ(tv.pixmap.ptr(), pm.ptr());
 	CHECK_EQ(tv.colormode, uint(colormode_a1w8));
 	CHECK_EQ(tv.attrheight, 12);
-	CHECK_EQ(tv.colordepth, 4); //log2(16)
+	CHECK_EQ(tv.colordepth, msbit(sizeof(Color) * CHAR_BIT)); //log2(16)
 	CHECK_EQ(tv.attrmode, attrmode_1bpp);
-	CHECK_EQ(tv.attrwidth, 3); // log2(8)
-	CHECK_EQ(tv.bits_per_color, 16);
+	CHECK_EQ(tv.attrwidth, 3);							   // log2(8)
+	CHECK_EQ(tv.bits_per_color, sizeof(Color) * CHAR_BIT); // 16
 	CHECK_EQ(tv.bits_per_pixel, 1);
 	CHECK_EQ(tv.cols, 80 / 8);
 	CHECK_EQ(tv.rows, 60 / 12);
@@ -126,8 +125,10 @@ TEST_CASE("TextVDU: cls()")
 {
 	RCPtr<RealPixmap> pm = new RealPixmap(80, 60, attrheight_12px);
 	TextVDU			  tv(pm);
-	tv.bgcolor = 1234;
-	tv.fgcolor = 2345;
+	constexpr uint	  BGCOLOR = Color::uRGB(12345678);
+	constexpr uint	  FGCOLOR = Color::uRGB(23456789);
+	tv.bgcolor				  = BGCOLOR;
+	tv.fgcolor				  = FGCOLOR;
 	tv.printChar('E', 80 / 8 * 60 / 12);
 	tv.cls();
 	bool ink_ok	  = true;
@@ -135,7 +136,7 @@ TEST_CASE("TextVDU: cls()")
 	for (coord x = 0; x < 80; x++)
 		for (coord y = 0; y < 60; y++)
 		{
-			if (pm->getColor(x, y) != 1234) color_ok = false;
+			if (pm->getColor(x, y) != BGCOLOR) color_ok = false;
 			if (pm->getInk(x, y) != 0) ink_ok = false;
 		}
 	CHECK_EQ(ink_ok, true);
@@ -168,7 +169,7 @@ TEST_CASE("TextVDU: identify()")
 	CHECK_EQ(tv1.rows, 5);
 	CHECK_EQ(tv1.attrwidth, 3); // log2(8)
 	CHECK_EQ(tv1.attrheight, 12);
-	CHECK_EQ(tv1.colordepth, 4); // log2(16)
+	CHECK_EQ(tv1.colordepth, msbit(sizeof(Color) * CHAR_BIT)); // log2(16)
 }
 
 TEST_CASE("TextVDU: moveTo()")

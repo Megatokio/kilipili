@@ -7,10 +7,8 @@
 // pull in board description file for targeted board:
 #ifndef MAKE_TOOLS
   #include <pico/config.h>
-#else
-  #define PICO_AUDIO_PWM
-  #define PICO_AUDIO_LEFT_PIN  1
-  #define PICO_AUDIO_RIGHT_PIN 2
+#elif defined PICO_BOARD_H
+  #include PICO_BOARD_H
 #endif
 
 

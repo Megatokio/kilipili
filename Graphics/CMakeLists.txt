@@ -56,6 +56,7 @@ add_library(kilipili_graphics STATIC
 
 target_compile_definitions(kilipili_graphics PUBLIC  
 	${graphics_defines}  
+	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 )
 
 target_include_directories(kilipili_graphics PUBLIC  

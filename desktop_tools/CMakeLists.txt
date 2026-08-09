@@ -68,7 +68,7 @@ add_executable(RsrcFileWriter
 
 target_compile_definitions(RsrcFileWriter PUBLIC
 	MAKE_TOOLS=1
-	PICO_BOARD_H="boards/${PICO_BOARD}.h"
+	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 	)
 
 # add current dir to 'include search path':
@@ -128,6 +128,7 @@ add_executable(UnitTest
 target_compile_definitions(UnitTest PUBLIC
 	MAKE_TOOLS=1
 	UNIT_TEST=1
+	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 	FLASH_PREFERENCES=${FLASH_PREFERENCES}
 	YM_FILE="${CMAKE_CURRENT_LIST_DIR}/test_files/Ninja Spirits  5.ym"
 	)
@@ -157,7 +158,7 @@ add_executable(GifCompressionTest
 
 target_compile_definitions(GifCompressionTest PUBLIC
 	MAKE_TOOLS=1
-	PICO_BOARD="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
+	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 	)
 
 # add current dir to 'include search path':
@@ -187,7 +188,7 @@ add_executable(RGBCompressionTest
 
 target_compile_definitions(RGBCompressionTest PUBLIC
 	MAKE_TOOLS=1
-	PICO_BOARD="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
+	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 	)
 
 # add current dir to 'include search path':
