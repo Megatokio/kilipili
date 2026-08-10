@@ -7,7 +7,7 @@
 #include "common/DiskLight.h"
 #include <string.h>
 
-#if defined UNIT_TEST && UNIT_TEST
+#ifdef MAKE_TOOLS
   #include "glue.h"
 #else
   #include <hardware/flash.h>
@@ -19,7 +19,7 @@ extern char __flash_binary_end;
 namespace kilipili::Flash
 {
 
-#if defined UNIT_TEST && UNIT_TEST
+#ifdef MAKE_TOOLS
 
 static cuptr  flash_start;
 static cuptr  flash_start_nocache;

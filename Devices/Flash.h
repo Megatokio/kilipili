@@ -48,7 +48,7 @@ static constexpr int  sse	= 12;
 static constexpr uint esize = 1 << sse;
 static constexpr uint wsize = 1 << ssw;
 
-#if defined UNIT_TEST && UNIT_TEST
+#ifdef MAKE_TOOLS
 extern void setupMockFlash(uint8* flash, uint32 size) noexcept;
 #endif
 

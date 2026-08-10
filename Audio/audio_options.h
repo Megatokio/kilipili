@@ -6,8 +6,10 @@
 
 // pull in board description file for targeted board:
 #ifndef MAKE_TOOLS
-  #include <pico/config.h>
+  #include <pico.h>
 #elif defined PICO_BOARD_H
+  #define pico_board_cmake_set(...)
+  #define pico_board_cmake_set_default(...)
   #include PICO_BOARD_H
 #endif
 

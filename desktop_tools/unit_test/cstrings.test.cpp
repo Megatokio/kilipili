@@ -2,9 +2,6 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#undef NDEBUG
-#define SAFETY	 2
-#define LOGLEVEL 1
 #include "cstrings.h"
 #include "Array.h"
 #include "cstrings.h"

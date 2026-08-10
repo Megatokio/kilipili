@@ -10,7 +10,7 @@
   #include "Devices/Flash.h"
   #include <cstring>
 
-  #if defined UNIT_TEST && UNIT_TEST
+  #ifdef MAKE_TOOLS
 	#include "glue.h"
 	#define logline(...) (void)0
   #else
@@ -42,7 +42,7 @@
 namespace kilipili
 {
 
-  #if defined UNIT_TEST && UNIT_TEST
+  #ifdef MAKE_TOOLS
 	#define xip_flash_base Flash::flash_base()
 	#define xip_flash_size Flash::flash_size()
   #else

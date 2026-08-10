@@ -1,10 +1,7 @@
-
-cmake_minimum_required(VERSION 3.13)
-
-
 ####################################
 # common/CMakeLists.txt 
 
+cmake_minimum_required(VERSION 3.13)
 
 set(common_sources)
 set(common_defines)
@@ -86,7 +83,6 @@ target_compile_definitions(kilipili_common PUBLIC
 	ON=1 OFF=0
 	PICO_MALLOC_PANIC=0
 	PICO_STDIO_ENABLE_CRLF_SUPPORT=1
-	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 )
 
 target_include_directories(kilipili_common PUBLIC  

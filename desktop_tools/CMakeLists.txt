@@ -9,17 +9,18 @@ MESSAGE (STATUS "System = ${CMAKE_SYSTEM_NAME}")   # Linux, PICO
 MESSAGE (STATUS "CPU = ${CMAKE_SYSTEM_PROCESSOR}") # x86_64, cortex-m0plus
 
 set(CMAKE_CXX_STANDARD 20)
-set(PICO_CXX_ENABLE_EXCEPTIONS 1)
-##set(PICO_CXX_ENABLE_RTTI 1)
-
 set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   -DDEBUG")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DRELEASE -DNDEBUG")
-set(CMAKE_CXX_FLAGS          "${CMAKE_CXX_FLAGS}         -DMAKE_TOOLS")
-set(CMAKE_CXX_FLAGS          "${CMAKE_CXX_FLAGS}         -DDEBUG -DUNIT_TEST")
-
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DRELEASE")
 
 set(MAKE_TOOLS ON)
+set(PICO_BOARD_HEADER_DIRS "${CMAKE_CURRENT_LIST_DIR}/../boards")
+set(PICO_BOARD_HEADER_DIRS ${PICO_BOARD_HEADER_DIRS} CACHE STRING "PICO board header directories" FORCE)
 set(PICO_BOARD "vgaboard" CACHE STRING "the target board, e.g. \"vgaboard\"")
+
+add_compile_definitions(
+	MAKE_TOOLS
+	PICO_BOARD_H="boards/${PICO_BOARD}.h"
+	)
 
 add_subdirectory(kilipili/common)
 add_subdirectory(kilipili/Graphics)
@@ -67,8 +68,6 @@ add_executable(RsrcFileWriter
 	)
 
 target_compile_definitions(RsrcFileWriter PUBLIC
-	MAKE_TOOLS=1
-	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 	)
 
 # add current dir to 'include search path':
@@ -121,9 +120,7 @@ add_executable(UnitTest
 	)
 
 target_compile_definitions(UnitTest PUBLIC
-	MAKE_TOOLS=1
-	UNIT_TEST=1
-	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
+	UNIT_TEST
 	FLASH_PREFERENCES=${FLASH_PREFERENCES}
 	YM_FILE="${CMAKE_CURRENT_LIST_DIR}/test_files/Ninja Spirits  5.ym"
 	)

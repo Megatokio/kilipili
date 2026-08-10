@@ -1,10 +1,7 @@
-
-cmake_minimum_required(VERSION 3.13)
-
-
 ###############################################
 # Devices/CMakeLists.txt
 
+cmake_minimum_required(VERSION 3.13)
 
 option(DEVICES_LARGE_FILE_SUPPORT "support files larger than 4GB" OFF)
 
@@ -105,7 +102,6 @@ target_compile_definitions(kilipili_devices PUBLIC
 	DEVICES_LARGE_FILE_SUPPORT=${DEVICES_LARGE_FILE_SUPPORT}
 	FLASH_PREFERENCES=${FLASH_PREFERENCES}
 	FLASH_BLOCKDEVICE=${FLASH_BLOCKDEVICE}
-	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 )
 
 target_include_directories(kilipili_devices PUBLIC  

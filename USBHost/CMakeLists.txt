@@ -1,9 +1,7 @@
-
-cmake_minimum_required(VERSION 3.13)
-
 ###############################################
 # USBHost/CMakeLists.txt
 
+cmake_minimum_required(VERSION 3.13)
 
 option(USB_ENABLE_HOST   "Enable Tiny USB host mode" ON)
 
@@ -59,7 +57,6 @@ target_compile_definitions(kilipili_usb_host PUBLIC
 	USB_KEY_DELAY1=${USB_KEY_DELAY1}
 	USB_KEY_DELAY=${USB_KEY_DELAY}
 	USB_DEFAULT_KEYTABLE=${USB_DEFAULT_KEYTABLE}
-	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 )
 
 target_include_directories(kilipili_usb_host PUBLIC  

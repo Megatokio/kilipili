@@ -1,10 +1,7 @@
-
-cmake_minimum_required(VERSION 3.13)
-
-
 ###############################################
 # Video/CMakeLists.txt
 
+cmake_minimum_required(VERSION 3.13)
 
 option(VIDEO_OPTIMISTIC_A1W8 "optimize a1w8_rgb mode for moderate color usage. makes 1280x768 work. otherwise not recommended." OFF)
 option(VIDEO_SUPPORT_200x150_A1W8 "support int8 bitmap width in a1w8 renderer. slightly slower than otherwise." ON)
@@ -84,7 +81,6 @@ target_compile_definitions(kilipili_video PUBLIC
 	VIDEO_MAX_SCANLINE_BUFFERS=${VIDEO_MAX_SCANLINE_BUFFERS}
 	VIDEO_INTERP0_MODE=${VIDEO_INTERP0_MODE}
 	VIDEO_INTERP1_MODE=${VIDEO_INTERP1_MODE}
-	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 )
 
 target_include_directories(kilipili_video PUBLIC  

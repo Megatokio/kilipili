@@ -1,10 +1,7 @@
-
-cmake_minimum_required(VERSION 3.13)
-
-
 ###############################################
 # Audio/CMakeLists.txt
 
+cmake_minimum_required(VERSION 3.13)
 
 set(AUDIO_DEFAULT_SAMPLE_FREQUENCY 44100 CACHE STRING "default sample frequency")
 set(AUDIO_DMA_BUFFER_SIZE 256 CACHE STRING "number of audio frames in dma buffer. 256 ~ 5msec")
@@ -56,7 +53,6 @@ target_compile_definitions(kilipili_audio PUBLIC
 	AUDIO_DEFAULT_SAMPLE_FREQUENCY=${AUDIO_DEFAULT_SAMPLE_FREQUENCY}
 	AUDIO_INPUT_BUFFER_ON_STACK=${AUDIO_INPUT_BUFFER_ON_STACK}
 	AUDIO_INPUT_BUFFER_SIZE=${AUDIO_INPUT_BUFFER_SIZE}
-	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 )
 
 target_include_directories(kilipili_audio PUBLIC  

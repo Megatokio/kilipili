@@ -1,10 +1,7 @@
-
-cmake_minimum_required(VERSION 3.13)
-
-
 ###############################################
 # Graphics/CMakeLists.txt
 
+cmake_minimum_required(VERSION 3.13)
 
 set(graphics_sources)
 set(graphics_includes)
@@ -54,7 +51,6 @@ add_library(kilipili_graphics STATIC
 
 target_compile_definitions(kilipili_graphics PUBLIC  
 	${graphics_defines}  
-	PICO_BOARD_H="${PICO_BOARD_HEADER_DIRS}/${PICO_BOARD}.h"
 )
 
 target_include_directories(kilipili_graphics PUBLIC  
