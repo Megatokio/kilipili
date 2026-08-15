@@ -102,6 +102,8 @@ public:
 
 	void drawHLine(coord x, coord y, coord w, uint color, uint ink = 0) noexcept;
 	void drawVLine(coord x, coord y, coord h, uint color, uint ink = 0) noexcept;
+	void drawHLineTo(coord x, coord y, coord x2, uint color, uint ink = 0) noexcept;
+	void drawVLineTo(coord x, coord y, coord y2, uint color, uint ink = 0) noexcept;
 
 	/* _______________________________________________________________________________________
 	   paint rectangular area:

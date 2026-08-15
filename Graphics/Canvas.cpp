@@ -11,7 +11,9 @@ namespace kilipili::Graphics
 
 void Canvas::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
 {
-	// draw horizontal line
+	// draw horizontal line from x1:left to x2:right
+	// the final pixel at x2 is not drawn: w = x2 - x1.
+	// if x2 <= x1 then nothing is drawn. (=> easier clipping)
 	// no clipping test for speed
 
 	assert(x1 >= 0 && x2 <= width);
@@ -22,19 +24,34 @@ void Canvas::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint ink) n
 
 void Canvas::drawHLine(coord x1, coord y1, coord w, uint color, uint ink) noexcept
 {
-	// draw horizontal line
+	// draw horizontal line from min(x1,x2) to max(x1,x2).
+	// the final rightmost pixel is not drawn: w = x2 - x1.
+	// full clipping to screen.
 
 	if (uint(y1) >= uint(height)) return;
 
-	coord x2 = min(x1 + w, width);
-	x1		 = max(x1, 0);
+	if (w >= 0) draw_hline_to(max(x1, 0), y1, min(x1 + w, width), color, ink);
+	else draw_hline_to(max(x1 + w, 0), y1, min(x1, width), color, ink);
+}
 
-	draw_hline_to(x1, y1, x2, color, ink);
+void Canvas::drawHLineTo(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
+{
+	// draw horizontal line from min(x1,x2) to max(x1,x2).
+	// the final rightmost pixel is not drawn: w = x2 - x1.
+	// full clipping to screen.
+
+	if (uint(y1) >= uint(height)) return;
+
+	if (x2 >= x1) draw_hline_to(max(x1, 0), y1, min(x2, width), color, ink);
+	else draw_hline_to(max(x2, 0), y1, min(x1, width), color, ink);
 }
 
 void Canvas::draw_vline_to(coord x1, coord y1, coord y2, uint color, uint ink) noexcept
 {
-	// draw vertical line
+	// draw vertical line from y1:top to y2:bottom
+	// the final pixel at y2 is not drawn: h = y2 - y1.
+	// if y2 <= y1 then nothing is drawn. (=> easier clipping)
+	// no clipping test for speed
 
 	assert(uint(x1) < uint(width));
 	assert(y1 >= 0 && y2 <= height);
@@ -44,14 +61,26 @@ void Canvas::draw_vline_to(coord x1, coord y1, coord y2, uint color, uint ink) n
 
 void Canvas::drawVLine(coord x1, coord y1, coord h, uint color, uint ink) noexcept
 {
-	// draw vertical line
+	// draw vertical line from min(y1,y2) to max(y1,y2).
+	// the final bottommost pixel is not drawn: h = y2 - y1.
+	// full clipping to screen.
 
 	if (uint(x1) >= uint(width)) return;
 
-	coord y2 = min(y1 + h, height);
-	y1		 = max(y1, 0);
+	if (h >= 0) draw_vline_to(x1, max(y1, 0), min(y1 + h, height), color, ink);
+	else draw_vline_to(x1, max(y1 + h, 0), min(y1, height), color, ink);
+}
 
-	draw_vline_to(x1, y1, y2, color, ink);
+void Canvas::drawVLineTo(coord x1, coord y1, coord y2, uint color, uint ink) noexcept
+{
+	// draw vertical line from min(y1,y2) to max(y1,y2).
+	// the final bottommost pixel is not drawn: h = y2 - y1.
+	// full clipping to screen.
+
+	if (uint(x1) >= uint(width)) return;
+
+	if (y2 >= y1) draw_vline_to(x1, max(y1, 0), min(y2, height), color, ink);
+	else draw_vline_to(x1, max(y2, 0), min(y1, height), color, ink);
 }
 
 void Canvas::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
