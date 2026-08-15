@@ -34,6 +34,8 @@ public:
 	double random() noexcept { return ldexp(double(next()), -64); }
 
 	// interval [0 .. [max
+	int32  random(int32 max) noexcept { return int32(random(uint32(max))); }
+	int64  random(int64 max) noexcept { return int64(random(uint64(max))); }
 	uint32 random(uint32 max) noexcept;
 	uint64 random(uint64 max) noexcept;
 	double random(double max) noexcept { return ldexp(max * double(next()), -64); }

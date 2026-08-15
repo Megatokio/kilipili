@@ -34,6 +34,7 @@ public:
 	float random() noexcept { return ldexp(float(next()), -32); }
 
 	// interval [0 .. [max
+	int32  random(int32 max) noexcept { return int32(random(uint32(max))); }
 	uint32 random(uint32 max) noexcept;
 	float  random(float max) noexcept { return ldexp(max * float(next()), -32); }
 
