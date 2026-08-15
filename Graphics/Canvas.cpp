@@ -333,13 +333,13 @@ void Canvas::drawLine(coord x1, coord y1, coord x2, coord y2, uint color, uint i
 	if (unlikely(x1 == x2))
 	{
 		if (y1 > y2) std::swap(y1, y2);
-		return drawHLine(x1, y1, y2 - y1 + 1, color, ink);
+		return drawVLine(x1, y1, y2 - y1 + 1, color, ink);
 	}
 
 	if (unlikely(y1 == y2))
 	{
 		if (x1 > x2) std::swap(x1, x2);
-		return drawVLine(x1, y1, x2 - x1 + 1, color, ink);
+		return drawHLine(x1, y1, x2 - x1 + 1, color, ink);
 	}
 
 	// need clipping?
