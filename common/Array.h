@@ -1,5 +1,5 @@
 #pragma once
-// Copyright (c) 2010 - 2025 kio@little-bat.de
+// Copyright (c) 2010 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -27,16 +27,18 @@ namespace kilipili
 	· operator[] etc. abort on failed index check!
 	· item's eq(), ne(), lt() should be implemented for operator==() and sort() etc.
 	· specializations for Array<str> and Array<cstr> with allocation in TempMem.
+	· optional INLINE_SIZE for initial on-stack array. (default=0 defined in cstrings.h)
 */
 
 
-template<typename T>
+template<typename T, int INLINE_SIZE /* = 0 */>
 class Array
 {
 protected:
-	uint max  = 0;
+	uint max  = INLINE_SIZE;
 	uint cnt  = 0;
-	T*	 data = nullptr;
+	T*	 data = INLINE_SIZE ? reinterpret_cast<T*>(inline_data) : nullptr;
+	char inline_data[INLINE_SIZE * sizeof(T)];
 
 	static T*	_malloc(uint n) throws;
 	static void _free(T* data) noexcept;
@@ -64,7 +66,7 @@ public:
 	~Array() noexcept
 	{
 		_kill(data, cnt);
-		_free(data);
+		if (INLINE_SIZE == 0 || ptr(data) != inline_data) _free(data);
 	}
 	Array() noexcept = default;
 
@@ -169,7 +171,7 @@ public:
 	void purge() noexcept
 	{
 		_kill(data, cnt);
-		_free(data);
+		if (INLINE_SIZE == 0 || ptr(data) != inline_data) _free(data);
 		max = cnt = 0;
 		data	  = nullptr;
 	}
@@ -232,6 +234,7 @@ public:
 	void insertat(uint idx, const Array&) throws;
 	void insertrange(uint a, uint e) throws;
 	void insertsorted(T) throws; // uses lt()
+	void insertsorted(T, compare_fu(T) lt) throws;
 
 	void revert(uint a, uint e) noexcept;  // revert items in range [a..[e
 	void rol(uint a, uint e) noexcept;	   // roll left  range  [a..[e
@@ -282,45 +285,45 @@ public:
 //					  I M P L E M E N T A T I O N S
 // -----------------------------------------------------------------------
 
-template<typename T>
-void Array<T>::_init(T* a, uint n) noexcept
+template<typename T, int N>
+void Array<T, N>::_init(T* a, uint n) noexcept
 {
 	if constexpr (std::is_scalar_v<T>) memset(a, 0, n * sizeof(T)); // arith, enum, ptr
 	else
 		while (n--) { new (a) T; }
 }
 
-template<typename T>
-void Array<T>::_init(T& a) noexcept
+template<typename T, int N>
+void Array<T, N>::_init(T& a) noexcept
 {
 	if constexpr (std::is_scalar_v<T>) a = T(0); // arith, enum, ptr
 	else new (&a) T;
 }
 
-template<typename T>
-void Array<T>::_init_with_copy(T* z, const T* q, uint n)
+template<typename T, int N>
+void Array<T, N>::_init_with_copy(T* z, const T* q, uint n)
 {
 	// initialize data from some other source
 
 	while (n--) { new (z++) T(*q++); }
 }
 
-template<typename T>
-void Array<T>::_init_with_move(T* z, T* q, uint n) noexcept
+template<typename T, int N>
+void Array<T, N>::_init_with_move(T* z, T* q, uint n) noexcept
 {
 	// initialize data from some other source
 
 	while (n--) { new (z++) T(std::move(*q++)); }
 }
 
-template<typename T>
-void Array<T>::_kill(T* a, uint n) noexcept
+template<typename T, int N>
+void Array<T, N>::_kill(T* a, uint n) noexcept
 {
 	while (n--) { a[n].~T(); }
 }
 
-template<typename T>
-T* Array<T>::_malloc(uint n) throws // static
+template<typename T, int N>
+T* Array<T, N>::_malloc(uint n) throws // static
 {
 	// allocate uninitialized memory
 
@@ -328,24 +331,24 @@ T* Array<T>::_malloc(uint n) throws // static
 	else throw OUT_OF_MEMORY;
 }
 
-template<typename T>
-void Array<T>::_free(T* data) noexcept // static
+template<typename T, int N>
+void Array<T, N>::_free(T* data) noexcept // static
 {
 	// deallocate uninitialized memory
 
 	free(data);
 }
 
-template<typename T>
-void Array<T>::_move_dn(T* z, const T* q, uint n) noexcept // static
+template<typename T, int N>
+void Array<T, N>::_move_dn(T* z, const T* q, uint n) noexcept // static
 {
 	// move data from higher or non-overlapping source
 
 	while (n--) { *z++ = std::move(*q++); }
 }
 
-template<typename T>
-void Array<T>::_move_up(T* z, const T* q, uint n) noexcept // static
+template<typename T, int N>
+void Array<T, N>::_move_up(T* z, const T* q, uint n) noexcept // static
 {
 	// move data from lower or non-overlapping source
 
@@ -353,38 +356,38 @@ void Array<T>::_move_up(T* z, const T* q, uint n) noexcept // static
 }
 
 
-template<typename T>
-void Array<T>::_growmax(uint newmax) throws
+template<typename T, int N>
+void Array<T, N>::_growmax(uint newmax) throws
 {
 	// grow data[]
 	// grow only
 
 	if (newmax > max)
 	{
-		if constexpr (std::is_trivially_move_constructible_v<T>)
+		if (std::is_trivially_move_constructible_v<T> && (N == 0 || ptr(data) != inline_data))
 		{
-			if (T* newdata = reinterpret_cast<T*>(realloc(data, newmax * sizeof(T))))
-			{
-				data = newdata;
-				max	 = newmax;
-			}
-			else throw OUT_OF_MEMORY;
+			T* newdata = reinterpret_cast<T*>(realloc(data, newmax * sizeof(T)));
+			if (!newdata) throw OUT_OF_MEMORY;
+			data = newdata;
+			max	 = newmax;
 		}
-		else
+		else // not std::is_trivially_move_constructible_v<T>
 		{
 			newmax += newmax / 8 + 4;
 			T* newdata = _malloc(newmax);
+			if (!newdata) throw OUT_OF_MEMORY;
 			_init_with_move(newdata, data, cnt); // if T has custom copy_ctor
 			_kill(data, cnt);					 // if T has custom dtor
-			_free(data);
+			if (N == 0 || ptr(data) != inline_data) _free(data);
+
 			data = newdata;
 			max	 = newmax;
 		}
 	}
 }
 
-template<typename T>
-void Array<T>::_shrinkmax(uint newmax) throws
+template<typename T, int N>
+void Array<T, N>::_shrinkmax(uint newmax) throws
 {
 	// shrink data[]
 	// update max
@@ -393,14 +396,17 @@ void Array<T>::_shrinkmax(uint newmax) throws
 
 	if (newmax < max)
 	{
-		void* p = realloc(data, newmax * sizeof(T));
-		assert(p == data);
-		max = newmax;
+		if (N == 0 || ptr(data) != inline_data) return; // only shrink if not using inline_data[]
+		{
+			void* p = realloc(data, newmax * sizeof(T));
+			assert(p == data);
+			max = newmax;
+		}
 	}
 }
 
-template<typename T>
-Array<T>::Array(uint cnt, uint max) throws : Array()
+template<typename T, int N>
+Array<T, N>::Array(uint cnt, uint max) throws : Array()
 {
 	if (max < cnt) max = cnt;
 	data	  = _malloc(max);
@@ -409,8 +415,8 @@ Array<T>::Array(uint cnt, uint max) throws : Array()
 	this->cnt = cnt;
 }
 
-template<typename T>
-Array<T>::Array(const T* q, uint n) throws
+template<typename T, int N>
+Array<T, N>::Array(const T* q, uint n) throws
 {
 	data = _malloc(n);
 	max	 = n;
@@ -418,8 +424,8 @@ Array<T>::Array(const T* q, uint n) throws
 	cnt = n;
 }
 
-template<typename T>
-Array<T> Array<T>::copyofrange(uint a, uint e) const throws
+template<typename T, int N>
+Array<T, N> Array<T, N>::copyofrange(uint a, uint e) const throws
 {
 	// create a copy of a range of data of this
 
@@ -428,8 +434,8 @@ Array<T> Array<T>::copyofrange(uint a, uint e) const throws
 	else return Array();
 }
 
-template<typename T>
-bool Array<T>::operator==(const Array<T>& q) const noexcept
+template<typename T, int N>
+bool Array<T, N>::operator==(const Array<T, N>& q) const noexcept
 {
 	// compare arrays
 	// used ne()
@@ -442,8 +448,8 @@ bool Array<T>::operator==(const Array<T>& q) const noexcept
 	return true;
 }
 
-template<typename T>
-bool Array<T>::operator!=(const Array<T>& q) const noexcept
+template<typename T, int N>
+bool Array<T, N>::operator!=(const Array<T, N>& q) const noexcept
 {
 	// compare arrays
 	// used ne()
@@ -456,8 +462,8 @@ bool Array<T>::operator!=(const Array<T>& q) const noexcept
 	return false;
 }
 
-template<typename T>
-bool Array<T>::operator<(const Array& q) const noexcept
+template<typename T, int N>
+bool Array<T, N>::operator<(const Array& q) const noexcept
 {
 	// compare arrays
 	// uses eq() and lt()
@@ -469,8 +475,8 @@ bool Array<T>::operator<(const Array& q) const noexcept
 	else return cnt < q.cnt;
 }
 
-template<typename T>
-bool Array<T>::operator>(const Array& q) const noexcept
+template<typename T, int N>
+bool Array<T, N>::operator>(const Array& q) const noexcept
 {
 	// compare arrays
 	// uses eq() and gt()
@@ -482,8 +488,8 @@ bool Array<T>::operator>(const Array& q) const noexcept
 	else return cnt > q.cnt;
 }
 
-template<typename T>
-uint Array<T>::indexof(ref_or_value(T) item) const noexcept
+template<typename T, int N>
+uint Array<T, N>::indexof(ref_or_value(T) item) const noexcept
 {
 	// find first occurance
 	// using == (find pointers by identity)
@@ -522,8 +528,8 @@ inline uint Array<str>::indexof(str item) const noexcept
 	return ~0u;
 }
 
-template<typename T>
-void Array<T>::grow(uint newcnt, uint newmax) throws
+template<typename T, int N>
+void Array<T, N>::grow(uint newcnt, uint newmax) throws
 {
 	// grow data[]
 	// grow only
@@ -537,8 +543,8 @@ void Array<T>::grow(uint newcnt, uint newmax) throws
 	while (cnt < newcnt) { _init(data[cnt++]); }
 }
 
-template<typename T>
-void Array<T>::grow(uint newcnt) throws
+template<typename T, int N>
+void Array<T, N>::grow(uint newcnt) throws
 {
 	// grow data[]
 	// grow only
@@ -546,8 +552,8 @@ void Array<T>::grow(uint newcnt) throws
 	grow(newcnt, newcnt);
 }
 
-template<typename T>
-void Array<T>::shrink(uint newcnt) noexcept
+template<typename T, int N>
+void Array<T, N>::shrink(uint newcnt) noexcept
 {
 	// shrink data[]
 	// does nothing if new count ≥ current count
@@ -557,8 +563,8 @@ void Array<T>::shrink(uint newcnt) noexcept
 	_shrinkmax(cnt);
 }
 
-template<typename T>
-void Array<T>::removeat(uint idx, bool fast) noexcept
+template<typename T, int N>
+void Array<T, N>::removeat(uint idx, bool fast) noexcept
 {
 	// remove item at index
 	// idx < cnt
@@ -574,8 +580,8 @@ void Array<T>::removeat(uint idx, bool fast) noexcept
 	data[cnt].~T();
 }
 
-template<typename T>
-void Array<T>::removeitem(ref_or_value(T) item, bool fast) noexcept
+template<typename T, int N>
+void Array<T, N>::removeitem(ref_or_value(T) item, bool fast) noexcept
 {
 	// find first occurance and remove it
 	// uses indexof()
@@ -586,8 +592,8 @@ void Array<T>::removeitem(ref_or_value(T) item, bool fast) noexcept
 	if (idx != ~0u) removeat(idx, fast);
 }
 
-template<typename T>
-void Array<T>::removerange(uint a, uint e) noexcept
+template<typename T, int N>
+void Array<T, N>::removerange(uint a, uint e) noexcept
 {
 	// remove range of data
 
@@ -600,8 +606,8 @@ void Array<T>::removerange(uint a, uint e) noexcept
 	cnt -= n;
 }
 
-template<typename T>
-void Array<T>::insertat(uint idx, T t) throws
+template<typename T, int N>
+void Array<T, N>::insertat(uint idx, T t) throws
 {
 	// insert item at index
 	// idx ≤ cnt
@@ -615,16 +621,24 @@ void Array<T>::insertat(uint idx, T t) throws
 	data[idx] = std::move(t);
 }
 
-template<typename T>
-void Array<T>::insertsorted(T q) throws
+template<typename T, int N>
+void Array<T, N>::insertsorted(T q) throws
 {
 	uint i;
 	for (i = cnt; i > 0 && lt(q, data[i - 1]); i--) {}
 	insertat(i, std::move(q));
 }
 
-template<typename T>
-void Array<T>::insertat(uint idx, const T* q, uint n) throws
+template<typename T, int N>
+void Array<T, N>::insertsorted(T q, compare_fu(T) lt) throws
+{
+	uint i;
+	for (i = cnt; i > 0 && lt(q, data[i - 1]); i--) {}
+	insertat(i, std::move(q));
+}
+
+template<typename T, int N>
+void Array<T, N>::insertat(uint idx, const T* q, uint n) throws
 {
 	// insert source array at index
 	// idx ≤ cnt
@@ -640,8 +654,8 @@ void Array<T>::insertat(uint idx, const T* q, uint n) throws
 	_init_with_copy(data + idx, q, n);
 }
 
-template<typename T>
-void Array<T>::insertat(uint idx, const Array& q) throws
+template<typename T, int N>
+void Array<T, N>::insertat(uint idx, const Array& q) throws
 {
 	// insert source array at index
 	// idx ≤ cnt
@@ -651,8 +665,8 @@ void Array<T>::insertat(uint idx, const Array& q) throws
 	insertat(idx, q.data, q.cnt);
 }
 
-template<typename T>
-void Array<T>::insertrange(uint a, uint e) throws
+template<typename T, int N>
+void Array<T, N>::insertrange(uint a, uint e) throws
 {
 	// insert space into data
 	// a ≤ cnt
@@ -669,8 +683,8 @@ void Array<T>::insertrange(uint a, uint e) throws
 	cnt += n;
 }
 
-template<typename T>
-void Array<T>::revert(uint a, uint e) noexcept
+template<typename T, int N>
+void Array<T, N>::revert(uint a, uint e) noexcept
 {
 	// revert order of items in data[]
 
@@ -683,8 +697,8 @@ void Array<T>::revert(uint a, uint e) noexcept
 	while (pa < pe) { std::swap(*pa++, *pe--); }
 }
 
-template<typename T>
-void Array<T>::rol(uint a, uint e) noexcept
+template<typename T, int N>
+void Array<T, N>::rol(uint a, uint e) noexcept
 {
 	// roll left range [a..[e
 
@@ -696,8 +710,8 @@ void Array<T>::rol(uint a, uint e) noexcept
 	data[e - 1] = std::move(z);
 }
 
-template<typename T>
-void Array<T>::ror(uint a, uint e) noexcept
+template<typename T, int N>
+void Array<T, N>::ror(uint a, uint e) noexcept
 {
 	// roll right range [a..[e
 
@@ -709,8 +723,8 @@ void Array<T>::ror(uint a, uint e) noexcept
 	data[a] = std::move(z);
 }
 
-template<typename T>
-void Array<T>::shuffle(uint a, uint e) noexcept
+template<typename T, int N>
+void Array<T, N>::shuffle(uint a, uint e) noexcept
 {
 	// shuffle data in range [a..[e
 
@@ -728,10 +742,10 @@ void Array<T>::shuffle(uint a, uint e) noexcept
 
 // 1-line description of array for debugging and logging:
 
-template<typename T>
-inline str tostr(const kilipili::Array<T>& array)
+template<typename T, int N>
+inline str tostr(const kilipili::Array<T, N>& array)
 {
-	return usingstr("Array<T>[%u]", array.count());
+	return usingstr("Array<T,N>[%u]", array.count());
 }
 
 inline str tostr(const kilipili::Array<cstr>& array) { return kilipili::usingstr("Array<cstr>[%u]", array.count()); }

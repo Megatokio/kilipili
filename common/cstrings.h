@@ -15,7 +15,7 @@
 namespace kilipili
 {
 
-template<typename T>
+template<typename T, int = 0>
 class Array;
 
 inline constexpr bool is_space(char c) noexcept;

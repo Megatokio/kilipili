@@ -240,7 +240,7 @@ TEST_CASE("Array: test1")
 		a.grow(2, 44);
 		CHECK(a == Array<int>() << 11 << 0);
 		int* bb = &a[0];
-		CHECK(aa != bb);
+		//CHECK(aa != bb); // we use realloc() => address may stay the same
 
 		a.grow(8);
 		CHECK(a.count() == 8);
@@ -601,10 +601,7 @@ TEST_CASE("Array: test2")
 		CHECK(b == a2);
 	}
 
-	Array<cstr> array = std::move(
-		Array<cstr>() << "11"
-					  << "22"
-					  << "33");
+	Array<cstr> array = std::move(Array<cstr>() << "11" << "22" << "33");
 
 	//	FD fd;
 	//	{
@@ -638,27 +635,15 @@ TEST_CASE("Array: test2")
 
 	{
 		array.removeat(1);
-		CHECK(
-			array == Array<cstr>() << "11"
-								   << "44");
+		CHECK(array == Array<cstr>() << "11" << "44");
 	}
 
 	{
-		array << "foo"
-			  << "bar";
-		CHECK(
-			array == Array<cstr>() << "11"
-								   << "44"
-								   << "foo"
-								   << "bar");
+		array << "foo" << "bar";
+		CHECK(array == Array<cstr>() << "11" << "44" << "foo" << "bar");
 		array.remove(1);
-		CHECK(
-			array == Array<cstr>() << "11"
-								   << "foo"
-								   << "bar");
+		CHECK(array == Array<cstr>() << "11" << "foo" << "bar");
 		array.remove("foo");
-		CHECK(
-			array == Array<cstr>() << "11"
-								   << "bar");
+		CHECK(array == Array<cstr>() << "11" << "bar");
 	}
 }

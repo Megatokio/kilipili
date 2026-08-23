@@ -5,19 +5,20 @@
 #pragma once
 #include "basic_math.h"
 #include "cdefs.h"
+#include <bits/move.h>
 #include <utility>
-
 
 namespace kilipili
 {
 
 using coord = int;
 
-template<typename T>
-inline void swap(T& a, T& b)
-{
-	std::swap(a, b);
-}
+//template<typename T>
+//inline void swap(T& a, T& b)
+//{
+//	std::swap(a, b);
+//}
+using std::swap;
 template<typename T>
 inline void sort(T& a, T& b)
 {
@@ -69,7 +70,7 @@ struct Size
 	Size() noexcept = default;
 	constexpr Size(coord w, coord h) noexcept : width(w), height(h) {}
 	Size(const Dist& d) noexcept : width(d.dx), height(d.dy) {}
-		 operator Dist() const noexcept { return Dist(width, height); }
+	operator Dist() const noexcept { return Dist(width, height); }
 	bool operator==(const Size& other) const noexcept { return width == other.width && height == other.height; }
 };
 
