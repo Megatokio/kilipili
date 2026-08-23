@@ -1,9 +1,11 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Canvas.h"
+#include "Array.h"
 #include "fixint.h"
+#include <algorithm>
 
 
 namespace kilipili::Graphics
@@ -795,140 +797,313 @@ void Canvas::drawPolygon(const Point* p, uint cnt, uint color, uint ink) noexcep
 	for (uint i = 0; i < cnt - 1; i++) { drawLine(p[i], p[i + 1], color, ink); }
 }
 
-void Canvas::fill_convex_polygon(const Point* p, uint cnt, uint color, uint ink)
+void Canvas::drawTriangle(const Point& p1, const Point& p2, const Point& p3, uint color, uint ink) noexcept
 {
-	if (cnt <= 2) return;
+	drawLine(p1, p2, color, ink);
+	drawLine(p2, p3, color, ink);
+	drawLine(p3, p1, color, ink);
+}
 
-	// top point of polygon: start point
-	// top point & bottom point: => determine whether we are totally flat
-	// left point & right point: => determine whether we are totally slim
-	// all 4 points: determine cw or ccw orientation of points: add to ri, sub from li
+struct VLine
+{
+	/*	Helper struct for vertically running left & right border lines for filling shapes. */
 
-	uint ti = 0;
-	for (uint i = 1; i < cnt; i++)
+	VLine() = default; // uninitialized
+	VLine(const Point* p1, const Point* p2);
+
+	int	 next_x();
+	bool operator<(const VLine& other) const { return x < other.x; }
+
+	const Point* p1;
+	const Point* p2;
+	int			 x;
+	uint		 dx, dy; // >= 0
+	uint		 error;	 //
+	int			 min_dx; // signed
+	int			 max_dx;
+};
+
+inline VLine::VLine(const Point* p1, const Point* p2) :
+	p1(p1),
+	p2(p2),
+	x(p1->x),
+	dx(abs(p2->x - p1->x)),
+	dy(p2->y - p1->y),
+	error(dy / 2)
+{
+	assert(dy > 0);
+
+	int m = 0;
+	int s = sign(p2->x - x);
+	for (; dx > dy; dx -= dy) { m += s; }
+	min_dx = m;
+	max_dx = m + s;
+}
+
+inline int VLine::next_x()
+{
+	error += dx;
+	if (error < dy) return x += min_dx;
+	error -= dy;
+	return x += max_dx;
+}
+
+
+struct PolyPoints
+{
+	/*	Helper struct fore fillPolygon() to wrap an array of points:
+		=> handle points via pointer (not index).
+		=> step to left or right neighbour incl. wrap at start & end. */
+
+	const Point* const points;
+	const int		   count;
+
+	constexpr PolyPoints(const Point* p, int n) noexcept : points(p), count(n) {}
+
+	constexpr bool is_valid(const Point* p) const noexcept { return uint(p - points) < uint(count); }
+
+	constexpr const Point* first() const noexcept { return points; }
+	constexpr const Point* last() const noexcept { return points + count - 1; }
+
+	constexpr const Point* before(const Point* p) const noexcept
 	{
-		if (p[i].y < p[ti].y) ti = i;
+		assert(is_valid(p));
+		return p > points ? p - 1 : &points[count - 1];
 	}
-
-	// border line "drawing" (calculation):
-	// for every y+=1 we step a fixed x+=dx
-	// plus evtl. one additional x+=1 acc. to line drawing algorithm
-
-	using namespace std;
-	struct
+	constexpr const Point* after(const Point* p) const noexcept
 	{
-		int x;		// current x
-		int zx, zy; // destination
-		int sdx;	//sign
-		int dx;		// abs(zx-x0)
-		int dy;		// zy-y0  (always positive)
-		int dx0;	// min. dx to add per dy=1
-		int dz;		// interpolator
-
-		void setup(const Point& next_point, int current_y)
-		{
-			zx = next_point.x;
-			zy = next_point.y;
-
-			sdx = sign(zx - x);
-			dx	= abs(zx - x);
-			dy	= zy - current_y; // if dy==0 then division by 0 can be ignored
-			dx0 = dx / dy;		  //   because setup will be immediately called again for next point
-			dx -= dx0 * dy;
-			dx0 *= sdx;
-			dz = dx / 2;
-		}
-
-		void step()
-		{
-			x += dx0;
-			dz += dy;
-			if (dz >= dx)
-			{
-				dz -= dx;
-				x += sdx;
-			}
-		}
-	} l, r;
-
-
-	auto inc = [=](uint i) { return i + 1 < cnt ? i + 1 : 0; };
-	auto dec = [=](uint i) { return i ? i - 1 : cnt - 1; };
-	auto add = [=](uint i, int cw) { return (cnt + i + uint(cw)) % cnt; };
-
-
-	int	 y	= p[ti].y; // top.y
-	uint li = ti;	   // index for left border path
-	uint ri = ti;	   // index for right border path
-
-a:
-	const Point& rhp = p[inc(ri)];
-	const Point& lhp = p[dec(li)];
-	int			 cw	 = sign(lhp.y * rhp.x - lhp.x * rhp.y);
-
-	while (unlikely(cw == 0)) // cross product is 0:
-	{
-		// either 3 points 180° opening with all p.y = top.y
-		// or 3 points 0° opening with at least one point below top.y and the other on the same line
-		// both cases include l=t, r=t or l=r
-		// 180° also includes l=t=r
-
-		// 180° opening:
-		//if (lhp.y == rhp.y) { li = dec(li); } else
-
-		// 0° opening:
-		if (lhp.y <= rhp.y) // lhp becomes new top
-		{
-			y  = lhp.y;
-			li = dec(li);
-		}
-		else // rhp becomes new top
-		{
-			y  = rhp.y;
-			ri = inc(ri);
-		}
-
-		if (li == ri) return; // all points on a line
-		goto a;
+		assert(is_valid(p));
+		return ++p < points + count ? p : &points[0];
 	}
-
-	if (cw < 0) swap(li, ri);
-
-	// init loop parameters:
-	l.zy = y;
-	r.zy = y;
-	l.x	 = p[li].x;
-	r.x	 = p[ri].x;
-
-	for (;;)
+	constexpr const Point* next(const Point* p1, const Point* p2) const noexcept
 	{
-		while (unlikely(y == l.zy))
+		assert(is_valid(p1));
+		assert(is_valid(p2));
+
+		const Point* p = p2 + (p2 - p1);
+		if (is_valid(p)) return p;
+		p = p < points ? p + count : p - count;
+		assert(is_valid(p));
+		return p;
+	}
+	constexpr bool is_top_point(const Point* p) const noexcept
+	{
+		// a top point has 2 neighbours with both higher y.
+		// if 2 or more points are the same height, then the last one (with the highest i) ist used.
+
+		assert(is_valid(p));
+
+		int y = p->y;
+		if (after(p)->y <= y) return false; // else right neighbour is lower
+		for (const Point* p0 = p;;)
 		{
-			if (li == ri) return; // finish
-			li = add(li, -cw);
-			l.setup(p[li], y);
+			p = before(p);
+			if (p->y != y) return y < p->y;
+			if (p == p0) return false; // all points on same scanline => no top point at all!
 		}
+	}
+};
 
-		while (unlikely(y == r.zy))
-		{
-			if (li == ri) return; // finish
-			ri = add(ri, +cw);
-			r.setup(p[ri], y);
-		}
+void Canvas::fillTriangle(Point p1, Point p2, Point p3, uint color, uint ink) noexcept
+{
+	/*	In general a triangle has 3 points: 1 point is top, 1 point is bottom and one point in between.
+		The triangle is split horizontally at the middle point:
+		an upper "standing" triangle with a horizonal base line and
+		a lower "hanging" triangle with a horizontal top line.
+		If the triangle itself has a horizontal base line then there is no lower triangle.
+		If the triangle itself has a horizontal top line then there is no upper triangle.
+		If all points are on the same scanline, then the triangle is empty. 
 
-		drawHLine(l.x, y++, r.x - l.x, color, ink);
+		We want that adjacent triangles fit nicely without gap and overlap.
+		=> the left and the right border are calculated by VLine with the exact same algorithm.
+		if the left and right point of the hlines were drawn, then we'd have a 1 pixel overlap.
+		=> right pixel is not drawn, as in drawHLine() and equivalent with fillRect() and fillCircle().
+		
+		The top and bottom pixel of the triangle are not drawn, because l+r border of the hline are the same point => w=0.
 
-		l.step();
-		r.step();
+		The horizontal base of the upper triangle and top border of the lower triangle should not be drawn twice.
+		this should also be true for two separate triangles which share a horizontal border.
+		=> the lower horizonal border line is not drawn, which is consistent with fillRect() and fillCircle().
+
+		The fill is narrower than the outline of drawTriangle(). 
+		Call drawTriangle() as a second step to enlarge the fill or to draw a border in a different color.
+	*/
+
+	// order points y1 <= y2 <= y3:
+	if (p1.y > p2.y) swap(p1, p2);
+	if (p1.y > p3.y) swap(p1, p3);
+	if (p2.y > p3.y) swap(p2, p3);
+	int y = p1.y;
+
+	// p1 is the top point, p2 is the middle point, p3 is the bottom point.
+
+	// does triangle start with a hline at top?
+	if unlikely (p2.y == y)
+	{
+		if unlikely (p3.y == y) return; // y1=y2=y3
+
+		VLine left(&p2, &p3);  // may be vice versa
+		VLine right(&p1, &p3); //
+
+		drawHLineTo(left.x, y, right.x, color, ink);
+		while (++y < p3.y) { drawHLineTo(left.next_x(), y, right.next_x(), color, ink); }
+	}
+	else
+	{
+		VLine left(&p1, &p2);  // may be vice versa
+		VLine right(&p1, &p3); //
+
+		while (++y < p2.y) { drawHLineTo(left.next_x(), y, right.next_x(), color, ink); }
+		if (y == p3.y) return;
+
+		drawHLineTo(p2.x, y, right.next_x(), color, ink);
+
+		new (&left) VLine(&p2, &p3);
+
+		while (++y < p3.y) { drawHLineTo(left.next_x(), y, right.next_x(), color, ink); }
 	}
 }
 
+#if 0
+void fillPolygon(
+	const Point* _points, uint _count, std::function<void(coord x, coord y, coord x2)> drawHLineTo) noexcept
+#endif
+
+
+void Canvas::fillPolygon(const Point* _points, uint _count, uint color, uint ink)
+{
+	/*
+		to fill the polygon we move scanline for scanline from the top point to the lowest point.
+		we keep track of the currently involved edge lines. these are always a multiple of 2.
+		the polygon can have multiple "top" points.
+		whenever we encounter a top point 2 more border lines are added.
+		therefore we must search for all top points first.
+		scanlines are drawn from left to right between each pair of lines, skipping between the pairs.
+		this results in XOR mode.
+		whenever 2 lines cross each other, we swap them to keep l2r sorted order.
+		whenever a line reaches the next vertice point, we update the line to reflect the new line segment.
+		whenever a line goes up again, this reached a 'bottom' point and we remove it from the list.		
+	*/
+
+	assert(_points != nullptr || _count == 0);
+
+	if (_count <= 2) return;
+	if (_points[0] == _points[_count - 1] && --_count <= 2) return;
+	//if (_count == 3) return fillTriangle(_points, color, ink);
+
+	// wrap supplied data:
+	PolyPoints points(_points, _count);
+
+	// find all 'top' points:
+	// these are points with both neighbours lower than them. (higher y)
+	// a polygon with N points can have up to N/2 top points!
+	// then we may have up to N active edge lines while rendering!
+	// topmost top point is at the end of the array
+
+	Array<const Point*, 20> top_points;
+	for (const Point* p = points.last(); p >= points.first(); p--)
+	{
+		if (!points.is_top_point(p)) continue;
+		top_points.insertsorted(p, [](const Point* a, const Point* b) { return a->y > b->y; });
+	}
+	if (top_points.count() == 0) return;				   // exit if all points on same scanline
+	assert(top_points.first()->y >= top_points.last()->y); // assert ordering: topmost point is last
+
+	// array for active edge lines.
+	// they always come in pairs.
+	Array<VLine, 8> vlines;
+
+	// *** do it! ***
+	for (int y = top_points.last()->y;; y++)
+	{
+		// prepare to draw scanline y:
+
+		// -> check if at vertice point in active edge lines
+		// -> skip over hlines
+		// -> check for next edge going up again: remove at bottom point & check if finished
+
+		for (uint i = 0; i < vlines.count(); i++)
+		{
+			VLine& line = vlines[i];
+			if (y < line.p2->y) continue; // not yet at vertice point p2
+			const Point* p1 = line.p1;
+			const Point* p2 = line.p2;
+			const Point* p3 = points.next(p1, p2); // next vertice point
+			while (p3->y == y)
+			{
+				p1 = p2;
+				p2 = p3;
+				p3 = points.next(p1, p2); // skip hline
+			}
+			if (p3->y > y) new (&line) VLine(p2, p3);		   // setup line for next edge
+			else if (vlines.count() > 2) vlines.removeat(i--); // p3.y<p.y => bottom point
+			else											   // vlines empty => finished
+			{
+				assert(top_points.count() == 0); // must also be empty then
+				return;
+			}
+		}
+
+		// -> check for new top points
+		// -> skip over hlines
+
+		while (top_points.count() && top_points.last()->y == y)
+		{
+			const Point* p1 = top_points.pop();
+			const Point* p2 = points.after(p1); // no hline here. see is_top_point()
+			vlines.insertsorted(VLine(p1, p2));
+
+			p2 = points.before(p1);
+			while (p2->y == p1->y)
+			{
+				p1 = p2;
+				p2 = points.before(p2); // skip hline
+			}
+			vlines.insertsorted(VLine(p1, p2));
+		}
+
+		// draw lines
+		// advance edge line to next y
+		// advance y: in for(;;y++)
+
+		for (uint i = 1; i < vlines.count(); i++) // sort: normally very little re-arangement is needed
+		{
+			while (i && vlines[i - 1].x > vlines[i].x)
+			{
+				std::swap(vlines[i - 1], vlines[i]);
+				i--;
+			}
+		}
+
+		assert((vlines.count() & 1) == 0);
+		for (uint i = 0; i < vlines.count(); i += 2)
+		{
+			if (uint(y) < uint(height)) //
+				draw_hline_to(max(vlines[i].x, 0), y, min(vlines[i + 1].x, width), color, ink);
+			vlines[i].next_x();
+			vlines[i + 1].next_x();
+		}
+	}
+}
 
 } // namespace kilipili::Graphics
 
 
 /*
   
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -145,6 +145,9 @@ public:
 	void fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 0) noexcept;
 	void floodFill(coord x, coord y, uint color, uint ink = 0);
 	void drawPolygon(const Point*, uint cnt, uint color, uint ink = 0) noexcept;
+	void drawTriangle(const Point& p1, const Point& p2, const Point& p3, uint color, uint ink = 0) noexcept;
+	void fillTriangle(Point p1, Point p2, Point p3, uint color, uint ink = 0) noexcept;
+	void fillPolygon(const Point*, uint cnt, uint color, uint ink = 0) noexcept;
 
 
 	// ########################
@@ -169,6 +172,8 @@ public:
 	void drawCircle(const Rect&, uint color, uint ink = 0) noexcept;
 	void fillCircle(const Rect&, uint color, uint ink = 0) noexcept;
 	void floodFill(const Point& p, uint color, uint ink = 0);
+	void drawTriangle(const Point* points, uint color, uint ink = 0) noexcept;
+	void fillTriangle(const Point* points, uint color, uint ink = 0) noexcept;
 
 	void copyRect(const Point& zpos, const Rect& qrect) noexcept;
 	void copyRect(const Point& zpos, const Point& qpos, const Size& size) noexcept;
@@ -186,7 +191,6 @@ private:
 	void draw_hline_bmp(coord x, coord y, coord w, const uint8*, uint color, uint ink) noexcept;
 	int	 adjust_l(coord l, coord r, coord y, uint ink); // -> floodFill()
 	int	 adjust_r(coord l, coord r, coord y, uint ink); // -> floodFill()
-	void fill_convex_polygon(const Point* p, uint cnt, uint color, uint ink);
 };
 
 
@@ -251,6 +255,8 @@ inline void Canvas::fillCircle(const Rect& z, uint color, uint ink) noexcept
 }
 inline void Canvas::floodFill(const Point& p, uint color, uint ink) { floodFill(p.x, p.y, color, ink); }
 inline void Canvas::clear(uint color) noexcept { fillRect(0, 0, width, height, color); }
+inline void Canvas::drawTriangle(const Point* p, uint c, uint i) noexcept { drawTriangle(p[0], p[1], p[2], c, i); }
+inline void Canvas::fillTriangle(const Point* p, uint c, uint i) noexcept { fillTriangle(p[0], p[1], p[2], c, i); }
 
 inline void Canvas::copyRect(coord zx, coord zy, const Canvas& q) noexcept
 {
