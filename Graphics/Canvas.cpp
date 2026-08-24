@@ -351,148 +351,201 @@ void Canvas::readBmp(coord zx, coord zy, uint8* bmp, int row_offset, coord w, co
 		}
 }
 
+static inline void advance(coord& x, coord& y, int& error, int dx, int dy, int n)
+{
+	// advance (x,y,error) n steps along dy/dx
+
+	assert(n >= 0);
+	assert(dx >= 0);
+	assert(dy >= 0);
+	assert(dx >= dy);
+	assert(error < dx && error >= 0);
+
+	x += n;
+	error += n * dy;
+	y += error / dx;
+	error = error % dx;
+}
+
+static inline int clip_line(coord& x, coord& y, int dx, int dy, int& error, int width, int height)
+{
+	// clip line for drawLine():
+	// formula used here must match exactly drawLine(), else points may be drawn outside the screen!
+	//
+	// returns number of pixels to set, which may be 0
+	// if n=0 then x1, y1 and error are void.
+	// x1 and y1 are modified if clipped.
+	// error is set to the dy/dx error at the original or modified point x1,y1
+
+	// assert that clipping is actually needed:
+	// this is tested before calling clip_line() in drawLine()
+	assert(
+		uint(x) >= uint(width) || uint(x + dx) >= uint(width) || //
+		uint(y) >= uint(height) || uint(y + dy) >= uint(height));
+
+	// use geometrical symmetries to reduce the number of cases:
+
+	bool fx = dx < 0; // flip hor
+	if (fx)
+	{
+		x  = width - 1 - x;
+		dx = -dx;
+	}
+	if (x >= width) return 0; // fully right of screen => no points to draw
+	if (x + dx < 0) return 0; // fully left of screen
+
+	bool fy = dy < 0; // flip vert
+	if (fy)
+	{
+		y  = height - 1 - y;
+		dy = -dy;
+	}
+	if (y >= height) return 0; // fully below screen
+	if (y + dy < 0) return 0;  // fully above screen
+
+	// assert that clipping is still needed:
+	assert(x < 0 || y < 0 || x + dx >= width || y + dy >= height);
+
+	bool fxy = dx < dy; // flip x <-> y
+	if (fxy)
+	{
+		swap(x, y);
+		swap(dx, dy);
+		swap(width, height);
+	}
+
+	// now clip the line:
+
+	assert(dx >= dy); // we draw advancing in x direction, stepping aside in y direction
+	assert(dx >= 0);  // we draw with increasing x (left to right)
+	assert(dy >= 0);  // we draw with increasing y (top to bottom)
+
+	// cases:
+	// - y2 end below screen
+	// - y1 start above screen
+	// - x2 end right of screen
+	// - x1 start left of screen
+
+	error = dx / 2;
+	int w = dx + 1; // number of points to set
+
+	if (y + dy >= height) // line ends below screen
+	{
+		w = ((height - y) * dx - error + dy - 1) / dy; // first point outside screen
+		assert(w > 0);
+
+		if constexpr (debug)
+		{
+			coord x1 = x, y1 = y;
+			int	  error1 = error;
+			advance(x1, y1, error1, dx, dy, w - 1);
+			assert(y1 == height - 1);
+			assert(x1 == x + w - 1);
+		}
+
+		// check whether the line crossed the lower border left of the screen:
+		if (x + w <= 0) return 0; // fully left of screen
+	}
+
+	if (x + w > width) // line ends right of screen
+	{
+		w = width - x;
+		assert(w > 0);
+	}
+
+	if (y < 0) // line starts above screen
+	{
+		int n = (-y * dx - error + dy - 1) / dy; // first point inside screen
+		assert(n >= 0);
+		advance(x, y, error, dx, dy, n);
+		assert(y == 0);
+
+		// check whether the line crossed the upper border right of the screen:
+		if (x >= width) return 0; // fully right of screen
+		w -= n;
+		assert(w > 0);
+	}
+
+	if (x < 0) // line starts left of screen
+	{
+		int n = -x;
+		advance(x, y, error, dx, dy, n);
+		assert(x == 0);
+
+		assert(y < height); // fully below screen: can no longer happen here
+		//if (y >= height) return 0;
+		w -= n;
+		assert(w > 0);
+	}
+
+	if (fxy)
+	{
+		swap(x, y);
+		swap(width, height);
+	}
+	if (fy) { y = height - 1 - y; }
+	if (fx) { x = width - 1 - x; }
+
+	return w;
+}
 
 void Canvas::drawLine(coord x1, coord y1, coord x2, coord y2, uint color, uint ink) noexcept
 {
-	// draw arbitrary line from (x1,y1) to (x2,y2)
+	// draw arbitrary line from (x1,y1) to (x2,y2) incl.
 
-	// Geometry assumption:
-	// pixel at (X,Y) occupies the area between (X,Y) and (X+1,Y+1).
-	// the 1-pixel wide line is drawn from (X1,Y1) to (x2,y2) with pixels hanging to bottom right (x+1 and y+1).
-	// draws at least 1 pixel (from (x1,y1) to (x2,y2) if (x1,y1) == (x2,y2)).
-
-	if (unlikely(x1 == x2))
+	if unlikely (x1 == x2)
 	{
-		if (y1 > y2) std::swap(y1, y2);
+		if (y1 > y2) swap(y1, y2);
 		return drawVLine(x1, y1, y2 - y1 + 1, color, ink);
 	}
 
-	if (unlikely(y1 == y2))
+	if unlikely (y1 == y2)
 	{
-		if (x1 > x2) std::swap(x1, x2);
+		if (x1 > x2) swap(x1, x2);
 		return drawHLine(x1, y1, x2 - x1 + 1, color, ink);
 	}
 
-	// need clipping?
+	int dx	  = abs(x2 - x1);
+	int dy	  = abs(y2 - y1);
+	int n	  = max(dx, dy);
+	int error = n / 2;
+	n += 1;
+
+	// clip:
 	if (uint(x1) >= uint(width) || uint(x2) >= uint(width) || uint(y1) >= uint(height) || uint(y2) >= uint(height))
 	{
-		// proper clipping needs calculating the initial dz and the number of pixels to plot
-		// but we do it the easy way by intersecting the line with the borders:
-
-		auto cutLineAtX = [=](coord x) { return y1 + (y2 - y1) * (x - x1 + (x2 - x1) / 2) / (x2 - x1); };
-		auto cutLineAtY = [=](coord y) { return x1 + (x2 - x1) * (y - y1 + (y2 - y1) / 2) / (y2 - y1); };
-
-		if (uint(x1) >= uint(width))
-		{
-			if (x1 < 0)
-			{
-				if (x2 < 0) return;
-				y1 = cutLineAtX(0);
-				x1 = 0;
-			}
-			else // if (x1 >= width)
-			{
-				if (x2 >= width) return;
-				y1 = cutLineAtX(width - 1);
-				x1 = width - 1;
-			}
-			if (uint(y1) >= uint(height)) return;
-		}
-
-		if (uint(x2) >= uint(width))
-		{
-			if (x2 < 0)
-			{
-				y2 = cutLineAtX(0);
-				x2 = 0;
-			}
-			else // if (x2 >= width)
-			{
-				y2 = cutLineAtX(width - 1);
-				x2 = width - 1;
-			}
-			if (uint(y2) >= uint(height)) return;
-		}
-
-		if (uint(y1) >= uint(height))
-		{
-			if (y1 < 0)
-			{
-				if (y2 < 0) return;
-				x1 = cutLineAtY(0);
-				y1 = 0;
-			}
-			else // if (y1 >= height)
-			{
-				if (y2 >= height) return;
-				x1 = cutLineAtY(height - 1);
-				y1 = height - 1;
-			}
-			if (uint(x1) >= uint(width)) return;
-		}
-
-		if (uint(y2) >= uint(height))
-		{
-			if (y2 < 0)
-			{
-				x2 = cutLineAtY(0);
-				y2 = 0;
-			}
-			else // if (y2 >= height)
-			{
-				x2 = cutLineAtY(height - 1);
-				y2 = height - 1;
-			}
-			if (uint(x2) >= uint(width)) return;
-		}
-
-		assert(uint(x1) < uint(width) && uint(x2) < uint(width) && uint(y1) < uint(height) && uint(y2) < uint(height));
+		n = clip_line(x1, y1, x2 - x1, y2 - y1, error, width, height);
+		if (n <= 0) return;
 	}
 
-	coord dx = abs(x2 - x1);
-	coord dy = abs(y2 - y1);
+	int step_x = x2 > x1 ? +1 : -1;
+	int step_y = y2 > y1 ? +1 : -1;
 
 	if (dx >= dy) // => advance in x dir
 	{
-		if (x1 > x2)
+		while (--n >= 0)
 		{
-			std::swap(x1, x2); // => advance with x++
-			std::swap(y1, y2);
-		}
-
-		int step = sign(y2 - y1); // step direction for y
-		int dz	 = dx / 2;		  // step aside ~~ dy = (dx*dy+dx/2) / dx   => preset dz with "+dx/2" for rounding
-
-		while (x1 <= x2)
-		{
-			set_pixel(x1++, y1, color, ink);
-			dz += dy;
-			if (dz >= dx)
+			set_pixel(x1, y1, color, ink);
+			x1 += step_x;
+			error += dy;
+			if (error >= dx)
 			{
-				dz -= dx;
-				y1 += step;
+				error -= dx;
+				y1 += step_y;
 			}
 		}
 	}
 	else // dy > dx => advance in y dir
 	{
-		if (y1 > y2)
+		while (--n >= 0)
 		{
-			std::swap(y1, y2); // => advance with y++
-			std::swap(x1, x2);
-		}
-
-		coord step = sign(x2 - x1); // step direction for x
-		coord dz   = dy / 2;		// step aside ~~ dx = (dx*dy+dy/2) / dy   => preset dz with "+dy/2" for rounding
-
-		while (y1 <= y2)
-		{
-			set_pixel(x1, y1++, color, ink);
-			dz += dx;
-			if (dz >= dy)
+			set_pixel(x1, y1, color, ink);
+			y1 += step_y;
+			error += dx;
+			if (error >= dy)
 			{
-				dz -= dy;
-				x1 += step;
+				error -= dy;
+				x1 += step_x;
 			}
 		}
 	}
