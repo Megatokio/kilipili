@@ -6,7 +6,7 @@
 #include "standard_types.h"
 #include <cmath>
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 struct fixint
@@ -72,6 +72,9 @@ struct fixint
 	constexpr fixint operator*(int b) const { return fixint(*this) *= b; }
 	constexpr fixint operator/(int b) const { return fixint(*this) /= b; }
 
+	constexpr fixint operator+() const { return *this; }
+	constexpr fixint operator-() const { return fixint(0) -= *this; }
+
 	constexpr fixint operator&=(fixint b)
 	{
 		n &= b.n;
@@ -122,7 +125,5 @@ struct fixint
 constexpr fixint null = 0;
 constexpr fixint one  = 1;
 
-inline fixint abs(fixint v) { return v < null ? null - v : v; }
 
-
-} // namespace kilipili::Graphics
+} // namespace kilipili
