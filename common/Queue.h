@@ -36,8 +36,8 @@ public:
 	Queue()	 = default;
 	~Queue() = default;
 
-	uint avail() const noexcept { return wp - rp; }
-	uint free() const noexcept { return SIZE - avail(); }
+	IDX avail() const noexcept { return wp - rp; }
+	IDX free() const noexcept { return SIZE - avail(); }
 
 	void flush() noexcept // call from receiver only!
 	{

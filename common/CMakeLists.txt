@@ -76,6 +76,7 @@ add_library(kilipili_common STATIC
 	template_helpers.h
 	tempmem.h
 	timing.h
+	FlexQueue.h
 )
 
 target_compile_definitions(kilipili_common PUBLIC  
