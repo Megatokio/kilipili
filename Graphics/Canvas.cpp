@@ -4,6 +4,7 @@
 
 #include "Canvas.h"
 #include "Array.h"
+#include "FlexQueue.h"
 #include "fixint.h"
 #include <algorithm>
 
@@ -742,52 +743,39 @@ int Canvas::adjust_r(coord l, coord r, coord y, uint ink)
 void Canvas::floodFill(coord x, coord y, uint color, uint ink)
 {
 	// TODO:
-	// stack on heap, use Array<>?
-	// burn-in grid needs stack up to 2k pixel
+	// burn-in grid needs 2k*sizeof(Data) stack (max_usage=1025)
 	// set_pixel()? get_ink()?
 
 	if (!is_inside(x, y)) return;
 	if (is_direct_color(colormode)) ink = color;
 	if (getInk(x, y) == ink) return;
 
-	constexpr uint ssz = 1 << 9; // fill full screen 1024*768 filled with text: stack usage ~ 346
-	class Stack
+
+	struct Data
 	{
-		struct Data
-		{
-			// area between (l,y) and (r,y) has been filled. => need to resume in line y+dy.
+		// area between (l,y) and (r,y) has been filled. => need to resume in line y+dy.
 
-			uint l	: 10; // left border of filled area
-			uint r	: 11; // right border of filled area: 0 <= l < r <= width
-			uint y	: 10; // scanline of filled area
-			uint dy : 1;  // direction to go: 0 => y+1, 1 => y-1
-			Data() {}
-			Data(uint l, uint r, uint y, uint dy) : l(l), r(r), y(y), dy(dy) {}
-		};
-		static_assert(sizeof(Data) == 4);
+		uint l	: 10; // left border of filled area
+		uint r	: 11; // right border of filled area: 0 <= l < r <= width
+		uint y	: 10; // scanline of filled area
+		uint dy : 1;  // direction to go: 0 => y+1, 1 => y-1
+		Data() {}
+		Data(uint l, uint r, uint y, uint dy) : l(l), r(r), y(y), dy(dy) {}
+	};
+	static_assert(sizeof(Data) == 4);
 
-		Data data[ssz]; // 64*4 = 256 bytes
-		uint wi = 0, ri = 0;
-		void push(const Data& d)
+	struct Stack : public FlexQueue<Data, 64>
+	{
+		//uint max_usage = 0;
+
+		void push(int l, int r, int y, int dy)
 		{
-			assert(free());
-			data[wi++ & (ssz - 1)] = d;
-			max_usage			   = max(max_usage, avail());
+			put(Data(uint(l), uint(r), uint(y), dy < 0));
+			//max_usage = max(max_usage, avail());
 		}
-		Data& pop()
-		{
-			assert(avail());
-			return data[ri++ & (ssz - 1)];
-		}
-
-	public:
-		uint max_usage = 0;
-		uint avail() { return wi - ri; }
-		uint free() { return ssz - (wi - ri); }
-		void push(int l, int r, int y, int dy) { push(Data(uint(l), uint(r), uint(y), dy < 0)); }
 		void pop(int& l, int& r, int& y, int& dy)
 		{
-			Data d = pop();
+			Data d = get();
 			l	   = d.l;
 			r	   = d.r;
 			y	   = d.y;
@@ -843,6 +831,8 @@ void Canvas::floodFill(coord x, coord y, uint color, uint ink)
 			x1 = adjust_l(r1, r, y, ink);
 		}
 	}
+
+	//fprintf(stderr, "stack.max_usage = %u\n", stack.max_usage);
 }
 
 void Canvas::drawPolygon(const Point* p, uint cnt, uint color, uint ink) noexcept
