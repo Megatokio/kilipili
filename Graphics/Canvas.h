@@ -147,7 +147,9 @@ public:
 	void drawPolygon(const Point*, uint cnt, uint color, uint ink = 0) noexcept;
 	void drawTriangle(const Point& p1, const Point& p2, const Point& p3, uint color, uint ink = 0) noexcept;
 	void fillTriangle(Point p1, Point p2, Point p3, uint color, uint ink = 0) noexcept;
-	void fillPolygon(const Point*, uint cnt, uint color, uint ink = 0) noexcept;
+	void fillPolygon(const Point*, uint cnt, uint color, uint ink = 0);
+	void drawBezier_f(const Point& p1, const Point& p2, const Point& p3, const Point& p4, uint c, uint i = 0) noexcept;
+	void drawBezier(const Point& p1, const Point& p2, const Point& p3, const Point& p4, uint c, uint i = 0) noexcept;
 
 
 	// ########################

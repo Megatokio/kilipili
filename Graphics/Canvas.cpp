@@ -9,6 +9,22 @@
 #include <algorithm>
 
 
+namespace kilipili
+{
+template<class T>
+inline constexpr T max(T a, T b, T c, T d) noexcept
+{
+	return max(max(a, b, c), d);
+}
+
+template<class T>
+inline constexpr T min(T a, T b, T c, T d) noexcept
+{
+	return min(min(a, b, c), d);
+}
+} // namespace kilipili
+
+
 namespace kilipili::Graphics
 {
 
@@ -1129,6 +1145,137 @@ void Canvas::fillPolygon(const Point* _points, uint _count, uint color, uint ink
 	}
 }
 
+void Canvas::drawBezier_f(
+	const Point& p0, const Point& p1, const Point& p2, const Point& p3, uint color, uint ink) noexcept
+{
+	/*	Draw a cubic Bezier curve using float.
+		p0: start point
+		p1: control point 
+		p2: control point 
+		p3: end point
+		version for reference.
+	*/
+
+	int	  sx	= max(p0.x, p1.x, p2.x, p3.x) - min(p0.x, p1.x, p2.x, p3.x);
+	int	  sy	= max(p0.y, p1.y, p2.y, p3.y) - min(p0.y, p1.y, p2.y, p3.y);
+	int	  steps = max(sx, sy);
+	float step	= 1.0f / float(steps);
+
+	// Calculate the coordinates using the cubic Bezier formula
+	// B(t) = (1-t)^3*P0 + 3(1-t)^2*t*P1 + 3(1-t)*t^2*P2 + t^3*P3
+
+
+	setPixel(p0, color, ink);
+	setPixel(p3, color, ink);
+
+	float p0x = float(p0.x);
+	float p0y = float(p0.y);
+	float p1x = float(p1.x);
+	float p1y = float(p1.y);
+	float p2x = float(p2.x);
+	float p2y = float(p2.y);
+	float p3x = float(p3.x);
+	float p3y = float(p3.y);
+
+	// for detecting gaps between last & current point:
+	float x0 = p0x;
+	float y0 = p0y;
+	float x3 = p3x;
+	float y3 = p3y;
+
+	for (float t = 0, u = 1; t <= u; t += step, u -= step)
+	{
+		float tt   = t * t;
+		float ttu3 = tt * u * 3;
+		float ttt  = tt * t;
+
+		float uu   = u * u;
+		float uut3 = uu * t * 3;
+		float uuu  = uu * u;
+
+		float x = p0x * uuu + p1x * uut3 + p2x * ttu3 + p3x * ttt;
+		float y = p0y * uuu + p1y * uut3 + p2y * ttu3 + p3y * ttt;
+		setPixel(int(x), int(y), color, ink);
+
+		if (abs(int(x) - int(x0)) > 1 || abs(int(y) - int(y0)) > 1) // gap?
+			setPixel(int((x + x0) / 2), int((y + y0) / 2), color, ink);
+		x0 = x;
+		y0 = y;
+
+		x = p3x * uuu + p2x * uut3 + p1x * ttu3 + p0x * ttt;
+		y = p3y * uuu + p2y * uut3 + p1y * ttu3 + p0y * ttt;
+		setPixel(int(x), int(y), color, ink);
+
+		if (abs(int(x) - int(x3)) > 1 || abs(int(y) - int(y3)) > 1) // gap?
+			setPixel(int((x + x3) / 2), int((y + y3) / 2), color, ink);
+		x3 = x;
+		y3 = y;
+	}
+}
+
+void Canvas::drawBezier(
+	const Point& p0, const Point& p1, const Point& p2, const Point& p3, uint color, uint ink) noexcept
+{
+	/*	Draw a cubic Bezier curve.
+		p0: start point
+		p1: control point 
+		p2: control point 
+		p3: end point
+	*/
+
+	// use fixed-point math: ss = number of fractional bits:
+	constexpr int ss  = 15;
+	constexpr int ssh = ((0)) ? 1 << (ss - 1) : 0; // rounding?
+
+	// estimate number of points to set:
+	int sx	  = max(p0.x, p1.x, p2.x, p3.x) - min(p0.x, p1.x, p2.x, p3.x);
+	int sy	  = max(p0.y, p1.y, p2.y, p3.y) - min(p0.y, p1.y, p2.y, p3.y);
+	int steps = min(max(sx, sy), 1 << ss);
+	int step  = (1 << ss) / steps + 1;
+
+	// for detecting gaps between last & current point:
+	int x0 = p0.x << ss;
+	int y0 = p0.y << ss;
+	int x3 = p3.x << ss;
+	int y3 = p3.y << ss;
+	setPixel(x0, y0, color, ink);
+	setPixel(x3, y3, color, ink);
+
+	// do it:
+	for (int t = step, u = (1 << ss) - step; t <= u; t += step, u -= step)
+	{
+		// calculate the coordinates using the cubic Bezier formula:
+		// P(t) = (1-t)^3*P0 + 3(1-t)^2*t*P1 + 3(1-t)*t^2*P2 + t^3*P3
+
+		int tt	 = (t * t + ssh) >> ss;
+		int ttu3 = (tt * u * 3 + ssh) >> ss;
+		int ttt	 = (tt * t + ssh) >> ss;
+
+		int uu	 = (u * u + ssh) >> ss;
+		int uut3 = (uu * t * 3 + ssh) >> ss;
+		int uuu	 = (uu * u + ssh) >> ss;
+
+		int x = p0.x * uuu + p1.x * uut3 + p2.x * ttu3 + p3.x * ttt + 0 * ssh;
+		int y = p0.y * uuu + p1.y * uut3 + p2.y * ttu3 + p3.y * ttt + 0 * ssh;
+		setPixel(x >> ss, y >> ss, color, ink);
+
+		if (abs((x >> ss) - (x0 >> ss)) > 1 || abs((y >> ss) - (y0 >> ss)) > 1) // gap?
+			setPixel((x + x0) >> (ss + 1), (y + y0) >> (ss + 1), color, ink);	// 1 point should be enough
+		x0 = x;
+		y0 = y;
+
+		x = p3.x * uuu + p2.x * uut3 + p1.x * ttu3 + p0.x * ttt + 0 * ssh;
+		y = p3.y * uuu + p2.y * uut3 + p1.y * ttu3 + p0.y * ttt + 0 * ssh;
+		setPixel(x >> ss, y >> ss, color, ink);
+
+		if (abs((x >> ss) - (x3 >> ss)) > 1 || abs((y >> ss) - (y3 >> ss)) > 1) // gap?
+			setPixel((x + x3) >> (ss + 1), (y + y3) >> (ss + 1), color, ink);
+		x3 = x;
+		y3 = y;
+	}
+}
+
+
 } // namespace kilipili::Graphics
 
 
@@ -1138,7 +1285,7 @@ void Canvas::fillPolygon(const Point* _points, uint _count, uint color, uint ink
 
 
 
-
+	
 
 
 
