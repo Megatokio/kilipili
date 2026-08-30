@@ -54,7 +54,7 @@ extern void removeHandler(Handler*, const void* data = nullptr);
 		=> a handler cannot be removed from within and not safely from the other core.
 		   to remove a handler from within the handler can simply return 0.
 	*/
-extern void run(int timeout = 0) noexcept;
+extern void run(int timeout_usec = 0) noexcept;
 
 } // namespace Dispatcher
 
