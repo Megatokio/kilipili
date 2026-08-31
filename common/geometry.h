@@ -114,6 +114,7 @@ struct Rect
 	Point bottom_right() const noexcept { return p2; }
 	Point bottom_left() const noexcept { return p3(); }
 	Point top_right() const noexcept { return p4(); }
+	Point center() const noexcept { return Point((p1.x + p2.x) / 2, (p1.y + p2.y) / 2); }
 
 	constexpr bool contains(const Point& p) const noexcept
 	{
