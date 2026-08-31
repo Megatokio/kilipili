@@ -649,9 +649,9 @@ void Canvas::drawCircle(coord x1, coord y1, coord w, coord h, uint color, uint i
 	}
 }
 
-void Canvas::fillCircle(coord x1, coord y1, coord x2, coord y2, uint color, uint ink) noexcept
+void Canvas::fillCircle(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
 {
-	if (x2 <= x1 || y2 <= y1) return;
+	if (w <= 0 || h <= 0) return;
 
 	/*	Circle:
 		x² + y² = r²
@@ -665,8 +665,11 @@ void Canvas::fillCircle(coord x1, coord y1, coord x2, coord y2, uint color, uint
 		(ay)² = (ab)² - (bx)²
 	*/
 
-	if (x2 - x1 == y2 - y1) // square circle
+	if (w == h) // square circle
 	{
+		coord x2 = x1 + w;
+		coord y2 = y1 + h;
+
 		// because every point we plot draws a 1*1 pixel rect, we must reduce the diameter by 1
 		// and move the center by -0.5,-0.5:
 

@@ -142,7 +142,7 @@ public:
 	void drawLine(coord x1, coord y1, coord x2, coord y2, uint color, uint ink = 0) noexcept;
 	void drawRect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept;
 	void drawCircle(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept;
-	void fillCircle(coord x, coord y, coord x2, coord y2, uint color, uint ink = 0) noexcept;
+	void fillCircle(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept;
 	void floodFill(coord x, coord y, uint color, uint ink = 0);
 	void drawPolygon(const Point*, uint cnt, uint color, uint ink = 0) noexcept;
 	void drawTriangle(const Point& p1, const Point& p2, const Point& p3, uint color, uint ink = 0) noexcept;
