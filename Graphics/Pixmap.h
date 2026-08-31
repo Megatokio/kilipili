@@ -105,33 +105,33 @@ public:
 	// _______________________________________________________________________________________
 	// overrides for Canvas virtual drawing methods:
 
-	virtual void set_pixel(coord x, coord y, uint color, uint ink = 0) noexcept override;
+	virtual void set_pixel(coord x, coord y, uint color, uint ink = 1) noexcept override;
 	virtual uint get_pixel(coord x, coord y, uint* ink) const noexcept override;
 	virtual uint get_color(coord x, coord y) const noexcept override;
 	virtual uint get_ink(coord x, coord y) const noexcept override;
 
-	virtual void draw_hline_to(coord x, coord y, coord x2, uint color, uint ink = 0) noexcept override;
-	virtual void draw_vline_to(coord x, coord y, coord y2, uint color, uint ink = 0) noexcept override;
-	virtual void fillRect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept override;
+	virtual void draw_hline_to(coord x, coord y, coord x2, uint color, uint ink = 1) noexcept override;
+	virtual void draw_vline_to(coord x, coord y, coord y2, uint color, uint ink = 1) noexcept override;
+	virtual void fillRect(coord x, coord y, coord w, coord h, uint color, uint ink = 1) noexcept override;
 	virtual void xorRect(coord x, coord y, coord w, coord h, uint xor_color) noexcept override;
 	//virtual void clear(uint color) noexcept override;
 	virtual void copyRect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept override;
 	virtual void copyRect(coord x, coord y, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept override;
-	//virtual void readBmp(coord x, coord y, uint8*, int roffs, coord w, coord h, uint c, uint = 0) noexcept override;
-	virtual void drawBmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint = 0) noexcept override;
-	virtual void drawChar(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink = 0) noexcept override;
+	//virtual void readBmp(coord x, coord y, uint8* bmp, int row_offs, coord w, coord h, uint c, bool) noexcept override;
+	virtual void drawBmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint = 1) noexcept override;
+	virtual void drawChar(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink = 1) noexcept override;
 
 	// _______________________________________________________________________________________
 	// non-overrides:
 
-	void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink = 0) noexcept;
+	void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink = 1) noexcept;
 	void xor_rect(coord x, coord y, coord w, coord h, uint xor_color) noexcept;
 	void copy_rect(coord x, coord y, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept;
-	void draw_bmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint = 0) noexcept;
-	void draw_char(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink = 0) noexcept;
+	void draw_bmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint = 1) noexcept;
+	void draw_char(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink = 1) noexcept;
 
 	using Canvas::drawBmp;
-	void drawBmp(coord x, coord y, const Bitmap&, uint c, uint = 0) noexcept;
+	void drawBmp(coord x, coord y, const Bitmap&, uint c, uint = 1) noexcept;
 
 	using Canvas::copyRect;
 	void copyRect(coord x, coord y, const Pixmap& src, coord qx, coord qy, coord w, coord h) noexcept;
