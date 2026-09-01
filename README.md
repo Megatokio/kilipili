@@ -20,6 +20,7 @@ Very coarsely it provides:
 - Display true color images up to 600x400 pixels with a *HoldAndModifyVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
 - AY-3-8912 sound chip emulation and *.ym* audio file playback. See Wiki page about *.ymm* files.
 - write to internal flash without disrupting video output. 
+- Graphics primitives: fill triangle, fill polygon, draw Bezier curve
 
 
 ## Video 
@@ -50,17 +51,15 @@ The Graphics engine supports pixmaps with many modes which are supported by the 
 
 - `[done]` **Direct pixel color modes**: 1, 2, 4, 8 and 16 bpp.  
   16 bpp is normally true color while i1 .. i8 are normally indexed color.
-- `[done]` **Attribute modes**: The image is composed from a 1 bpp or 2 bpp pixmap and lower resolution color cells.  
+- `[done]` **Attribute modes**: The image is composed from a 1 bpp or 2 bpp pixmap and low resolution true color attribute cells.  
   The attributes cells normally match the character cell size which is normally 8 x 12 pixels.  
   By using templates all graphics functions are supported in all modes.  
   Supported attribute modes:
   - 1 or 2 bit per pixel in the pixmap selecting from 2 or 4 colors in the corresponding attribute cell
   - 1, 2, 4 or 8 pixel wide attributes
   - attribute cell height from 1 to 99
-  - 4, 8 and 16 bit colors in the attributes, where i4 and i8 are normally indexed colors  
-- `[done]` Graphics primitives
+- `[done]` Graphics primitives, e.g.: line, circle, polyline, bezier, filled circle, triangle, polygon, flood fill, draw bmp
 - `[done]` Text output
-- `[todo]` Graphics still lack some functionality.
 
 
 ## Audio
