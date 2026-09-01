@@ -373,16 +373,17 @@ static void RAM video_runner(int row0, uint32 cc_at_line_start)
 
 void addVideoPlane(VideoPlanePtr plane, bool wait)
 {
-	assert(plane != nullptr);
-	assert_lt(num_planes, max_planes);
-
 	// plane must be added by core1 during vblank:
 
-	if (plane)
-		addOneTimeAction([plane] {
-			assert_lt(num_planes, max_planes);
-			planes[num_planes++] = plane;
-		});
+	assert(plane != nullptr);
+	assert_lt(num_planes, max_planes);
+	assert(wait == false || state == RUNNING); // else we'll hang
+	trace(__func__);
+
+	addOneTimeAction([plane] {
+		assert_lt(num_planes, max_planes);
+		planes[num_planes++] = plane;
+	});
 
 	if (wait)
 		while (onetime_action) __wfe();
@@ -392,17 +393,20 @@ void removeVideoPlane(VideoPlanePtr plane, bool wait)
 {
 	// plane must be removed by core1 during vblank:
 
-	if (plane)
-		addOneTimeAction([plane] {
-			for (uint i = num_planes; i;)
-			{
-				if (planes[--i] != plane) continue;
+	if (!plane) return;
+	assert(wait == false || state == RUNNING); // else we'll hang
+	trace(__func__);
 
-				while (++i < num_planes) std::swap(planes[i - 1], planes[i]);
-				planes[--num_planes] = nullptr;
-				return;
-			}
-		});
+	addOneTimeAction([plane] {
+		for (uint i = num_planes; i;)
+		{
+			if (planes[--i] != plane) continue;
+
+			while (++i < num_planes) std::swap(planes[i - 1], planes[i]);
+			planes[--num_planes] = nullptr;
+			return;
+		}
+	});
 
 	if (wait)
 		while (onetime_action) __wfe();
@@ -421,6 +425,7 @@ void addOneTimeAction(const std::function<void()>& fu) noexcept
 	// the spinlock is blocked for ~10 .. ~100 usec
 	// if MALLOC_EXTENDED_LOGGING=ON then up to ~3000 usec (depending on serial speed)
 
+	trace(__func__);
 	if unlikely (!is_initialized) initialize();
 	Locker _;
 
