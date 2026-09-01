@@ -1,4 +1,4 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -54,15 +54,7 @@ static constexpr bool extended_logging = false;
 #endif
 
 
-using uint32 = uint32_t;
-using int32	 = int32_t;
-using cptr	 = const char*;
-using Error	 = const char*;
-
-
 #if PICO_CXX_ENABLE_EXCEPTIONS && !PICO_CXX_DISABLE_ALLOCATION_OVERRIDES
-
-constexpr char OUT_OF_MEMORY[] = "out of memory";
 
 void* operator new(size_t n)
 {
@@ -87,6 +79,11 @@ void operator delete[](void* p, __unused size_t n) noexcept { free(p); }
   #endif
 
 #endif
+
+namespace kilipili
+{
+extern void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...);
+}
 
 
 /*	_________________________________________________________________________________________________
@@ -142,8 +139,11 @@ static inline uint32* skip_free(uint32* p)
 		while (p < heap_end && is_valid_free(p)) { p += *p; }
 
 		// note: in a race condition the used block at p could just been released by free().
-		if (p < heap_end && !is_valid_used(p) && !is_valid_free(p)) panic("malloc:skip_free: !valid_used");
-
+		if unlikely (p < heap_end && !is_valid_used(p) && !is_valid_free(p))
+		{
+			spin_unlock_unsafe(spin_lock_instance(MALLOC_SPINLOCK_NUMBER));
+			kilipili::panic("malloc:skip_free: !valid_used");
+		}
 		return p;
 	}
 	else
@@ -158,7 +158,11 @@ static inline uint32* skip_used(uint32* p)
 	if constexpr (extended_validation)
 	{
 		while (p < heap_end && is_valid_used(p)) { p += *p & size_mask; }
-		if (p < heap_end && !is_valid_free(p)) panic("malloc:skip_used: !valid_free");
+		if unlikely (p < heap_end && !is_valid_free(p))
+		{
+			spin_unlock_unsafe(spin_lock_instance(MALLOC_SPINLOCK_NUMBER));
+			kilipili::panic("malloc:skip_used: !valid_free");
+		}
 		return p;
 	}
 	else
@@ -427,9 +431,10 @@ void dump_heap_to_fu(dump_heap_print_fu* print_fu, void* data)
 	{
 		if (is_valid_free(p))
 		{
-			uint sz = *p & size_mask;
-			print_fu(data, p + 1, int(sz * 4 - 4), 0);
-			p += sz;
+			uint32* p0 = p;
+			while (p < heap_end && is_valid_free(p)) { p += *p; } // report multiple free blocks as one
+			int sz = p - p0;
+			print_fu(data, p + 1, sz * 4 - 4, 0);
 		}
 		else if (is_valid_used(p))
 		{

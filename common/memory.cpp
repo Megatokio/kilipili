@@ -1,8 +1,6 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
-
-extern "C" __attribute__((__weak__)) const char* check_heap(); // returns nullptr or error text
 
 #include "memory.h"
 #include "Trace.h"
@@ -189,13 +187,9 @@ void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 	printf("core: %u\n", get_core_num());
 	Trace::print(get_core_num());
 	printf("stack free = %i\n", int(stack_free()));
-	if (check_heap)
-	{
-		cstr s = check_heap();
-		printf("heap: %s\n", s ? s : "valid");
-		dump_heap();
-	}
-
+	cstr s = check_heap();
+	printf("heap: %s\n", s ? s : "valid");
+	dump_heap();
 	for (;;);
 	//_exit(1);	 --> HARDFAULT_EXCEPTION
 }
