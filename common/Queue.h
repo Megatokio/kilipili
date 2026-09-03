@@ -1,8 +1,8 @@
-#pragma once
-// Copyright (c) 2020 - 2025 kio@little-bat.de
+// Copyright (c) 2020 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
+#pragma once
 #include "common/cdefs.h"
 #include "standard_types.h"
 #include <atomic>
@@ -28,6 +28,7 @@ protected:
 	IDX rp = 0;		  // only modified by reader
 	IDX wp = 0;		  // only modified by writer
 
+	static uint min(uint a, uint b) noexcept { return a <= b ? a : b; }
 	static void copy(T* z, const T* q, uint n) noexcept;
 	void		copy_q2b(T*, uint n) noexcept;		 // helper: copy queue to external linear buffer
 	void		copy_b2q(const T*, uint n) noexcept; // helper: copy external linear buffer to queue
