@@ -256,15 +256,14 @@ bool islowerstr(cstr s) noexcept
 	return true;
 }
 
-str mulstr(cstr q, uint n) throws // std::length_error
+str mulstr(cstr q, uint n) throws
 {
 	// Repeate string n times
 
 	if (!q || !*q || !n) return emptystr;
 
 	size_t len = ::strlen(q);
-	if (len * n > 16 MB)
-		throw std::length_error(usingstr("mulstr(): size = %lu exceeds maximum of 16 MB", long(len * n)));
+	if (len * n > 16 MB) throw Error(usingstr("mulstr(): size = %lu exceeds maximum of 16 MB", ulong(len * n)));
 	str s = tempstr(uint(len * n));
 	ptr z = s;
 

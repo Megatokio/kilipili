@@ -92,7 +92,7 @@ extern str	whitestr(cstr, char c = ' ');
 
 extern str	substr(cptr a, cptr e);
 inline str	substr(cuptr a, cuptr e) { return substr(cptr(a), cptr(e)); } // convenience method
-extern str	mulstr(cstr, uint n) throws;								  // std::length_error
+extern str	mulstr(cstr, uint n) throws;
 extern str	catstr(cstr, cstr);
 extern str	catstr(cstr, cstr, cstr, cstr = nullptr, cstr = nullptr, cstr = nullptr);
 extern str	catstr(cstr, cstr, cstr, cstr, cstr, cstr, cstr, cstr = nullptr, cstr = nullptr, cstr = nullptr);
