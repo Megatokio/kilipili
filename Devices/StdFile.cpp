@@ -26,7 +26,7 @@ static cstr modestr_for_mode(FileOpenMode mode)
 StdFile::StdFile(cstr fpath, FileOpenMode mode) : File(mode)
 {
 	file = fopen(fpath, modestr_for_mode(mode));
-	if (!file) throw "could not open file";
+	if (!file) throw strerror(errno); // "could not open file";
 }
 
 StdFile::StdFile(FILE* file, Flags flags) : //
