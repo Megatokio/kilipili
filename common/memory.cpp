@@ -173,7 +173,7 @@ void print_system_info(uint)
 
 void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 {
-	puts("\n*** <PANIC> ***\n");
+	printf("\n*** <PANIC> ***\ncore: %u\n", get_core_num());
 
 	if (fmt)
 	{
@@ -181,10 +181,9 @@ void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 		va_start(args, fmt);
 		vprintf(fmt, args);
 		va_end(args);
-		puts("\n");
+		putchar('\n');
 	}
 
-	printf("core: %u\n", get_core_num());
 	Trace::print(get_core_num());
 	printf("stack free = %i\n", int(stack_free()));
 	cstr s = check_heap();
