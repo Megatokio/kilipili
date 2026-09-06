@@ -34,7 +34,8 @@ static constexpr bool disabled = false;
 using Error						= const char*;
 constexpr Error NO_ERROR		= nullptr;
 constexpr char	OUT_OF_MEMORY[] = "out of memory";
-constexpr char	UNKNOWN_ERROR[] = "Unknown error";
+constexpr char	UNKNOWN_ERROR[] = "unknown error";
+constexpr char	DATA_ERROR[]	= "data error";
 
 
 // ######################################
@@ -45,8 +46,8 @@ constexpr char	UNKNOWN_ERROR[] = "Unknown error";
 using uint8 = unsigned char;
 using int8	= signed char;
 #else
-using uint8	 = uint8_t;
-using int8	 = int8_t;
+using uint8 = uint8_t;
+using int8	= int8_t;
 #endif
 
 #if SHRT_MAX == 0x7fff
