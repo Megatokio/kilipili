@@ -15,6 +15,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef XDEBUG
+  #define xdebugstr debugstr
+#else
+  #define xdebugstr(...) (void(0))
+#endif
+
 #ifdef PICO_DEFAULT_SPI_CLOCK
 static constexpr uint32 spi_clock = PICO_DEFAULT_SPI_CLOCK;
 static_assert(spi_clock <= 25 * 1000 * 1000);
@@ -479,7 +485,7 @@ void SDCard::connect() throws
 		// The SD Card will enter SPI mode if the CS signal is asserted during this command.
 		// expected response: R1 = 0x01 = IdleState
 
-		debugstr("  cmd0\n");
+		xdebugstr("  cmd0\n");
 		r1 = send_cmd(0x00, 0, f_idle);
 		if (r1 != IdleState) goto retry;
 
@@ -491,7 +497,7 @@ void SDCard::connect() throws
 		//           [7:0]  check pattern: 0xAA
 		// expected response: R7 = R1 + 0x000001AA = same as sent
 
-		debugstr("  cmd8\n");
+		xdebugstr("  cmd8\n");
 		select();
 		wait_ready_or_throw();
 		constexpr uint8 cmd8[6] {8 | 0x40, 0, 0, 1, 0xAA, 0x87};
@@ -502,13 +508,13 @@ void SDCard::connect() throws
 			read_spi(bu, 4);
 			if (bu[3] != 0xAA || bu[2] != 1) goto retry;
 			deselect();
-			debugstr("  SD_2x\n");
+			xdebugstr("  SD_2x\n");
 			card_type = SD_v2;
 		}
 		else if (r1 == IdleState + IllegalCommand)
 		{
 			deselect();
-			debugstr("  SD_1x\n");
+			xdebugstr("  SD_1x\n");
 			card_type = SD_v1;
 		}
 		else goto retry;
@@ -520,7 +526,7 @@ void SDCard::connect() throws
 
 		// CMD59 CRC_ON_OFF:
 		// enable CRC
-		debugstr("  cmd59\n");
+		xdebugstr("  cmd59\n");
 		send_cmd(59, 0, f_idle);
 
 		// ACMD41 SD_SEND_OP_COND, wait until card left IdleState:
@@ -536,7 +542,7 @@ void SDCard::connect() throws
 		{
 			if (card_type == SD_v1) throw DEVICE_INVALID_RESPONSE;
 			card_type = SDHC_v2;
-			debugstr("  SDHC_2x\n");
+			xdebugstr("  SDHC_2x\n");
 		}
 		else
 		{
@@ -598,7 +604,7 @@ void SDCard::read_single_block(uint32 blkidx, uint8* data) throws
 	// CMD17: read single block
 
 	trace("SDCard::read_single_block");
-	debugstr("%s\n", "SDCard::read_single_block");
+	xdebugstr("%s\n", "SDCard::read_single_block");
 
 	for (uint retry = 0; retry <= 1; retry++)
 	{
@@ -645,7 +651,7 @@ void SDCard::write_single_block(uint32 blkidx, const uint8* data) throws
 void SDCard::stop_transmission() noexcept
 {
 	trace("SDCard::stop_transmission");
-	debugstr("%s\n", "SDCard::stop_transmission");
+	xdebugstr("%s\n", "SDCard::stop_transmission");
 
 	// CMD12
 	// The received byte immediately following CMD12 is a stuff byte,
@@ -669,7 +675,7 @@ void SDCard::readSectors(LBA blkidx, void* data, SIZE blkcnt) throws
 	// CMD18: read multiple blocks
 
 	trace("SDCard::readSectors");
-	debugstr("%s\n", "SDCard::readSectors");
+	xdebugstr("%s\n", "SDCard::readSectors");
 
 	uchar* udata = reinterpret_cast<uchar*>(data);
 	if (blkcnt == 1) return read_single_block(blkidx, udata);

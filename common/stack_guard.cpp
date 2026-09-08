@@ -39,7 +39,7 @@ void test_stack_guard(uint core)
 
 	ptr				 p			= ptr(stack_bottom(core));
 	constexpr uint32 deadbeef[] = {0xe5e5e5e5, 0xe5e5e5e5, 0xe5e5e5e5, 0xe5e5e5e5};
-	if (memcmp(p, deadbeef, sizeof(deadbeef))) panic("core %u: stack overflow", core);
+	if (memcmp(p, deadbeef, sizeof(deadbeef))) panic("core %u: stack overflowed recently", core);
 }
 
 uint calc_stack_guard_min_free(uint core)

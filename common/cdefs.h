@@ -97,7 +97,7 @@ extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
 
 #undef debugstr
 #ifdef DEBUG
-  #define debugstr ::printf
+  #define debugstr(...) ::fprintf(stderr, __VA_ARGS__)
 #else
   #define debugstr(...) ((void)0)
 #endif
