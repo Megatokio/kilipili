@@ -86,6 +86,14 @@ size_t stack_free() noexcept
 	return size_t(&tmp) - stack_bottom(get_core_num());
 }
 
+void assert_stack_free(cstr func, int sz) noexcept
+{
+	int free = stack_free();
+	if (free >= sz) return;
+	else if (free >= 0) panic("%s: stack overflow: only %i bytes free (%i required)", func, free, sz);
+	else panic("%s: stack overflow by %i bytes", func, -free);
+}
+
 void print_core() { printf("### Hello core%u ###\n", get_core_num()); }
 
 void print_heap_free(int r)

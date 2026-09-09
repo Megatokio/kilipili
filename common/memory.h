@@ -55,6 +55,9 @@ extern void print_core1_scratch_x_usage();
 extern void print_flash_usage();
 extern void print_system_info(uint = ~0u);
 
+
+void assert_stack_free(cstr function_name, int required_free_size) noexcept;
+
 } // namespace kilipili
 
 #endif
