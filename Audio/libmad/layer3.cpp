@@ -614,7 +614,7 @@ static const mad_fixed_t is_lsf_table[2][15] = {
 	}};
 
 /* helper */
-inline uint min(uint a, uint b) { return a < b ? a : b; }
+inline unsigned int min(unsigned int a, unsigned int b) { return a < b ? a : b; }
 
 /*
  * NAME:	III_sideinfo()
