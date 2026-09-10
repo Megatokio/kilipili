@@ -20,30 +20,7 @@
  */
 
 #pragma once
-
-#if SIZEOF_INT >= 4
-typedef signed int mad_fixed_t;
-
-typedef signed int	 mad_fixed64hi_t;
-typedef unsigned int mad_fixed64lo_t;
-#else
-typedef signed long mad_fixed_t;
-
-typedef signed long	  mad_fixed64hi_t;
-typedef unsigned long mad_fixed64lo_t;
-#endif
-
-#if defined(_MSC_VER)
-  #define mad_fixed64_t signed __int64
-#elif 1 || defined(__GNUC__)
-  #define mad_fixed64_t signed long long
-#endif
-
-#if defined(FPM_FLOAT)
-typedef double mad_sample_t;
-#else
-typedef mad_fixed_t mad_sample_t;
-#endif
+#include "mad_types.h"
 
 /*
  * Fixed-point format: 0xABBBBBBB
@@ -69,8 +46,6 @@ typedef mad_fixed_t mad_sample_t;
  */
 
 // clang-format off
-
-# define MAD_F_FRACBITS		28
 
 # if MAD_F_FRACBITS == 28
 #  define MAD_F(x)		((mad_fixed_t) (x##L))
