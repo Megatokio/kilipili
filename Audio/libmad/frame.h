@@ -19,17 +19,10 @@
  * $Id: frame.h,v 1.20 2004/01/23 09:41:32 rob Exp $
  */
 
-#ifndef LIBMAD_FRAME_H
-#define LIBMAD_FRAME_H
-
+#pragma once
 #include "fixed.h"
 #include "stream.h"
 #include "timer.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 
 enum mad_layer {
 	MAD_LAYER_I	  = 1, /* Layer I */
@@ -122,8 +115,6 @@ int mad_frame_decode(struct mad_frame*, struct mad_stream*);
 
 void mad_frame_mute(struct mad_frame*);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+int mad_layer_I(struct mad_stream*, struct mad_frame*);	  // layer12.cpp
+int mad_layer_II(struct mad_stream*, struct mad_frame*);  // layer12.cpp
+int mad_layer_III(struct mad_stream*, struct mad_frame*); // layer3.cpp

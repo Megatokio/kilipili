@@ -19,13 +19,7 @@
  * $Id: huffman.h,v 1.11 2004/01/23 09:41:32 rob Exp $
  */
 
-#ifndef LIBMAD_HUFFMAN_H
-#define LIBMAD_HUFFMAN_H
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#pragma once
 
 union huffquad
 {
@@ -65,17 +59,12 @@ union huffpair
 	unsigned short final : 1;
 };
 
-struct hufftable {
-  union huffpair const *table;
+struct hufftable
+{
+	const union huffpair* table;
 	unsigned short		  linbits;
 	unsigned short		  startbits;
 };
 
-extern union huffquad const *const mad_huff_quad_table[2];
+extern const union huffquad* const mad_huff_quad_table[2];
 extern struct hufftable const	   mad_huff_pair_table[32];
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif

@@ -19,37 +19,31 @@
  * $Id: fixed.h,v 1.38 2004/02/17 02:02:03 rob Exp $
  */
 
-#ifndef LIBMAD_FIXED_H
-#define LIBMAD_FIXED_H
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#pragma once
 
 #if SIZEOF_INT >= 4
-typedef   signed int mad_fixed_t;
+typedef signed int mad_fixed_t;
 
-typedef   signed int mad_fixed64hi_t;
+typedef signed int	 mad_fixed64hi_t;
 typedef unsigned int mad_fixed64lo_t;
-# else
-typedef   signed long mad_fixed_t;
+#else
+typedef signed long mad_fixed_t;
 
-typedef   signed long mad_fixed64hi_t;
+typedef signed long	  mad_fixed64hi_t;
 typedef unsigned long mad_fixed64lo_t;
-# endif
+#endif
 
-# if defined(_MSC_VER)
-#  define mad_fixed64_t  signed __int64
-# elif 1 || defined(__GNUC__)
-#  define mad_fixed64_t  signed long long
-# endif
+#if defined(_MSC_VER)
+  #define mad_fixed64_t signed __int64
+#elif 1 || defined(__GNUC__)
+  #define mad_fixed64_t signed long long
+#endif
 
-# if defined(FPM_FLOAT)
+#if defined(FPM_FLOAT)
 typedef double mad_sample_t;
-# else
+#else
 typedef mad_fixed_t mad_sample_t;
-# endif
+#endif
 
 /*
  * Fixed-point format: 0xABBBBBBB
@@ -504,9 +498,3 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 
 mad_fixed_t mad_f_abs(mad_fixed_t);
 mad_fixed_t mad_f_div(mad_fixed_t, mad_fixed_t);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif

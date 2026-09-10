@@ -19,13 +19,7 @@
  * $Id: version.h,v 1.26 2004/01/23 09:41:33 rob Exp $
  */
 
-#ifndef LIBMAD_VERSION_H
-#define LIBMAD_VERSION_H
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#pragma once
 
 #define MAD_VERSION_MAJOR 0
 #define MAD_VERSION_MINOR 15
@@ -47,9 +41,3 @@ extern const char mad_version[];
 extern const char mad_copyright[];
 extern const char mad_author[];
 extern const char mad_build[];
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif

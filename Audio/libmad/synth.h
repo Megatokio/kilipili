@@ -19,16 +19,9 @@
  * $Id: synth.h,v 1.15 2004/01/23 09:41:33 rob Exp $
  */
 
-#ifndef LIBMAD_SYNTH_H
-#define LIBMAD_SYNTH_H
-
+#pragma once
 #include "fixed.h"
 #include "frame.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 
 struct mad_pcm
 {
@@ -64,9 +57,3 @@ void mad_synth_init(struct mad_synth*);
 void mad_synth_mute(struct mad_synth*);
 
 void mad_synth_frame(struct mad_synth*, struct mad_frame const*);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
