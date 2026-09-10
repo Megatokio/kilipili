@@ -19,12 +19,21 @@
  * $Id: layer3.h,v 1.10 2004/01/23 09:41:32 rob Exp $
  */
 
-# ifndef LIBMAD_LAYER3_H
-# define LIBMAD_LAYER3_H
+#ifndef LIBMAD_LAYER3_H
+#define LIBMAD_LAYER3_H
 
-# include "stream.h"
-# include "frame.h"
+#include "frame.h"
+#include "stream.h"
 
-int mad_layer_III(struct mad_stream *, struct mad_frame *);
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-# endif
+int mad_layer_III(struct mad_stream*, struct mad_frame*);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
