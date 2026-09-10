@@ -17,6 +17,7 @@ add_subdirectory(common)
 add_subdirectory(Graphics)
 add_subdirectory(Video)
 add_subdirectory(Audio)
+add_subdirectory(Audio/libmad)
 add_subdirectory(Devices)
 add_subdirectory(USBHost)
 
@@ -41,6 +42,7 @@ target_link_libraries(kilipili PUBLIC
 	kilipili_graphics
 	kilipili_video
 	kilipili_audio
+	kilipili_libmad
 	kilipili_devices
 	kilipili_usb_host
 	)
