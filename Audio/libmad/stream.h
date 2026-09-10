@@ -58,6 +58,9 @@ enum mad_error {
 
 struct mad_stream
 {
+	mad_stream(int options = 0);
+	~mad_stream();
+
 	const unsigned char* buffer;  /* input bitstream buffer */
 	const unsigned char* bufend;  /* end of buffer */
 	unsigned long		 skiplen; /* bytes to skip before next frame */
@@ -89,9 +92,6 @@ enum {
   MAD_OPTION_SINGLECHANNEL  = 0x0030	/* combine channels */
 #endif
 };
-
-void mad_stream_init(struct mad_stream*);
-void mad_stream_finish(struct mad_stream*);
 
 #define mad_stream_options(stream, opts) ((void)((stream)->options = (opts)))
 

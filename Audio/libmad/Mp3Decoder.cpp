@@ -7,6 +7,7 @@
 #include "common/cdefs.h"
 #include "common/standard_types.h"
 //#include "global.h"
+#include "common/RCPtr.h"
 #include <cstdio>
 #include <cstring>
 #include <new>
@@ -25,36 +26,31 @@ void Mp3Player::filter(const MadStream*, MadFrame*) {}
 
 Error Mp3Player::play(int stream_options) noexcept
 {
-	MadSynth	   synth;  // too big: > 13 kB
-	MadFrame	   frame;  // too big: > 9 kB
-	MadStream	   stream; // ~ 100 byte
-	constexpr uint buffer_size = 2000;
-	uint		   buffer_count {0};
-
-	mad_stream_init(&stream);
-	mad_frame_init(&frame);
-	mad_synth_init(&synth);
-	mad_stream_options(&stream, stream_options);
-
+	RCPtr<MadSynth> synth(new MadSynth);	// too big: > 13 kB
+	RCPtr<MadFrame> frame(new MadFrame);	// too big: > 9 kB
+	MadStream		stream(stream_options); // ~ 100 byte
+	constexpr uint	buffer_size = 2000;
+	uint			buffer_count {0};
 
 	struct Buffer
 	{
 		uchar data[buffer_size]; // input stream buffer
+		int	  rc = 0;
 	};
 
-	Buffer buffer;
+	RCPtr<Buffer> buffer(new Buffer);
 
 	//debugstr("mp3_input: first call\n");
-	buffer_count = input(buffer.data, buffer_size);
+	buffer_count = input(buffer->data, buffer_size);
 	//debugstr("mp3_input: read %u bytes\n", buffer_count);
 	assert(buffer_count != 0);
-	mad_stream_buffer(&stream, buffer.data, buffer_count);
+	mad_stream_buffer(&stream, buffer->data, buffer_count);
 
 	for (;;)
 	{
 		for (;;)
 		{
-			if (debug && mad_header_decode(&frame.header, &stream) == -1)
+			if (debug && mad_header_decode(&frame->header, &stream) == -1)
 			{
 				if (stream.error == MAD_ERROR_BUFLEN) break;
 				cstr msg = mad_stream_errorstr(&stream);
@@ -63,7 +59,7 @@ Error Mp3Player::play(int stream_options) noexcept
 				else continue; // goto skip;
 			}
 
-			if (mad_frame_decode(&frame, &stream) == -1)
+			if (mad_frame_decode(frame, &stream) == -1)
 			{
 				if (stream.error == MAD_ERROR_BUFLEN) break;
 				cstr msg = mad_stream_errorstr(&stream);
@@ -72,39 +68,34 @@ Error Mp3Player::play(int stream_options) noexcept
 				else continue; // goto skip;
 			}
 
-			filter(&stream, &frame);
-			mad_synth_frame(&synth, &frame);
-			output(&frame.header, &synth.pcm);
+			filter(&stream, frame);
+			mad_synth_frame(synth, frame);
+			output(&frame->header, &synth->pcm);
 		}
 
 		//skip:
 		assert(stream.error == MAD_ERROR_BUFLEN);
-		int nread = stream.next_frame - buffer.data; // num bytes decoder processed for current (last) frame
-		int nrem  = buffer_count - nread;			 // num bytes remaining in buffer
-		//debugstr("mp3_input: last frame size = %i bytes\n", nread);
-		if unlikely (nread == 0) return "mp3_input: buffer too small";
-		assert(nread >= 0 && nread <= buffer_count);
-		assert(nrem >= 0 && nrem <= buffer_count);
-		memmove(buffer.data, stream.next_frame, nrem); // move remaining data to start of buffer
+		int nprocessed = stream.next_frame - buffer->data; // num bytes decoder processed for current (last) frame
+		int nremaining = buffer_count - nprocessed;		   // num bytes remaining unprocessed in buffer
+		assert(nprocessed >= 0 && nprocessed <= buffer_count);
+		assert(nremaining >= 0 && nremaining <= buffer_count);
+		if unlikely (nremaining == buffer_size) return "mp3_input: buffer too small";
+		memmove(buffer->data, stream.next_frame, nremaining); // move remaining data to start of buffer
 
-		uint n		 = input(buffer.data + nrem, buffer_size - nrem);
-		buffer_count = nrem + n;
+		uint n		 = input(buffer->data + nremaining, buffer_size - nremaining);
+		buffer_count = nremaining + n;
 
 		if (n)
 		{
 			//debugstr("mp3_input: read %u bytes\n", n);
-			mad_stream_buffer(&stream, buffer.data, nrem + n);
+			mad_stream_buffer(&stream, buffer->data, nremaining + n);
 		}
 		else // n=0 -> eof
 		{
-			debugstr("mp3_input: %u bytes not processed at eof\n", nrem);
+			debugstr("mp3_input: %u bytes not processed at eof\n", nremaining);
 			return nullptr;
 		}
 	}
-
-	mad_stream_finish(&stream);
-	mad_frame_finish(&frame);
-	mad_synth_finish(&synth);
 }
 
 
