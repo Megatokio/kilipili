@@ -65,9 +65,14 @@ struct mad_header
 
 struct mad_frame
 {
+	mad_frame();
+	~mad_frame();
+	mad_frame(const mad_frame&) = delete; // wg. rc
+
 	struct mad_header header; /* MPEG audio header */
 
 	int options; /* decoding options (from stream) */
+	int rc = 0;	 // RCPtr<>
 
 	mad_fixed_t sbsample[2][36][32];   /* synthesis subband filter samples */
 	mad_fixed_t (*overlap)[2][32][18]; /* Layer III block overlap data */
@@ -109,9 +114,6 @@ void mad_header_init(struct mad_header*);
 #define mad_header_finish(header) /* nothing */
 
 int mad_header_decode(struct mad_header*, struct mad_stream*);
-
-void mad_frame_init(struct mad_frame*);
-void mad_frame_finish(struct mad_frame*);
 
 int mad_frame_decode(struct mad_frame*, struct mad_stream*);
 

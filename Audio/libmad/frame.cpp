@@ -78,32 +78,28 @@ void mad_header_init(struct mad_header* header)
  * NAME:	frame->init()
  * DESCRIPTION:	initialize frame struct
  */
-void mad_frame_init(struct mad_frame* frame)
+mad_frame::mad_frame()
 {
-	mad_header_init(&frame->header);
+	mad_header_init(&this->header);
 
-	frame->options = 0;
-
-	frame->overlap = nullptr;
-	frame->tmp	   = nullptr;
-	frame->xr	   = nullptr;
-	mad_frame_mute(frame);
+	this->options = 0;
+	this->overlap = nullptr;
+	this->tmp	  = nullptr;
+	this->xr	  = nullptr;
+	mad_frame_mute(this);
 }
 
 /*
  * NAME:	frame->finish()
  * DESCRIPTION:	deallocate any dynamic memory associated with frame
  */
-void mad_frame_finish(struct mad_frame* frame)
+mad_frame::~mad_frame()
 {
-	mad_header_finish(&frame->header);
+	mad_header_finish(&this->header);
 
-	free(frame->overlap);
-	free(frame->tmp);
-	free(frame->xr);
-	frame->overlap = 0;
-	frame->tmp	   = 0;
-	frame->xr	   = 0;
+	free(this->overlap);
+	free(this->tmp);
+	free(this->xr);
 }
 
 /*
@@ -239,11 +235,8 @@ static int free_bitrate(struct mad_stream* stream, struct mad_header const* head
 
 	while (mad_stream_sync(stream) == 0)
 	{
-		struct mad_stream peek_stream;
-		struct mad_header peek_header;
-
-		peek_stream = *stream;
-		peek_header = *header;
+		struct mad_stream peek_stream(*stream);
+		struct mad_header peek_header(*header);
 
 		if (decode_header(&peek_header, &peek_stream) == 0 && peek_header.layer == header->layer &&
 			peek_header.samplerate == header->samplerate)

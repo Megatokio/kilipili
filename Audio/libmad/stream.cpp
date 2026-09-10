@@ -32,43 +32,39 @@
  * NAME:	stream->init()
  * DESCRIPTION:	initialize stream struct
  */
-void mad_stream_init(struct mad_stream* stream)
+mad_stream::mad_stream(int options)
 {
-	stream->buffer	= 0;
-	stream->bufend	= 0;
-	stream->skiplen = 0;
+	this->buffer  = 0;
+	this->bufend  = 0;
+	this->skiplen = 0;
 
-	stream->sync	 = 0;
-	stream->freerate = 0;
+	this->sync	   = 0;
+	this->freerate = 0;
 
-	stream->this_frame = 0;
-	stream->next_frame = 0;
-	mad_bit_init(&stream->ptr, 0);
+	this->this_frame = 0;
+	this->next_frame = 0;
+	mad_bit_init(&this->ptr, 0);
 
-	mad_bit_init(&stream->anc_ptr, 0);
-	stream->anc_bitlen = 0;
+	mad_bit_init(&this->anc_ptr, 0);
+	this->anc_bitlen = 0;
 
-	stream->main_data = 0;
-	stream->md_len	  = 0;
+	this->main_data = 0;
+	this->md_len	= 0;
 
-	stream->options = 0;
-	stream->error	= MAD_ERROR_NONE;
+	this->options = options;
+	this->error	  = MAD_ERROR_NONE;
 }
 
 /*
  * NAME:	stream->finish()
  * DESCRIPTION:	deallocate any dynamic memory associated with stream
  */
-void mad_stream_finish(struct mad_stream* stream)
+mad_stream::~mad_stream()
 {
-	if (stream->main_data)
-	{
-		free(stream->main_data);
-		stream->main_data = 0;
-	}
+	free(this->main_data);
 
-	mad_bit_finish(&stream->anc_ptr);
-	mad_bit_finish(&stream->ptr);
+	mad_bit_finish(&this->anc_ptr);
+	mad_bit_finish(&this->ptr);
 }
 
 /*

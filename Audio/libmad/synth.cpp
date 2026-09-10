@@ -32,15 +32,15 @@
  * NAME:	synth->init()
  * DESCRIPTION:	initialize synth struct
  */
-void mad_synth_init(struct mad_synth* synth)
+mad_synth::mad_synth()
 {
-	mad_synth_mute(synth);
+	mad_synth_mute(this);
 
-	synth->phase = 0;
+	this->phase = 0;
 
-	synth->pcm.samplerate = 0;
-	synth->pcm.channels	  = 0;
-	synth->pcm.length	  = 0;
+	this->pcm.samplerate = 0;
+	this->pcm.channels	 = 0;
+	this->pcm.length	 = 0;
 }
 
 /*
