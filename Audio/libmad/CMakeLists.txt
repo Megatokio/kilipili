@@ -51,6 +51,7 @@ add_library(kilipili_libmad STATIC
 	synth.cpp
 	timer.cpp
 	version.cpp
+	mad_types.h
 	bit.h
 	fixed.h
 	frame.h

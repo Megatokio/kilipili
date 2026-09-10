@@ -20,7 +20,7 @@
  */
 
 #pragma once
-#include "fixed.h"
+#include "mad_types.h"
 #include "stream.h"
 #include "timer.h"
 

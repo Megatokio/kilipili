@@ -20,8 +20,8 @@
  */
 
 #pragma once
-#include "fixed.h"
 #include "frame.h"
+#include "mad_types.h"
 
 struct mad_pcm
 {
