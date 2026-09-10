@@ -613,6 +613,9 @@ static const mad_fixed_t is_lsf_table[2][15] = {
 		MAD_F(0x002d413d) /* 0.011048543 */, MAD_F(0x00200000) /* 0.007812500 */, MAD_F(0x0016a09e) /* 0.005524272 */
 	}};
 
+/* helper */
+inline uint min(uint a, uint b) { return a < b ? a : b; }
+
 /*
  * NAME:	III_sideinfo()
  * DESCRIPTION:	decode frame side information from a bitstream
@@ -2782,9 +2785,10 @@ int mad_layer_III(struct mad_stream* stream, struct mad_frame* frame)
 			{
 				assert(stream->md_len + md_len - si.main_data_begin <= MAD_BUFFER_MDLEN);
 
-				memcpy(
-					*stream->main_data + stream->md_len, mad_bit_nextbyte(&stream->ptr),
-					frame_used = md_len - si.main_data_begin);
+				// audacity: defend against an observed violation of the assertion above
+				frame_used = min(md_len - si.main_data_begin, MAD_BUFFER_MDLEN - stream->md_len);
+
+				memcpy(*stream->main_data + stream->md_len, mad_bit_nextbyte(&stream->ptr), frame_used);
 				stream->md_len += frame_used;
 			}
 		}
