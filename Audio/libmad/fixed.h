@@ -19,10 +19,15 @@
  * $Id: fixed.h,v 1.38 2004/02/17 02:02:03 rob Exp $
  */
 
-# ifndef LIBMAD_FIXED_H
-# define LIBMAD_FIXED_H
+#ifndef LIBMAD_FIXED_H
+#define LIBMAD_FIXED_H
 
-# if SIZEOF_INT >= 4
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#if SIZEOF_INT >= 4
 typedef   signed int mad_fixed_t;
 
 typedef   signed int mad_fixed64hi_t;
@@ -68,6 +73,8 @@ typedef mad_fixed_t mad_sample_t;
  * Changing the definition of MAD_F_FRACBITS is only partially
  * supported, and must be done with care.
  */
+
+// clang-format off
 
 # define MAD_F_FRACBITS		28
 
@@ -491,9 +498,15 @@ mad_fixed_t mad_f_mul_inline(mad_fixed_t x, mad_fixed_t y)
 #  define MAD_F_SCALEBITS  MAD_F_FRACBITS
 # endif
 
+// clang-format on
+
 /* C routines */
 
 mad_fixed_t mad_f_abs(mad_fixed_t);
 mad_fixed_t mad_f_div(mad_fixed_t, mad_fixed_t);
 
-# endif
+#ifdef __cplusplus
+}
+#endif
+
+#endif
