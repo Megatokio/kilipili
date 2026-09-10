@@ -1389,9 +1389,11 @@ static enum mad_error III_huffdecode(
  * NAME:	III_reorder()
  * DESCRIPTION:	reorder frequency lines of a short block into subband order
  */
-static void III_reorder(mad_fixed_t xr[576], struct channel const* channel, const unsigned char sfbwidth[39])
+static void
+III_reorder(mad_frame* frame, mad_fixed_t xr[576], struct channel const* channel, const unsigned char sfbwidth[39])
 {
-	mad_fixed_t	 tmp[32][3][6];
+	assert(frame->tmp);
+	mad_fixed_t(*tmp)[32][3][6] = frame->tmp; // kio: reduce stack usage
 	unsigned int sb, l, f, w, sbw[3], sw[3];
 
 	/* this is probably wrong for 8000 Hz mixed blocks */
@@ -1422,7 +1424,7 @@ static void III_reorder(mad_fixed_t xr[576], struct channel const* channel, cons
 			w = (w + 1) % 3;
 		}
 
-		tmp[sbw[w]][w][sw[w]++] = xr[l];
+		(*tmp)[sbw[w]][w][sw[w]++] = xr[l];
 
 		if (sw[w] == 6)
 		{
@@ -1431,7 +1433,7 @@ static void III_reorder(mad_fixed_t xr[576], struct channel const* channel, cons
 		}
 	}
 
-	memcpy(&xr[18 * sb], &tmp[sb], (576 - 18 * sb) * sizeof(mad_fixed_t));
+	memcpy(&xr[18 * sb], &(*tmp)[sb], (576 - 18 * sb) * sizeof(mad_fixed_t));
 }
 
 /*
@@ -2484,6 +2486,17 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 	struct mad_header* header = &frame->header;
 	unsigned int	   sfreqi, ngr, gr;
 
+	if (frame->xr == nullptr)
+	{
+		frame->xr = (mad_fixed_t(*)[2][576])malloc(2 * 576 * sizeof(mad_fixed_t));
+		if (frame->xr == nullptr) return MAD_ERROR_NOMEM;
+	}
+	if (frame->tmp == nullptr)
+	{
+		frame->tmp = (mad_fixed_t(*)[32][3][6])malloc(32 * 3 * 6 * sizeof(mad_fixed_t));
+		if (frame->tmp == nullptr) return MAD_ERROR_NOMEM;
+	}
+
 	{
 		unsigned int sfreq;
 
@@ -2505,9 +2518,9 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 	{
 		struct granule*		 granule = &si->gr[gr];
 		const unsigned char* sfbwidth[2];
-		mad_fixed_t			 xr[2][576];
-		unsigned int		 ch;
-		enum mad_error		 error;
+		mad_fixed_t(*xr)[2][576] = frame->xr;
+		unsigned int   ch;
+		enum mad_error error;
 
 		for (ch = 0; ch < nch; ++ch)
 		{
@@ -2528,7 +2541,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 			}
 			else { part2_length = III_scalefactors(ptr, channel, &si->gr[0].ch[ch], gr == 0 ? 0 : si->scfsi[ch]); }
 
-			error = III_huffdecode(ptr, xr[ch], channel, sfbwidth[ch], part2_length);
+			error = III_huffdecode(ptr, (*xr)[ch], channel, sfbwidth[ch], part2_length);
 			if (error) return error;
 		}
 
@@ -2536,7 +2549,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 
 		if (header->mode == MAD_MODE_JOINT_STEREO && header->mode_extension)
 		{
-			error = III_stereo(xr, granule, header, sfbwidth[0]);
+			error = III_stereo((*xr), granule, header, sfbwidth[0]);
 			if (error) return error;
 		}
 
@@ -2551,7 +2564,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 
 			if (channel->block_type == 2)
 			{
-				III_reorder(xr[ch], channel, sfbwidth[ch]);
+				III_reorder(frame, (*xr)[ch], channel, sfbwidth[ch]);
 
 #if !defined(OPT_STRICT)
 				/*
@@ -2561,10 +2574,10 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 	 * lower two subbands of mixed blocks. Most other implementations do
 	 * this, so by default we will too.
 	 */
-				if (channel->flags & mixed_block_flag) III_aliasreduce(xr[ch], 36);
+				if (channel->flags & mixed_block_flag) III_aliasreduce((*xr)[ch], 36);
 #endif
 			}
-			else III_aliasreduce(xr[ch], 576);
+			else III_aliasreduce((*xr)[ch], 576);
 
 			l = 0;
 
@@ -2580,7 +2593,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 				/* long blocks */
 				for (sb = 0; sb < 2; ++sb, l += 18)
 				{
-					III_imdct_l(&xr[ch][l], output, block_type);
+					III_imdct_l(&(*xr)[ch][l], output, block_type);
 					III_overlap(output, (*frame->overlap)[ch][sb], sample, sb);
 				}
 			}
@@ -2589,7 +2602,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 				/* short blocks */
 				for (sb = 0; sb < 2; ++sb, l += 18)
 				{
-					III_imdct_s(&xr[ch][l], output);
+					III_imdct_s(&(*xr)[ch][l], output);
 					III_overlap(output, (*frame->overlap)[ch][sb], sample, sb);
 				}
 			}
@@ -2599,7 +2612,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 			/* (nonzero) subbands 2-31 */
 
 			i = 576;
-			while (i > 36 && xr[ch][i - 1] == 0) --i;
+			while (i > 36 && (*xr)[ch][i - 1] == 0) --i;
 
 			sblimit = 32 - (576 - i) / 18;
 
@@ -2608,7 +2621,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 				/* long blocks */
 				for (sb = 2; sb < sblimit; ++sb, l += 18)
 				{
-					III_imdct_l(&xr[ch][l], output, channel->block_type);
+					III_imdct_l(&(*xr)[ch][l], output, channel->block_type);
 					III_overlap(output, (*frame->overlap)[ch][sb], sample, sb);
 
 					if (sb & 1) III_freqinver(sample, sb);
@@ -2619,7 +2632,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
 				/* short blocks */
 				for (sb = 2; sb < sblimit; ++sb, l += 18)
 				{
-					III_imdct_s(&xr[ch][l], output);
+					III_imdct_s(&(*xr)[ch][l], output);
 					III_overlap(output, (*frame->overlap)[ch][sb], sample, sb);
 
 					if (sb & 1) III_freqinver(sample, sb);

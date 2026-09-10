@@ -71,6 +71,8 @@ struct mad_frame
 
 	mad_fixed_t sbsample[2][36][32];   /* synthesis subband filter samples */
 	mad_fixed_t (*overlap)[2][32][18]; /* Layer III block overlap data */
+	mad_fixed_t (*tmp)[32][3][6];	   /* III_reorder() */
+	mad_fixed_t (*xr)[2][576];		   /* III_decode() */
 };
 
 #define MAD_NCHANNELS(header) ((header)->mode ? 2 : 1)

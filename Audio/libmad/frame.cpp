@@ -84,7 +84,9 @@ void mad_frame_init(struct mad_frame* frame)
 
 	frame->options = 0;
 
-	frame->overlap = 0;
+	frame->overlap = nullptr;
+	frame->tmp	   = nullptr;
+	frame->xr	   = nullptr;
 	mad_frame_mute(frame);
 }
 
@@ -96,11 +98,12 @@ void mad_frame_finish(struct mad_frame* frame)
 {
 	mad_header_finish(&frame->header);
 
-	if (frame->overlap)
-	{
-		free(frame->overlap);
-		frame->overlap = 0;
-	}
+	free(frame->overlap);
+	free(frame->tmp);
+	free(frame->xr);
+	frame->overlap = 0;
+	frame->tmp	   = 0;
+	frame->xr	   = 0;
 }
 
 /*
