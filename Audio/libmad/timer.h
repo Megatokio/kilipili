@@ -19,13 +19,7 @@
  * $Id: timer.h,v 1.16 2004/01/23 09:41:33 rob Exp $
  */
 
-#ifndef LIBMAD_TIMER_H
-#define LIBMAD_TIMER_H
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#pragma once
 
 typedef struct
 {
@@ -101,9 +95,3 @@ void mad_timer_multiply(mad_timer_t*, signed long);
 signed long	  mad_timer_count(mad_timer_t, enum mad_units);
 unsigned long mad_timer_fraction(mad_timer_t, unsigned long);
 void		  mad_timer_string(mad_timer_t, char*, const char*, enum mad_units, enum mad_units, unsigned long);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif

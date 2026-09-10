@@ -41,23 +41,21 @@ add_library(kilipili_libmad STATIC
 	${libmad_sources}
 	Mp3Decoder.cpp
 	Mp3Decoder.h
-	bit.c
-	fixed.c
-	frame.c
-	huffman.c
-	layer12.c
-	layer3.c
-	stream.c
-	synth.c
-	timer.c
-	version.c
+	bit.cpp
+	fixed.cpp
+	frame.cpp
+	huffman.cpp
+	layer12.cpp
+	layer3.cpp
+	stream.cpp
+	synth.cpp
+	timer.cpp
+	version.cpp
 	bit.h
 	fixed.h
 	frame.h
 	global.h
 	huffman.h
-	layer12.h
-	layer3.h
 	stream.h
 	synth.h
 	timer.h

@@ -19,13 +19,7 @@
  * $Id: bit.h,v 1.12 2004/01/23 09:41:32 rob Exp $
  */
 
-#ifndef LIBMAD_BIT_H
-#define LIBMAD_BIT_H
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+#pragma once
 
 struct mad_bitptr
 {
@@ -48,9 +42,3 @@ unsigned long mad_bit_read(struct mad_bitptr*, unsigned int);
 void		  mad_bit_write(struct mad_bitptr*, unsigned int, unsigned long);
 
 unsigned short mad_bit_crc(struct mad_bitptr, unsigned int, unsigned short);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif

@@ -19,15 +19,8 @@
  * $Id: stream.h,v 1.20 2004/02/05 09:02:39 rob Exp $
  */
 
-#ifndef LIBMAD_STREAM_H
-#define LIBMAD_STREAM_H
-
+#pragma once
 #include "bit.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 
 #define MAD_BUFFER_GUARD 8
 #define MAD_BUFFER_MDLEN (511 + 2048 + MAD_BUFFER_GUARD)
@@ -108,9 +101,3 @@ void mad_stream_skip(struct mad_stream*, unsigned long);
 int mad_stream_sync(struct mad_stream*);
 
 const char* mad_stream_errorstr(struct mad_stream const*);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
