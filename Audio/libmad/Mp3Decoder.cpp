@@ -62,7 +62,7 @@ Error Mp3Player::play(int stream_options) noexcept
 			}
 
 			filter(&stream, frame);
-			MadSynth_frame(synth, frame);
+			synth->synthesize_pcm(frame);
 			output(&frame->header, &synth->pcm);
 		}
 

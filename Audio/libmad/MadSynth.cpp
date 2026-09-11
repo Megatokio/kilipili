@@ -17,51 +17,33 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: synth.c,v 1.25 2004/01/23 09:41:33 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
 
-#ifdef HAVE_CONFIG_H
-  #include "config.h"
-#endif
-
-#include "MadFrame.h"
 #include "MadSynth.h"
+#include "MadFrame.h"
 #include "fixed.h"
 #include "global.h"
+#include <cstring>
 
 /*
  * NAME:	synth->init()
  * DESCRIPTION:	initialize synth struct
  */
-MadSynth::MadSynth()
+MadSynth::MadSynth() noexcept
 {
-	MadSynth_mute(this);
+	phase		   = 0;
+	pcm.samplerate = 0;
+	pcm.channels   = 0;
+	pcm.length	   = 0;
 
-	this->phase = 0;
-
-	this->pcm.samplerate = 0;
-	this->pcm.channels	 = 0;
-	this->pcm.length	 = 0;
-}
-
-/*
- * NAME:	synth->mute()
- * DESCRIPTION:	zero all polyphase filterbank values, resetting synthesis
- */
-void MadSynth_mute(struct MadSynth* synth)
-{
-	unsigned int ch, s, v;
-
-	for (ch = 0; ch < 2; ++ch)
-	{
-		for (s = 0; s < 16; ++s)
-		{
-			for (v = 0; v < 8; ++v)
-			{
-				synth->filter[ch][0][0][s][v] = synth->filter[ch][0][1][s][v] = synth->filter[ch][1][0][s][v] =
-					synth->filter[ch][1][1][s][v]							  = 0;
-			}
-		}
-	}
+	// zero all polyphase filterbank values, resetting synthesis:
+	memset(filter, 0, sizeof(filter));
 }
 
 /*
@@ -122,7 +104,7 @@ void MadSynth_mute(struct MadSynth* synth)
  * NAME:	dct32()
  * DESCRIPTION:	perform fast in[32]->out[32] DCT
  */
-static void dct32(const mad_fixed_t in[32], unsigned int slot, mad_fixed_t lo[16][8], mad_fixed_t hi[16][8])
+static void dct32(const mad_fixed_t in[32], uint slot, mad_fixed_t lo[16][8], mad_fixed_t hi[16][8])
 {
 	mad_fixed_t t0, t1, t2, t3, t4, t5, t6, t7;
 	mad_fixed_t t8, t9, t10, t11, t12, t13, t14, t15;
@@ -578,9 +560,9 @@ void synth_full(struct MadSynth*, struct MadFrame const*, unsigned int, unsigned
  * NAME:	synth->full()
  * DESCRIPTION:	perform full frequency PCM synthesis
  */
-static void synth_full(struct MadSynth* synth, struct MadFrame const* frame, unsigned int nch, unsigned int ns)
+void MadSynth::synth_full(const MadFrame* frame, uint nch, uint ns) noexcept
 {
-	unsigned int phase, ch, s, sb, pe, po;
+	uint		 phase, ch, s, sb, pe, po;
 	mad_fixed_t *pcm1, *pcm2, (*filter)[2][2][16][8];
 	const mad_fixed_t(*sbsample)[36][32];
 	mad_fixed_t(*fe)[8], (*fx)[8], (*fo)[8];
@@ -591,9 +573,9 @@ static void synth_full(struct MadSynth* synth, struct MadFrame const* frame, uns
 	for (ch = 0; ch < nch; ++ch)
 	{
 		sbsample = &frame->sbsample[ch];
-		filter	 = &synth->filter[ch];
-		phase	 = synth->phase;
-		pcm1	 = synth->pcm.samples[ch];
+		filter	 = &this->filter[ch];
+		phase	 = this->phase;
+		pcm1	 = this->pcm.samples[ch];
 
 		for (s = 0; s < ns; ++s)
 		{
@@ -715,9 +697,9 @@ static void synth_full(struct MadSynth* synth, struct MadFrame const* frame, uns
  * NAME:	synth->half()
  * DESCRIPTION:	perform half frequency PCM synthesis
  */
-static void synth_half(struct MadSynth* synth, struct MadFrame const* frame, unsigned int nch, unsigned int ns)
+void MadSynth::synth_half(const MadFrame* frame, uint nch, uint ns) noexcept
 {
-	unsigned int phase, ch, s, sb, pe, po;
+	uint		 phase, ch, s, sb, pe, po;
 	mad_fixed_t *pcm1, *pcm2, (*filter)[2][2][16][8];
 	const mad_fixed_t(*sbsample)[36][32];
 	mad_fixed_t(*fe)[8], (*fx)[8], (*fo)[8];
@@ -728,9 +710,9 @@ static void synth_half(struct MadSynth* synth, struct MadFrame const* frame, uns
 	for (ch = 0; ch < nch; ++ch)
 	{
 		sbsample = &frame->sbsample[ch];
-		filter	 = &synth->filter[ch];
-		phase	 = synth->phase;
-		pcm1	 = synth->pcm.samples[ch];
+		filter	 = &this->filter[ch];
+		phase	 = this->phase;
+		pcm1	 = this->pcm.samples[ch];
 
 		for (s = 0; s < ns; ++s)
 		{
@@ -854,29 +836,87 @@ static void synth_half(struct MadSynth* synth, struct MadFrame const* frame, uns
  * NAME:	synth->frame()
  * DESCRIPTION:	perform PCM synthesis of frame subband samples
  */
-void MadSynth_frame(struct MadSynth* synth, struct MadFrame const* frame)
+void MadSynth::synthesize_pcm(const MadFrame* frame) noexcept
 {
-	unsigned int nch, ns;
-	void (*synth_frame)(struct MadSynth*, struct MadFrame const*, unsigned int, unsigned int);
+	const uint nch = MAD_NCHANNELS(&frame->header);
+	const uint ns  = MAD_NSBSAMPLES(&frame->header);
 
-	nch = MAD_NCHANNELS(&frame->header);
-	ns	= MAD_NSBSAMPLES(&frame->header);
-
-	synth->pcm.samplerate = frame->header.samplerate;
-	synth->pcm.channels	  = nch;
-	synth->pcm.length	  = 32 * ns;
-
-	synth_frame = synth_full;
+	pcm.samplerate = frame->header.samplerate;
+	pcm.channels   = nch;
+	pcm.length	   = 32 * ns;
 
 	if (frame->options & MAD_OPTION_HALFSAMPLERATE)
 	{
-		synth->pcm.samplerate /= 2;
-		synth->pcm.length /= 2;
+		pcm.samplerate /= 2;
+		pcm.length /= 2;
 
-		synth_frame = synth_half;
+		synth_half(frame, nch, ns);
+	}
+	else
+	{
+		synth_full(frame, nch, ns); //
 	}
 
-	synth_frame(synth, frame, nch, ns);
-
-	synth->phase = (synth->phase + ns) % 16;
+	phase = (phase + ns) % 16;
 }
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

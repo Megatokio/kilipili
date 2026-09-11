@@ -17,6 +17,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: synth.h,v 1.15 2004/01/23 09:41:33 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
 
 #pragma once
@@ -25,25 +31,31 @@
 
 struct MadPcmBuffer
 {
-	unsigned int   samplerate;		 /* sampling frequency (Hz) */
-	unsigned short channels;		 /* number of channels */
-	unsigned short length;			 /* number of samples per channel */
-	mad_fixed_t	   samples[2][1152]; /* PCM output samples [ch][sample] */
+	uint		samplerate;		  /* sampling frequency (Hz) */
+	ushort		channels;		  /* number of channels */
+	ushort		length;			  /* number of samples per channel */
+	mad_fixed_t samples[2][1152]; /* PCM output samples [ch][sample] */
 };
 
 struct MadSynth
 {
-	MadSynth();
-	~MadSynth()				  = default;
+	MadSynth() noexcept;
+	~MadSynth() noexcept	  = default;
 	MadSynth(const MadSynth&) = delete; // wg. rc
+
+	void synthesize_pcm(const MadFrame*) noexcept;
 
 	mad_fixed_t filter[2][2][2][16][8]; /* polyphase filterbank outputs */
 										/* [ch][eo][peo][s][v] */
 
-	unsigned int phase;	 /* current processing phase */
-	int			 rc = 0; // RCPtr<>
+	uint phase;	 /* current processing phase */
+	int	 rc = 0; // RCPtr<>
 
-	struct MadPcmBuffer pcm; /* PCM output */
+	MadPcmBuffer pcm; /* PCM output */
+
+private:
+	void synth_full(const MadFrame* frame, uint nch, uint ns) noexcept;
+	void synth_half(const MadFrame* frame, uint nch, uint ns) noexcept;
 };
 
 /* single channel PCM selector */
@@ -54,7 +66,3 @@ enum { MAD_PCM_CHANNEL_DUAL_1 = 0, MAD_PCM_CHANNEL_DUAL_2 = 1 };
 
 /* stereo PCM selector */
 enum { MAD_PCM_CHANNEL_STEREO_LEFT = 0, MAD_PCM_CHANNEL_STEREO_RIGHT = 1 };
-
-void MadSynth_mute(struct MadSynth*);
-
-void MadSynth_frame(struct MadSynth*, struct MadFrame const*);
