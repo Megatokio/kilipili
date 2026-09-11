@@ -2,7 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Trace.h"
+#include "trace.h"
 #include "basic_math.h"
 #include <stdio.h>
 

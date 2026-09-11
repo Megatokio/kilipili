@@ -3,9 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Mp3Decoder.h"
-#include "common/Trace.h"
 #include "common/cdefs.h"
 #include "common/standard_types.h"
+#include "common/trace.h"
 //#include "global.h"
 #include "common/RCPtr.h"
 #include <cstdio>
