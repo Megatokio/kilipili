@@ -14,13 +14,11 @@ namespace kilipili::Audio
 {
 
 
-class Mp3Player
+class Mp3Decoder
 {
 public:
-	//	enum FlowCtl { CONTINUE = 0, SKIP = 1, STOP = 2 };
-
-	Mp3Player() noexcept		  = default;
-	virtual ~Mp3Player() noexcept = default;
+	Mp3Decoder() noexcept		  = default;
+	virtual ~Mp3Decoder() noexcept = default;
 
 	Error play(int stream_options = 0) noexcept;
 
@@ -40,9 +38,6 @@ public:
 	/*	callback: send data to audio output
 	*/
 	virtual void output(const MadHeader*, const MadPcmBuffer*) = 0;
-
-	//bool f_header {1};
-	//bool f_filter {1};
 };
 
 //	enum mad_flow {
@@ -51,6 +46,8 @@ public:
 //		MAD_FLOW_BREAK	  = 0x0011, /* stop decoding and signal an error */
 //		MAD_FLOW_IGNORE	  = 0x0020, /* ignore (mute) the current frame */
 //	};
+//
+//	enum FlowCtl { CONTINUE = 0, SKIP = 1, STOP = 2 };
 //
 //	class Mp3Decoder
 //	{
