@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "MultiSpritesPlane.h"
-#include "Trace.h"
+#include "trace.h"
 #include "cdefs.h"
 #include <pico/platform.h>
 #include <pico/stdlib.h>

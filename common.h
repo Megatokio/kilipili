@@ -5,7 +5,7 @@
 #include "common/Dispatcher.h"
 #include "common/Logger.h"
 #include "common/RCPtr.h"
-#include "common/Trace.h"
+#include "common/trace.h"
 #include "common/basic_math.h"
 #include "common/cdefs.h"
 #include "common/cstrings.h"

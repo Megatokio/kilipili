@@ -5,7 +5,7 @@
 #include "LoadSensor.h"
 extern "C" __attribute__((__weak__)) const char* check_heap(); // returns nullptr or error text
 
-#include "Trace.h"
+#include "trace.h"
 #include "cdefs.h"
 #include "malloc.h"
 #include "memory.h"

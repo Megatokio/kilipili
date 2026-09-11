@@ -32,7 +32,7 @@
 // HID = Human Interface Device
 
   #include "hid_handler.h"
-  #include "common/Trace.h"
+  #include "common/trace.h"
   #include "common/cdefs.h"
   #include "standard_types.h"
   #include <hardware/timer.h>

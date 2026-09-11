@@ -6,7 +6,7 @@
 #include "FatFS.h"
 #include "FatFile.h"
 #include "Logger.h"
-#include "Trace.h"
+#include "trace.h"
 #include "cdefs.h"
 #include "cstrings.h"
 #include <pico/stdio.h>

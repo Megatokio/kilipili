@@ -4,7 +4,7 @@
 
 #include "FatFile.h"
 #include "FatFS.h"
-#include "Trace.h"
+#include "trace.h"
 #include "cdefs.h"
 #include "cstrings.h"
 

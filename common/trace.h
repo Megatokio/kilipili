@@ -38,7 +38,7 @@ public:
 	static void print(uint core);
 };
 
-  #define trace(name) Trace _trace(name)
+  #define trace(name) kilipili::Trace _trace(name)
 
 } // namespace kilipili
 

@@ -5,7 +5,7 @@
 #include "SDCard.h"
 #include "Logger.h"
 #include "common/DiskLight.h"
-#include "common/Trace.h"
+#include "common/trace.h"
 #include "common/cdefs.h"
 #include "common/timing.h"
 #include "crc.h"

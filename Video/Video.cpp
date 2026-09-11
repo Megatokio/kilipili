@@ -8,7 +8,7 @@
 #include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "common/LoadSensor.h"
-#include "common/Trace.h"
+#include "common/trace.h"
 #include "common/cdefs.h"
 #include "common/memory.h"
 #include "common/stack_guard.h"

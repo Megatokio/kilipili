@@ -9,7 +9,7 @@
 #include "QspiFlashDevice.h"
 #include "RsrcFS.h"
 #include "SDCard.h"
-#include "Trace.h"
+#include "trace.h"
 #include "cdefs.h"
 #include "cstrings.h"
 #include "ff15/source/ffconf.h"

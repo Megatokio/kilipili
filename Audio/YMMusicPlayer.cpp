@@ -7,7 +7,7 @@
 #include "Devices/File.h"
 #include "Devices/FileSystem.h"
 #include "common/Logger.h"
-#include "common/Trace.h"
+#include "common/trace.h"
 #include "common/cdefs.h"
 #include "common/cstrings.h"
 #include <hardware/sync.h>

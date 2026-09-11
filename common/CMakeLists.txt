@@ -50,8 +50,8 @@ add_library(kilipili_common STATIC
 	Mutex.h
 	Queue.h
 	RCPtr.h
-	Trace.cpp
-	Trace.h
+	trace.cpp
+	trace.h
 	Xoshiro128.cpp
 	Xoshiro128.h	
 	Xoshiro256.cpp

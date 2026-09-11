@@ -5,7 +5,7 @@
 #include "RsrcFS.h"
 #include "HeatShrinkDecoder.h"
 #include "RsrcFile.h"
-#include "Trace.h"
+#include "trace.h"
 #include "cstrings.h"
 #include <cstring>
 

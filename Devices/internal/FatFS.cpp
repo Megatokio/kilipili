@@ -6,7 +6,7 @@
 #include "FatDir.h"
 #include "FatFile.h"
 #include "Logger.h"
-#include "Trace.h"
+#include "trace.h"
 #include "basic_math.h"
 #include "cdefs.h"
 #include "cstrings.h"
