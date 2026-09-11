@@ -17,37 +17,32 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: layer12.c,v 1.17 2004/02/05 09:02:39 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
-
-#ifdef HAVE_CONFIG_H
-  #include "config.h"
-#endif
-
-#include "global.h"
-
-#ifdef HAVE_LIMITS_H
-  #include <limits.h>
-#else
-  #define CHAR_BIT 8
-#endif
 
 #include "MadFrame.h"
 #include "MadStream.h"
 #include "fixed.h"
+#include "global.h"
 #include "mad_bitptr.h"
 
 /*
  * scalefactor table
  * used in both Layer I and Layer II decoding
  */
-static const mad_fixed_t sf_table[64] = {
+static constexpr mad_fixed_t sf_table[64] = {
 #include "sf_table.dat"
 };
 
 /* --- Layer I ------------------------------------------------------------- */
 
 /* linear scaling table */
-static const mad_fixed_t linear_table[14] = {
+static constexpr mad_fixed_t linear_table[14] = {
 	MAD_F(0x15555555), /* 2^2  / (2^2  - 1) == 1.33333333333333 */
 	MAD_F(0x12492492), /* 2^3  / (2^3  - 1) == 1.14285714285714 */
 	MAD_F(0x11111111), /* 2^4  / (2^4  - 1) == 1.06666666666667 */
@@ -97,11 +92,11 @@ static mad_fixed_t I_sample(struct mad_bitptr* ptr, unsigned int nb)
  * NAME:	layer->I()
  * DESCRIPTION:	decode a single Layer I frame
  */
-int mad_layer_I(struct MadStream* stream, struct MadFrame* frame)
+int MadFrame::decode_layer_I(MadStream* stream)
 {
-	struct MadHeader* header = &frame->header;
-	unsigned int	  nch, bound, ch, s, sb, nb;
-	unsigned char	  allocation[2][32], scalefactor[2][32];
+	MadHeader* header = &this->header;
+	uint	   nch, bound, ch, s, sb, nb;
+	uchar	   allocation[2][32], scalefactor[2][32];
 
 	nch = MAD_NCHANNELS(header);
 
@@ -118,7 +113,7 @@ int mad_layer_I(struct MadStream* stream, struct MadFrame* frame)
 	{
 		header->crc_check = stream->ptr.crc(4 * (bound * nch + (32 - bound)), header->crc_check);
 
-		if (header->crc_check != header->crc_target && !(frame->options & MAD_OPTION_IGNORECRC))
+		if (header->crc_check != header->crc_target && !(this->options & MAD_OPTION_IGNORECRC))
 		{
 			stream->error = MAD_ERROR_BADCRC;
 			return -1;
@@ -191,7 +186,7 @@ int mad_layer_I(struct MadStream* stream, struct MadFrame* frame)
 			for (ch = 0; ch < nch; ++ch)
 			{
 				nb = allocation[ch][sb];
-				frame->sbsample[ch][s][sb] =
+				this->sbsample[ch][s][sb] =
 					nb ? mad_f_mul(I_sample(&stream->ptr, nb), sf_table[scalefactor[ch][sb]]) : 0;
 			}
 		}
@@ -206,12 +201,12 @@ int mad_layer_I(struct MadStream* stream, struct MadFrame* frame)
 
 				for (ch = 0; ch < nch; ++ch)
 				{
-					frame->sbsample[ch][s][sb] = mad_f_mul(sample, sf_table[scalefactor[ch][sb]]);
+					this->sbsample[ch][s][sb] = mad_f_mul(sample, sf_table[scalefactor[ch][sb]]);
 				}
 			}
 			else
 			{
-				for (ch = 0; ch < nch; ++ch) frame->sbsample[ch][s][sb] = 0;
+				for (ch = 0; ch < nch; ++ch) this->sbsample[ch][s][sb] = 0;
 			}
 		}
 	}
@@ -224,9 +219,9 @@ int mad_layer_I(struct MadStream* stream, struct MadFrame* frame)
 /* possible quantization per subband table */
 static struct
 {
-	unsigned int		sblimit;
-	const unsigned char offsets[30];
-} const sbquant_table[5] = {
+	uint		sblimit;
+	const uchar offsets[30];
+} constexpr sbquant_table[5] = {
 	/* ISO/IEC 11172-3 Table B.2a */
 	{27, {7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 3, 3, 3, 3, 3, /* 0 */
 		  3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0}},
@@ -244,9 +239,9 @@ static struct
 /* bit allocation table */
 static struct
 {
-	unsigned short nbal;
-	unsigned short offset;
-} const bitalloc_table[8] = {
+	ushort nbal;
+	ushort offset;
+} constexpr bitalloc_table[8] = {
 	{2, 0}, /* 0 */
 	{2, 3}, /* 1 */
 	{3, 3}, /* 2 */
@@ -258,7 +253,7 @@ static struct
 };
 
 /* offsets into quantization class table */
-static const unsigned char offset_table[6][15] = {
+static constexpr uchar offset_table[6][15] = {
 	{0, 1, 16},											 /* 0 */
 	{0, 1, 2, 3, 4, 5, 16},								 /* 1 */
 	{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14},	 /* 2 */
@@ -270,12 +265,12 @@ static const unsigned char offset_table[6][15] = {
 /* quantization class table */
 static struct quantclass
 {
-	unsigned short nlevels;
-	unsigned char  group;
-	unsigned char  bits;
-	mad_fixed_t	   C;
-	mad_fixed_t	   D;
-} const qc_table[17] = {
+	ushort		nlevels;
+	uchar		group;
+	uchar		bits;
+	mad_fixed_t C;
+	mad_fixed_t D;
+} constexpr qc_table[17] = {
 #include "qc_table.dat"
 };
 
@@ -334,14 +329,14 @@ static void II_samples(struct mad_bitptr* ptr, struct quantclass const* quantcla
  * NAME:	layer->II()
  * DESCRIPTION:	decode a single Layer II frame
  */
-int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
+int MadFrame::decode_layer_II(MadStream* stream)
 {
-	struct MadHeader*	 header = &frame->header;
-	struct mad_bitptr	 start;
-	unsigned int		 index, sblimit, nbal, nch, bound, gr, ch, s, sb;
-	const unsigned char* offsets;
-	unsigned char		 allocation[2][32], scfsi[2][32], scalefactor[2][32][3];
-	mad_fixed_t			 samples[3];
+	MadHeader*	 header = &this->header;
+	mad_bitptr	 start;
+	uint		 index, sblimit, nbal, nch, bound, gr, ch, s, sb;
+	const uchar* offsets;
+	uchar		 allocation[2][32], scfsi[2][32], scalefactor[2][32][3];
+	mad_fixed_t	 samples[3];
 
 	nch = MAD_NCHANNELS(header);
 
@@ -437,7 +432,7 @@ int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
 	{
 		header->crc_check = start.crc(mad_bit_length(&start, &stream->ptr), header->crc_check);
 
-		if (header->crc_check != header->crc_target && !(frame->options & MAD_OPTION_IGNORECRC))
+		if (header->crc_check != header->crc_target && !(this->options & MAD_OPTION_IGNORECRC))
 		{
 			stream->error = MAD_ERROR_BADCRC;
 			return -1;
@@ -500,13 +495,13 @@ int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
 
 					for (s = 0; s < 3; ++s)
 					{
-						frame->sbsample[ch][3 * gr + s][sb] =
+						this->sbsample[ch][3 * gr + s][sb] =
 							mad_f_mul(samples[s], sf_table[scalefactor[ch][sb][gr / 4]]);
 					}
 				}
 				else
 				{
-					for (s = 0; s < 3; ++s) frame->sbsample[ch][3 * gr + s][sb] = 0;
+					for (s = 0; s < 3; ++s) this->sbsample[ch][3 * gr + s][sb] = 0;
 				}
 			}
 		}
@@ -523,7 +518,7 @@ int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
 				{
 					for (s = 0; s < 3; ++s)
 					{
-						frame->sbsample[ch][3 * gr + s][sb] =
+						this->sbsample[ch][3 * gr + s][sb] =
 							mad_f_mul(samples[s], sf_table[scalefactor[ch][sb][gr / 4]]);
 					}
 				}
@@ -532,7 +527,7 @@ int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
 			{
 				for (ch = 0; ch < nch; ++ch)
 				{
-					for (s = 0; s < 3; ++s) frame->sbsample[ch][3 * gr + s][sb] = 0;
+					for (s = 0; s < 3; ++s) this->sbsample[ch][3 * gr + s][sb] = 0;
 				}
 			}
 		}
@@ -541,7 +536,7 @@ int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
 		{
 			for (s = 0; s < 3; ++s)
 			{
-				for (sb = sblimit; sb < 32; ++sb) frame->sbsample[ch][3 * gr + s][sb] = 0;
+				for (sb = sblimit; sb < 32; ++sb) this->sbsample[ch][3 * gr + s][sb] = 0;
 			}
 		}
 	}

@@ -43,7 +43,7 @@ Error Mp3Player::play(int stream_options) noexcept
 	{
 		for (;;)
 		{
-			if (debug && mad_header_decode(&frame->header, &stream) == -1)
+			if (debug && frame->header.decode(&stream) == -1)
 			{
 				if (stream.error == MAD_ERROR_BUFLEN) break;
 				cstr msg = MadStream_errorstr(&stream);
@@ -52,7 +52,7 @@ Error Mp3Player::play(int stream_options) noexcept
 				else continue; // goto skip;
 			}
 
-			if (MadFrame_decode(frame, &stream) == -1)
+			if (frame->decode(&stream) == -1)
 			{
 				if (stream.error == MAD_ERROR_BUFLEN) break;
 				cstr msg = MadStream_errorstr(&stream);

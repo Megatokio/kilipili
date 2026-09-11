@@ -17,13 +17,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: layer3.c,v 1.43 2004/01/23 09:41:32 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
 
-#ifdef HAVE_CONFIG_H
-  #include "config.h"
-#endif
-
+#include "MadFrame.h"
+#include "MadStream.h"
+#include "fixed.h"
 #include "global.h"
+#include "huffman.h"
+#include "mad_bitptr.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -31,17 +38,17 @@
 #include <assert.h>
 //# endif
 
-#ifdef HAVE_LIMITS_H
-  #include <limits.h>
+#if defined(ASO_INTERLEAVE1)
+static constexpr bool aso_interleave1 = true;
 #else
-  #define CHAR_BIT 8
+static constexpr bool aso_interleave1 = false;
+#endif
+#if defined(ASO_INTERLEAVE2)
+static constexpr bool aso_interleave2 = true;
+#else
+static constexpr bool aso_interleave2 = false;
 #endif
 
-#include "MadFrame.h"
-#include "MadStream.h"
-#include "fixed.h"
-#include "huffman.h"
-#include "mad_bitptr.h"
 
 /* --- Layer III ----------------------------------------------------------- */
 
@@ -49,36 +56,36 @@ enum { count1table_select = 0x01, scalefac_scale = 0x02, preflag = 0x04, mixed_b
 
 enum { I_STEREO = 0x1, MS_STEREO = 0x2 };
 
-struct channel
+struct Channel
 {
 	/* from side info */
-	unsigned short part2_3_length;
-	unsigned short big_values;
-	unsigned short global_gain;
-	unsigned short scalefac_compress;
+	ushort part2_3_length;
+	ushort big_values;
+	ushort global_gain;
+	ushort scalefac_compress;
 
-	unsigned char flags;
-	unsigned char block_type;
-	unsigned char table_select[3];
-	unsigned char subblock_gain[3];
-	unsigned char region0_count;
-	unsigned char region1_count;
+	uchar flags;
+	uchar block_type;
+	uchar table_select[3];
+	uchar subblock_gain[3];
+	uchar region0_count;
+	uchar region1_count;
 
 	/* from main_data */
-	unsigned char scalefac[39]; /* scalefac_l and/or scalefac_s */
+	uchar scalefac[39]; /* scalefac_l and/or scalefac_s */
 };
-struct granule
+struct Granule
 {
-	struct channel ch[2];
+	Channel ch[2];
 };
-struct sideinfo
+struct SideInfo
 {
-	unsigned int main_data_begin;
-	unsigned int private_bits;
+	uint main_data_begin;
+	uint private_bits;
 
-	unsigned char scfsi[2];
+	uchar scfsi[2];
 
-	struct granule gr[2];
+	Granule gr[2];
 };
 
 /*
@@ -87,198 +94,88 @@ struct sideinfo
  */
 static struct
 {
-	unsigned char slen1;
-	unsigned char slen2;
-} const sflen_table[16] = {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {3, 0}, {1, 1}, {1, 2}, {1, 3},
-						   {2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3}};
+	uchar slen1;
+	uchar slen2;
+} constexpr sflen_table[16] = {{0, 0}, {0, 1}, {0, 2}, {0, 3}, {3, 0}, {1, 1}, {1, 2}, {1, 3},
+							   {2, 1}, {2, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}, {4, 2}, {4, 3}};
 
 /*
  * number of LSF scalefactor band values
  * derived from section 2.4.3.2 of ISO/IEC 13818-3
  */
-static const unsigned char nsfb_table[6][3][4] = {
-	{{6, 5, 5, 5}, {9, 9, 9, 9}, {6, 9, 9, 9}},
-
-	{{6, 5, 7, 3}, {9, 9, 12, 6}, {6, 9, 12, 6}},
-
-	{{11, 10, 0, 0}, {18, 18, 0, 0}, {15, 18, 0, 0}},
-
-	{{7, 7, 7, 0}, {12, 12, 12, 0}, {6, 15, 12, 0}},
-
-	{{6, 6, 6, 3}, {12, 9, 9, 6}, {6, 12, 9, 6}},
-
-	{{8, 8, 5, 0}, {15, 12, 9, 0}, {6, 18, 9, 0}}};
+static constexpr uchar nsfb_table[6][3][4] = {
+	{{6, 5, 5, 5}, {9, 9, 9, 9}, {6, 9, 9, 9}},		  {{6, 5, 7, 3}, {9, 9, 12, 6}, {6, 9, 12, 6}},
+	{{11, 10, 0, 0}, {18, 18, 0, 0}, {15, 18, 0, 0}}, {{7, 7, 7, 0}, {12, 12, 12, 0}, {6, 15, 12, 0}},
+	{{6, 6, 6, 3}, {12, 9, 9, 6}, {6, 12, 9, 6}},	  {{8, 8, 5, 0}, {15, 12, 9, 0}, {6, 18, 9, 0}}};
 
 /*
  * MPEG-1 scalefactor band widths
  * derived from Table B.8 of ISO/IEC 11172-3
  */
-static const unsigned char sfb_48000_long[] = {4,  4,  4,  4,  4,  4,  6,  6,  6,  8,  10,
-											   12, 16, 18, 22, 28, 34, 40, 46, 54, 54, 192};
+static constexpr uchar sfb_48000_long[] = {4,  4,  4,  4,  4,  4,  6,  6,  6,  8,  10,
+										   12, 16, 18, 22, 28, 34, 40, 46, 54, 54, 192};
 
-static const unsigned char sfb_44100_long[] = {4,  4,  4,  4,  4,  4,  6,  6,  8,  8,  10,
-											   12, 16, 20, 24, 28, 34, 42, 50, 54, 76, 158};
+static constexpr uchar sfb_44100_long[] = {4,  4,  4,  4,  4,  4,  6,  6,  8,  8,  10,
+										   12, 16, 20, 24, 28, 34, 42, 50, 54, 76, 158};
 
-static const unsigned char sfb_32000_long[] = {4,  4,  4,  4,  4,  4,  6,  6,  8,  10,	12,
-											   16, 20, 24, 30, 38, 46, 56, 68, 84, 102, 26};
+static constexpr uchar sfb_32000_long[] = {4,  4,  4,  4,  4,  4,  6,  6,  8,  10,	12,
+										   16, 20, 24, 30, 38, 46, 56, 68, 84, 102, 26};
 
-static const unsigned char sfb_48000_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	6,
-												6,	6,	6,	6,	6,	10, 10, 10, 12, 12, 12, 14, 14,
-												14, 16, 16, 16, 20, 20, 20, 26, 26, 26, 66, 66, 66};
+static constexpr uchar sfb_48000_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	6,
+											6,	6,	6,	6,	6,	10, 10, 10, 12, 12, 12, 14, 14,
+											14, 16, 16, 16, 20, 20, 20, 26, 26, 26, 66, 66, 66};
 
-static const unsigned char sfb_44100_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	6,
-												6,	6,	8,	8,	8,	10, 10, 10, 12, 12, 12, 14, 14,
-												14, 18, 18, 18, 22, 22, 22, 30, 30, 30, 56, 56, 56};
+static constexpr uchar sfb_44100_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	6,
+											6,	6,	8,	8,	8,	10, 10, 10, 12, 12, 12, 14, 14,
+											14, 18, 18, 18, 22, 22, 22, 30, 30, 30, 56, 56, 56};
 
-static const unsigned char sfb_32000_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	6,
-												6,	6,	8,	8,	8,	12, 12, 12, 16, 16, 16, 20, 20,
-												20, 26, 26, 26, 34, 34, 34, 42, 42, 42, 12, 12, 12};
+static constexpr uchar sfb_32000_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	4,	6,
+											6,	6,	8,	8,	8,	12, 12, 12, 16, 16, 16, 20, 20,
+											20, 26, 26, 26, 34, 34, 34, 42, 42, 42, 12, 12, 12};
 
-static const unsigned char sfb_48000_mixed[] = {
-	/* long */ 4,
-	4,
-	4,
-	4,
-	4,
-	4,
-	6,
-	6,
-	/* short */ 4,
-	4,
-	4,
-	6,
-	6,
-	6,
-	6,
-	6,
-	6,
-	10,
-	10,
-	10,
-	12,
-	12,
-	12,
-	14,
-	14,
-	14,
-	16,
-	16,
-	16,
-	20,
-	20,
-	20,
-	26,
-	26,
-	26,
-	66,
-	66,
-	66};
+static constexpr uchar sfb_48000_mixed[] = {
+	/* long */
+	4, 4, 4, 4, 4, 4, 6, 6,
+	/* short */
+	4, 4, 4, 6, 6, 6, 6, 6, 6, 10, 10, 10, 12, 12, 12, 14, 14, 14, 16, 16, 16, 20, 20, 20, 26, 26, 26, 66, 66, 66};
 
-static const unsigned char sfb_44100_mixed[] = {
-	/* long */ 4,
-	4,
-	4,
-	4,
-	4,
-	4,
-	6,
-	6,
-	/* short */ 4,
-	4,
-	4,
-	6,
-	6,
-	6,
-	8,
-	8,
-	8,
-	10,
-	10,
-	10,
-	12,
-	12,
-	12,
-	14,
-	14,
-	14,
-	18,
-	18,
-	18,
-	22,
-	22,
-	22,
-	30,
-	30,
-	30,
-	56,
-	56,
-	56};
+static constexpr uchar sfb_44100_mixed[] = {
+	/* long */
+	4, 4, 4, 4, 4, 4, 6, 6,
+	/* short */
+	4, 4, 4, 6, 6, 6, 8, 8, 8, 10, 10, 10, 12, 12, 12, 14, 14, 14, 18, 18, 18, 22, 22, 22, 30, 30, 30, 56, 56, 56};
 
-static const unsigned char sfb_32000_mixed[] = {
-	/* long */ 4,
-	4,
-	4,
-	4,
-	4,
-	4,
-	6,
-	6,
-	/* short */ 4,
-	4,
-	4,
-	6,
-	6,
-	6,
-	8,
-	8,
-	8,
-	12,
-	12,
-	12,
-	16,
-	16,
-	16,
-	20,
-	20,
-	20,
-	26,
-	26,
-	26,
-	34,
-	34,
-	34,
-	42,
-	42,
-	42,
-	12,
-	12,
-	12};
+static constexpr uchar sfb_32000_mixed[] = {
+	/* long */
+	4, 4, 4, 4, 4, 4, 6, 6,
+	/* short */
+	4, 4, 4, 6, 6, 6, 8, 8, 8, 12, 12, 12, 16, 16, 16, 20, 20, 20, 26, 26, 26, 34, 34, 34, 42, 42, 42, 12, 12, 12};
 
 /*
  * MPEG-2 scalefactor band widths
  * derived from Table B.2 of ISO/IEC 13818-3
  */
-static const unsigned char sfb_24000_long[] = {6,  6,  6,  6,  6,  6,  8,  10, 12, 14, 16,
-											   18, 22, 26, 32, 38, 46, 54, 62, 70, 76, 36};
+static constexpr uchar sfb_24000_long[] = {6,  6,  6,  6,  6,  6,  8,  10, 12, 14, 16,
+										   18, 22, 26, 32, 38, 46, 54, 62, 70, 76, 36};
 
-static const unsigned char sfb_22050_long[] = {6,  6,  6,  6,  6,  6,  8,  10, 12, 14, 16,
-											   20, 24, 28, 32, 38, 46, 52, 60, 68, 58, 54};
+static constexpr uchar sfb_22050_long[] = {6,  6,  6,  6,  6,  6,  8,  10, 12, 14, 16,
+										   20, 24, 28, 32, 38, 46, 52, 60, 68, 58, 54};
 
 #define sfb_16000_long sfb_22050_long
 
-static const unsigned char sfb_24000_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	6,	6,	6,	8,
-												8,	8,	10, 10, 10, 12, 12, 12, 14, 14, 14, 18, 18,
-												18, 24, 24, 24, 32, 32, 32, 44, 44, 44, 12, 12, 12};
+static constexpr uchar sfb_24000_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	6,	6,	6,	8,
+											8,	8,	10, 10, 10, 12, 12, 12, 14, 14, 14, 18, 18,
+											18, 24, 24, 24, 32, 32, 32, 44, 44, 44, 12, 12, 12};
 
-static const unsigned char sfb_22050_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	6,	6,	6,	6,
-												6,	6,	8,	8,	8,	10, 10, 10, 14, 14, 14, 18, 18,
-												18, 26, 26, 26, 32, 32, 32, 42, 42, 42, 18, 18, 18};
+static constexpr uchar sfb_22050_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	6,	6,	6,	6,
+											6,	6,	8,	8,	8,	10, 10, 10, 14, 14, 14, 18, 18,
+											18, 26, 26, 26, 32, 32, 32, 42, 42, 42, 18, 18, 18};
 
-static const unsigned char sfb_16000_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	6,	6,	6,	8,
-												8,	8,	10, 10, 10, 12, 12, 12, 14, 14, 14, 18, 18,
-												18, 24, 24, 24, 30, 30, 30, 40, 40, 40, 18, 18, 18};
+static constexpr uchar sfb_16000_short[] = {4,	4,	4,	4,	4,	4,	4,	4,	4,	6,	6,	6,	8,
+											8,	8,	10, 10, 10, 12, 12, 12, 14, 14, 14, 18, 18,
+											18, 24, 24, 24, 30, 30, 30, 40, 40, 40, 18, 18, 18};
 
-static const unsigned char sfb_24000_mixed[] = {
+static constexpr uchar sfb_24000_mixed[] = {
 	/* long */ 6,
 	6,
 	6,
@@ -316,81 +213,17 @@ static const unsigned char sfb_24000_mixed[] = {
 	12,
 	12};
 
-static const unsigned char sfb_22050_mixed[] = {
-	/* long */ 6,
-	6,
-	6,
-	6,
-	6,
-	6,
-	/* short */ 6,
-	6,
-	6,
-	6,
-	6,
-	6,
-	8,
-	8,
-	8,
-	10,
-	10,
-	10,
-	14,
-	14,
-	14,
-	18,
-	18,
-	18,
-	26,
-	26,
-	26,
-	32,
-	32,
-	32,
-	42,
-	42,
-	42,
-	18,
-	18,
-	18};
+static constexpr uchar sfb_22050_mixed[] = {
+	/* long */
+	6, 6, 6, 6, 6, 6,
+	/* short */
+	6, 6, 6, 6, 6, 6, 8, 8, 8, 10, 10, 10, 14, 14, 14, 18, 18, 18, 26, 26, 26, 32, 32, 32, 42, 42, 42, 18, 18, 18};
 
-static const unsigned char sfb_16000_mixed[] = {
-	/* long */ 6,
-	6,
-	6,
-	6,
-	6,
-	6,
-	/* short */ 6,
-	6,
-	6,
-	8,
-	8,
-	8,
-	10,
-	10,
-	10,
-	12,
-	12,
-	12,
-	14,
-	14,
-	14,
-	18,
-	18,
-	18,
-	24,
-	24,
-	24,
-	30,
-	30,
-	30,
-	40,
-	40,
-	40,
-	18,
-	18,
-	18};
+static constexpr uchar sfb_16000_mixed[] = {
+	/* long */
+	6, 6, 6, 6, 6, 6,
+	/* short */
+	6, 6, 6, 8, 8, 8, 10, 10, 10, 12, 12, 12, 14, 14, 14, 18, 18, 18, 24, 24, 24, 30, 30, 30, 40, 40, 40, 18, 18, 18};
 
 /*
  * MPEG 2.5 scalefactor band widths
@@ -399,68 +232,33 @@ static const unsigned char sfb_16000_mixed[] = {
 #define sfb_12000_long sfb_16000_long
 #define sfb_11025_long sfb_12000_long
 
-static const unsigned char sfb_8000_long[] = {12, 12, 12, 12, 12, 12, 16, 20, 24, 28, 32,
-											  40, 48, 56, 64, 76, 90, 2,  2,  2,  2,  2};
+static constexpr uchar sfb_8000_long[] = {12, 12, 12, 12, 12, 12, 16, 20, 24, 28, 32,
+										  40, 48, 56, 64, 76, 90, 2,  2,  2,  2,  2};
 
 #define sfb_12000_short sfb_16000_short
 #define sfb_11025_short sfb_12000_short
 
-static const unsigned char sfb_8000_short[] = {8,  8,  8,  8,  8,  8,  8,  8,  8,  12, 12, 12, 16,
-											   16, 16, 20, 20, 20, 24, 24, 24, 28, 28, 28, 36, 36,
-											   36, 2,  2,  2,  2,  2,  2,  2,  2,  2,  26, 26, 26};
+static constexpr uchar sfb_8000_short[] = {8,  8,  8,  8,  8,  8,  8,  8, 8, 12, 12, 12, 16, 16, 16, 20, 20, 20, 24, 24,
+										   24, 28, 28, 28, 36, 36, 36, 2, 2, 2,	 2,	 2,	 2,	 2,	 2,	 2,	 26, 26, 26};
 
 #define sfb_12000_mixed sfb_16000_mixed
 #define sfb_11025_mixed sfb_12000_mixed
 
 /* the 8000 Hz short block scalefactor bands do not break after
    the first 36 frequency lines, so this is probably wrong */
-static const unsigned char sfb_8000_mixed[] = {
-	/* long */ 12,
-	12,
-	12,
-	/* short */ 4,
-	4,
-	4,
-	8,
-	8,
-	8,
-	12,
-	12,
-	12,
-	16,
-	16,
-	16,
-	20,
-	20,
-	20,
-	24,
-	24,
-	24,
-	28,
-	28,
-	28,
-	36,
-	36,
-	36,
-	2,
-	2,
-	2,
-	2,
-	2,
-	2,
-	2,
-	2,
-	2,
-	26,
-	26,
-	26};
+static constexpr uchar sfb_8000_mixed[] = {
+	/* long */
+	12, 12, 12,
+	/* short */
+	4, 4, 4, 8, 8, 8, 12, 12, 12, 16, 16, 16, 20, 20, 20, 24, 24, 24, 28, 28, 28, 36, 36, 36, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+	26, 26, 26};
 
 static struct
 {
-	const unsigned char* l;
-	const unsigned char* s;
-	const unsigned char* m;
-} const sfbwidth_table[9] = {
+	const uchar* l;
+	const uchar* s;
+	const uchar* m;
+} constexpr sfbwidth_table[9] = {
 	{sfb_48000_long, sfb_48000_short, sfb_48000_mixed}, {sfb_44100_long, sfb_44100_short, sfb_44100_mixed},
 	{sfb_32000_long, sfb_32000_short, sfb_32000_mixed}, {sfb_24000_long, sfb_24000_short, sfb_24000_mixed},
 	{sfb_22050_long, sfb_22050_short, sfb_22050_mixed}, {sfb_16000_long, sfb_16000_short, sfb_16000_mixed},
@@ -471,7 +269,7 @@ static struct
  * scalefactor band preemphasis (used only when preflag is set)
  * derived from Table B.6 of ISO/IEC 11172-3
  */
-static const unsigned char pretab[22] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 0};
+static constexpr uchar pretab[22] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 3, 3, 2, 0};
 
 /*
  * table for requantization
@@ -480,9 +278,9 @@ static const unsigned char pretab[22] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 
  */
 static struct fixedfloat
 {
-	unsigned long  mantissa : 27;
-	unsigned short exponent : 5;
-} const rq_table[8207] = {
+	ulong  mantissa : 27;
+	ushort exponent : 5;
+} constexpr rq_table[8207] = {
 #include "rq_table.dat"
 };
 
@@ -492,7 +290,7 @@ static struct fixedfloat
  *
  * root_table[3 + x] = 2^(x/4)
  */
-static const mad_fixed_t root_table[7] = {
+static constexpr mad_fixed_t root_table[7] = {
 	MAD_F(0x09837f05) /* 2^(-3/4) == 0.59460355750136 */,
 	MAD_F(0x0b504f33) /* 2^(-2/4) == 0.70710678118655 */,
 	MAD_F(0x0d744fcd) /* 2^(-1/4) == 0.84089641525371 */,
@@ -510,14 +308,14 @@ static const mad_fixed_t root_table[7] = {
  * cs[i] =    1 / sqrt(1 + c[i]^2)
  * ca[i] = c[i] / sqrt(1 + c[i]^2)
  */
-static const mad_fixed_t cs[8] = {
+static constexpr mad_fixed_t cs[8] = {
 	+MAD_F(0x0db84a81) /* +0.857492926 */, +MAD_F(0x0e1b9d7f) /* +0.881741997 */,
 	+MAD_F(0x0f31adcf) /* +0.949628649 */, +MAD_F(0x0fbba815) /* +0.983314592 */,
 	+MAD_F(0x0feda417) /* +0.995517816 */, +MAD_F(0x0ffc8fc8) /* +0.999160558 */,
 	+MAD_F(0x0fff964c) /* +0.999899195 */, +MAD_F(0x0ffff8d3) /* +0.999993155 */
 };
 
-static const mad_fixed_t ca[8] = {
+static constexpr mad_fixed_t ca[8] = {
 	-MAD_F(0x083b5fe7) /* -0.514495755 */, -MAD_F(0x078c36d2) /* -0.471731969 */,
 	-MAD_F(0x05039814) /* -0.313377454 */, -MAD_F(0x02e91dd1) /* -0.181913200 */,
 	-MAD_F(0x0183603a) /* -0.094574193 */, -MAD_F(0x00a7cb87) /* -0.040965583 */,
@@ -542,7 +340,7 @@ static const mad_fixed_t imdct_s[6][6] = {
  *
  * window_l[i] = sin((PI / 36) * (i + 1/2))
  */
-static const mad_fixed_t window_l[36] = {
+static constexpr mad_fixed_t window_l[36] = {
 	MAD_F(0x00b2aa3e) /* 0.043619387 */, MAD_F(0x0216a2a2) /* 0.130526192 */, MAD_F(0x03768962) /* 0.216439614 */,
 	MAD_F(0x04cfb0e2) /* 0.300705800 */, MAD_F(0x061f78aa) /* 0.382683432 */, MAD_F(0x07635284) /* 0.461748613 */,
 	MAD_F(0x0898c779) /* 0.537299608 */, MAD_F(0x09bd7ca0) /* 0.608761429 */, MAD_F(0x0acf37ad) /* 0.675590208 */,
@@ -566,7 +364,7 @@ static const mad_fixed_t window_l[36] = {
  *
  * window_s[i] = sin((PI / 12) * (i + 1/2))
  */
-static const mad_fixed_t window_s[12] = {
+static constexpr mad_fixed_t window_s[12] = {
 	MAD_F(0x0216a2a2) /* 0.130526192 */, MAD_F(0x061f78aa) /* 0.382683432 */, MAD_F(0x09bd7ca0) /* 0.608761429 */,
 	MAD_F(0x0cb19346) /* 0.793353340 */, MAD_F(0x0ec835e8) /* 0.923879533 */, MAD_F(0x0fdcf549) /* 0.991444861 */,
 	MAD_F(0x0fdcf549) /* 0.991444861 */, MAD_F(0x0ec835e8) /* 0.923879533 */, MAD_F(0x0cb19346) /* 0.793353340 */,
@@ -580,7 +378,7 @@ static const mad_fixed_t window_s[12] = {
  * is_ratio[i] = tan(i * (PI / 12))
  * is_table[i] = is_ratio[i] / (1 + is_ratio[i])
  */
-static const mad_fixed_t is_table[7] = {
+static constexpr mad_fixed_t is_table[7] = {
 	MAD_F(0x00000000) /* 0.000000000 */,
 	MAD_F(0x0361962f) /* 0.211324865 */,
 	MAD_F(0x05db3d74) /* 0.366025404 */,
@@ -597,7 +395,7 @@ static const mad_fixed_t is_table[7] = {
  * is_lsf_table[0][i] = (1 / sqrt(sqrt(2)))^(i + 1)
  * is_lsf_table[1][i] = (1 /      sqrt(2)) ^(i + 1)
  */
-static const mad_fixed_t is_lsf_table[2][15] = {
+static constexpr mad_fixed_t is_lsf_table[2][15] = {
 	{
 		MAD_F(0x0d744fcd) /* 0.840896415 */, MAD_F(0x0b504f33) /* 0.707106781 */, MAD_F(0x09837f05) /* 0.594603558 */,
 		MAD_F(0x08000000) /* 0.500000000 */, MAD_F(0x06ba27e6) /* 0.420448208 */, MAD_F(0x05a8279a) /* 0.353553391 */,
@@ -614,18 +412,16 @@ static const mad_fixed_t is_lsf_table[2][15] = {
 	}};
 
 /* helper */
-inline unsigned int min(unsigned int a, unsigned int b) { return a < b ? a : b; }
+inline uint min(uint a, uint b) { return a < b ? a : b; }
 
 /*
  * NAME:	III_sideinfo()
  * DESCRIPTION:	decode frame side information from a bitstream
  */
-static enum mad_error III_sideinfo(
-	struct mad_bitptr* ptr, unsigned int nch, int lsf, struct sideinfo* si, unsigned int* data_bitlen,
-	unsigned int* priv_bitlen)
+static mad_error III_sideinfo(mad_bitptr* ptr, uint nch, int lsf, SideInfo* si, uint* data_bitlen, uint* priv_bitlen)
 {
-	unsigned int   ngr, gr, ch, i;
-	enum mad_error result = MAD_ERROR_NONE;
+	uint	  ngr, gr, ch, i;
+	mad_error result = MAD_ERROR_NONE;
 
 	*data_bitlen = 0;
 	*priv_bitlen = lsf ? ((nch == 1) ? 1 : 2) : ((nch == 1) ? 5 : 3);
@@ -643,11 +439,11 @@ static enum mad_error III_sideinfo(
 
 	for (gr = 0; gr < ngr; ++gr)
 	{
-		struct granule* granule = &si->gr[gr];
+		Granule* granule = &si->gr[gr];
 
 		for (ch = 0; ch < nch; ++ch)
 		{
-			struct channel* channel = &granule->ch[ch];
+			Channel* channel = &granule->ch[ch];
 
 			channel->part2_3_length	   = ptr->read(12);
 			channel->big_values		   = ptr->read(9);
@@ -705,12 +501,11 @@ static enum mad_error III_sideinfo(
  * NAME:	III_scalefactors_lsf()
  * DESCRIPTION:	decode channel scalefactors for LSF from a bitstream
  */
-static unsigned int
-III_scalefactors_lsf(struct mad_bitptr* ptr, struct channel* channel, struct channel* gr1ch, int mode_extension)
+static uint III_scalefactors_lsf(mad_bitptr* ptr, Channel* channel, Channel* gr1ch, int mode_extension)
 {
-	struct mad_bitptr	 start;
-	unsigned int		 scalefac_compress, index, slen[4], part, n, i;
-	const unsigned char* nsfb;
+	mad_bitptr	 start;
+	uint		 scalefac_compress, index, slen[4], part, n, i;
+	const uchar* nsfb;
 
 	start = *ptr;
 
@@ -800,7 +595,7 @@ III_scalefactors_lsf(struct mad_bitptr* ptr, struct channel* channel, struct cha
 		n = 0;
 		for (part = 0; part < 4; ++part)
 		{
-			unsigned int max, is_pos;
+			uint max, is_pos;
 
 			max = (1 << slen[part]) - 1;
 
@@ -827,11 +622,10 @@ III_scalefactors_lsf(struct mad_bitptr* ptr, struct channel* channel, struct cha
  * NAME:	III_scalefactors()
  * DESCRIPTION:	decode channel scalefactors of one granule from a bitstream
  */
-static unsigned int
-III_scalefactors(struct mad_bitptr* ptr, struct channel* channel, struct channel const* gr0ch, unsigned int scfsi)
+static uint III_scalefactors(mad_bitptr* ptr, Channel* channel, const Channel* gr0ch, uint scfsi)
 {
-	struct mad_bitptr start;
-	unsigned int	  slen1, slen2, sfbi;
+	mad_bitptr start;
+	uint	   slen1, slen2, sfbi;
 
 	start = *ptr;
 
@@ -840,7 +634,7 @@ III_scalefactors(struct mad_bitptr* ptr, struct channel* channel, struct channel
 
 	if (channel->block_type == 2)
 	{
-		unsigned int nsfb;
+		uint nsfb;
 
 		sfbi = 0;
 
@@ -923,7 +717,7 @@ III_scalefactors(struct mad_bitptr* ptr, struct channel* channel, struct channel
  * NAME:	III_exponents()
  * DESCRIPTION:	calculate scalefactor exponents
  */
-static void III_exponents(struct channel const* channel, const unsigned char* sfbwidth, signed int exponents[39])
+static void III_exponents(Channel* channel, const uchar* sfbwidth, signed int exponents[39]) noexcept
 {
 	signed int	 gain;
 	unsigned int scalefac_multiplier, sfbi;
@@ -994,11 +788,11 @@ static void III_exponents(struct channel const* channel, const unsigned char* sf
  * NAME:	III_requantize()
  * DESCRIPTION:	requantize one (positive) value
  */
-static mad_fixed_t III_requantize(unsigned int value, signed int exp)
+static mad_fixed_t III_requantize(unsigned int value, signed int exp) noexcept
 {
-	mad_fixed_t				 requantized;
-	signed int				 frac;
-	struct fixedfloat const* power;
+	mad_fixed_t		  requantized;
+	signed int		  frac;
+	const fixedfloat* power;
 
 	frac = exp % 4; /* assumes sign(frac) == sign(exp) */
 	exp /= 4;
@@ -1044,17 +838,16 @@ static mad_fixed_t III_requantize(unsigned int value, signed int exp)
  * NAME:	III_huffdecode()
  * DESCRIPTION:	decode Huffman code words of one channel of one granule
  */
-static enum mad_error III_huffdecode(
-	struct mad_bitptr* ptr, mad_fixed_t xr[576], struct channel* channel, const unsigned char* sfbwidth,
-	unsigned int part2_length)
+static mad_error
+III_huffdecode(mad_bitptr* ptr, mad_fixed_t xr[576], Channel* channel, const uchar* sfbwidth, uint part2_length)
 {
 	signed int		   exponents[39], exp;
 	const signed int*  expptr;
-	struct mad_bitptr  peek;
+	mad_bitptr		   peek;
 	signed int		   bits_left, cachesz;
 	mad_fixed_t*	   xrptr;
 	const mad_fixed_t* sfbound;
-	unsigned long	   bitcache;
+	ulong			   bitcache;
 
 	bits_left = (signed)channel->part2_3_length - (signed)part2_length;
 	if (bits_left < 0) return MAD_ERROR_BADPART3LEN;
@@ -1075,11 +868,11 @@ static enum mad_error III_huffdecode(
 
 	/* big_values */
 	{
-		unsigned int			region, rcount;
-		struct hufftable const* entry;
-		const union huffpair*	table;
-		unsigned int			linbits, startbits, big_values, reqhits;
-		mad_fixed_t				reqcache[16];
+		uint			 region, rcount;
+		const hufftable* entry;
+		const huffpair*	 table;
+		uint			 linbits, startbits, big_values, reqhits;
+		mad_fixed_t		 reqcache[16];
 
 		sfbound = xrptr + *sfbwidth++;
 		rcount	= channel->region0_count + 1;
@@ -1099,9 +892,9 @@ static enum mad_error III_huffdecode(
 
 		while (big_values-- && cachesz + bits_left > 0)
 		{
-			const union huffpair* pair;
-			unsigned int		  clumpsz, value;
-			mad_fixed_t			  requantized;
+			const huffpair* pair;
+			uint			clumpsz, value;
+			mad_fixed_t		requantized;
 
 			if (xrptr == sfbound)
 			{
@@ -1133,7 +926,7 @@ static enum mad_error III_huffdecode(
 
 			if (cachesz < 21)
 			{
-				unsigned int bits;
+				uint bits;
 
 				bits	 = ((32 - 1 - 21) + (21 - cachesz)) & ~7;
 				bitcache = (bitcache << bits) | peek.read(bits);
@@ -1271,8 +1064,8 @@ static enum mad_error III_huffdecode(
 
 	/* count1 */
 	{
-		const union huffquad* table;
-		mad_fixed_t			  requantized;
+		const huffquad* table;
+		mad_fixed_t		requantized;
 
 		table = mad_huff_quad_table[channel->flags & count1table_select];
 
@@ -1358,7 +1151,7 @@ static enum mad_error III_huffdecode(
 #endif
 
 			/* technically the bitstream is misformatted, but apparently
-	 some encoders are just a bit sloppy with stuffing bits */
+			   some encoders are just a bit sloppy with stuffing bits */
 
 			xrptr -= 4;
 		}
@@ -1392,12 +1185,11 @@ static enum mad_error III_huffdecode(
  * NAME:	III_reorder()
  * DESCRIPTION:	reorder frequency lines of a short block into subband order
  */
-static void
-III_reorder(MadFrame* frame, mad_fixed_t xr[576], struct channel const* channel, const unsigned char sfbwidth[39])
+void MadFrame::III_reorder(mad_fixed_t xr[576], const Channel* channel, const uchar sfbwidth[39])
 {
-	assert(frame->tmp);
-	mad_fixed_t(*tmp)[32][3][6] = frame->tmp; // kio: reduce stack usage
-	unsigned int sb, l, f, w, sbw[3], sw[3];
+	assert(this->tmp);
+	mad_fixed_t(*tmp)[32][3][6] = this->tmp; // kio: reduce stack usage
+	uint sb, l, f, w, sbw[3], sw[3];
 
 	/* this is probably wrong for 8000 Hz mixed blocks */
 
@@ -1443,11 +1235,11 @@ III_reorder(MadFrame* frame, mad_fixed_t xr[576], struct channel const* channel,
  * NAME:	III_stereo()
  * DESCRIPTION:	perform joint stereo processing on a granule
  */
-static enum mad_error III_stereo(
-	mad_fixed_t xr[2][576], struct granule const* granule, struct MadHeader* header, const unsigned char* sfbwidth)
+static enum mad_error
+III_stereo(mad_fixed_t xr[2][576], const Granule* granule, MadHeader* header, const uchar* sfbwidth)
 {
-	short		 modes[39];
-	unsigned int sfbi, l, n, i;
+	short modes[39];
+	uint  sfbi, l, n, i;
 
 	if (granule->ch[0].block_type != granule->ch[1].block_type ||
 		(granule->ch[0].flags & mixed_block_flag) != (granule->ch[1].flags & mixed_block_flag))
@@ -1459,9 +1251,9 @@ static enum mad_error III_stereo(
 
 	if (header->mode_extension & I_STEREO)
 	{
-		struct channel const* right_ch = &granule->ch[1];
-		const mad_fixed_t*	  right_xr = xr[1];
-		unsigned int		  is_pos;
+		const Channel*	   right_ch = &granule->ch[1];
+		const mad_fixed_t* right_xr = xr[1];
+		uint			   is_pos;
 
 		header->flags |= MAD_FLAG_I_STEREO;
 
@@ -1469,7 +1261,7 @@ static enum mad_error III_stereo(
 
 		if (right_ch->block_type == 2)
 		{
-			unsigned int lower, start, max, bound[3], w;
+			uint lower, start, max, bound[3], w;
 
 			lower = start = max = bound[0] = bound[1] = bound[2] = 0;
 
@@ -2189,9 +1981,9 @@ static inline void imdct36(const mad_fixed_t X[18], mad_fixed_t x[36])
  * NAME:	III_imdct_l()
  * DESCRIPTION:	perform IMDCT and windowing for long blocks
  */
-static void III_imdct_l(const mad_fixed_t X[18], mad_fixed_t z[36], unsigned int block_type)
+static void III_imdct_l(const mad_fixed_t X[18], mad_fixed_t z[36], uint block_type)
 {
-	unsigned int i;
+	uint i;
 
 	/* IMDCT */
 
@@ -2202,52 +1994,49 @@ static void III_imdct_l(const mad_fixed_t X[18], mad_fixed_t z[36], unsigned int
 	switch (block_type)
 	{
 	case 0: /* normal window */
-  #if defined(ASO_INTERLEAVE1)
-	{
-		mad_fixed_t tmp1, tmp2;
-
-		tmp1 = window_l[0];
-		tmp2 = window_l[1];
-
-		for (i = 0; i < 34; i += 2)
+		if constexpr (aso_interleave1)
 		{
-			z[i + 0] = mad_f_mul(z[i + 0], tmp1);
-			tmp1	 = window_l[i + 2];
-			z[i + 1] = mad_f_mul(z[i + 1], tmp2);
-			tmp2	 = window_l[i + 3];
+			mad_fixed_t tmp1, tmp2;
+
+			tmp1 = window_l[0];
+			tmp2 = window_l[1];
+
+			for (i = 0; i < 34; i += 2)
+			{
+				z[i + 0] = mad_f_mul(z[i + 0], tmp1);
+				tmp1	 = window_l[i + 2];
+				z[i + 1] = mad_f_mul(z[i + 1], tmp2);
+				tmp2	 = window_l[i + 3];
+			}
+
+			z[34] = mad_f_mul(z[34], tmp1);
+			z[35] = mad_f_mul(z[35], tmp2);
 		}
-
-		z[34] = mad_f_mul(z[34], tmp1);
-		z[35] = mad_f_mul(z[35], tmp2);
-	}
-  #elif defined(ASO_INTERLEAVE2)
-	{
-		mad_fixed_t tmp1, tmp2;
-
-		tmp1 = z[0];
-		tmp2 = window_l[0];
-
-		for (i = 0; i < 35; ++i)
+		else if constexpr (aso_interleave2)
 		{
-			z[i] = mad_f_mul(tmp1, tmp2);
-			tmp1 = z[i + 1];
-			tmp2 = window_l[i + 1];
-		}
+			mad_fixed_t tmp1, tmp2;
 
-		z[35] = mad_f_mul(tmp1, tmp2);
-	}
-  #elif 1
-		for (i = 0; i < 36; i += 4)
-		{
-			z[i + 0] = mad_f_mul(z[i + 0], window_l[i + 0]);
-			z[i + 1] = mad_f_mul(z[i + 1], window_l[i + 1]);
-			z[i + 2] = mad_f_mul(z[i + 2], window_l[i + 2]);
-			z[i + 3] = mad_f_mul(z[i + 3], window_l[i + 3]);
+			tmp1 = z[0];
+			tmp2 = window_l[0];
+
+			for (i = 0; i < 35; ++i)
+			{
+				z[i] = mad_f_mul(tmp1, tmp2);
+				tmp1 = z[i + 1];
+				tmp2 = window_l[i + 1];
+			}
+
+			z[35] = mad_f_mul(tmp1, tmp2);
 		}
-  #else
-		for (i = 0; i < 36; ++i) z[i] = mad_f_mul(z[i], window_l[i]);
-  #endif
-	break;
+		else
+			for (i = 0; i < 36; i += 4)
+			{
+				z[i + 0] = mad_f_mul(z[i + 0], window_l[i + 0]);
+				z[i + 1] = mad_f_mul(z[i + 1], window_l[i + 1]);
+				z[i + 2] = mad_f_mul(z[i + 2], window_l[i + 2]);
+				z[i + 3] = mad_f_mul(z[i + 3], window_l[i + 3]);
+			}
+		break;
 
 	case 1: /* start block */
 		for (i = 0; i < 18; i += 3)
@@ -2361,12 +2150,11 @@ static void III_imdct_s(const mad_fixed_t X[18], mad_fixed_t z[36])
  * NAME:	III_overlap()
  * DESCRIPTION:	perform overlap-add of windowed IMDCT outputs
  */
-static void
-III_overlap(const mad_fixed_t output[36], mad_fixed_t overlap[18], mad_fixed_t sample[18][32], unsigned int sb)
+static void III_overlap(const mad_fixed_t output[36], mad_fixed_t overlap[18], mad_fixed_t sample[18][32], uint sb)
 {
-	unsigned int i;
+	uint i;
 
-#if defined(ASO_INTERLEAVE2)
+	if constexpr (aso_interleave2)
 	{
 		mad_fixed_t tmp1, tmp2;
 
@@ -2389,40 +2177,30 @@ III_overlap(const mad_fixed_t output[36], mad_fixed_t overlap[18], mad_fixed_t s
 		sample[17][sb] = output[17 + 0] + tmp2;
 		overlap[17]	   = output[17 + 18];
 	}
-#elif 0
-	for (i = 0; i < 18; i += 2)
+	else
 	{
-		sample[i + 0][sb] = output[i + 0 + 0] + overlap[i + 0];
-		overlap[i + 0]	  = output[i + 0 + 18];
-
-		sample[i + 1][sb] = output[i + 1 + 0] + overlap[i + 1];
-		overlap[i + 1]	  = output[i + 1 + 18];
+		for (i = 0; i < 18; ++i)
+		{
+			sample[i][sb] = output[i + 0] + overlap[i];
+			overlap[i]	  = output[i + 18];
+		}
 	}
-#else
-	for (i = 0; i < 18; ++i)
-	{
-		sample[i][sb] = output[i + 0] + overlap[i];
-		overlap[i]	  = output[i + 18];
-	}
-#endif
 }
 
 /*
  * NAME:	III_overlap_z()
  * DESCRIPTION:	perform "overlap-add" of zero IMDCT outputs
  */
-static inline void III_overlap_z(mad_fixed_t overlap[18], mad_fixed_t sample[18][32], unsigned int sb)
+static inline void III_overlap_z(mad_fixed_t overlap[18], mad_fixed_t sample[18][32], uint sb)
 {
-	unsigned int i;
-
-#if defined(ASO_INTERLEAVE2)
+	if constexpr (aso_interleave2)
 	{
 		mad_fixed_t tmp1, tmp2;
 
 		tmp1 = overlap[0];
 		tmp2 = overlap[1];
 
-		for (i = 0; i < 16; i += 2)
+		for (uint i = 0; i < 16; i += 2)
 		{
 			sample[i + 0][sb] = tmp1;
 			overlap[i + 0]	  = 0;
@@ -2438,31 +2216,30 @@ static inline void III_overlap_z(mad_fixed_t overlap[18], mad_fixed_t sample[18]
 		sample[17][sb] = tmp2;
 		overlap[17]	   = 0;
 	}
-#else
-	for (i = 0; i < 18; ++i)
+	else
 	{
-		sample[i][sb] = overlap[i];
-		overlap[i]	  = 0;
+		for (uint i = 0; i < 18; ++i)
+		{
+			sample[i][sb] = overlap[i];
+			overlap[i]	  = 0;
+		}
 	}
-#endif
 }
 
 /*
  * NAME:	III_freqinver()
  * DESCRIPTION:	perform subband frequency inversion for odd sample lines
  */
-static void III_freqinver(mad_fixed_t sample[18][32], unsigned int sb)
+static void III_freqinver(mad_fixed_t sample[18][32], uint sb)
 {
-	unsigned int i;
-
-#if 1 || defined(ASO_INTERLEAVE1) || defined(ASO_INTERLEAVE2)
+	if constexpr (aso_interleave1 || aso_interleave2)
 	{
 		mad_fixed_t tmp1, tmp2;
 
 		tmp1 = sample[1][sb];
 		tmp2 = sample[3][sb];
 
-		for (i = 1; i < 13; i += 4)
+		for (uint i = 1; i < 13; i += 4)
 		{
 			sample[i + 0][sb] = -tmp1;
 			tmp1			  = sample[i + 4][sb];
@@ -2475,43 +2252,40 @@ static void III_freqinver(mad_fixed_t sample[18][32], unsigned int sb)
 		sample[15][sb] = -tmp2;
 		sample[17][sb] = -tmp1;
 	}
-#else
-	for (i = 1; i < 18; i += 2) sample[i][sb] = -sample[i][sb];
-#endif
+	else
+	{
+		for (uint i = 1; i < 18; i += 2) sample[i][sb] = -sample[i][sb];
+	}
 }
 
 /*
  * NAME:	III_decode()
  * DESCRIPTION:	decode frame main_data
  */
-static enum mad_error III_decode(struct mad_bitptr* ptr, struct MadFrame* frame, struct sideinfo* si, unsigned int nch)
+mad_error MadFrame::III_decode(mad_bitptr* ptr, SideInfo* si, uint nch)
 {
-	struct MadHeader* header = &frame->header;
-	unsigned int	  sfreqi, ngr, gr;
+	MadHeader* header = &this->header;
+	uint	   sfreqi, ngr, gr;
 
-	if (frame->xr == nullptr)
+	if (this->xr == nullptr)
 	{
-		frame->xr = (mad_fixed_t(*)[2][576])malloc(2 * 576 * sizeof(mad_fixed_t));
-		if (frame->xr == nullptr) return MAD_ERROR_NOMEM;
+		this->xr = (mad_fixed_t(*)[2][576])malloc(2 * 576 * sizeof(mad_fixed_t));
+		if (this->xr == nullptr) return MAD_ERROR_NOMEM;
 	}
-	if (frame->tmp == nullptr)
+	if (this->tmp == nullptr)
 	{
-		frame->tmp = (mad_fixed_t(*)[32][3][6])malloc(32 * 3 * 6 * sizeof(mad_fixed_t));
-		if (frame->tmp == nullptr) return MAD_ERROR_NOMEM;
+		this->tmp = (mad_fixed_t(*)[32][3][6])malloc(32 * 3 * 6 * sizeof(mad_fixed_t));
+		if (this->tmp == nullptr) return MAD_ERROR_NOMEM;
 	}
 
-	{
-		unsigned int sfreq;
+	uint sfreq = header->samplerate;
+	if (header->flags & MAD_FLAG_MPEG_2_5_EXT) sfreq *= 2;
 
-		sfreq = header->samplerate;
-		if (header->flags & MAD_FLAG_MPEG_2_5_EXT) sfreq *= 2;
+	/* 48000 => 0, 44100 => 1, 32000 => 2, 24000 => 3, 22050 => 4, 16000 => 5 */
+	sfreqi = ((sfreq >> 7) & 0x000f) + ((sfreq >> 15) & 0x0001) - 8;
 
-		/* 48000 => 0, 44100 => 1, 32000 => 2,
-       24000 => 3, 22050 => 4, 16000 => 5 */
-		sfreqi = ((sfreq >> 7) & 0x000f) + ((sfreq >> 15) & 0x0001) - 8;
+	if (header->flags & MAD_FLAG_MPEG_2_5_EXT) sfreqi += 3;
 
-		if (header->flags & MAD_FLAG_MPEG_2_5_EXT) sfreqi += 3;
-	}
 
 	/* scalefactors, Huffman decoding, requantization */
 
@@ -2519,16 +2293,16 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct MadFrame* frame,
 
 	for (gr = 0; gr < ngr; ++gr)
 	{
-		struct granule*		 granule = &si->gr[gr];
-		const unsigned char* sfbwidth[2];
-		mad_fixed_t(*xr)[2][576] = frame->xr;
-		unsigned int   ch;
-		enum mad_error error;
+		Granule*	 granule = &si->gr[gr];
+		const uchar* sfbwidth[2];
+		mad_fixed_t(*xr)[2][576] = this->xr;
+		uint	  ch;
+		mad_error error;
 
 		for (ch = 0; ch < nch; ++ch)
 		{
-			struct channel* channel = &granule->ch[ch];
-			unsigned int	part2_length;
+			Channel* channel = &granule->ch[ch];
+			uint	 part2_length;
 
 			sfbwidth[ch] = sfbwidth_table[sfreqi].l;
 			if (channel->block_type == 2)
@@ -2560,14 +2334,14 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct MadFrame* frame,
 
 		for (ch = 0; ch < nch; ++ch)
 		{
-			struct channel const* channel = &granule->ch[ch];
-			mad_fixed_t(*sample)[32]	  = &frame->sbsample[ch][18 * gr];
-			unsigned int sb, l, i, sblimit;
-			mad_fixed_t	 output[36];
+			const Channel* channel	 = &granule->ch[ch];
+			mad_fixed_t(*sample)[32] = &this->sbsample[ch][18 * gr];
+			uint		sb, l, i, sblimit;
+			mad_fixed_t output[36];
 
 			if (channel->block_type == 2)
 			{
-				III_reorder(frame, (*xr)[ch], channel, sfbwidth[ch]);
+				this->III_reorder((*xr)[ch], channel, sfbwidth[ch]);
 
 #if !defined(OPT_STRICT)
 				/*
@@ -2597,7 +2371,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct MadFrame* frame,
 				for (sb = 0; sb < 2; ++sb, l += 18)
 				{
 					III_imdct_l(&(*xr)[ch][l], output, block_type);
-					III_overlap(output, (*frame->overlap)[ch][sb], sample, sb);
+					III_overlap(output, (*this->overlap)[ch][sb], sample, sb);
 				}
 			}
 			else
@@ -2606,7 +2380,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct MadFrame* frame,
 				for (sb = 0; sb < 2; ++sb, l += 18)
 				{
 					III_imdct_s(&(*xr)[ch][l], output);
-					III_overlap(output, (*frame->overlap)[ch][sb], sample, sb);
+					III_overlap(output, (*this->overlap)[ch][sb], sample, sb);
 				}
 			}
 
@@ -2625,7 +2399,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct MadFrame* frame,
 				for (sb = 2; sb < sblimit; ++sb, l += 18)
 				{
 					III_imdct_l(&(*xr)[ch][l], output, channel->block_type);
-					III_overlap(output, (*frame->overlap)[ch][sb], sample, sb);
+					III_overlap(output, (*this->overlap)[ch][sb], sample, sb);
 
 					if (sb & 1) III_freqinver(sample, sb);
 				}
@@ -2636,7 +2410,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct MadFrame* frame,
 				for (sb = 2; sb < sblimit; ++sb, l += 18)
 				{
 					III_imdct_s(&(*xr)[ch][l], output);
-					III_overlap(output, (*frame->overlap)[ch][sb], sample, sb);
+					III_overlap(output, (*this->overlap)[ch][sb], sample, sb);
 
 					if (sb & 1) III_freqinver(sample, sb);
 				}
@@ -2646,7 +2420,7 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct MadFrame* frame,
 
 			for (sb = sblimit; sb < 32; ++sb)
 			{
-				III_overlap_z((*frame->overlap)[ch][sb], sample, sb);
+				III_overlap_z((*this->overlap)[ch][sb], sample, sb);
 
 				if (sb & 1) III_freqinver(sample, sb);
 			}
@@ -2660,22 +2434,22 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct MadFrame* frame,
  * NAME:	layer->III()
  * DESCRIPTION:	decode a single Layer III frame
  */
-int mad_layer_III(struct MadStream* stream, struct MadFrame* frame)
+int MadFrame::decode_layer_III(MadStream* stream)
 {
-	struct MadHeader* header = &frame->header;
-	unsigned int	  nch, priv_bitlen, next_md_begin = 0;
-	unsigned int	  si_len, data_bitlen, md_len;
-	unsigned int	  frame_space, frame_used, frame_free;
-	struct mad_bitptr ptr;
-	struct sideinfo	  si;
-	enum mad_error	  error;
-	int				  result = 0;
+	MadHeader* header = &this->header;
+	uint	   nch, priv_bitlen, next_md_begin = 0;
+	uint	   si_len, data_bitlen, md_len;
+	uint	   frame_space, frame_used, frame_free;
+	mad_bitptr ptr;
+	SideInfo   si;
+	mad_error  error;
+	int		   result = 0;
 
 	/* allocate Layer III dynamic structures */
 
 	if (stream->main_data == 0)
 	{
-		stream->main_data = (unsigned char(*)[MAD_BUFFER_MDLEN])malloc(MAD_BUFFER_MDLEN);
+		stream->main_data = (uchar(*)[MAD_BUFFER_MDLEN])malloc(MAD_BUFFER_MDLEN);
 		if (stream->main_data == 0)
 		{
 			stream->error = MAD_ERROR_NOMEM;
@@ -2683,10 +2457,10 @@ int mad_layer_III(struct MadStream* stream, struct MadFrame* frame)
 		}
 	}
 
-	if (frame->overlap == 0)
+	if (this->overlap == 0)
 	{
-		frame->overlap = (mad_fixed_t(*)[2][32][18])calloc(2 * 32 * 18, sizeof(mad_fixed_t));
-		if (frame->overlap == 0)
+		this->overlap = (mad_fixed_t(*)[2][32][18])calloc(2 * 32 * 18, sizeof(mad_fixed_t));
+		if (this->overlap == 0)
 		{
 			stream->error = MAD_ERROR_NOMEM;
 			return -1;
@@ -2711,7 +2485,7 @@ int mad_layer_III(struct MadStream* stream, struct MadFrame* frame)
 	{
 		header->crc_check = stream->ptr.crc(si_len * CHAR_BIT, header->crc_check);
 
-		if (header->crc_check != header->crc_target && !(frame->options & MAD_OPTION_IGNORECRC))
+		if (header->crc_check != header->crc_target && !(this->options & MAD_OPTION_IGNORECRC))
 		{
 			stream->error = MAD_ERROR_BADCRC;
 			result		  = -1;
@@ -2800,7 +2574,7 @@ int mad_layer_III(struct MadStream* stream, struct MadFrame* frame)
 
 	if (result == 0)
 	{
-		error = III_decode(&ptr, frame, &si, nch);
+		error = this->III_decode(&ptr, &si, nch);
 		if (error)
 		{
 			stream->error = error;
