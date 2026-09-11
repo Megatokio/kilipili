@@ -17,13 +17,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: huffman.c,v 1.10 2004/01/23 09:41:32 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
 
-#ifdef HAVE_CONFIG_H
-  #include "config.h"
-#endif
-
-#include "global.h"
 #include "huffman.h"
 
 /*

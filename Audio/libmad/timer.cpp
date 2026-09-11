@@ -17,20 +17,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: timer.c,v 1.18 2004/01/23 09:41:33 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
 
-#ifdef HAVE_CONFIG_H
-  #include "config.h"
-#endif
-
-#include "global.h"
-#include <stdio.h>
-
-//# ifdef HAVE_ASSERT_H
-#include <assert.h>
-//# endif
-
 #include "timer.h"
+#include "common/cdefs.h"
+#include <stdio.h>
 
 const mad_timer_t mad_timer_zero = {0, 0};
 

@@ -27,7 +27,7 @@
 
 #include "MadFrame.h"
 #include "MadStream.h"
-#include "global.h"
+#include "common/trace.h"
 #include "mad_bitptr.h"
 #include "timer.h"
 #include <cstring>
@@ -273,6 +273,8 @@ static int free_bitrate(MadStream* stream, const MadHeader* header)
  */
 int MadHeader::decode(MadStream* stream)
 {
+	trace(__func__);
+
 	const uchar *ptr, *end;
 	uint		 pad_slot, N;
 
@@ -417,6 +419,8 @@ fail:
  */
 int MadFrame::decode(MadStream* stream)
 {
+	trace(__func__);
+
 	this->options = stream->options;
 
 	/* header() */

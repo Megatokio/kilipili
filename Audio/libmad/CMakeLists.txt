@@ -55,7 +55,6 @@ add_library(kilipili_libmad STATIC
 	mad_bitptr.h
 	fixed.h
 	MadFrame.h
-	global.h
 	huffman.h
 	MadStream.h
 	MadSynth.h

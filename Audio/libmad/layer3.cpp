@@ -27,16 +27,14 @@
 
 #include "MadFrame.h"
 #include "MadStream.h"
+#include "common/cdefs.h"
+#include "common/trace.h"
 #include "fixed.h"
-#include "global.h"
+
 #include "huffman.h"
 #include "mad_bitptr.h"
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
-
-//# ifdef HAVE_ASSERT_H
-#include <assert.h>
-//# endif
 
 #if defined(ASO_INTERLEAVE1)
 static constexpr bool aso_interleave1 = true;
@@ -2436,6 +2434,8 @@ mad_error MadFrame::III_decode(mad_bitptr* ptr, SideInfo* si, uint nch)
  */
 int MadFrame::decode_layer_III(MadStream* stream)
 {
+	trace(__func__);
+
 	MadHeader* header = &this->header;
 	uint	   nch, priv_bitlen, next_md_begin = 0;
 	uint	   si_len, data_bitlen, md_len;

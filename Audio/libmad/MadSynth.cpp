@@ -27,8 +27,9 @@
 
 #include "MadSynth.h"
 #include "MadFrame.h"
+#include "common/trace.h"
 #include "fixed.h"
-#include "global.h"
+
 #include <cstring>
 
 /*
@@ -838,6 +839,8 @@ void MadSynth::synth_half(const MadFrame* frame, uint nch, uint ns) noexcept
  */
 void MadSynth::synthesize_pcm(const MadFrame* frame) noexcept
 {
+	trace(__func__);
+
 	const uint nch = MAD_NCHANNELS(&frame->header);
 	const uint ns  = MAD_NSBSAMPLES(&frame->header);
 
