@@ -27,8 +27,7 @@
 
 #include "MadFrame.h"
 #include "MadStream.h"
-#include "Trace.h"
-#include "global.h"
+#include "common/trace.h"
 #include "mad_bitptr.h"
 #include "timer.h"
 #include <cstring>

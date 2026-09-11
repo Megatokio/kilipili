@@ -27,7 +27,7 @@
 
 
 #include "mad_bitptr.h"
-#include "global.h"
+
 
 /*
  * This is the lookup table for computing the CRC-check word.

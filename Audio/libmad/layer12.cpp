@@ -27,8 +27,9 @@
 
 #include "MadFrame.h"
 #include "MadStream.h"
+#include "common/trace.h"
 #include "fixed.h"
-#include "global.h"
+
 #include "mad_bitptr.h"
 
 /*
@@ -94,6 +95,8 @@ static mad_fixed_t I_sample(struct mad_bitptr* ptr, unsigned int nb)
  */
 int MadFrame::decode_layer_I(MadStream* stream)
 {
+	trace(__func__);
+
 	MadHeader* header = &this->header;
 	uint	   nch, bound, ch, s, sb, nb;
 	uchar	   allocation[2][32], scalefactor[2][32];
@@ -331,6 +334,8 @@ static void II_samples(struct mad_bitptr* ptr, struct quantclass const* quantcla
  */
 int MadFrame::decode_layer_II(MadStream* stream)
 {
+	trace(__func__);
+
 	MadHeader*	 header = &this->header;
 	mad_bitptr	 start;
 	uint		 index, sblimit, nbal, nch, bound, gr, ch, s, sb;

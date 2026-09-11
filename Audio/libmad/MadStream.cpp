@@ -26,7 +26,6 @@
  */
 
 #include "MadStream.h"
-#include "global.h"
 #include "mad_bitptr.h"
 #include <stdlib.h>
 

@@ -17,10 +17,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: fixed.h,v 1.38 2004/02/17 02:02:03 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
 
 #pragma once
 #include "mad_types.h"
+
+#if defined(OPT_SPEED) && defined(OPT_ACCURACY)
+  #error "cannot optimize for both speed and accuracy"
+#endif
 
 /*
  * Fixed-point format: 0xABBBBBBB

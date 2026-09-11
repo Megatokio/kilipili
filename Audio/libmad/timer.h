@@ -17,6 +17,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: timer.h,v 1.16 2004/01/23 09:41:33 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
 
 #pragma once
