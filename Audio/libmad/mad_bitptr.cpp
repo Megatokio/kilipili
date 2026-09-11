@@ -17,21 +17,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: bit.c,v 1.12 2004/01/23 09:41:32 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
 
-#ifdef HAVE_CONFIG_H
-  #include "config.h"
-#endif
 
+#include "mad_bitptr.h"
 #include "global.h"
-
-#ifdef HAVE_LIMITS_H
-  #include <limits.h>
-#else
-  #define CHAR_BIT 8
-#endif
-
-#include "bit.h"
 
 /*
  * This is the lookup table for computing the CRC-check word.
@@ -40,7 +36,7 @@
  *
  * G(X) = X^16 + X^15 + X^2 + 1
  */
-static const unsigned short crc_table[256] = {
+static constexpr ushort crc_table[256] = {
 	0x0000, 0x8005, 0x800f, 0x000a, 0x801b, 0x001e, 0x0014, 0x8011, 0x8033, 0x0036, 0x003c, 0x8039, 0x0028,
 	0x802d, 0x8027, 0x0022, 0x8063, 0x0066, 0x006c, 0x8069, 0x0078, 0x807d, 0x8077, 0x0072, 0x0050, 0x8055,
 	0x805f, 0x005a, 0x804b, 0x004e, 0x0044, 0x8041, 0x80c3, 0x00c6, 0x00cc, 0x80c9, 0x00d8, 0x80dd, 0x80d7,
@@ -71,89 +67,80 @@ static const unsigned short crc_table[256] = {
  * NAME:	bit->init()
  * DESCRIPTION:	initialize bit pointer struct
  */
-void mad_bit_init(struct mad_bitptr* bitptr, const unsigned char* byte)
+void mad_bitptr::init(const uchar* byte) noexcept
 {
-	bitptr->byte  = byte;
-	bitptr->cache = 0;
-	bitptr->left  = CHAR_BIT;
+	this->byte	= byte;
+	this->cache = 0;
+	this->left	= CHAR_BIT;
 }
 
 /*
  * NAME:	bit->length()
  * DESCRIPTION:	return number of bits between start and end points
  */
-unsigned int mad_bit_length(struct mad_bitptr const* begin, struct mad_bitptr const* end)
+uint mad_bit_length(const mad_bitptr* begin, const mad_bitptr* end) noexcept
 {
 	return begin->left + CHAR_BIT * (end->byte - (begin->byte + 1)) + (CHAR_BIT - end->left);
-}
-
-/*
- * NAME:	bit->nextbyte()
- * DESCRIPTION:	return pointer to next unprocessed byte
- */
-const unsigned char* mad_bit_nextbyte(struct mad_bitptr const* bitptr)
-{
-	return bitptr->left == CHAR_BIT ? bitptr->byte : bitptr->byte + 1;
 }
 
 /*
  * NAME:	bit->skip()
  * DESCRIPTION:	advance bit pointer
  */
-void mad_bit_skip(struct mad_bitptr* bitptr, unsigned int len)
+void mad_bitptr::skip(uint len) noexcept
 {
-	bitptr->byte += len / CHAR_BIT;
-	bitptr->left -= len % CHAR_BIT;
+	this->byte += len / CHAR_BIT;
+	this->left -= len % CHAR_BIT;
 
-	if (bitptr->left > CHAR_BIT)
+	if (this->left > CHAR_BIT)
 	{
-		bitptr->byte++;
-		bitptr->left += CHAR_BIT;
+		this->byte++;
+		this->left += CHAR_BIT;
 	}
 
-	if (bitptr->left < CHAR_BIT) bitptr->cache = *bitptr->byte;
+	if (this->left < CHAR_BIT) this->cache = *this->byte;
 }
 
 /*
  * NAME:	bit->read()
  * DESCRIPTION:	read an arbitrary number of bits and return their UIMSBF value
  */
-unsigned long mad_bit_read(struct mad_bitptr* bitptr, unsigned int len)
+ulong mad_bitptr::read(uint len) noexcept
 {
-	unsigned long value;
+	ulong value;
 
-	if (bitptr->left == CHAR_BIT) bitptr->cache = *bitptr->byte;
+	if (this->left == CHAR_BIT) this->cache = *this->byte;
 
-	if (len < bitptr->left)
+	if (len < this->left)
 	{
-		value = (bitptr->cache & ((1 << bitptr->left) - 1)) >> (bitptr->left - len);
-		bitptr->left -= len;
+		value = (this->cache & ((1 << this->left) - 1)) >> (this->left - len);
+		this->left -= len;
 
 		return value;
 	}
 
 	/* remaining bits in current byte */
 
-	value = bitptr->cache & ((1 << bitptr->left) - 1);
-	len -= bitptr->left;
+	value = this->cache & ((1 << this->left) - 1);
+	len -= this->left;
 
-	bitptr->byte++;
-	bitptr->left = CHAR_BIT;
+	this->byte++;
+	this->left = CHAR_BIT;
 
 	/* more bytes */
 
 	while (len >= CHAR_BIT)
 	{
-		value = (value << CHAR_BIT) | *bitptr->byte++;
+		value = (value << CHAR_BIT) | *this->byte++;
 		len -= CHAR_BIT;
 	}
 
 	if (len > 0)
 	{
-		bitptr->cache = *bitptr->byte;
+		this->cache = *this->byte;
 
-		value = (value << len) | (bitptr->cache >> (CHAR_BIT - len));
-		bitptr->left -= len;
+		value = (value << len) | (this->cache >> (CHAR_BIT - len));
+		this->left -= len;
 	}
 
 	return value;
@@ -179,15 +166,16 @@ void mad_bit_write(struct mad_bitptr *bitptr, unsigned int len,
  * NAME:	bit->crc()
  * DESCRIPTION:	compute CRC-check word
  */
-unsigned short mad_bit_crc(struct mad_bitptr bitptr, unsigned int len, unsigned short init)
+ushort mad_bitptr::crc(uint len, ushort init) noexcept
 {
-	unsigned int crc;
+	uint	   crc;
+	mad_bitptr dup(*this);
 
 	for (crc = init; len >= 32; len -= 32)
 	{
-		unsigned long data;
+		ulong data;
 
-		data = mad_bit_read(&bitptr, 32);
+		data = dup.read(32);
 
 		crc = (crc << 8) ^ crc_table[((crc >> 8) ^ (data >> 24)) & 0xff];
 		crc = (crc << 8) ^ crc_table[((crc >> 8) ^ (data >> 16)) & 0xff];
@@ -197,18 +185,18 @@ unsigned short mad_bit_crc(struct mad_bitptr bitptr, unsigned int len, unsigned 
 
 	switch (len / 8)
 	{
-	case 3: crc = (crc << 8) ^ crc_table[((crc >> 8) ^ mad_bit_read(&bitptr, 8)) & 0xff];
-	case 2: crc = (crc << 8) ^ crc_table[((crc >> 8) ^ mad_bit_read(&bitptr, 8)) & 0xff];
-	case 1: crc = (crc << 8) ^ crc_table[((crc >> 8) ^ mad_bit_read(&bitptr, 8)) & 0xff]; len %= 8;
+	case 3: crc = (crc << 8) ^ crc_table[((crc >> 8) ^ dup.read(8)) & 0xff];
+	case 2: crc = (crc << 8) ^ crc_table[((crc >> 8) ^ dup.read(8)) & 0xff];
+	case 1: crc = (crc << 8) ^ crc_table[((crc >> 8) ^ dup.read(8)) & 0xff]; len %= 8;
 
 	case 0: break;
 	}
 
 	while (len--)
 	{
-		unsigned int msb;
+		uint msb;
 
-		msb = mad_bit_read(&bitptr, 1) ^ (crc >> 15);
+		msb = dup.read(1) ^ (crc >> 15);
 
 		crc <<= 1;
 		if (msb & 1) crc ^= CRC_POLY;

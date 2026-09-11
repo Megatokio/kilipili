@@ -41,24 +41,24 @@ add_library(kilipili_libmad STATIC
 	${libmad_sources}
 	Mp3Decoder.cpp
 	Mp3Decoder.h
-	bit.cpp
+	mad_bitptr.cpp
 	fixed.cpp
-	frame.cpp
+	MadFrame.cpp
 	huffman.cpp
 	layer12.cpp
 	layer3.cpp
-	stream.cpp
-	synth.cpp
+	MadStream.cpp
+	MadSynth.cpp
 	timer.cpp
 	version.cpp
 	mad_types.h
-	bit.h
+	mad_bitptr.h
 	fixed.h
-	frame.h
+	MadFrame.h
 	global.h
 	huffman.h
-	stream.h
-	synth.h
+	MadStream.h
+	MadSynth.h
 	timer.h
 	version.h
 	#D.D.dat

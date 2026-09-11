@@ -17,10 +17,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: stream.h,v 1.20 2004/02/05 09:02:39 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
 
 #pragma once
-#include "bit.h"
+#include "mad_bitptr.h"
 
 #define MAD_BUFFER_GUARD 8
 #define MAD_BUFFER_MDLEN (511 + 2048 + MAD_BUFFER_GUARD)
@@ -54,50 +60,45 @@ enum mad_error {
 	MAD_ERROR_BADSTEREO		 = 0x0239  /* incompatible block_type for JS */
 };
 
-#define MAD_RECOVERABLE(error) ((error) & 0xff00)
+inline constexpr bool is_recoverable(mad_error error) noexcept { return error & 0xff00; }
 
-struct mad_stream
+struct MadStream
 {
-	mad_stream(int options = 0);
-	~mad_stream();
+	MadStream(int opts = 0) noexcept;
+	MadStream(const MadStream&) noexcept;
+	~MadStream() noexcept;
+	void reset() noexcept;
 
-	const unsigned char* buffer;  /* input bitstream buffer */
-	const unsigned char* bufend;  /* end of buffer */
-	unsigned long		 skiplen; /* bytes to skip before next frame */
+	void set_options(int opts) noexcept { options = opts; }
+	void set_buffer_pointers(const uchar*, ulong) noexcept;
+	void skip(ulong len) noexcept { skiplen += len; } /* arrange to skip bytes before next frame */
+	int	 find_next_sync() noexcept;
+	cstr errorstr() const noexcept;
 
-	int			  sync;		/* stream sync found */
-	unsigned long freerate; /* free bitrate (fixed) */
+	const uchar* buffer;  /* input bitstream buffer */
+	const uchar* bufend;  /* end of buffer */
+	ulong		 skiplen; /* bytes to skip before next frame */
 
-	const unsigned char* this_frame; /* start of current frame */
-	const unsigned char* next_frame; /* start of next frame */
-	struct mad_bitptr	 ptr;		 /* current processing bit pointer */
+	int	  sync;		/* stream sync found */
+	ulong freerate; /* free bitrate (fixed) */
 
-	struct mad_bitptr anc_ptr;	  /* ancillary bits pointer */
-	unsigned int	  anc_bitlen; /* number of ancillary bits */
+	const uchar* this_frame; /* start of current frame */
+	const uchar* next_frame; /* start of next frame */
+	mad_bitptr	 ptr;		 /* current processing bit pointer */
 
-	unsigned char (*main_data)[MAD_BUFFER_MDLEN];
-	/* Layer III main_data() */
-	unsigned int md_len; /* bytes in main_data */
+	mad_bitptr anc_ptr;	   /* ancillary bits pointer */
+	uint	   anc_bitlen; /* number of ancillary bits */
 
-	int			   options; /* decoding options (see below) */
-	enum mad_error error;	/* error code (see above) */
+	int options; /* decoding options (see below) */
+
+	uchar (*main_data)[MAD_BUFFER_MDLEN]; /* Layer III main_data() */
+	uint md_len;						  /* bytes in main_data */
+
+	mad_error error;  /* error code (see above) */
+	uint	  rc = 0; /* RCPtr<> */
 };
 
 enum {
 	MAD_OPTION_IGNORECRC	  = 0x0001, /* ignore CRC errors */
 	MAD_OPTION_HALFSAMPLERATE = 0x0002	/* generate PCM at 1/2 sample rate */
-#if 0									/* not yet implemented */
-  MAD_OPTION_LEFTCHANNEL    = 0x0010,	/* decode left channel only */
-  MAD_OPTION_RIGHTCHANNEL   = 0x0020,	/* decode right channel only */
-  MAD_OPTION_SINGLECHANNEL  = 0x0030	/* combine channels */
-#endif
 };
-
-#define mad_stream_options(stream, opts) ((void)((stream)->options = (opts)))
-
-void mad_stream_buffer(struct mad_stream*, const unsigned char*, unsigned long);
-void mad_stream_skip(struct mad_stream*, unsigned long);
-
-int mad_stream_sync(struct mad_stream*);
-
-const char* mad_stream_errorstr(struct mad_stream const*);
