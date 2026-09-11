@@ -23,18 +23,18 @@
   #include "config.h"
 #endif
 
+#include "MadFrame.h"
+#include "MadSynth.h"
 #include "fixed.h"
-#include "frame.h"
 #include "global.h"
-#include "synth.h"
 
 /*
  * NAME:	synth->init()
  * DESCRIPTION:	initialize synth struct
  */
-mad_synth::mad_synth()
+MadSynth::MadSynth()
 {
-	mad_synth_mute(this);
+	MadSynth_mute(this);
 
 	this->phase = 0;
 
@@ -47,7 +47,7 @@ mad_synth::mad_synth()
  * NAME:	synth->mute()
  * DESCRIPTION:	zero all polyphase filterbank values, resetting synthesis
  */
-void mad_synth_mute(struct mad_synth* synth)
+void MadSynth_mute(struct MadSynth* synth)
 {
 	unsigned int ch, s, v;
 
@@ -572,13 +572,13 @@ static const mad_fixed_t D[17][32] = {
 };
 
 #if defined(ASO_SYNTH)
-void synth_full(struct mad_synth*, struct mad_frame const*, unsigned int, unsigned int);
+void synth_full(struct MadSynth*, struct MadFrame const*, unsigned int, unsigned int);
 #else
 /*
  * NAME:	synth->full()
  * DESCRIPTION:	perform full frequency PCM synthesis
  */
-static void synth_full(struct mad_synth* synth, struct mad_frame const* frame, unsigned int nch, unsigned int ns)
+static void synth_full(struct MadSynth* synth, struct MadFrame const* frame, unsigned int nch, unsigned int ns)
 {
 	unsigned int phase, ch, s, sb, pe, po;
 	mad_fixed_t *pcm1, *pcm2, (*filter)[2][2][16][8];
@@ -715,7 +715,7 @@ static void synth_full(struct mad_synth* synth, struct mad_frame const* frame, u
  * NAME:	synth->half()
  * DESCRIPTION:	perform half frequency PCM synthesis
  */
-static void synth_half(struct mad_synth* synth, struct mad_frame const* frame, unsigned int nch, unsigned int ns)
+static void synth_half(struct MadSynth* synth, struct MadFrame const* frame, unsigned int nch, unsigned int ns)
 {
 	unsigned int phase, ch, s, sb, pe, po;
 	mad_fixed_t *pcm1, *pcm2, (*filter)[2][2][16][8];
@@ -854,10 +854,10 @@ static void synth_half(struct mad_synth* synth, struct mad_frame const* frame, u
  * NAME:	synth->frame()
  * DESCRIPTION:	perform PCM synthesis of frame subband samples
  */
-void mad_synth_frame(struct mad_synth* synth, struct mad_frame const* frame)
+void MadSynth_frame(struct MadSynth* synth, struct MadFrame const* frame)
 {
 	unsigned int nch, ns;
-	void (*synth_frame)(struct mad_synth*, struct mad_frame const*, unsigned int, unsigned int);
+	void (*synth_frame)(struct MadSynth*, struct MadFrame const*, unsigned int, unsigned int);
 
 	nch = MAD_NCHANNELS(&frame->header);
 	ns	= MAD_NSBSAMPLES(&frame->header);

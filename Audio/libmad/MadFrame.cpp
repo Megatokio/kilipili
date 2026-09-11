@@ -23,10 +23,10 @@
   #include "config.h"
 #endif
 
+#include "MadFrame.h"
+#include "MadStream.h"
 #include "bit.h"
-#include "frame.h"
 #include "global.h"
-#include "stream.h"
 #include "timer.h"
 #include <stdlib.h>
 
@@ -48,14 +48,13 @@ static const unsigned long bitrate_table[5][15] = {
 
 static const unsigned int samplerate_table[3] = {44100, 48000, 32000};
 
-static int (*const decoder_table[3])(struct mad_stream*, struct mad_frame*) = {
-	mad_layer_I, mad_layer_II, mad_layer_III};
+static int (*const decoder_table[3])(struct MadStream*, struct MadFrame*) = {mad_layer_I, mad_layer_II, mad_layer_III};
 
 /*
  * NAME:	header->init()
  * DESCRIPTION:	initialize header struct
  */
-void mad_header_init(struct mad_header* header)
+void mad_header_init(struct MadHeader* header)
 {
 	header->layer		   = mad_layer(0);
 	header->mode		   = mad_mode(0);
@@ -78,7 +77,7 @@ void mad_header_init(struct mad_header* header)
  * NAME:	frame->init()
  * DESCRIPTION:	initialize frame struct
  */
-mad_frame::mad_frame()
+MadFrame::MadFrame()
 {
 	mad_header_init(&this->header);
 
@@ -86,14 +85,14 @@ mad_frame::mad_frame()
 	this->overlap = nullptr;
 	this->tmp	  = nullptr;
 	this->xr	  = nullptr;
-	mad_frame_mute(this);
+	MadFrame_mute(this);
 }
 
 /*
  * NAME:	frame->finish()
  * DESCRIPTION:	deallocate any dynamic memory associated with frame
  */
-mad_frame::~mad_frame()
+MadFrame::~MadFrame()
 {
 	mad_header_finish(&this->header);
 
@@ -106,7 +105,7 @@ mad_frame::~mad_frame()
  * NAME:	decode_header()
  * DESCRIPTION:	read header data and following CRC word
  */
-static int decode_header(struct mad_header* header, struct mad_stream* stream)
+static int decode_header(struct MadHeader* header, struct MadStream* stream)
 {
 	unsigned int index;
 
@@ -221,7 +220,7 @@ static int decode_header(struct mad_header* header, struct mad_stream* stream)
  * NAME:	free_bitrate()
  * DESCRIPTION:	attempt to discover the bitstream's free bitrate
  */
-static int free_bitrate(struct mad_stream* stream, struct mad_header const* header)
+static int free_bitrate(struct MadStream* stream, struct MadHeader const* header)
 {
 	struct mad_bitptr	 keep_ptr;
 	unsigned long		 rate = 0;
@@ -233,10 +232,10 @@ static int free_bitrate(struct mad_stream* stream, struct mad_header const* head
 	pad_slot		= (header->flags & MAD_FLAG_PADDING) ? 1 : 0;
 	slots_per_frame = (header->layer == MAD_LAYER_III && (header->flags & MAD_FLAG_LSF_EXT)) ? 72 : 144;
 
-	while (mad_stream_sync(stream) == 0)
+	while (MadStream_sync(stream) == 0)
 	{
-		struct mad_stream peek_stream(*stream);
-		struct mad_header peek_header(*header);
+		struct MadStream peek_stream(*stream);
+		struct MadHeader peek_header(*header);
 
 		if (decode_header(&peek_header, &peek_stream) == 0 && peek_header.layer == header->layer &&
 			peek_header.samplerate == header->samplerate)
@@ -276,7 +275,7 @@ static int free_bitrate(struct mad_stream* stream, struct mad_header const* head
  * NAME:	header->decode()
  * DESCRIPTION:	read the next frame header from the stream
  */
-int mad_header_decode(struct mad_header* header, struct mad_stream* stream)
+int mad_header_decode(struct MadHeader* header, struct MadStream* stream)
 {
 	const unsigned char *ptr, *end;
 	unsigned int		 pad_slot, N;
@@ -335,7 +334,7 @@ sync:
 	{
 		mad_bit_init(&stream->ptr, ptr);
 
-		if (mad_stream_sync(stream) == -1)
+		if (MadStream_sync(stream) == -1)
 		{
 			if (end - stream->next_frame >= MAD_BUFFER_GUARD) stream->next_frame = end - MAD_BUFFER_GUARD;
 
@@ -420,7 +419,7 @@ fail:
  * NAME:	frame->decode()
  * DESCRIPTION:	decode a single frame from a bitstream
  */
-int mad_frame_decode(struct mad_frame* frame, struct mad_stream* stream)
+int MadFrame_decode(struct MadFrame* frame, struct MadStream* stream)
 {
 	frame->options = stream->options;
 
@@ -465,7 +464,7 @@ fail:
  * NAME:	frame->mute()
  * DESCRIPTION:	zero all subband values so the frame becomes silent
  */
-void mad_frame_mute(struct mad_frame* frame)
+void MadFrame_mute(struct MadFrame* frame)
 {
 	unsigned int s, sb;
 

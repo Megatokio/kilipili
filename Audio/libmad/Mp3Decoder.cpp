@@ -15,13 +15,6 @@
 namespace kilipili::Audio
 {
 
-using MadHeader	   = mad_header;
-using MadPcmBuffer = mad_pcm;
-using MadStream	   = mad_stream;
-using MadFrame	   = mad_frame;
-using MadSynth	   = mad_synth;
-
-
 void Mp3Player::filter(const MadStream*, MadFrame*) {}
 
 Error Mp3Player::play(int stream_options) noexcept
@@ -44,7 +37,7 @@ Error Mp3Player::play(int stream_options) noexcept
 	buffer_count = input(buffer->data, buffer_size);
 	//debugstr("mp3_input: read %u bytes\n", buffer_count);
 	assert(buffer_count != 0);
-	mad_stream_buffer(&stream, buffer->data, buffer_count);
+	MadStream_buffer(&stream, buffer->data, buffer_count);
 
 	for (;;)
 	{
@@ -53,23 +46,23 @@ Error Mp3Player::play(int stream_options) noexcept
 			if (debug && mad_header_decode(&frame->header, &stream) == -1)
 			{
 				if (stream.error == MAD_ERROR_BUFLEN) break;
-				cstr msg = mad_stream_errorstr(&stream);
+				cstr msg = MadStream_errorstr(&stream);
 				debugstr("mp3_header_decode: %s\n", msg);
 				if (!MAD_RECOVERABLE(stream.error)) return msg;
 				else continue; // goto skip;
 			}
 
-			if (mad_frame_decode(frame, &stream) == -1)
+			if (MadFrame_decode(frame, &stream) == -1)
 			{
 				if (stream.error == MAD_ERROR_BUFLEN) break;
-				cstr msg = mad_stream_errorstr(&stream);
+				cstr msg = MadStream_errorstr(&stream);
 				debugstr("mp3_frame_decode: %s\n", msg);
 				if (!MAD_RECOVERABLE(stream.error)) return msg;
 				else continue; // goto skip;
 			}
 
 			filter(&stream, frame);
-			mad_synth_frame(synth, frame);
+			MadSynth_frame(synth, frame);
 			output(&frame->header, &synth->pcm);
 		}
 
@@ -88,7 +81,7 @@ Error Mp3Player::play(int stream_options) noexcept
 		if (n)
 		{
 			//debugstr("mp3_input: read %u bytes\n", n);
-			mad_stream_buffer(&stream, buffer->data, nremaining + n);
+			MadStream_buffer(&stream, buffer->data, nremaining + n);
 		}
 		else // n=0 -> eof
 		{
@@ -122,7 +115,7 @@ mad_flow Mp3Decoder::handle_error(MadStream* stream, struct MadFrame* frame)
 
 	switch (stream->error)
 	{
-	case MAD_ERROR_BADCRC: mad_frame_mute(frame); return MAD_FLOW_IGNORE;
+	case MAD_ERROR_BADCRC: MadFrame_mute(frame); return MAD_FLOW_IGNORE;
 	default: return MAD_FLOW_CONTINUE;
 	}
 }
@@ -139,7 +132,7 @@ mad_flow Mp3Decoder::filter(const MadStream*, MadFrame*)
 
 //void Mp3Decoder::set_options(int options) noexcept //
 //{
-//	mad_stream_options(this->stream, options);
+//	MadStream_options(this->stream, options);
 //}
 
 int Mp3Decoder::run(int options)
@@ -164,7 +157,7 @@ int Mp3Decoder::run(int options)
 	MadSynth*  synth  = &sync->synth;
 	int		   result = 0;
 
-	mad_stream_options(stream, this->options);
+	MadStream_options(stream, this->options);
 
 	do {
 		switch (input(stream))
@@ -182,7 +175,7 @@ int Mp3Decoder::run(int options)
 			// {
 			// 	if (frame->header.decode( stream) == -1)
 			// 	{
-			// 		cstr msg = mad_stream_errorstr(stream);
+			// 		cstr msg = MadStream_errorstr(stream);
 			// 		debugstr("mp3_header_decode: %s\n", msg);
 			// 		if (!MAD_RECOVERABLE(stream->error)) return msg;
 			// 		else goto skip;
@@ -218,7 +211,7 @@ int Mp3Decoder::run(int options)
 				}
 			}
 
-			if (mad_frame_decode(frame, stream) == -1)
+			if (MadFrame_decode(frame, stream) == -1)
 			{
 				if (!MAD_RECOVERABLE(stream->error)) break;
 
@@ -242,7 +235,7 @@ int Mp3Decoder::run(int options)
 				}
 			}
 
-			mad_synth_frame(synth, frame);
+			MadSynth_frame(synth, frame);
 
 			switch (output(&frame->header, &synth->pcm))
 			{

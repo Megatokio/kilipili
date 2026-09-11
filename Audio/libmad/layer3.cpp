@@ -37,11 +37,11 @@
   #define CHAR_BIT 8
 #endif
 
+#include "MadFrame.h"
+#include "MadStream.h"
 #include "bit.h"
 #include "fixed.h"
-#include "frame.h"
 #include "huffman.h"
-#include "stream.h"
 
 /* --- Layer III ----------------------------------------------------------- */
 
@@ -1393,7 +1393,7 @@ static enum mad_error III_huffdecode(
  * DESCRIPTION:	reorder frequency lines of a short block into subband order
  */
 static void
-III_reorder(mad_frame* frame, mad_fixed_t xr[576], struct channel const* channel, const unsigned char sfbwidth[39])
+III_reorder(MadFrame* frame, mad_fixed_t xr[576], struct channel const* channel, const unsigned char sfbwidth[39])
 {
 	assert(frame->tmp);
 	mad_fixed_t(*tmp)[32][3][6] = frame->tmp; // kio: reduce stack usage
@@ -1444,7 +1444,7 @@ III_reorder(mad_frame* frame, mad_fixed_t xr[576], struct channel const* channel
  * DESCRIPTION:	perform joint stereo processing on a granule
  */
 static enum mad_error III_stereo(
-	mad_fixed_t xr[2][576], struct granule const* granule, struct mad_header* header, const unsigned char* sfbwidth)
+	mad_fixed_t xr[2][576], struct granule const* granule, struct MadHeader* header, const unsigned char* sfbwidth)
 {
 	short		 modes[39];
 	unsigned int sfbi, l, n, i;
@@ -2484,10 +2484,10 @@ static void III_freqinver(mad_fixed_t sample[18][32], unsigned int sb)
  * NAME:	III_decode()
  * DESCRIPTION:	decode frame main_data
  */
-static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame, struct sideinfo* si, unsigned int nch)
+static enum mad_error III_decode(struct mad_bitptr* ptr, struct MadFrame* frame, struct sideinfo* si, unsigned int nch)
 {
-	struct mad_header* header = &frame->header;
-	unsigned int	   sfreqi, ngr, gr;
+	struct MadHeader* header = &frame->header;
+	unsigned int	  sfreqi, ngr, gr;
 
 	if (frame->xr == nullptr)
 	{
@@ -2660,16 +2660,16 @@ static enum mad_error III_decode(struct mad_bitptr* ptr, struct mad_frame* frame
  * NAME:	layer->III()
  * DESCRIPTION:	decode a single Layer III frame
  */
-int mad_layer_III(struct mad_stream* stream, struct mad_frame* frame)
+int mad_layer_III(struct MadStream* stream, struct MadFrame* frame)
 {
-	struct mad_header* header = &frame->header;
-	unsigned int	   nch, priv_bitlen, next_md_begin = 0;
-	unsigned int	   si_len, data_bitlen, md_len;
-	unsigned int	   frame_space, frame_used, frame_free;
-	struct mad_bitptr  ptr;
-	struct sideinfo	   si;
-	enum mad_error	   error;
-	int				   result = 0;
+	struct MadHeader* header = &frame->header;
+	unsigned int	  nch, priv_bitlen, next_md_begin = 0;
+	unsigned int	  si_len, data_bitlen, md_len;
+	unsigned int	  frame_space, frame_used, frame_free;
+	struct mad_bitptr ptr;
+	struct sideinfo	  si;
+	enum mad_error	  error;
+	int				  result = 0;
 
 	/* allocate Layer III dynamic structures */
 

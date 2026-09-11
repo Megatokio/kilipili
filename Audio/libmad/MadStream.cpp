@@ -23,16 +23,16 @@
   #include "config.h"
 #endif
 
+#include "MadStream.h"
 #include "bit.h"
 #include "global.h"
-#include "stream.h"
 #include <stdlib.h>
 
 /*
  * NAME:	stream->init()
  * DESCRIPTION:	initialize stream struct
  */
-mad_stream::mad_stream(int options)
+MadStream::MadStream(int options)
 {
 	this->buffer  = 0;
 	this->bufend  = 0;
@@ -59,7 +59,7 @@ mad_stream::mad_stream(int options)
  * NAME:	stream->finish()
  * DESCRIPTION:	deallocate any dynamic memory associated with stream
  */
-mad_stream::~mad_stream()
+MadStream::~MadStream()
 {
 	free(this->main_data);
 
@@ -71,7 +71,7 @@ mad_stream::~mad_stream()
  * NAME:	stream->buffer()
  * DESCRIPTION:	set stream buffer pointers
  */
-void mad_stream_buffer(struct mad_stream* stream, const unsigned char* buffer, unsigned long length)
+void MadStream_buffer(struct MadStream* stream, const unsigned char* buffer, unsigned long length)
 {
 	stream->buffer = buffer;
 	stream->bufend = buffer + length;
@@ -88,13 +88,13 @@ void mad_stream_buffer(struct mad_stream* stream, const unsigned char* buffer, u
  * NAME:	stream->skip()
  * DESCRIPTION:	arrange to skip bytes before the next frame
  */
-void mad_stream_skip(struct mad_stream* stream, unsigned long length) { stream->skiplen += length; }
+void MadStream_skip(struct MadStream* stream, unsigned long length) { stream->skiplen += length; }
 
 /*
  * NAME:	stream->sync()
  * DESCRIPTION:	locate the next stream sync word
  */
-int mad_stream_sync(struct mad_stream* stream)
+int MadStream_sync(struct MadStream* stream)
 {
 	const unsigned char *ptr, *end;
 
@@ -114,7 +114,7 @@ int mad_stream_sync(struct mad_stream* stream)
  * NAME:	stream->errorstr()
  * DESCRIPTION:	return a string description of the current error condition
  */
-const char* mad_stream_errorstr(struct mad_stream const* stream)
+const char* MadStream_errorstr(struct MadStream const* stream)
 {
 	switch (stream->error)
 	{

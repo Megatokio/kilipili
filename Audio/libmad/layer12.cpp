@@ -31,10 +31,10 @@
   #define CHAR_BIT 8
 #endif
 
+#include "MadFrame.h"
+#include "MadStream.h"
 #include "bit.h"
 #include "fixed.h"
-#include "frame.h"
-#include "stream.h"
 
 /*
  * scalefactor table
@@ -97,11 +97,11 @@ static mad_fixed_t I_sample(struct mad_bitptr* ptr, unsigned int nb)
  * NAME:	layer->I()
  * DESCRIPTION:	decode a single Layer I frame
  */
-int mad_layer_I(struct mad_stream* stream, struct mad_frame* frame)
+int mad_layer_I(struct MadStream* stream, struct MadFrame* frame)
 {
-	struct mad_header* header = &frame->header;
-	unsigned int	   nch, bound, ch, s, sb, nb;
-	unsigned char	   allocation[2][32], scalefactor[2][32];
+	struct MadHeader* header = &frame->header;
+	unsigned int	  nch, bound, ch, s, sb, nb;
+	unsigned char	  allocation[2][32], scalefactor[2][32];
 
 	nch = MAD_NCHANNELS(header);
 
@@ -334,9 +334,9 @@ static void II_samples(struct mad_bitptr* ptr, struct quantclass const* quantcla
  * NAME:	layer->II()
  * DESCRIPTION:	decode a single Layer II frame
  */
-int mad_layer_II(struct mad_stream* stream, struct mad_frame* frame)
+int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
 {
-	struct mad_header*	 header = &frame->header;
+	struct MadHeader*	 header = &frame->header;
 	struct mad_bitptr	 start;
 	unsigned int		 index, sblimit, nbal, nch, bound, gr, ch, s, sb;
 	const unsigned char* offsets;

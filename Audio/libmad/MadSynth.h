@@ -20,10 +20,10 @@
  */
 
 #pragma once
-#include "frame.h"
+#include "MadFrame.h"
 #include "mad_types.h"
 
-struct mad_pcm
+struct MadPcmBuffer
 {
 	unsigned int   samplerate;		 /* sampling frequency (Hz) */
 	unsigned short channels;		 /* number of channels */
@@ -31,11 +31,11 @@ struct mad_pcm
 	mad_fixed_t	   samples[2][1152]; /* PCM output samples [ch][sample] */
 };
 
-struct mad_synth
+struct MadSynth
 {
-	mad_synth();
-	~mad_synth()				= default;
-	mad_synth(const mad_synth&) = delete; // wg. rc
+	MadSynth();
+	~MadSynth()				  = default;
+	MadSynth(const MadSynth&) = delete; // wg. rc
 
 	mad_fixed_t filter[2][2][2][16][8]; /* polyphase filterbank outputs */
 										/* [ch][eo][peo][s][v] */
@@ -43,7 +43,7 @@ struct mad_synth
 	unsigned int phase;	 /* current processing phase */
 	int			 rc = 0; // RCPtr<>
 
-	struct mad_pcm pcm; /* PCM output */
+	struct MadPcmBuffer pcm; /* PCM output */
 };
 
 /* single channel PCM selector */
@@ -55,6 +55,6 @@ enum { MAD_PCM_CHANNEL_DUAL_1 = 0, MAD_PCM_CHANNEL_DUAL_2 = 1 };
 /* stereo PCM selector */
 enum { MAD_PCM_CHANNEL_STEREO_LEFT = 0, MAD_PCM_CHANNEL_STEREO_RIGHT = 1 };
 
-void mad_synth_mute(struct mad_synth*);
+void MadSynth_mute(struct MadSynth*);
 
-void mad_synth_frame(struct mad_synth*, struct mad_frame const*);
+void MadSynth_frame(struct MadSynth*, struct MadFrame const*);

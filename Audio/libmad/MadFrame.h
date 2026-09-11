@@ -20,8 +20,8 @@
  */
 
 #pragma once
+#include "MadStream.h"
 #include "mad_types.h"
-#include "stream.h"
 #include "timer.h"
 
 enum mad_layer {
@@ -44,7 +44,7 @@ enum mad_emphasis {
 	MAD_EMPHASIS_RESERVED	= 2	 /* unknown emphasis */
 };
 
-struct mad_header
+struct MadHeader
 {
 	enum mad_layer	  layer;		  /* audio layer (1, 2, or 3) */
 	enum mad_mode	  mode;			  /* channel mode (see above) */
@@ -63,13 +63,13 @@ struct mad_header
 	mad_timer_t duration; /* audio playing time of frame */
 };
 
-struct mad_frame
+struct MadFrame
 {
-	mad_frame();
-	~mad_frame();
-	mad_frame(const mad_frame&) = delete; // wg. rc
+	MadFrame();
+	~MadFrame();
+	MadFrame(const MadFrame&) = delete; // wg. rc
 
-	struct mad_header header; /* MPEG audio header */
+	struct MadHeader header; /* MPEG audio header */
 
 	int options; /* decoding options (from stream) */
 	int rc = 0;	 // RCPtr<>
@@ -109,16 +109,16 @@ enum {
 	MAD_PRIVATE_III	   = 0x001f	 /* Layer III private bits (up to 5) */
 };
 
-void mad_header_init(struct mad_header*);
+void mad_header_init(struct MadHeader*);
 
 #define mad_header_finish(header) /* nothing */
 
-int mad_header_decode(struct mad_header*, struct mad_stream*);
+int mad_header_decode(struct MadHeader*, struct MadStream*);
 
-int mad_frame_decode(struct mad_frame*, struct mad_stream*);
+int MadFrame_decode(struct MadFrame*, struct MadStream*);
 
-void mad_frame_mute(struct mad_frame*);
+void MadFrame_mute(struct MadFrame*);
 
-int mad_layer_I(struct mad_stream*, struct mad_frame*);	  // layer12.cpp
-int mad_layer_II(struct mad_stream*, struct mad_frame*);  // layer12.cpp
-int mad_layer_III(struct mad_stream*, struct mad_frame*); // layer3.cpp
+int mad_layer_I(struct MadStream*, struct MadFrame*);	// layer12.cpp
+int mad_layer_II(struct MadStream*, struct MadFrame*);	// layer12.cpp
+int mad_layer_III(struct MadStream*, struct MadFrame*); // layer3.cpp

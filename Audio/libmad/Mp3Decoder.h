@@ -4,10 +4,10 @@
 
 #pragma once
 //#include "common/RCPtr.h"
+#include "MadFrame.h"
+#include "MadStream.h"
+#include "MadSynth.h"
 #include "common/standard_types.h"
-#include "frame.h"
-#include "stream.h"
-#include "synth.h"
 
 
 namespace kilipili::Audio
@@ -35,11 +35,11 @@ public:
 	//	*/
 	//	virtual FlowCtl header(const MadHeader*);
 
-	virtual void filter(const mad_stream*, mad_frame*); // optional
+	virtual void filter(const MadStream*, MadFrame*); // optional
 
 	/*	callback: send data to audio output
 	*/
-	virtual void output(const mad_header*, const mad_pcm*) = 0;
+	virtual void output(const MadHeader*, const MadPcmBuffer*) = 0;
 
 	//bool f_header {1};
 	//bool f_filter {1};
