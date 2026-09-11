@@ -231,7 +231,7 @@ static int free_bitrate(MadStream* stream, const MadHeader* header)
 	pad_slot		= (header->flags & MAD_FLAG_PADDING) ? 1 : 0;
 	slots_per_frame = (header->layer == MAD_LAYER_III && (header->flags & MAD_FLAG_LSF_EXT)) ? 72 : 144;
 
-	while (MadStream_sync(stream) == 0)
+	while (stream->find_next_sync() == 0)
 	{
 		struct MadStream peek_stream(*stream);
 		struct MadHeader peek_header(*header);
@@ -330,7 +330,7 @@ sync:
 	{
 		stream->ptr.init(ptr);
 
-		if (MadStream_sync(stream) == -1)
+		if (stream->find_next_sync() == -1)
 		{
 			if (end - stream->next_frame >= MAD_BUFFER_GUARD) stream->next_frame = end - MAD_BUFFER_GUARD;
 
@@ -439,7 +439,7 @@ int MadFrame::decode(MadStream* stream)
 
 	if (result == -1)
 	{
-		if (!MAD_RECOVERABLE(stream->error)) stream->next_frame = stream->this_frame;
+		if (!is_recoverable(stream->error)) stream->next_frame = stream->this_frame;
 		stream->anc_bitlen = 0;
 		return -1; // fail
 	}

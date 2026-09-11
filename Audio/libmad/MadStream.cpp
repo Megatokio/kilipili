@@ -17,11 +17,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: stream.c,v 1.12 2004/02/05 09:02:39 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
-
-#ifdef HAVE_CONFIG_H
-  #include "config.h"
-#endif
 
 #include "MadStream.h"
 #include "global.h"
@@ -32,80 +34,72 @@
  * NAME:	stream->init()
  * DESCRIPTION:	initialize stream struct
  */
-MadStream::MadStream(int options)
+MadStream::MadStream(int opts) noexcept
 {
-	this->buffer  = 0;
-	this->bufend  = 0;
-	this->skiplen = 0;
+	buffer	= 0;
+	bufend	= 0;
+	skiplen = 0;
 
-	this->sync	   = 0;
-	this->freerate = 0;
+	sync	 = 0;
+	freerate = 0;
 
-	this->this_frame = 0;
-	this->next_frame = 0;
-	this->ptr.init(0);
+	this_frame = 0;
+	next_frame = 0;
+	ptr.init(0);
 
-	this->anc_ptr.init(0);
-	this->anc_bitlen = 0;
+	anc_ptr.init(0);
+	anc_bitlen = 0;
 
-	this->main_data = 0;
-	this->md_len	= 0;
+	main_data = 0;
+	md_len	  = 0;
 
-	this->options = options;
-	this->error	  = MAD_ERROR_NONE;
+	options = opts;
+	error	= MAD_ERROR_NONE;
 }
 
 /*
  * NAME:	stream->finish()
  * DESCRIPTION:	deallocate any dynamic memory associated with stream
  */
-MadStream::~MadStream()
+MadStream::~MadStream() noexcept
 {
-	free(this->main_data);
+	free(main_data);
 
-	this->anc_ptr.finish();
-	this->ptr.finish();
+	anc_ptr.finish();
+	ptr.finish();
 }
 
 /*
  * NAME:	stream->buffer()
  * DESCRIPTION:	set stream buffer pointers
  */
-void MadStream_buffer(struct MadStream* stream, const unsigned char* buffer, unsigned long length)
+void MadStream::set_buffer_pointers(const uchar* buffer, ulong length) noexcept
 {
-	stream->buffer = buffer;
-	stream->bufend = buffer + length;
+	this->buffer = buffer;
+	this->bufend = buffer + length;
 
-	stream->this_frame = buffer;
-	stream->next_frame = buffer;
+	this->this_frame = buffer;
+	this->next_frame = buffer;
 
-	stream->sync = 1;
+	this->sync = 1;
 
-	stream->ptr.init(buffer);
+	this->ptr.init(buffer);
 }
-
-/*
- * NAME:	stream->skip()
- * DESCRIPTION:	arrange to skip bytes before the next frame
- */
-void MadStream_skip(struct MadStream* stream, unsigned long length) { stream->skiplen += length; }
 
 /*
  * NAME:	stream->sync()
  * DESCRIPTION:	locate the next stream sync word
  */
-int MadStream_sync(struct MadStream* stream)
+int MadStream::find_next_sync() noexcept
 {
-	const unsigned char *ptr, *end;
-
-	ptr = stream->ptr.nextbyte();
-	end = stream->bufend;
+	const uchar* ptr = this->ptr.nextbyte();
+	const uchar* end = this->bufend;
 
 	while (ptr < end - 1 && !(ptr[0] == 0xff && (ptr[1] & 0xe0) == 0xe0)) ++ptr;
 
 	if (end - ptr < MAD_BUFFER_GUARD) return -1;
 
-	stream->ptr.init(ptr);
+	this->ptr.init(ptr);
 
 	return 0;
 }
@@ -114,11 +108,11 @@ int MadStream_sync(struct MadStream* stream)
  * NAME:	stream->errorstr()
  * DESCRIPTION:	return a string description of the current error condition
  */
-const char* MadStream_errorstr(struct MadStream const* stream)
+cstr MadStream::errorstr() const noexcept
 {
-	switch (stream->error)
+	switch (this->error)
 	{
-	case MAD_ERROR_NONE: return "no error";
+	case MAD_ERROR_NONE: return NO_ERROR; // nullptr
 
 	case MAD_ERROR_BUFLEN: return "input buffer too small (or EOF)";
 	case MAD_ERROR_BUFPTR: return "invalid (null) buffer pointer";
@@ -146,5 +140,41 @@ const char* MadStream_errorstr(struct MadStream const* stream)
 	case MAD_ERROR_BADSTEREO: return "incompatible block_type for JS";
 	}
 
-	return 0;
+	return "unknown mp3 stream error";
 }
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

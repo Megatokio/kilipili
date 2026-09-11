@@ -37,7 +37,7 @@ Error Mp3Player::play(int stream_options) noexcept
 	buffer_count = input(buffer->data, buffer_size);
 	//debugstr("mp3_input: read %u bytes\n", buffer_count);
 	assert(buffer_count != 0);
-	MadStream_buffer(&stream, buffer->data, buffer_count);
+	stream.set_buffer_pointers(buffer->data, buffer_count);
 
 	for (;;)
 	{
@@ -46,18 +46,18 @@ Error Mp3Player::play(int stream_options) noexcept
 			if (debug && frame->header.decode(&stream) == -1)
 			{
 				if (stream.error == MAD_ERROR_BUFLEN) break;
-				cstr msg = MadStream_errorstr(&stream);
-				debugstr("mp3_header_decode: %s\n", msg);
-				if (!MAD_RECOVERABLE(stream.error)) return msg;
+				Error error = stream.errorstr();
+				debugstr("mp3_header_decode: %s\n", error);
+				if (!is_recoverable(stream.error)) return error;
 				else continue; // goto skip;
 			}
 
 			if (frame->decode(&stream) == -1)
 			{
 				if (stream.error == MAD_ERROR_BUFLEN) break;
-				cstr msg = MadStream_errorstr(&stream);
-				debugstr("mp3_frame_decode: %s\n", msg);
-				if (!MAD_RECOVERABLE(stream.error)) return msg;
+				Error error = stream.errorstr();
+				debugstr("mp3_frame_decode: %s\n", error);
+				if (!is_recoverable(stream.error)) return error;
 				else continue; // goto skip;
 			}
 
@@ -81,7 +81,7 @@ Error Mp3Player::play(int stream_options) noexcept
 		if (n)
 		{
 			//debugstr("mp3_input: read %u bytes\n", n);
-			MadStream_buffer(&stream, buffer->data, nremaining + n);
+			stream.set_buffer_pointers(buffer->data, nremaining + n);
 		}
 		else // n=0 -> eof
 		{
