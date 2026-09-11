@@ -24,8 +24,8 @@
 #endif
 
 #include "MadStream.h"
-#include "bit.h"
 #include "global.h"
+#include "mad_bitptr.h"
 #include <stdlib.h>
 
 /*
@@ -43,9 +43,9 @@ MadStream::MadStream(int options)
 
 	this->this_frame = 0;
 	this->next_frame = 0;
-	mad_bit_init(&this->ptr, 0);
+	this->ptr.init(0);
 
-	mad_bit_init(&this->anc_ptr, 0);
+	this->anc_ptr.init(0);
 	this->anc_bitlen = 0;
 
 	this->main_data = 0;
@@ -63,8 +63,8 @@ MadStream::~MadStream()
 {
 	free(this->main_data);
 
-	mad_bit_finish(&this->anc_ptr);
-	mad_bit_finish(&this->ptr);
+	this->anc_ptr.finish();
+	this->ptr.finish();
 }
 
 /*
@@ -81,7 +81,7 @@ void MadStream_buffer(struct MadStream* stream, const unsigned char* buffer, uns
 
 	stream->sync = 1;
 
-	mad_bit_init(&stream->ptr, buffer);
+	stream->ptr.init(buffer);
 }
 
 /*
@@ -98,14 +98,14 @@ int MadStream_sync(struct MadStream* stream)
 {
 	const unsigned char *ptr, *end;
 
-	ptr = mad_bit_nextbyte(&stream->ptr);
+	ptr = stream->ptr.nextbyte();
 	end = stream->bufend;
 
 	while (ptr < end - 1 && !(ptr[0] == 0xff && (ptr[1] & 0xe0) == 0xe0)) ++ptr;
 
 	if (end - ptr < MAD_BUFFER_GUARD) return -1;
 
-	mad_bit_init(&stream->ptr, ptr);
+	stream->ptr.init(ptr);
 
 	return 0;
 }

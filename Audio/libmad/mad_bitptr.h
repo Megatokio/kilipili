@@ -17,28 +17,33 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  * $Id: bit.h,v 1.12 2004/01/23 09:41:32 rob Exp $
+ *
+ *
+ * c++ adaption:
+ * Copyright (c) 2026 - 2026 kio@little-bat.de
+ * GPL-2.0 license
+ * https://opensource.org/license/gpl-2.0
  */
 
 #pragma once
+#include "common/standard_types.h"
 
 struct mad_bitptr
 {
-	const unsigned char* byte;
-	unsigned short		 cache;
-	unsigned short		 left;
+	const uchar* byte;
+	ushort		 cache;
+	ushort		 left;
+
+	void   init(const uchar*) noexcept;
+	void   finish() noexcept {}
+	ushort bitsleft() noexcept { return left; }
+
+	// return pointer to next unprocessed byte:
+	const uchar* nextbyte() noexcept { return left == CHAR_BIT ? byte : byte + 1; }
+
+	void   skip(uint) noexcept;
+	ulong  read(uint) noexcept;
+	ushort crc(uint, ushort) noexcept;
 };
 
-void mad_bit_init(struct mad_bitptr*, const unsigned char*);
-
-#define mad_bit_finish(bitptr) /* nothing */
-
-unsigned int mad_bit_length(struct mad_bitptr const*, struct mad_bitptr const*);
-
-#define mad_bit_bitsleft(bitptr) ((bitptr)->left)
-const unsigned char* mad_bit_nextbyte(struct mad_bitptr const*);
-
-void		  mad_bit_skip(struct mad_bitptr*, unsigned int);
-unsigned long mad_bit_read(struct mad_bitptr*, unsigned int);
-void		  mad_bit_write(struct mad_bitptr*, unsigned int, unsigned long);
-
-unsigned short mad_bit_crc(struct mad_bitptr, unsigned int, unsigned short);
+uint mad_bit_length(const mad_bitptr*, const mad_bitptr*) noexcept;

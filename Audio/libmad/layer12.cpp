@@ -33,8 +33,8 @@
 
 #include "MadFrame.h"
 #include "MadStream.h"
-#include "bit.h"
 #include "fixed.h"
+#include "mad_bitptr.h"
 
 /*
  * scalefactor table
@@ -72,7 +72,7 @@ static mad_fixed_t I_sample(struct mad_bitptr* ptr, unsigned int nb)
 {
 	mad_fixed_t sample;
 
-	sample = mad_bit_read(ptr, nb);
+	sample = ptr->read(nb);
 
 	/* invert most significant bit, extend sign, then scale to fixed format */
 
@@ -116,7 +116,7 @@ int mad_layer_I(struct MadStream* stream, struct MadFrame* frame)
 
 	if (header->flags & MAD_FLAG_PROTECTION)
 	{
-		header->crc_check = mad_bit_crc(stream->ptr, 4 * (bound * nch + (32 - bound)), header->crc_check);
+		header->crc_check = stream->ptr.crc(4 * (bound * nch + (32 - bound)), header->crc_check);
 
 		if (header->crc_check != header->crc_target && !(frame->options & MAD_OPTION_IGNORECRC))
 		{
@@ -131,7 +131,7 @@ int mad_layer_I(struct MadStream* stream, struct MadFrame* frame)
 	{
 		for (ch = 0; ch < nch; ++ch)
 		{
-			nb = mad_bit_read(&stream->ptr, 4);
+			nb = stream->ptr.read(4);
 
 			if (nb == 15)
 			{
@@ -145,7 +145,7 @@ int mad_layer_I(struct MadStream* stream, struct MadFrame* frame)
 
 	for (sb = bound; sb < 32; ++sb)
 	{
-		nb = mad_bit_read(&stream->ptr, 4);
+		nb = stream->ptr.read(4);
 
 		if (nb == 15)
 		{
@@ -164,7 +164,7 @@ int mad_layer_I(struct MadStream* stream, struct MadFrame* frame)
 		{
 			if (allocation[ch][sb])
 			{
-				scalefactor[ch][sb] = mad_bit_read(&stream->ptr, 6);
+				scalefactor[ch][sb] = stream->ptr.read(6);
 
 #if defined(OPT_STRICT)
 				/*
@@ -292,7 +292,7 @@ static void II_samples(struct mad_bitptr* ptr, struct quantclass const* quantcla
 		unsigned int c, nlevels;
 
 		/* degrouping */
-		c		= mad_bit_read(ptr, quantclass->bits);
+		c		= ptr->read(quantclass->bits);
 		nlevels = quantclass->nlevels;
 
 		for (s = 0; s < 3; ++s)
@@ -305,7 +305,7 @@ static void II_samples(struct mad_bitptr* ptr, struct quantclass const* quantcla
 	{
 		nb = quantclass->bits;
 
-		for (s = 0; s < 3; ++s) sample[s] = mad_bit_read(ptr, nb);
+		for (s = 0; s < 3; ++s) sample[s] = ptr->read(nb);
 	}
 
 	for (s = 0; s < 3; ++s)
@@ -411,14 +411,14 @@ int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
 	{
 		nbal = bitalloc_table[offsets[sb]].nbal;
 
-		for (ch = 0; ch < nch; ++ch) allocation[ch][sb] = mad_bit_read(&stream->ptr, nbal);
+		for (ch = 0; ch < nch; ++ch) allocation[ch][sb] = stream->ptr.read(nbal);
 	}
 
 	for (sb = bound; sb < sblimit; ++sb)
 	{
 		nbal = bitalloc_table[offsets[sb]].nbal;
 
-		allocation[0][sb] = allocation[1][sb] = mad_bit_read(&stream->ptr, nbal);
+		allocation[0][sb] = allocation[1][sb] = stream->ptr.read(nbal);
 	}
 
 	/* decode scalefactor selection info */
@@ -427,7 +427,7 @@ int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
 	{
 		for (ch = 0; ch < nch; ++ch)
 		{
-			if (allocation[ch][sb]) scfsi[ch][sb] = mad_bit_read(&stream->ptr, 2);
+			if (allocation[ch][sb]) scfsi[ch][sb] = stream->ptr.read(2);
 		}
 	}
 
@@ -435,7 +435,7 @@ int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
 
 	if (header->flags & MAD_FLAG_PROTECTION)
 	{
-		header->crc_check = mad_bit_crc(start, mad_bit_length(&start, &stream->ptr), header->crc_check);
+		header->crc_check = start.crc(mad_bit_length(&start, &stream->ptr), header->crc_check);
 
 		if (header->crc_check != header->crc_target && !(frame->options & MAD_OPTION_IGNORECRC))
 		{
@@ -452,18 +452,18 @@ int mad_layer_II(struct MadStream* stream, struct MadFrame* frame)
 		{
 			if (allocation[ch][sb])
 			{
-				scalefactor[ch][sb][0] = mad_bit_read(&stream->ptr, 6);
+				scalefactor[ch][sb][0] = stream->ptr.read(6);
 
 				switch (scfsi[ch][sb])
 				{
 				case 2: scalefactor[ch][sb][2] = scalefactor[ch][sb][1] = scalefactor[ch][sb][0]; break;
 
 				case 0:
-					scalefactor[ch][sb][1] = mad_bit_read(&stream->ptr, 6);
+					scalefactor[ch][sb][1] = stream->ptr.read(6);
 					/* fall through */
 
 				case 1:
-				case 3: scalefactor[ch][sb][2] = mad_bit_read(&stream->ptr, 6);
+				case 3: scalefactor[ch][sb][2] = stream->ptr.read(6);
 				}
 
 				if (scfsi[ch][sb] & 1) scalefactor[ch][sb][1] = scalefactor[ch][sb][scfsi[ch][sb] - 1];

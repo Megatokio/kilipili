@@ -41,7 +41,7 @@ add_library(kilipili_libmad STATIC
 	${libmad_sources}
 	Mp3Decoder.cpp
 	Mp3Decoder.h
-	bit.cpp
+	mad_bitptr.cpp
 	fixed.cpp
 	MadFrame.cpp
 	huffman.cpp
@@ -52,7 +52,7 @@ add_library(kilipili_libmad STATIC
 	timer.cpp
 	version.cpp
 	mad_types.h
-	bit.h
+	mad_bitptr.h
 	fixed.h
 	MadFrame.h
 	global.h
