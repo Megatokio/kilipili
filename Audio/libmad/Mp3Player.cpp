@@ -3,15 +3,13 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Mp3Player.h"
-#include "Devices/Directory.h"
-#include "Devices/FileSystem.h"
+#include "Devices/File.h"
 #include "common/Dispatcher.h"
 #include "common/Logger.h"
 #include "common/RCPtr.h"
 #include "common/cdefs.h"
 #include "common/standard_types.h"
 #include "common/trace.h"
-#include "cstrings.h"
 #include <cstdio>
 #include <cstring>
 #include <new>
@@ -19,74 +17,22 @@
 namespace kilipili::Audio
 {
 
-//static
-int Mp3Player::callback(void* data) noexcept
+static int mp3_callback(void* data) noexcept
 {
 	Mp3Player* mp3_player = reinterpret_cast<Mp3Player*>(data);
 	return mp3_player->run();
 }
 
-Mp3Player::Mp3Player()
+Mp3Player::Mp3Player() : AudioPlayer("*.mp3")
 {
-	Dispatcher::addWithDelay(callback, this, 100 * 1000); //
+	Dispatcher::addWithDelay(mp3_callback, this, 100 * 1000); //
 }
 
 Mp3Player::~Mp3Player() noexcept
 {
-	Dispatcher::removeHandler(callback, this);
-	delete[] next_dir;
-	delete[] next_file;
+	Dispatcher::removeHandler(mp3_callback, this);
 	if (output_adapter) output_adapter->eof = true;
 	Audio::setSampleFrequency(AUDIO_DEFAULT_SAMPLE_FREQUENCY);
-}
-
-
-void Mp3Player::play(cstr fpath)
-{
-	delete[] next_file;
-	next_file = newcopy(Devices::makeFullPath(fpath));
-	debugstr("play file: %s\n", next_file);
-}
-
-void Mp3Player::playDirectory(cstr dpath)
-{
-	delete[] next_dir;
-	next_dir = newcopy(Devices::makeFullPath(dpath));
-	debugstr("play dir: %s\n", next_dir);
-}
-
-void Mp3Player::play(cstr fpath, bool loop)
-{
-	play(fpath);
-	repeat_file = loop;
-}
-
-void Mp3Player::playDirectory(cstr dpath, bool loop)
-{
-	playDirectory(dpath);
-	repeat_dir = loop;
-}
-
-void Mp3Player::skip()
-{
-	input_file = nullptr; //
-}
-
-void Mp3Player::stop()
-{
-	skip();
-	stopAfterSong();
-}
-
-void Mp3Player::stopAfterSong()
-{
-	mp3_dir = nullptr;
-	delete[] next_dir;
-	delete[] next_file;
-	next_dir	= nullptr;
-	next_file	= nullptr;
-	repeat_file = false;
-	paused		= false;
 }
 
 void Mp3Player::setVolume(float v)
@@ -134,14 +80,14 @@ int Mp3Player::run() noexcept
 
 			if (!output_adapter)
 			{
-				static_assert(sizeof(AudioAdapter) >= sizeof(MadSynth));
 				static_assert(sizeof(MadSynth) >= sizeof(MadFrame));
-				static_assert(sizeof(MadFrame) >= sizeof(Buffer));
+				static_assert(sizeof(MadFrame) >= sizeof(AudioAdapter));
+				static_assert(sizeof(AudioAdapter) >= sizeof(Buffer));
 				static_assert(sizeof(Buffer) >= sizeof(MadStream));
 
-				RCPtr<AudioAdapter> output = new AudioAdapter;
 				synth					   = new MadSynth;
 				frame					   = new MadFrame;
+				RCPtr<AudioAdapter> output = new AudioAdapter;
 				buffer					   = new Buffer;
 				stream					   = new MadStream();
 				output_adapter			   = output;
@@ -233,51 +179,24 @@ int Mp3Player::run() noexcept
 			}
 			SM_END()
 		}
-		else if (next_file)
+		else if (nextInputFile())
 		{
 			// we are not playing
 			// but there's a music file to play:
-
-			logline("now playing: %s", next_file);
-
-			cstr fname = dupstr(next_file);
-			delete[] next_file;
-			next_file  = nullptr; // if open() fails we don't want to come here again
-			input_file = Devices::openFile(fname);
-			state	   = 0;
-		}
-		else if (mp3_dir)
-		{
-			// we are not playing and there is no file requested to play
-			// but we are playing from a directory:
-
-			Devices::FileInfo finfo = mp3_dir->next("*.mp3");
-			if (finfo) next_file = newcopy(catstr(mp3_dir->getFullPath(), "/", finfo.fname));
-			else if (repeat_dir && next_dir == nullptr) mp3_dir->rewind();
-			else mp3_dir = nullptr;
-		}
-		else if (next_dir)
-		{
-			// we are not playing and there is no file requested to play
-			// and we are not playing from a directory
-			// but there is a request for a directory to play:
-
-			cstr dpath = dupstr(next_dir);
-			delete[] next_dir;
-			next_dir = nullptr; // we don't want to come back to here if openDir() fails
-			mp3_dir	 = Devices::openDir(dpath);
-			mp3_dir->rewind();
+			assert(input_file);
+			state = 0;
 		}
 		else
 		{
+			// we are not playing
 			// there is nothing to play:
+			assert(!input_file);
+			assert(!current_dir);
 
 			if (output_adapter)
 			{
 				output_adapter->eof = true;
 				output_adapter		= nullptr;
-				input_file			= nullptr;
-				mp3_dir				= nullptr;
 				synth				= nullptr;
 				frame				= nullptr;
 				buffer				= nullptr;

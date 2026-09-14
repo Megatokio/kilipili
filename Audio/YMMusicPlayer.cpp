@@ -1,29 +1,25 @@
-// Copyright (c) 2024 - 2025 kio@little-bat.de
+// Copyright (c) 2024 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "YMMusicPlayer.h"
-#include "Devices/Directory.h"
 #include "Devices/File.h"
-#include "Devices/FileSystem.h"
+#include "Dispatcher.h"
 #include "common/Logger.h"
-#include "common/trace.h"
 #include "common/cdefs.h"
-#include "common/cstrings.h"
-#include <hardware/sync.h>
+#include "common/trace.h"
 
 namespace kilipili::Audio
 {
 
-
-uint YMMusicPlayer::BitStream::read_bits(uint nbits)
+uint YMMusicPlayer::bs_read_bits(uint nbits)
 {
 	// the bits are added at lsb, so they come out at msb:
 
 	while (bits < nbits)
 	{
 		assert(bits <= 24);
-		accu = (accu << 8) + infile->read<uint8>();
+		accu = (accu << 8) + input_file->read<uint8>();
 		bits += 8;
 	}
 	bits -= nbits;
@@ -32,7 +28,7 @@ uint YMMusicPlayer::BitStream::read_bits(uint nbits)
 	return rval;
 }
 
-uint YMMusicPlayer::BitStream::read_number()
+uint YMMusicPlayer::bs_read_number()
 {
 	assert(bits < 8);
 	assert((accu >> bits) == 0); // accu must be clean outside valid bits
@@ -41,7 +37,7 @@ uint YMMusicPlayer::BitStream::read_number()
 	while (accu == 0)
 	{
 		assert(bits <= 24);
-		accu = infile->read<uint8>();
+		accu = input_file->read<uint8>();
 		bits += 8;
 	}
 
@@ -55,7 +51,7 @@ uint YMMusicPlayer::BitStream::read_number()
 	assert((accu >> msbit) == 1);
 
 	// read and return the number:
-	return read_bits(nbits);
+	return bs_read_bits(nbits);
 }
 
 YMMusicPlayer::BackrefBuffer::BackrefBuffer(RleCode* p, uint8 bits, uint8 aybits) :
@@ -65,15 +61,15 @@ YMMusicPlayer::BackrefBuffer::BackrefBuffer(RleCode* p, uint8 bits, uint8 aybits
 	aybits(aybits)
 {}
 
-uint8 YMMusicPlayer::BackrefBuffer::next_value(BitStream& instream)
+uint8 YMMusicPlayer::BackrefBuffer::next_value(YMMusicPlayer* instream)
 {
 	if (regcount--) { return regvalue; }
 
 	if (backrefcount == 0)
 	{
-		bool is_backref = instream.read_bits(1);
-		int	 value		= int(instream.read_bits(is_backref ? bits : aybits));
-		int	 count		= int(instream.read_number());
+		bool is_backref = instream->bs_read_bits(1);
+		int	 value		= int(instream->bs_read_bits(is_backref ? bits : aybits));
+		int	 count		= int(instream->bs_read_number());
 
 		if (is_backref) // LZ code:
 		{
@@ -113,13 +109,21 @@ uint8 YMMusicPlayer::BackrefBuffer::next_value(BitStream& instream)
 // size is close to 600 bytes plus 3 memory Ids:
 static_assert(sizeof(YMMusicPlayer) <= 608);
 
+static int ymm_callback(void* data) noexcept
+{
+	YMMusicPlayer* ymm_player = reinterpret_cast<YMMusicPlayer*>(data);
+	return ymm_player->run();
+}
 
-YMMusicPlayer::YMMusicPlayer() : super(2000000, Mono, 50, 0.2f) {}
+YMMusicPlayer::YMMusicPlayer() : super(2000000, Mono, 50, 0.2f), AudioPlayer("*.ymm")
+{
+	Dispatcher::addWithDelay(ymm_callback, this, 100 * 1000);
+}
 
 YMMusicPlayer::~YMMusicPlayer()
 {
-	delete[] next_file;
-	delete[] next_dir;
+	Dispatcher::removeHandler(ymm_callback, this);
+	if (is_live) removeAudioSource(this);
 	delete[] allocated_buffer;
 }
 
@@ -127,7 +131,7 @@ void YMMusicPlayer::read_frame(uint8 regs[16])
 {
 	for (int r = 0; r < registers_per_frame; r++)
 	{
-		regs[r] = backref_buffers[r].next_value(bitstream); //
+		regs[r] = backref_buffers[r].next_value(this); //
 	}
 	if (regs[13] == 0x0f) regs[13] = 0xff;
 }
@@ -140,7 +144,7 @@ int YMMusicPlayer::run() noexcept
 
 	try
 	{
-		if (bitstream.infile)
+		if (input_file)
 		{
 			// we are playing :-)
 
@@ -157,37 +161,30 @@ int YMMusicPlayer::run() noexcept
 
 			if (repeat_file && next_file == nullptr && next_dir == nullptr)
 			{
-				bitstream.infile->setFpos(bitstream_start);
-				bitstream.reset();
+				input_file->setFpos(bitstream_start);
+				bs_reset();
 				uint8 dummy[16];
 				for (uint frame = 0; frame < loop_frame; frame++) { read_frame(dummy); }
 				frames_played = loop_frame;
 			}
 			else
 			{
-				bitstream.infile = nullptr; // close file
+				input_file = nullptr; // close file
 			}
 		}
-		else if (next_file)
+		else if (nextInputFile())
 		{
 			// we are not playing
 			// but there's a music file to play:
 
-			logline("now playing: %s", next_file);
-
-			cstr fname = dupstr(next_file);
-			delete[] next_file;
-			next_file			 = nullptr; // if open() fails we don't want to come here again
-			FilePtr ymmusic_file = Devices::openFile(fname);
-
-			uint32 magic		   = ymmusic_file->read<uint32>();
-			uint8  variant		   = ymmusic_file->read<uint8>();
-			uint8  buffer_bits	   = ymmusic_file->read<uint8>();
-			uint8  frame_rate	   = ymmusic_file->read<uint8>();
-			registers_per_frame	   = ymmusic_file->read<uint8>();
-			num_frames			   = ymmusic_file->read_LE<uint32>();
-			loop_frame			   = ymmusic_file->read_LE<uint32>();
-			float		ay_clock   = float(ymmusic_file->read_LE<uint32>());
+			uint32 magic		   = input_file->read<uint32>();
+			uint8  variant		   = input_file->read<uint8>();
+			uint8  buffer_bits	   = input_file->read<uint8>();
+			uint8  frame_rate	   = input_file->read<uint8>();
+			registers_per_frame	   = input_file->read<uint8>();
+			num_frames			   = input_file->read_LE<uint32>();
+			loop_frame			   = input_file->read_LE<uint32>();
+			float		ay_clock   = float(input_file->read_LE<uint32>());
 			AyStereoMix stereo_mix = Mono; //TODO
 
 			if (memcmp(&magic, "ymm!", 4)) throw "not a .ymm music file";
@@ -198,15 +195,15 @@ int YMMusicPlayer::run() noexcept
 			if (num_frames <= loop_frame) throw "illegal num_frames";
 			if (ay_clock < 990000 || ay_clock > 4100000) throw "illegal ay_clock";
 
-			cstr title	 = ymmusic_file->gets(0x0001);
-			cstr author	 = ymmusic_file->gets(0x0001);
-			cstr comment = ymmusic_file->gets(0x0001);
+			cstr title	 = input_file->gets(0x0001);
+			cstr author	 = input_file->gets(0x0001);
+			cstr comment = input_file->gets(0x0001);
 			logline("title:   %s", title);
 			logline("author:  %s", author);
 			logline("comment: %s", comment);
 
-			uint32 rbusz	= ymmusic_file->read_LE<uint32>();
-			bitstream_start = ymmusic_file->getFpos();
+			uint32 rbusz	= input_file->read_LE<uint32>();
+			bitstream_start = input_file->getFpos();
 
 			if (this->buffer_bits != buffer_bits)
 			{
@@ -239,116 +236,44 @@ int YMMusicPlayer::run() noexcept
 			if (p != allocated_buffer + (1 << buffer_bits)) throw "illegal buffer assignment";
 
 			// start playing by sending the setup command:
-			frames_played	 = 0;
-			bitstream.infile = ymmusic_file;
-			bitstream.reset();
+			frames_played = 0;
+			bs_reset();
 
 			super::reset(ay_clock, stereo_mix, frame_rate);
 
 			if (!is_live) addAudioSource(this);
 			is_live = true;
 		}
-		else if (ymmusic_dir)
+		else
 		{
-			// we are not playing and there is no file requested to play
-			// but we are playing from a directory:
+			// we are not playing
+			// there is nothing to play:
+			assert(!input_file);
+			assert(!current_dir);
 
-			Devices::FileInfo finfo = ymmusic_dir->next("*.ymm");
-			if (finfo)
+			if (is_live)
 			{
-				next_file = newcopy(catstr(ymmusic_dir->getFullPath(), "/", finfo.fname)); //
+				if (avail() == 0)
+				{
+					is_live = false;
+					removeAudioSource(this);
+				}
 			}
-			else if (repeat_dir && next_dir == nullptr)
-			{
-				ymmusic_dir->rewind(); //
-			}
-			else
-			{
-				ymmusic_dir = nullptr; // close dir
-			}
+			else return 100 * 1000;
 		}
-		else if (next_dir)
-		{
-			// we are not playing and there is no file requeste to play
-			// and we are not playing from a directory
-			// but there is a request for a directory to play:
-
-			cstr dpath = dupstr(next_dir);
-			delete[] next_dir;
-			next_dir	= nullptr; // we don't want to come back to here if open() fails
-			ymmusic_dir = Devices::openDir(dpath);
-			ymmusic_dir->rewind();
-		}
-		else if (is_live)
-		{
-			if (avail() == 0)
-			{
-				is_live = false;
-				removeAudioSource(this);
-			}
-		}
-		else return 100 * 1000;
 	}
 	catch (Error e)
 	{
 		logline("YMMusicPlayer: %s", e);
-		bitstream.infile = nullptr; // close file
+		input_file = nullptr; // close file
 	}
 	catch (...)
 	{
 		logline("YMMusicPlayer: unknown exception");
-		bitstream.infile = nullptr; // close file
+		input_file = nullptr; // close file
 	}
 
 	return 10 * 1000;
-}
-
-void YMMusicPlayer::play(cstr fpath)
-{
-	delete[] next_file;
-	next_file = newcopy(Devices::makeFullPath(fpath));
-	debugstr("play file: %s\n", next_file);
-}
-
-void YMMusicPlayer::playDirectory(cstr dpath)
-{
-	delete[] next_dir;
-	next_dir = newcopy(Devices::makeFullPath(dpath));
-	debugstr("play dir: %s\n", next_dir);
-}
-
-void YMMusicPlayer::play(cstr fpath, bool loop)
-{
-	play(fpath);
-	repeat_file = loop;
-}
-
-void YMMusicPlayer::playDirectory(cstr dpath, bool loop)
-{
-	playDirectory(dpath);
-	repeat_dir = loop;
-}
-
-void YMMusicPlayer::skip()
-{
-	bitstream.infile = nullptr; //
-}
-
-void YMMusicPlayer::stop()
-{
-	skip();
-	stopAfterSong();
-}
-
-void YMMusicPlayer::stopAfterSong()
-{
-	ymmusic_dir = nullptr;
-	delete[] next_dir;
-	delete[] next_file;
-	next_dir	= nullptr;
-	next_file	= nullptr;
-	repeat_file = false;
-	paused		= false;
 }
 
 void YMMusicPlayer::setVolume(float v)
