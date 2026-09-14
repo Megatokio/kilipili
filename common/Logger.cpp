@@ -74,9 +74,7 @@ void Logger::log(cstr fmt, va_list va) noexcept
 		try
 		{
 			str s = new char[size + 1];
-
-			vsnprintf(s, size + 1, fmt, va);
-			va_end(va2);
+			vsnprintf(s, size + 1, fmt, va2);
 
 			mutex.lock();
 			if (free())
@@ -92,6 +90,8 @@ void Logger::log(cstr fmt, va_list va) noexcept
 		}
 		catch (...)
 		{}
+
+		va_end(va2);
 	}
 }
 
