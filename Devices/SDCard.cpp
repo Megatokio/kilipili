@@ -189,13 +189,14 @@ enum ReadDataErrorToken {
 void __attribute__((noreturn)) SDCard::throwDeviceNotResponding()
 {
 	disconnect();
+	if constexpr (debug) Trace::print(get_core_num());
 	throw DEVICE_NOT_RESPONDING;
 }
 
 void __attribute__((noreturn)) SDCard::throwWriteDataErrorToken(uint8 n)
 {
-	if constexpr (debug) printf("SDCard::throwWriteDataErrorToken 0x%02x\n", n);
-	if constexpr (debug) Trace::print(get_core_num());
+	trace(__func__);
+	debugstr("SDCard::throwWriteDataErrorToken 0x%02x\n", n);
 
 	if (n == 0xff) throwDeviceNotResponding();
 	deselect();
@@ -207,8 +208,8 @@ void __attribute__((noreturn)) SDCard::throwWriteDataErrorToken(uint8 n)
 
 void __attribute__((noreturn)) SDCard::throwReadDataErrorToken(uint8 n)
 {
-	if constexpr (debug) printf("SDCard::throwReadDataErrorToken 0x%02x\n", n);
-	if constexpr (debug) Trace::print(get_core_num());
+	trace(__func__);
+	debugstr("SDCard::throwReadDataErrorToken 0x%02x\n", n);
 
 	if (n == 0xff) throwDeviceNotResponding();
 	deselect();
@@ -222,8 +223,8 @@ void __attribute__((noreturn)) SDCard::throwReadDataErrorToken(uint8 n)
 
 void __attribute__((noreturn)) SDCard::throwR1ResponseError(uint8 r1)
 {
-	if constexpr (debug) printf("SDCard::throwR1ResponseError 0x%02x\n", r1);
-	if constexpr (debug) Trace::print(get_core_num());
+	trace(__func__);
+	debugstr("SDCard::throwR1ResponseError 0x%02x\n", r1);
 
 	if (r1 == 0xff) throwDeviceNotResponding();
 	deselect();
@@ -262,6 +263,8 @@ uint8 SDCard::receive_byte_or_throw(int timeout_us) throws
 {
 	// wait to receive byte != 0xff
 
+	trace(__func__);
+
 	uint8 byte;
 	int	  delay = 0;
 	CC	  start = now();
@@ -276,6 +279,8 @@ void SDCard::wait_ready_or_throw() throws
 	// wait while data.DO = 0:
 	// if D0 is pulled low there must be a card in the slot.
 	// therefore we use only a safety timeout after 1 second.
+
+	trace(__func__);
 
 	for (int r = spi_clock / 10; --r;)
 	{
@@ -312,6 +317,8 @@ uint8 SDCard::send_cmd(uint8 cmd, uint32 arg, uint flags) throws
 
 	trace(__func__);
 
+	constexpr uint delay = 500; // 100 was too tight
+
 	bool  is_acmd = flags & f_acmd;
 	bool  keep_on = flags & no_deselect;
 	uint8 r1_mask = flags & f_idle ? 0xff - IdleState : 0xff;
@@ -330,13 +337,13 @@ a:
 	{
 		constexpr uint8 bu1[6] {0x40 | 55, 0, 0, 0, 0, 0x65}; // CMD55
 		write_spi(bu1, 6);
-		r1 = receive_byte_or_throw(100);
+		r1 = receive_byte_or_throw(delay);
 		deselect(); // <-- (!SanDisk!)
 		if ((r1 & r1_mask) != 0) goto x;
 		select();
 	}
 	write_spi(bu2, 6);
-	r1 = receive_byte_or_throw(100);
+	r1 = receive_byte_or_throw(delay);
 
 	if (!keep_on || (r1 & r1_mask) != 0) deselect();
 	if ((r1 & r1_mask) == 0) return r1;
@@ -612,8 +619,12 @@ void SDCard::read_single_block(uint32 blkidx, uint8* data) throws
 		send_cmd(17, ccs ? blkidx : blkidx << 9, no_deselect);
 		uint8 token = receive_byte_or_throw(100000); // 2024: Verbatim 16GB: poor blocks take up to 10msec
 		if (token != DataToken) throwReadDataErrorToken(token);
+
+		//uint32 irqs = save_and_disable_interrupts();
 		read_spi(data, 512);
 		read_spi(crc, 2);
+		//restore_interrupts_from_disabled(irqs);
+
 		deselect();
 		if (peek_u16(crc) == (no_crc ? 0 : crc16(data, 512))) return;
 		else if (retry == 0) logline("crc_error");
