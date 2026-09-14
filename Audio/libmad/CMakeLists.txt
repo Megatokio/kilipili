@@ -41,6 +41,8 @@ add_library(kilipili_libmad STATIC
 	${libmad_sources}
 	Mp3Decoder.cpp
 	Mp3Decoder.h
+	Mp3Player.cpp
+	Mp3Player.h
 	mad_bitptr.cpp
 	fixed.cpp
 	MadFrame.cpp

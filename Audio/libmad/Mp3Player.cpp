@@ -1,0 +1,342 @@
+// Copyright (c) 2026 - 2026 kio@little-bat.de
+// BSD-2-Clause license
+// https://opensource.org/licenses/BSD-2-Clause
+
+#include "Mp3Player.h"
+#include "Devices/Directory.h"
+#include "Devices/FileSystem.h"
+#include "common/Dispatcher.h"
+#include "common/Logger.h"
+#include "common/RCPtr.h"
+#include "common/cdefs.h"
+#include "common/standard_types.h"
+#include "common/trace.h"
+#include "cstrings.h"
+#include <cstdio>
+#include <cstring>
+#include <new>
+
+namespace kilipili::Audio
+{
+
+//static
+int Mp3Player::callback(void* data) noexcept
+{
+	Mp3Player* mp3_player = reinterpret_cast<Mp3Player*>(data);
+	return mp3_player->run();
+}
+
+Mp3Player::Mp3Player()
+{
+	Dispatcher::addWithDelay(callback, this, 100 * 1000); //
+}
+
+Mp3Player::~Mp3Player() noexcept
+{
+	Dispatcher::removeHandler(callback, this);
+	delete[] next_dir;
+	delete[] next_file;
+	if (output_adapter) output_adapter->eof = true;
+	Audio::setSampleFrequency(AUDIO_DEFAULT_SAMPLE_FREQUENCY);
+}
+
+
+void Mp3Player::play(cstr fpath)
+{
+	delete[] next_file;
+	next_file = newcopy(Devices::makeFullPath(fpath));
+	debugstr("play file: %s\n", next_file);
+}
+
+void Mp3Player::playDirectory(cstr dpath)
+{
+	delete[] next_dir;
+	next_dir = newcopy(Devices::makeFullPath(dpath));
+	debugstr("play dir: %s\n", next_dir);
+}
+
+void Mp3Player::play(cstr fpath, bool loop)
+{
+	play(fpath);
+	repeat_file = loop;
+}
+
+void Mp3Player::playDirectory(cstr dpath, bool loop)
+{
+	playDirectory(dpath);
+	repeat_dir = loop;
+}
+
+void Mp3Player::skip()
+{
+	input_file = nullptr; //
+}
+
+void Mp3Player::stop()
+{
+	skip();
+	stopAfterSong();
+}
+
+void Mp3Player::stopAfterSong()
+{
+	mp3_dir = nullptr;
+	delete[] next_dir;
+	delete[] next_file;
+	next_dir	= nullptr;
+	next_file	= nullptr;
+	repeat_file = false;
+	paused		= false;
+}
+
+void Mp3Player::setVolume(float v)
+{
+	debugstr("Mp3Player::setVolume %f\n", double(v));
+	TODO();
+}
+
+static inline Sample mp3_scale(mad_fixed_t sample) // scale mp3 output to int16
+{
+	static_assert(sizeof(mad_fixed_t) == sizeof(int32));
+	static_assert(sizeof(Sample) == sizeof(int16));
+
+	if ((0)) sample += (1 << (MAD_F_FRACBITS - 16)); // round
+	sample = sample >> (MAD_F_FRACBITS + 1 - 16);	 // quantize
+
+	return sample == Sample(sample) ? Sample(sample) : sample < 0 ? -0x8000 : +0x7fff;
+}
+
+
+#define YIELD(N)     \
+	state = N;       \
+	return 2 * 1000; \
+	case N:
+
+#define SM_START() \
+	switch (state) \
+	{              \
+	case 0:
+
+#define SM_END() }
+
+
+int Mp3Player::run() noexcept
+{
+	trace("Mp3Player::run");
+
+	try
+	{
+		if (input_file)
+		{
+			if (paused) return 100 * 1000;
+
+			SM_START()
+
+			if (!output_adapter)
+			{
+				static_assert(sizeof(AudioAdapter) >= sizeof(MadSynth));
+				static_assert(sizeof(MadSynth) >= sizeof(MadFrame));
+				static_assert(sizeof(MadFrame) >= sizeof(Buffer));
+				static_assert(sizeof(Buffer) >= sizeof(MadStream));
+
+				RCPtr<AudioAdapter> output = new AudioAdapter;
+				synth					   = new MadSynth;
+				frame					   = new MadFrame;
+				buffer					   = new Buffer;
+				stream					   = new MadStream();
+				output_adapter			   = output;
+				addAudioSource(std::move(output));
+			}
+			else
+			{
+				assert(synth && frame && buffer && stream);
+				buffer->reset();
+				synth->reset();
+				frame->reset();
+				stream->reset();
+			}
+
+			YIELD(5);
+			buffer->count = input_file->read(buffer->data, buffer->size, true);
+			stream->set_buffer_pointers(buffer->data, buffer->count);
+
+			// decode, synthesize and play audio until not enough bytes in input buffer[]:
+			for (;;)
+			{
+				YIELD(1)
+				if (frame->decode(stream) == -1)
+				{
+					if (stream->error == MAD_ERROR_BUFLEN) break; // need more input data
+					debugstr("mp3_frame_decode: %s\n", stream->errorstr());
+					if (is_recoverable(stream->error)) return 2 * 1000; // continue; // try to sync again
+					else throw stream->errorstr();
+				}
+
+				YIELD(2)
+				header(&frame->header);
+				synth->synthesize_pcm(frame);
+				filter(stream, frame);
+
+				nsamples_done = 0;
+
+				YIELD(3)
+				MadPcmBuffer& pcm = synth->pcm;
+
+				if (pcm.samplerate != sample_rate) // must be start of file
+				{
+					if (output_adapter->queue.avail()) return 5 * 1000; // back to YIELD(3)
+					debugstr("pcm.f = %u Hz\n", pcm.samplerate);
+					Audio::setSampleFrequency(float(sample_rate = pcm.samplerate));
+				}
+
+				uint			   nchannels = pcm.channels;
+				uint			   nsamples	 = pcm.length;
+				const mad_fixed_t* left_ch	 = pcm.samples[0];
+				const mad_fixed_t* right_ch	 = pcm.samples[1];
+
+				for (uint i = nsamples_done; i < nsamples; i++)
+				{
+					if unlikely (!output_adapter->queue.free())
+					{
+						nsamples_done = i;
+						return 5 * 1000;
+					}
+					if (nchannels == 1) output_adapter->queue.put(HwAudioSample(mp3_scale(left_ch[i])));
+					else output_adapter->queue.put(HwAudioSample(mp3_scale(left_ch[i]), mp3_scale(right_ch[i])));
+				}
+			}
+
+			YIELD(4)
+			assert(stream->error == MAD_ERROR_BUFLEN);
+			int nprocessed = stream->next_frame - buffer->data; // num bytes decoder processed for current (last) frame
+			int nremaining = buffer->count - nprocessed;		// num bytes remaining unprocessed in buffer
+			assert(nprocessed >= 0 && nprocessed <= buffer->count);
+			assert(nremaining >= 0 && nremaining <= buffer->count);
+			if unlikely (nremaining == buffer->size) throw "mp3_input: buffer too small";
+			memmove(buffer->data, stream->next_frame, nremaining); // move remaining data to start of buffer
+
+			uint n		  = input_file->read(buffer->data + nremaining, buffer->size - nremaining, true);
+			buffer->count = nremaining + n;
+
+			if (n)
+			{
+				stream->set_buffer_pointers(buffer->data, nremaining + n); //
+				state = 1;
+			}
+			else // n=0 => end of file => next file or quit
+			{
+				debugstr("mp3_input: %u bytes not processed at eof\n", nremaining);
+
+				state = 0;
+				if (repeat_file && !next_file && !next_dir) input_file->setFpos(0);
+				else input_file = nullptr;
+			}
+			SM_END()
+		}
+		else if (next_file)
+		{
+			// we are not playing
+			// but there's a music file to play:
+
+			logline("now playing: %s", next_file);
+
+			cstr fname = dupstr(next_file);
+			delete[] next_file;
+			next_file  = nullptr; // if open() fails we don't want to come here again
+			input_file = Devices::openFile(fname);
+			state	   = 0;
+		}
+		else if (mp3_dir)
+		{
+			// we are not playing and there is no file requested to play
+			// but we are playing from a directory:
+
+			Devices::FileInfo finfo = mp3_dir->next("*.mp3");
+			if (finfo) next_file = newcopy(catstr(mp3_dir->getFullPath(), "/", finfo.fname));
+			else if (repeat_dir && next_dir == nullptr) mp3_dir->rewind();
+			else mp3_dir = nullptr;
+		}
+		else if (next_dir)
+		{
+			// we are not playing and there is no file requested to play
+			// and we are not playing from a directory
+			// but there is a request for a directory to play:
+
+			cstr dpath = dupstr(next_dir);
+			delete[] next_dir;
+			next_dir = nullptr; // we don't want to come back to here if openDir() fails
+			mp3_dir	 = Devices::openDir(dpath);
+			mp3_dir->rewind();
+		}
+		else
+		{
+			// there is nothing to play:
+
+			if (output_adapter)
+			{
+				output_adapter->eof = true;
+				output_adapter		= nullptr;
+				input_file			= nullptr;
+				mp3_dir				= nullptr;
+				synth				= nullptr;
+				frame				= nullptr;
+				buffer				= nullptr;
+				stream				= nullptr;
+			}
+			return 100 * 1000;
+		}
+	}
+	catch (Error e)
+	{
+		logline("Mp3Player: %s", e);
+		input_file = nullptr;
+		return 100 * 1000;
+	}
+	catch (...)
+	{
+		logline("Mp3Player: unknown exception");
+		input_file = nullptr;
+		return 100 * 1000;
+	}
+
+	return 5 * 1000;
+}
+
+
+} // namespace kilipili::Audio
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/
