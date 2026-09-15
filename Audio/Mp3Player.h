@@ -3,15 +3,15 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Audio/Audio.h"
-#include "Audio/AudioPlayer.h"
-#include "Audio/AudioSource.h"
-#include "MadFrame.h"
-#include "MadStream.h"
-#include "MadSynth.h"
+#include "Audio.h"
+#include "AudioPlayer.h"
+#include "AudioSource.h"
 #include "common/Queue.h"
 #include "common/standard_types.h"
 #include "common/trace.h"
+#include "libmad/MadFrame.h"
+#include "libmad/MadStream.h"
+#include "libmad/MadSynth.h"
 
 namespace kilipili::Audio
 {

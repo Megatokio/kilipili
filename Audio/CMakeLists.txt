@@ -47,6 +47,8 @@ add_library(kilipili_audio STATIC
 	YMMusicPlayer.cpp
 	AudioPlayer.h
 	AudioPlayer.cpp
+	Mp3Player.cpp
+	Mp3Player.h
 )
 
 target_compile_definitions(kilipili_audio PUBLIC  
