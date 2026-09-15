@@ -4,6 +4,7 @@
 
 #pragma once
 #include "AudioSample.h"
+#include "Queue.h"
 #include "basic_math.h"
 #include "common/RCPtr.h"
 #include "common/no_copy_move.h"
@@ -159,8 +160,8 @@ public:
 	void setVolume(float v) noexcept { volume = Sample(minmax(-0x8000, int(v * 0x8000), 0x7fff)); }
 };
 
-SetVolumeAdapter(RCPtr<AudioSource<1>>, float)->SetVolumeAdapter<1>;
-SetVolumeAdapter(RCPtr<AudioSource<2>>, float)->SetVolumeAdapter<2>;
+SetVolumeAdapter(RCPtr<AudioSource<1>>, float) -> SetVolumeAdapter<1>;
+SetVolumeAdapter(RCPtr<AudioSource<2>>, float) -> SetVolumeAdapter<2>;
 
 
 /* _______________________________________________________________________________________
@@ -237,10 +238,10 @@ public:
 	}
 };
 
-SampleRateAdapter(RCPtr<AudioSource<1>>, float, float)->SampleRateAdapter<1>;
-SampleRateAdapter(RCPtr<AudioSource<2>>, float, float)->SampleRateAdapter<2>;
-SampleRateAdapter(RCPtr<AudioSource<1>>, float)->SampleRateAdapter<1>;
-SampleRateAdapter(RCPtr<AudioSource<2>>, float)->SampleRateAdapter<2>;
+SampleRateAdapter(RCPtr<AudioSource<1>>, float, float) -> SampleRateAdapter<1>;
+SampleRateAdapter(RCPtr<AudioSource<2>>, float, float) -> SampleRateAdapter<2>;
+SampleRateAdapter(RCPtr<AudioSource<1>>, float) -> SampleRateAdapter<1>;
+SampleRateAdapter(RCPtr<AudioSource<2>>, float) -> SampleRateAdapter<2>;
 
 
 /* _______________________________________________________________________________________
@@ -463,9 +464,40 @@ private:
 	AudioSample<nc, int>   last_sample {0};
 };
 
-
 template<uint nc>
 HF_DC_Filter(RCPtr<AudioSource<nc>>) -> HF_DC_Filter<nc>;
+
+
+/* _______________________________________________________________________________________
+   AudioSource which can be filled asynchronously through a pipe:
+   The PipedAdapter fills in silence if the queue dries up.
+   If eof is set then the remaining audio in the pipe is played and then the PipedAdapter
+	 removes itself from the AudioController by returning less samples than requested.
+*/
+template<uint nc, uint size>
+class PipedAdapter : public AudioSource<nc>
+{
+public:
+	Queue<AudioSample<nc>, size> queue;
+	AudioSample<nc>				 last_sample {0}; // filler if queue dries up
+	bool						 eof {false};
+
+	uint getAudio(AudioSample<nc>* buffer, uint num_frames) noexcept override;
+	//void setSampleRate(float /*new_sample_frequency*/) noexcept override {}
+};
+
+template<uint nc, uint size>
+uint PipedAdapter<nc, size>::getAudio(AudioSample<nc>* buffer, uint num_frames) noexcept
+{
+	uint n = queue.read(buffer, num_frames);
+	if (!eof)
+	{
+		if (n) last_sample = buffer[n - 1];
+		while (n < num_frames) { buffer[n++] = last_sample; }
+	}
+	return n;
+}
+
 
 } // namespace kilipili::Audio
 

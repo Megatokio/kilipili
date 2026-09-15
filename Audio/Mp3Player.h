@@ -6,42 +6,13 @@
 #include "Audio.h"
 #include "AudioPlayer.h"
 #include "AudioSource.h"
-#include "common/Queue.h"
 #include "common/standard_types.h"
-#include "common/trace.h"
 #include "libmad/MadFrame.h"
 #include "libmad/MadStream.h"
 #include "libmad/MadSynth.h"
 
 namespace kilipili::Audio
 {
-
-template<uint nc, uint size>
-class PipedAdapter : public AudioSource<nc>
-{
-public:
-	Queue<AudioSample<nc>, size> queue;
-	bool						 eof {false};
-
-	uint getAudio(AudioSample<nc>* buffer, uint num_frames) noexcept override;
-	//void setSampleRate(float /*new_sample_frequency*/) noexcept override {}
-};
-
-template<uint nc, uint size>
-uint PipedAdapter<nc, size>::getAudio(AudioSample<nc>* buffer, uint num_frames) noexcept
-{
-	// provide audio data in AudioController callback:
-
-	trace(__func__);
-
-	uint n = queue.read(buffer, num_frames);
-	if (n == num_frames) return n;
-	if (eof) return n; // -> this will remove us from the AudioController
-	AudioSample<nc> s = n ? buffer[n - 1] : AudioSample<nc>(0);
-	while (n < num_frames) buffer[n++] = s;
-	return n;
-}
-
 
 class Mp3Player : public AudioPlayer
 {
