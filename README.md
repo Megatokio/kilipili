@@ -10,7 +10,7 @@ Very coarsely it provides:
 - a Dispatcher
 - a FileSystem: preferences, resource FS in flash, FlashFS, SDCard
 - Video output: a multitude of hardware configurations, video formats and options
-- Audio output: 3 hardware options (I2S, PWM and SigmaDelta), real-time capable
+- Audio output: 3 hardware options (I2S, PWM and SigmaDelta), real-time capable, MP3 decoder
 - USB input: Keyboard and Mouse
 - Graphics: TextVDU and drawing primitives
 - debugging support
@@ -21,6 +21,7 @@ Very coarsely it provides:
 - AY-3-8912 sound chip emulation and *.ym* audio file playback. See Wiki page about *.ymm* files.
 - write to internal flash without disrupting video output. 
 - Graphics primitives: fill triangle, fill polygon, draw Bezier curve
+- basic Mp3Decoder using libmad and a deeper integrated asynchronous Mp3Player
 
 
 ## Video 
@@ -63,9 +64,8 @@ The Graphics engine supports pixmaps with many modes which are supported by the 
 
 
 ## Audio
-The audio sub system supports no audio and I2S and PWM audio with 1 or 2 channels.
-If your audio source has a fixed sample rate which cannot be matched by the hardware (PWM most notably),
-then you can wrap it in a SampleRateAdapter.  
+The audio sub system supports no audio, I2S, PWM and SigmaDelta audio with 1 or 2 channels.  
+If your audio source has a fixed sample rate which cannot be matched by the hardware (PWM most notably), then you can wrap it in a SampleRateAdapter.  
 Programs can be written indepentent of the actual number of hardware channels by wrapping audio sources in a MakeMonoAdapter or MakeStereoAdapter.  
 The latency of the audio system is very low, approx. 5ms with default settings and can be configured down to 1ms.  
 Audio adapters add no latency. (the SampleRateAdapter may add up to 2 samples latency.)  
@@ -81,6 +81,7 @@ The audio interface automatically adjusts to a changed system clock when switchi
 - `[done]` sample rate adapter, misc. mono <-> stereo adapters
 - `[done]` low latency of as little as 1ms
 - `[done]` AY-3-8912 sound chip emulation and *.ym* audio file playback. See Wiki page about *.ymm* files.
+- `[done]` simple Mp3Decoder and a background capable Mp3Player
 
 
 ## Files and Devices
