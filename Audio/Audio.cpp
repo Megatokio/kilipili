@@ -83,7 +83,7 @@ static constexpr uint		max_sources = 8;
 static uint					num_sources = 0;
 static RCPtr<HwAudioSource> audio_sources[max_sources];
 
-  #if defined PICO_AUDIO_SIGMA_DELTA
+  #if defined AUDIO_SIGMA_DELTA
 static int sid_last_sample[hw_num_channels];
   #else
 extern int* sid_last_sample; // dummy, syntax only
@@ -725,7 +725,7 @@ void beep(float frequency, float volume, uint32 duration_ms)
 
 					num_phases_remaining--;
 					position_in_phase -= samples_per_phase;
-					sample = -sample;
+					sample = Sample(-sample);
 				}
 
 				position_in_phase++;

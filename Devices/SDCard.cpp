@@ -5,9 +5,9 @@
 #include "SDCard.h"
 #include "Logger.h"
 #include "common/DiskLight.h"
-#include "common/trace.h"
 #include "common/cdefs.h"
 #include "common/timing.h"
+#include "common/trace.h"
 #include "crc.h"
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
@@ -21,8 +21,8 @@
   #define xdebugstr(...) (void(0))
 #endif
 
-#ifdef PICO_DEFAULT_SPI_CLOCK
-static constexpr uint32 spi_clock = PICO_DEFAULT_SPI_CLOCK;
+#ifdef SDCARD_SPI_CLOCK
+static constexpr uint32 spi_clock = SDCARD_SPI_CLOCK;
 static_assert(spi_clock <= 25 * 1000 * 1000);
 #else
 static constexpr uint32 spi_clock = 10 * 1000 * 1000;
@@ -69,7 +69,7 @@ static constexpr bool is_tx_pin(uint pin) { return (pin & 3) == 3; }
 
 SDCard* SDCard::defaultInstance() // static
 {
-#ifndef PICO_DEFAULT_SPI
+#ifndef SDCARD_SPI
 	return nullptr;
 #else
 	static SDCard sdcard;
@@ -92,14 +92,14 @@ inline void SDCard::deselect() const noexcept
 	read_spi(&u1, 1); // flush card's shift register (!SanDisk!)
 }
 
-static_assert(is_rx_pin(PICO_DEFAULT_SPI_RX_PIN));
-static_assert(is_tx_pin(PICO_DEFAULT_SPI_TX_PIN));
-static_assert(is_clk_pin(PICO_DEFAULT_SPI_SCK_PIN));
+static_assert(is_rx_pin(SDCARD_SPI_RX_PIN));
+static_assert(is_tx_pin(SDCARD_SPI_TX_PIN));
+static_assert(is_clk_pin(SDCARD_SPI_CLK_PIN));
 
-static constexpr uint8 rx  = PICO_DEFAULT_SPI_RX_PIN;
-static constexpr uint8 cs  = PICO_DEFAULT_SPI_CSN_PIN;
-static constexpr uint8 clk = PICO_DEFAULT_SPI_SCK_PIN;
-static constexpr uint8 tx  = PICO_DEFAULT_SPI_TX_PIN;
+static constexpr uint8 rx  = SDCARD_SPI_RX_PIN;
+static constexpr uint8 cs  = SDCARD_SPI_CS_PIN;
+static constexpr uint8 clk = SDCARD_SPI_CLK_PIN;
+static constexpr uint8 tx  = SDCARD_SPI_TX_PIN;
 
 SDCard::SDCard() noexcept : SDCard(rx, cs, clk, tx)
 {

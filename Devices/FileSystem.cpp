@@ -9,10 +9,10 @@
 #include "QspiFlashDevice.h"
 #include "RsrcFS.h"
 #include "SDCard.h"
-#include "trace.h"
 #include "cdefs.h"
 #include "cstrings.h"
 #include "ff15/source/ffconf.h"
+#include "trace.h"
 
 #if defined FLASH_PREFERENCES && FLASH_PREFERENCES
 static constexpr uint prefs_size = FLASH_PREFERENCES;
@@ -86,7 +86,7 @@ void makeFS(cstr devicename, cstr type) throws
 		return;
 	}
 #endif
-#ifdef PICO_DEFAULT_SPI
+#if defined SDCARD_SPI
 	if (lceq(devicename, "sdcard")) { makeFS(SDCard::defaultInstance(), type); }
 #endif
 	if (lceq(devicename, "rsrc")) throw NOT_WRITABLE;
@@ -143,7 +143,7 @@ FileSystemPtr mount(cstr name) throws
 	if (idx >= 0) return file_systems[idx];
 
 	if (lceq(name, "rsrc")) { return new RsrcFS(name); }
-#ifdef PICO_DEFAULT_SPI
+#ifdef SDCARD_SPI
 	if (lceq(name, "sdcard")) return new FatFS(name, SDCard::defaultInstance());
 #endif
 #if defined FLASH_BLOCKDEVICE && FLASH_BLOCKDEVICE
