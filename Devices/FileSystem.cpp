@@ -87,7 +87,10 @@ void makeFS(cstr devicename, cstr type) throws
 	}
 #endif
 #if defined SDCARD_SPI
-	if (lceq(devicename, "sdcard")) { makeFS(SDCard::defaultInstance(), type); }
+	if (lceq(devicename, "sdcard")) { makeFS(SDCard::getInstance(0), type); }
+#endif
+#if defined SDCARD_SPI && defined SDCARD_SPI_CS2_PIN
+	if (lceq(devicename, "sdcard2")) { makeFS(SDCard::getInstance(1), type); }
 #endif
 	if (lceq(devicename, "rsrc")) throw NOT_WRITABLE;
 	else throw UNKNOWN_DEVICE;
@@ -143,8 +146,11 @@ FileSystemPtr mount(cstr name) throws
 	if (idx >= 0) return file_systems[idx];
 
 	if (lceq(name, "rsrc")) { return new RsrcFS(name); }
-#ifdef SDCARD_SPI
-	if (lceq(name, "sdcard")) return new FatFS(name, SDCard::defaultInstance());
+#if defined SDCARD_SPI
+	if (lceq(name, "sdcard")) return new FatFS(name, SDCard::getInstance(0));
+#endif
+#if defined SDCARD_SPI && defined SDCARD_SPI_CS2_PIN
+	if (lceq(name, "sdcard2")) return new FatFS(name, SDCard::getInstance(1));
 #endif
 #if defined FLASH_BLOCKDEVICE && FLASH_BLOCKDEVICE
 	if (lceq(name, "flash"))

@@ -23,6 +23,8 @@ if(${MAKE_TOOLS})
 		StdFile.h)
 else()
 	set(devices_sources 
+		internal/sdcard_spi.cpp
+		internal/sdcard_spi.h
 		internal/CSD.h 
 		internal/CSD.cpp
 		internal/crc.h 
@@ -58,6 +60,7 @@ else()
 		pico_stdio
 		hardware_spi
 		hardware_flash
+		hardware_pio
 	)
 endif()
 
@@ -115,6 +118,8 @@ target_link_libraries(kilipili_devices PUBLIC
 	kilipili_common
 )
 
+# the resulting definitions are included directly in internal/sdcard_spi.cpp:
+# pico_generate_pio_header(kilipili_devices ${CMAKE_CURRENT_LIST_DIR}/internal/spi.pio)
 
 
 

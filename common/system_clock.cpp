@@ -15,6 +15,10 @@ namespace kilipili::Audio
 {
 __weak_symbol void sysclockChanged(uint32 new_clock) noexcept;
 }
+namespace kilipili::Devices
+{
+__weak_symbol void sysclockChanged(uint32 new_clock) noexcept;
+}
 namespace kilipili::LoadSensor
 {
 __weak_symbol void recalibrate() noexcept;
@@ -146,6 +150,7 @@ void sysclock_changed(uint32 new_clock) noexcept
 #endif
 	if (LoadSensor::recalibrate) LoadSensor::recalibrate();
 	if (Audio::sysclockChanged) Audio::sysclockChanged(new_clock);
+	if (Devices::sysclockChanged) Devices::sysclockChanged(new_clock);
 	if (::sysclockChanged) ::sysclockChanged(new_clock);
 }
 

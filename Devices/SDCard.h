@@ -1,14 +1,14 @@
-// Copyright (c) 2021 - 2025 kio@little-bat.de
+// Copyright (c) 2021 - 2026 kio@little-bat.de
 // BSD 2-clause license
 // https://spdx.org/licenses/BSD-2-Clause.html
 
 #pragma once
 #include "BlockDevice.h"
-#include "CSD.h"
 #include "SerialDevice.h"
-#include "cdefs.h"
-#include "standard_types.h"
-#include <hardware/spi.h>
+#include "common/cdefs.h"
+#include "common/standard_types.h"
+#include "internal/CSD.h"
+//#include <hardware/spi.h>
 
 
 namespace kilipili::Devices
@@ -38,12 +38,6 @@ constexpr char DEVICE_NOT_SUPPORTED[]	 = "Device not supported";
 
 class SDCard : public BlockDevice
 {
-	spi_inst* spi; // the spi block
-	uint8	  rx_pin;
-	uint8	  cs_pin; // gpio pin number of the CSn pin
-	uint8	  clk_pin;
-	uint8	  tx_pin;
-
 	static_assert(sizeof(LBA) == sizeof(uint32), "");
 	static_assert(sizeof(SIZE) == sizeof(SIZE), "");
 
@@ -57,17 +51,17 @@ public:
 		MMC,	 // need 400kHz for initialization, different CSD and CID
 	};
 
-	CardType card_type	 = SD_unknown;
-	bool	 ccs		 = false; // 1 = SDHC or SDXC: uses sector addresses
-	uint8	 erased_byte = 0xff;
-	bool	 no_crc		 = false;
+	CardType card_type = SD_unknown;
+	uint8	 cs_pin;				 // gpio pin number of the CSn pin
+	uint8	 erased_byte	= 0xff;	 //
+	bool	 ccs		: 1 = false; // 1 = SDHC or SDXC: uses sector addresses
+	bool	 no_crc		: 1 = false;
+	bool	 _more_bits : 6 = 0;
 	CSD		 csd;
 	CID		 cid;
 	uint32	 ocr = 0;
 
-	static SDCard* defaultInstance();
-
-	SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) noexcept;
+	static SDCard* getInstance(int instance = 0);
 
 	//virtual void read (ADDR q, uint8* bu, SIZE) override;
 	//virtual void write (ADDR z, const uint8* bu, SIZE) override;
@@ -83,16 +77,17 @@ public:
 	void printCardInfo(SerialDevice*, bool v = 1);
 
 private:
-	SDCard() noexcept;
+	SDCard(uint8 cs) noexcept;
 	void init_spi() noexcept;
 
 	void connect() throws;
 	void disconnect() noexcept;
 
-	inline void select() const noexcept;
-	inline void deselect() const noexcept;
-	inline void read_spi(uint8*, uint32) const noexcept;
-	inline void write_spi(const uint8*, uint32) const noexcept;
+	inline void		   select() const noexcept;
+	inline void		   deselect() const noexcept;
+	static inline void read_spi(uint8*, uint32) noexcept;
+	static inline void write_spi(const uint8*, uint32) noexcept;
+	static inline void write_read_spi(const uint8*, uint8*, uint32) noexcept;
 
 	uint8  read_byte() noexcept;
 	uint8  receive_byte_or_throw(int timeout_us) throws;

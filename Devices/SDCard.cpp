@@ -1,14 +1,15 @@
-// Copyright (c) 2021 - 2025 kio@little-bat.de
+// Copyright (c) 2021 - 2026 kio@little-bat.de
 // BSD 2-clause license
 // https://spdx.org/licenses/BSD-2-Clause.html
 
 #include "SDCard.h"
-#include "Logger.h"
 #include "common/DiskLight.h"
+#include "common/Logger.h"
 #include "common/cdefs.h"
 #include "common/timing.h"
 #include "common/trace.h"
-#include "crc.h"
+#include "internal/crc.h"
+#include "internal/sdcard_spi.h"
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
 #include <pico/stdlib.h>
@@ -20,29 +21,6 @@
 #else
   #define xdebugstr(...) (void(0))
 #endif
-
-#ifdef SDCARD_SPI_CLOCK
-static constexpr uint32 spi_clock = SDCARD_SPI_CLOCK;
-static_assert(spi_clock <= 25 * 1000 * 1000);
-#else
-static constexpr uint32 spi_clock = 10 * 1000 * 1000;
-#endif
-
-// clang-format off
-// assert unchanged definition, then replace c-style casting macros with c++ version:
-#define spi0_hw ((spi_hw_t *)SPI0_BASE)
-#define spi1_hw ((spi_hw_t *)SPI1_BASE)
-#define spi0 ((spi_inst_t *)spi0_hw)
-#define spi1 ((spi_inst_t *)spi1_hw)
-#undef spi0_hw
-#undef spi1_hw
-#undef spi0
-#undef spi1
-#define spi0_hw reinterpret_cast<spi_hw_t*>(SPI0_BASE)
-#define spi1_hw reinterpret_cast<spi_hw_t*>(SPI1_BASE)
-#define spi0 reinterpret_cast<spi_inst_t*>(spi0_hw)
-#define spi1 reinterpret_cast<spi_inst_t*>(spi1_hw)
-// clang-format on
 
 // some CRCs:
 // CMD0  GOTO_IDLE_STATE   0x95
@@ -62,23 +40,37 @@ static constexpr uint32 spi_clock = 10 * 1000 * 1000;
 namespace kilipili::Devices
 {
 
-static spi_inst*	  inst_for_pin(uint pin) { return pin < 20 ? pin & 8 ? spi1 : spi0 : nullptr; }
-static constexpr bool is_rx_pin(uint pin) { return (pin & 3) == 0; }
-static constexpr bool is_clk_pin(uint pin) { return (pin & 3) == 2; }
-static constexpr bool is_tx_pin(uint pin) { return (pin & 3) == 3; }
-
-SDCard* SDCard::defaultInstance() // static
+SDCard* SDCard::getInstance(int id) // static
 {
-#ifndef SDCARD_SPI
-	return nullptr;
-#else
-	static SDCard sdcard;
-	return &sdcard;
+#if defined SDCARD_SPI
+	if (id == 0)
+	{
+		static SDCard sdcard(SDCARD_SPI_CS_PIN);
+		return &sdcard;
+	}
+  #if defined SDCARD_SPI_CS2_PIN
+	if (id == 1)
+	{
+		static SDCard sdcard2(SDCARD_SPI_CS2_PIN);
+		return &sdcard2;
+	}
+  #endif
 #endif
+	return nullptr;
 }
 
-inline void SDCard::read_spi(uint8* data, uint32 cnt) const noexcept { spi_read_blocking(spi, 0xff, data, cnt); }
-inline void SDCard::write_spi(const uint8* data, uint32 cnt) const noexcept { spi_write_blocking(spi, data, cnt); }
+inline void SDCard::read_spi(uint8* data, uint32 cnt) noexcept
+{
+	sdcard_spi_read_blocking(data, cnt); //
+}
+inline void SDCard::write_spi(const uint8* data, uint32 cnt) noexcept
+{
+	sdcard_spi_write_blocking(data, cnt); //
+}
+inline void SDCard::write_read_spi(const uint8* src, uint8* dest, uint32 cnt) noexcept
+{
+	sdcard_spi_write_read_blocking(src, dest, cnt);
+}
 inline void SDCard::select() const noexcept
 {
 	if (set_disk_light) set_disk_light(on);
@@ -92,37 +84,14 @@ inline void SDCard::deselect() const noexcept
 	read_spi(&u1, 1); // flush card's shift register (!SanDisk!)
 }
 
-static_assert(is_rx_pin(SDCARD_SPI_RX_PIN));
-static_assert(is_tx_pin(SDCARD_SPI_TX_PIN));
-static_assert(is_clk_pin(SDCARD_SPI_CLK_PIN));
-
-static constexpr uint8 rx  = SDCARD_SPI_RX_PIN;
-static constexpr uint8 cs  = SDCARD_SPI_CS_PIN;
-static constexpr uint8 clk = SDCARD_SPI_CLK_PIN;
-static constexpr uint8 tx  = SDCARD_SPI_TX_PIN;
-
-SDCard::SDCard() noexcept : SDCard(rx, cs, clk, tx)
-{
-	rc = 1; // never destroy!
-}
-
-SDCard::SDCard(uint8 rx, uint8 cs, uint8 clk, uint8 tx) noexcept :
+SDCard::SDCard(uint8 cs) noexcept : //
 	BlockDevice(0, 9, 9, 9 /*ss*/, removable /*flags*/),
-	spi(inst_for_pin(rx)),
-	rx_pin(rx),
-	cs_pin(cs),
-	clk_pin(clk),
-	tx_pin(tx)
+	cs_pin(cs)
 {
 	trace(__func__);
-	debugstr("SDCard::SDCard\n");
+	debugstr("SDCard::SDCard(%u)\n", cs);
 
-	assert(inst_for_pin(rx) == inst_for_pin(tx));
-	assert(inst_for_pin(rx) == inst_for_pin(clk));
-	assert(is_rx_pin(rx));
-	assert(is_tx_pin(tx));
-	assert(is_clk_pin(clk));
-
+	rc = 1; // never delete!
 	init_spi();
 }
 
@@ -134,12 +103,7 @@ void SDCard::init_spi() noexcept
 	gpio_set_dir(cs_pin, GPIO_OUT);
 
 	// spi:
-	spi_init(spi, spi_clock);
-	spi_set_format(spi, 8, SPI_CPOL_1, SPI_CPHA_1, SPI_MSB_FIRST);
-	gpio_set_function(rx_pin, GPIO_FUNC_SPI);
-	gpio_pull_up(rx_pin);
-	gpio_set_function(clk_pin, GPIO_FUNC_SPI);
-	gpio_set_function(tx_pin, GPIO_FUNC_SPI);
+	sdcard_spi_init();
 }
 
 void SDCard::disconnect() noexcept
@@ -166,7 +130,7 @@ enum R1Response {
 enum Token {
 	DataToken		= 0xff - 1, // in CMD17,18,24
 	DataToken25		= 0xff - 3, // in CMD25
-	StopTranToken25 = 0xff - 2, // in CMD25
+	StopTranToken25 = 0xff - 2	// in CMD25
 };
 enum WriteDataResponseToken {
 	// response sent by Card after receiving write data block:
@@ -183,7 +147,7 @@ enum ReadDataErrorToken {
 	CC_Error	 = 0b00000010,
 	ECC_Failed	 = 0b00000100,
 	RangeError	 = 0b00001000,
-	CardIsLocked = 0b00010000,
+	CardIsLocked = 0b00010000
 };
 
 void __attribute__((noreturn)) SDCard::throwDeviceNotResponding()
@@ -282,7 +246,8 @@ void SDCard::wait_ready_or_throw() throws
 
 	trace(__func__);
 
-	for (int r = spi_clock / 10; --r;)
+	CC end = now() + 1 * 1000 * 1000;
+	while (now() < end)
 	{
 		if (read_byte() == 0xff) return;
 	}
@@ -674,7 +639,7 @@ void SDCard::stop_transmission() noexcept
 	//select();
 	constexpr uint8 cmd[8] = {12 | 0x40, 0, 0, 0, 0, 0x61, 0xff, 0xff};
 	uint8			rx[8];
-	spi_write_read_blocking(spi, cmd, rx, 8);
+	write_read_spi(cmd, rx, 8);
 	deselect();
 	//dump(rx,8);	// -> FExxxxxxxxxx7F00	(xx = data from sector)
 	uint8 r1 = rx[7];
@@ -882,7 +847,7 @@ void SDCard::printOCR(SerialDevice* sio, bool v)
 	if (v || ocr & (1 << 29)) sio->printf("  UHS-II Card Status:         %s\n", ocr & (1 << 29) ? "YES" : "NO");
 	sio->printf(
 		"  Card Capacity Status CCS:   %s\n", ocr & (1 << 30) ? "YES (block address mode)" : "NO (byte address mode)");
-	if (v || !ocr >> 31) sio->printf("  Card powered up:            %s\n", ocr >> 31 ? "YES" : "NO");
+	if (v || !(ocr >> 31)) sio->printf("  Card powered up:            %s\n", ocr >> 31 ? "YES" : "NO");
 }
 
 void SDCard::printCID(SerialDevice* sio, bool v)
