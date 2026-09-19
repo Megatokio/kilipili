@@ -33,6 +33,7 @@ else()
 		${CMAKE_CURRENT_LIST_DIR}/pico)
 	set(common_libraries 
 		hardware_pwm
+		hardware_adc
 		pico_stdlib)
 endif()
 
@@ -77,6 +78,7 @@ add_library(kilipili_common STATIC
 	tempmem.h
 	timing.h
 	FlexQueue.h
+	temperature_sensor.h
 )
 
 target_compile_definitions(kilipili_common PUBLIC  
