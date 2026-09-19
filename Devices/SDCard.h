@@ -68,7 +68,7 @@ public:
 	//virtual void copy_blocks (ADDR z, ADDR q, SIZE sz) override { copy_hd(z,q,sz); }
 	virtual void   readSectors(LBA, void* bu, SIZE) throws override;
 	virtual void   writeSectors(LBA, const void* bu, SIZE) throws override;
-	virtual uint32 ioctl(IoCtl, void* arg1 = nullptr, void* arg2 = nullptr) throws override;
+	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) throws override;
 
 	void printSCR(SerialDevice*, bool v = 1);
 	void printCID(SerialDevice*, bool v = 1);
@@ -100,13 +100,17 @@ private:
 	uint8 send_acmd(uint8 cmd, uint32 args = 0, uint flags = 0) { return send_cmd(cmd, args, flags | f_acmd); }
 
 	void initialize_card_and_wait_ready();
-	void read_ocr();										   // CMD58
-	void read_scr();										   // ACMD51
-	void read_card_info(uint8 cmd);							   // CMD9+10: CSD+CID
-	void write_csd();										   // CMD27  TODO
-	void set_blocklen(uint);								   // CMD16
-	void read_single_block(uint32 blkidx, uint8* data);		   // CMD17
-	void write_single_block(uint32 blkidx, const uint8* data); // CMD24
+	void read_ocr();				// CMD58
+	void read_scr();				// ACMD51
+	void read_card_info(uint8 cmd); // CMD9+10: CSD+CID
+	void write_csd();				// CMD27  TODO
+	void set_blocklen(uint);		// CMD16
+
+	void read_single_block(LBA blkidx, uint8* data) throws;			// CMD17
+	void write_single_block(LBA blkidx, const uint8* data) throws;	// CMD24
+	void read_sectors(LBA blkidx, uint8* data, SIZE) throws;		// CMD18
+	void write_sectors(LBA blkidx, const uint8* data, SIZE) throws; // CMD25
+	void erase_sectors(LBA blkidx, SIZE) throws;					// CMD22, 33, 38
 
 	void __attribute__((noreturn)) throwDeviceNotResponding();
 	void __attribute__((noreturn)) throwWriteDataErrorToken(uint8 n);

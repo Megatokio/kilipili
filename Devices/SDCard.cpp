@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 
+//#define XDEBUG
 #ifdef XDEBUG
   #define xdebugstr debugstr
 #else
@@ -152,7 +153,8 @@ enum ReadDataErrorToken {
 
 void __attribute__((noreturn)) SDCard::throwDeviceNotResponding()
 {
-	disconnect();
+	deselect(); // don't yet disconnect: FS will come back to us
+
 	if constexpr (debug) Trace::print(get_core_num());
 	throw DEVICE_NOT_RESPONDING;
 }
@@ -474,7 +476,7 @@ void SDCard::connect() throws
 		wait_ready_or_throw();
 		constexpr uint8 cmd8[6] {8 | 0x40, 0, 0, 1, 0xAA, 0x87};
 		write_spi(cmd8, 6);
-		r1 = receive_byte_or_throw(100); ///!
+		r1 = receive_byte_or_throw(100000);
 		if (r1 == IdleState)
 		{
 			read_spi(bu, 4);
@@ -571,191 +573,226 @@ void SDCard::set_blocklen(uint blen) throws
 	send_cmd(16, blen);
 }
 
-void SDCard::read_single_block(uint32 blkidx, uint8* data) throws
+void SDCard::read_single_block(LBA blkidx, uint8* data) throws
 {
 	// CMD17: read single block
 
 	trace("SDCard::read_single_block");
-	xdebugstr("%s\n", "SDCard::read_single_block");
+	xdebugstr("SDCard::read_single_block(%u)\n", uint(blkidx));
+	assert(data);
 
-	for (uint retry = 0; retry <= 1; retry++)
+	uint8 crc[2];
+
+	for (int retries = 1;; retries--)
 	{
-		uint8 crc[2];
 		send_cmd(17, ccs ? blkidx : blkidx << 9, no_deselect);
-		uint8 token = receive_byte_or_throw(100000); // 2024: Verbatim 16GB: poor blocks take up to 10msec
+		uint8 token = receive_byte_or_throw(100000);
 		if (token != DataToken) throwReadDataErrorToken(token);
-
-		//uint32 irqs = save_and_disable_interrupts();
 		read_spi(data, 512);
 		read_spi(crc, 2);
-		//restore_interrupts_from_disabled(irqs);
-
 		deselect();
+
 		if (peek_u16(crc) == (no_crc ? 0 : crc16(data, 512))) return;
-		else if (retry == 0) logline("crc_error");
+		if (!retries) throw CRC_ERROR;
+		debugstr("crc_error\n");
 	}
-	throw CRC_ERROR;
 }
 
-void SDCard::write_single_block(uint32 blkidx, const uint8* data) throws
+void SDCard::write_single_block(LBA blkidx, const uint8* data) throws
 {
 	// CMD24: write single block
 
 	trace("SDCard::write_single_block");
-	debugstr("%s\n", "SDCard::write_single_block");
+	xdebugstr("SDCard::write_single_block(%u)\n", uint(blkidx));
+	assert(data);
 
-	for (uint retry = 0; retry <= 1; retry++)
+	uint8 crc[2];
+	poke_u16(crc, crc16(data, 512));
+
+	for (int retries = 1;; retries--)
 	{
-		uint8 crc[2];
-		poke_u16(crc, crc16(data, 512));
 		send_cmd(24, ccs ? blkidx : blkidx << 9, no_deselect);
-		wait_ready_or_throw();
+
 		uint8 token = DataToken;
+		wait_ready_or_throw();
 		write_spi(&token, 1);
 		write_spi(data, 512);
 		write_spi(crc, 2);
-		token = receive_byte_or_throw(100000) & DataResponseMask;
+		token = receive_byte_or_throw(100000);
 		deselect();
-		if (token == DataAccepted) return;
-		if (token != DataCrcError) throwWriteDataErrorToken(token);
-		else if (retry == 0) logline("crc_error");
-	}
 
-	throwWriteDataErrorToken(DataCrcError);
+		if ((token & DataResponseMask) == DataAccepted) return;
+		if (!retries || (token & DataResponseMask) != DataCrcError) throwWriteDataErrorToken(token);
+		debugstr("crc_error\n");
+	}
 }
 
 void SDCard::stop_transmission() noexcept
 {
-	trace("SDCard::stop_transmission");
-	xdebugstr("%s\n", "SDCard::stop_transmission");
-
 	// CMD12
+	// stop transmission of blocks in CMD18: read multiple blocks.
 	// The received byte immediately following CMD12 is a stuff byte,
 	// it should be discarded prior to receive the response of the CMD12.
 	// For MMC, if number of transfer blocks has been specified by a CMD23 prior to CMD18,
 	// the read transaction is initiated as a pre-defined multiple block transfer
 	// and the read operation is terminated at last block transfer.
 
-	//select();
+	trace("SDCard::stop_transmission");
+	xdebugstr("SDCard::stop_transmission\n");
+
 	constexpr uint8 cmd[8] = {12 | 0x40, 0, 0, 0, 0, 0x61, 0xff, 0xff};
 	uint8			rx[8];
+
 	write_read_spi(cmd, rx, 8);
 	deselect();
-	//dump(rx,8);	// -> FExxxxxxxxxx7F00	(xx = data from sector)
+
+	//dump(rx,8); // -> FExxxxxxxxxx7F00 (FE=DataToken, xx=sector data, 7F=stuff byte, 00=r1 response)
 	uint8 r1 = rx[7];
 	if (r1 != 0) debugstr("\nERROR: cmd12 r1=0x%02x  ", r1);
 }
 
-void SDCard::readSectors(LBA blkidx, void* data, SIZE blkcnt) throws
+void SDCard::read_sectors(LBA blkidx, uint8* udata, SIZE blkcnt) throws
 {
 	// CMD18: read multiple blocks
 
-	trace("SDCard::readSectors");
-	xdebugstr("%s\n", "SDCard::readSectors");
+	trace("SDCard::read_sectors");
+	xdebugstr("SDCard::read_sectors(%u,%u)\n", uint(blkidx), blkcnt);
+	assert(udata != nullptr);
 
-	uchar* udata = reinterpret_cast<uchar*>(data);
-	if (blkcnt == 1) return read_single_block(blkidx, udata);
-
-	uint retry = blkcnt + 1;
-r:
 	send_cmd(18, ccs ? blkidx : blkidx << 9, no_deselect);
 
-	while (blkcnt)
+	for (; blkcnt; blkidx++, udata += 512, blkcnt--)
 	{
-		uint8 crc[2];
-		uint8 token = receive_byte_or_throw(100000);
-		if (token != DataToken)
+		for (int retries = 1;; retries--)
 		{
+			uint8 crc[2];
+			uint8 token = receive_byte_or_throw(100000);
+			if (token != DataToken)
+			{
+				stop_transmission();
+				throwReadDataErrorToken(token);
+			}
+			read_spi(udata, 512);
+			read_spi(crc, 2);
+			if (peek_u16(crc) == (no_crc ? 0 : crc16(udata, 512))) break;
+
+			// crc error:
 			stop_transmission();
-			throwReadDataErrorToken(token);
+			if (!retries) throw CRC_ERROR;
+			debugstr("crc_error\n");
+			send_cmd(18, ccs ? blkidx : blkidx << 9, no_deselect);
 		}
-		read_spi(udata, 512);
-		read_spi(crc, 2);
-		if ((no_crc ? 0 : crc16(udata, 512)) == peek_u16(crc))
-		{
-			blkidx++;
-			udata += 512;
-			blkcnt--;
-			continue;
-		}
-		stop_transmission();
-		if (retry) logline("crc_error");
-		if (retry--) goto r;
-		else throw CRC_ERROR;
 	}
 
 	stop_transmission();
 }
 
-void SDCard::writeSectors(LBA blkidx, const void* data, SIZE blkcnt) throws
+void SDCard::erase_sectors(LBA blkidx, SIZE blkcnt) throws
+{
+	// CMD32,33,38: erase multiple blocks
+	// As for block write, the card will indicate that an erase is in progress by holding DAT0 low.
+	// The actual erase time may be quite long, and the host may deselect the card.
+	// The data at the card after an erase operation is either '0' or '1'.
+	// The SCR register bit DATA_STAT_AFTER_ERASE (bit 55) defines whether it is '0' or '1'.
+
+	trace("SDCard::erase_sectors");
+	xdebugstr("SDCard::erase_sectors(%u,%u)\n", uint(blkidx), blkcnt);
+
+	send_cmd(32, ccs ? blkidx : blkidx << 9);
+	send_cmd(33, ccs ? blkidx + blkcnt - 1 : (blkidx + blkcnt - 1) << 9);
+	send_cmd(38);
+}
+
+void SDCard::write_sectors(LBA blkidx, const uint8* udata, SIZE blkcnt) throws
 {
 	// CMD25: write multiple blocks
-
-	trace("SDCard::writeSectors");
-	debugstr("%s\n", "SDCard::writeSectors");
-
-	//  For MMC, the number of blocks to write can be pre-defined by CMD23 prior to CMD25
+	// As for block erase, the card will indicate that a write is in progress by holding DAT0 low.
+	// For MMC, the number of blocks to write can be pre-defined by CMD23 prior to CMD25
 	// and the write transaction is terminated at last data block.
-	// For SDC, a StopTran token is always required to treminate the multiple block write transaction.
+	// For SDC, a StopTran token is always required to terminate the multiple block write transaction.
 	// Number of sectors to pre-erased at start of the write transaction can be specified
 	// by an ACMD23 prior to CMD25. It may able to optimize write strategy in the card
 	// and it can also be terminated not at the pre-erased blocks but the content of the
 	// pre-erased area not written will get undefined.
 
-	if unlikely (data == nullptr) // erase: CMD32,33,38
-	{
-		// As for block write, the card will indicate that an erase is in progress by holding DAT0 low.
-		// The actual erase time may be quite long, and the host may deselect the card.
-		// The data at the card after an erase operation is either '0' or '1'.
-		// The SCR register bit DATA_STAT_AFTER_ERASE (bit 55) defines whether it is '0' or '1'.
-		send_cmd(32, ccs ? blkidx : blkidx << 9);
-		send_cmd(33, ccs ? blkidx + blkcnt - 1 : (blkidx + blkcnt - 1) << 9);
-		send_cmd(38);
-		return;
-	}
+	trace("SDCard::writeSectors");
+	xdebugstr("SDCard::write_sectors(%u,%u)\n", uint(blkidx), blkcnt);
+	assert(udata != nullptr);
 
-	const uchar* udata = reinterpret_cast<const uchar*>(data);
-	uint		 retry = blkcnt + 1;
-r:
+	static constexpr uint8 stop25[2] = {StopTranToken25, 0xff};
+
 	send_acmd(23, blkcnt); // pre erase blocks
 	send_cmd(25, ccs ? blkidx : blkidx << 9, no_deselect);
 
-	while (blkcnt)
+	for (; blkcnt; blkidx++, udata += 512, blkcnt--)
 	{
 		uint8 crc[2];
-		uint8 token = DataToken25;
 		poke_u16(crc, crc16(udata, 512));
 
-		wait_ready_or_throw();
-		write_spi(&token, 1);
-		write_spi(udata, 512);
-		write_spi(crc, 2);
-
-		token = receive_byte_or_throw(100000) & DataResponseMask;
-		if (token == DataAccepted)
+		for (int retries = 1;; retries--)
 		{
-			blkidx++;
-			udata += 512;
-			blkcnt--;
-			continue;
-		}
+			uint8 token = DataToken25;
 
-		uint8 bu[2] = {StopTranToken25, 0xff};
-		write_spi(bu, 2);
-		deselect();
-		if (token == DataCrcError && retry--) goto r;
-		throwWriteDataErrorToken(token);
+			wait_ready_or_throw();
+			write_spi(&token, 1);
+			write_spi(udata, 512);
+			write_spi(crc, 2);
+
+			token = receive_byte_or_throw(100000);
+			if ((token & DataResponseMask) == DataAccepted) break; // -> next block
+
+			// data not accepted:
+			wait_ready_or_throw();
+			write_spi(stop25, 2);
+			deselect();
+			if (retries == 0 || (token & DataResponseMask) != DataCrcError) throwWriteDataErrorToken(token);
+			debugstr("crc error\n");
+			send_cmd(25, ccs ? blkidx : blkidx << 9, no_deselect);
+		}
 	}
 
-	uint8 bu[2] = {StopTranToken25, 0xff};
-	write_spi(bu, 2);
+	wait_ready_or_throw();
+	write_spi(stop25, 2);
 	deselect();
 }
 
-uint32 SDCard::ioctl(IoCtl ctl, void* a1, void* a2) throws
+void SDCard::readSectors(LBA blkidx, void* data, SIZE blkcnt) throws
+{
+	assert(data != nullptr);
+	if unlikely (!isReadable()) throw NOT_READABLE; // not connected
+
+	if (blkcnt == 1) //
+	{
+		read_single_block(blkidx, reinterpret_cast<uint8*>(data));
+	}
+	else //
+	{
+		read_sectors(blkidx, reinterpret_cast<uint8*>(data), blkcnt);
+	}
+}
+
+void SDCard::writeSectors(LBA blkidx, const void* data, SIZE blkcnt) throws
+{
+	if unlikely (!isWritable()) throw NOT_WRITABLE; // or not connected
+
+	if unlikely (!data) //
+	{
+		erase_sectors(blkidx, blkcnt);
+	}
+	else if (blkcnt == 1) //
+	{
+		write_single_block(blkidx, reinterpret_cast<const uint8*>(data));
+	}
+	else //
+	{
+		write_sectors(blkidx, reinterpret_cast<const uint8*>(data), blkcnt);
+	}
+}
+
+uint32 SDCard::ioctl(IoCtl ctl, void* arg1, void* arg2) throws
 {
 	trace("SDCard::ioctl");
-	debugstr("%s\n", "SDCard::ioctl");
+	debugstr("SDCard::ioctl(%u)\n", uint(ctl.cmd));
 
 	switch (ctl.cmd)
 	{
@@ -765,8 +802,12 @@ uint32 SDCard::ioctl(IoCtl ctl, void* a1, void* a2) throws
 	case IoCtl::CTRL_DISCONNECT: // disconnect from hardware, unload removable disk
 		disconnect();
 		return 0;
+	case IoCtl::CTRL_TRIM:
+		if (ctl.arg1 != ctl.LBA || ctl.arg2 != ctl.SIZE || !arg1 || !arg2) throw INVALID_ARGUMENT;
+		erase_sectors(*reinterpret_cast<LBA*>(arg1), *reinterpret_cast<SIZE*>(arg2));
+		return 0;
 	default: //
-		return BlockDevice::ioctl(ctl, a1, a2);
+		return BlockDevice::ioctl(ctl, arg1, arg2);
 	}
 }
 

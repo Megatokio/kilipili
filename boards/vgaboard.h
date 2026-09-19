@@ -39,7 +39,7 @@
 #define SDCARD_SPI_CS_PIN  22 // PICO_SD_DAT3_PIN
 #define SDCARD_SPI_CLK_PIN 5  // PICO_SD_CLK_PIN
 #define SDCARD_SPI_TX_PIN  18 // PICO_SD_CMD_PIN
-#define SDCARD_SPI_CLOCK   20000000
+#define SDCARD_SPI_CLOCK   15000000
 
 // SDC	mSD	 sdcard	  spi	pico
 // 8:	8	 Dat1	  -		20
