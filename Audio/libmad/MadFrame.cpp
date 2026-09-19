@@ -106,9 +106,6 @@ MadFrame::~MadFrame()
  */
 void MadFrame::reset() noexcept
 {
-	// this->~MadFrame();
-	// new (this) MadFrame;
-
 	header.finish();
 	header.init();
 	options = 0;

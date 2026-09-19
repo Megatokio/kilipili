@@ -53,8 +53,10 @@ MadSynth::MadSynth() noexcept
  */
 void MadSynth::reset() noexcept
 {
+	int rc = this->rc;
 	this->~MadSynth();
 	new (this) MadSynth();
+	this->rc = rc;
 }
 
 /*

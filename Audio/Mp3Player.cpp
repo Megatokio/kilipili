@@ -35,10 +35,9 @@ Mp3Player::~Mp3Player() noexcept
 	Audio::setSampleFrequency(AUDIO_DEFAULT_SAMPLE_FREQUENCY);
 }
 
-void Mp3Player::setVolume(float v)
+void Mp3Player::setVolume(float v) //
 {
-	debugstr("Mp3Player::setVolume %f\n", double(v));
-	TODO();
+	debugstr("Mp3Player::setVolume %f  (TODO)\n", double(v));
 }
 
 static inline Sample mp3_scale(mad_fixed_t sample) // scale mp3 output to int16
@@ -55,12 +54,13 @@ static inline Sample mp3_scale(mad_fixed_t sample) // scale mp3 output to int16
 
 #define YIELD(N)     \
 	state = N;       \
-	return 2 * 1000; \
+	return 1 * 1000; \
 	case N:
 
 #define SM_START() \
 	switch (state) \
 	{              \
+	default:       \
 	case 0:
 
 #define SM_END() }
@@ -103,18 +103,26 @@ int Mp3Player::run() noexcept
 			}
 
 			YIELD(5);
-			buffer->count = input_file->read(buffer->data, buffer->size, true);
+			buffer->count = uint16(input_file->read(buffer->data, buffer->size, true));
 			stream->set_buffer_pointers(buffer->data, buffer->count);
 
 			// decode, synthesize and play audio until not enough bytes in input buffer[]:
 			for (;;)
 			{
 				YIELD(1)
-				if (frame->decode(stream) == -1)
+				if (frame->header.decode(stream) == -1)
 				{
 					if (stream->error == MAD_ERROR_BUFLEN) break; // need more input data
-					debugstr("mp3_frame_decode: %s\n", stream->errorstr());
-					if (is_recoverable(stream->error)) return 2 * 1000; // continue; // try to sync again
+					if ((0)) debugstr("mp3_header_decode: %s\n", stream->errorstr());
+					if (is_recoverable(stream->error)) continue; // return 1 * 1000; // cover art?
+					else throw stream->errorstr();
+				}
+
+				if (frame->decode(stream) == -1)
+				{
+					if (stream->error == MAD_ERROR_BUFLEN) break;			// need more input data
+					debugstr("mp3_frame_decode: %s\n", stream->errorstr()); // almost always header: cover art?
+					if (is_recoverable(stream->error)) continue;			// return 1 * 1000;
 					else throw stream->errorstr();
 				}
 
@@ -144,7 +152,7 @@ int Mp3Player::run() noexcept
 				{
 					if unlikely (!output_adapter->queue.free())
 					{
-						nsamples_done = i;
+						nsamples_done = uint16(i);
 						return 5 * 1000;
 					}
 					if (nchannels == 1) output_adapter->queue.put(HwAudioSample(mp3_scale(left_ch[i])));
@@ -154,15 +162,15 @@ int Mp3Player::run() noexcept
 
 			YIELD(4)
 			assert(stream->error == MAD_ERROR_BUFLEN);
-			int nprocessed = stream->next_frame - buffer->data; // num bytes decoder processed for current (last) frame
-			int nremaining = buffer->count - nprocessed;		// num bytes remaining unprocessed in buffer
-			assert(nprocessed >= 0 && nprocessed <= buffer->count);
-			assert(nremaining >= 0 && nremaining <= buffer->count);
+			size_t nprocessed = size_t(stream->next_frame - buffer->data); // num bytes processed for current/last frame
+			size_t nremaining = buffer->count - nprocessed;				   // num bytes remaining unprocessed in buffer
+			assert(nprocessed <= buffer->count);
+			assert(nremaining <= buffer->count);
 			if unlikely (nremaining == buffer->size) throw "mp3_input: buffer too small";
 			memmove(buffer->data, stream->next_frame, nremaining); // move remaining data to start of buffer
 
 			uint n		  = input_file->read(buffer->data + nremaining, buffer->size - nremaining, true);
-			buffer->count = nremaining + n;
+			buffer->count = uint16(nremaining + n);
 
 			if (n)
 			{
@@ -174,7 +182,7 @@ int Mp3Player::run() noexcept
 				debugstr("mp3_input: %u bytes not processed at eof\n", nremaining);
 
 				state = 0;
-				if (repeat_file && !next_file && !next_dir) input_file->setFpos(0);
+				if (repeat_file && !next_file && !next_dir) input_file->setFpos(0u);
 				else input_file = nullptr;
 			}
 			SM_END()
