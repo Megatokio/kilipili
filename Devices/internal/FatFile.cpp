@@ -1,12 +1,12 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "FatFile.h"
 #include "FatFS.h"
-#include "trace.h"
-#include "cdefs.h"
-#include "cstrings.h"
+#include "common/cdefs.h"
+#include "common/cstrings.h"
+#include "common/trace.h"
 
 namespace kilipili::Devices
 {
@@ -90,7 +90,7 @@ SIZE FatFile::write(const void* data, SIZE size, bool partial)
 	SIZE	count = 0;
 	FRESULT err	  = f_write(&fatfile, data, size, &count);
 	if unlikely (err) throw tostr(err);
-	if unlikely (count < size && !partial) throw END_OF_FILE;
+	if unlikely (count < size && !partial) throw DISK_FULL;
 	return count;
 }
 
@@ -122,7 +122,7 @@ void FatFile::putc(char c)
 	SIZE	count = 0;
 	FRESULT err	  = f_write(&fatfile, &c, 1, &count);
 	if unlikely (err) throw tostr(err);
-	if unlikely (count < 1) throw END_OF_FILE;
+	if unlikely (count < 1) throw DISK_FULL;
 }
 
 ADDR FatFile::getSize() const noexcept
@@ -176,7 +176,7 @@ FatFile::~FatFile() noexcept
 	if (device) // else the file is closed
 	{
 		FRESULT err = f_close(&fatfile);
-		if (err) debugstr("%s", tostr(err));
+		if (err) debugstr("~FatFile: %s\n", tostr(err));
 	}
 }
 

@@ -9,10 +9,11 @@
 #include "QspiFlashDevice.h"
 #include "RsrcFS.h"
 #include "SDCard.h"
-#include "cdefs.h"
-#include "cstrings.h"
+#include "common/Dispatcher.h"
+#include "common/cdefs.h"
+#include "common/cstrings.h"
+#include "common/trace.h"
 #include "ff15/source/ffconf.h"
-#include "trace.h"
 
 #if defined FLASH_PREFERENCES && FLASH_PREFERENCES
 static constexpr uint prefs_size = FLASH_PREFERENCES;
@@ -135,15 +136,15 @@ FileSystemPtr mount(cstr name) throws
 	// mount the FileSystem on the well-known BlockDevice with the given name.
 	// returns the already mounted FS if it is mounted.
 
-	// if called with a fullpath:
-	if (cptr dp = strchr(name, ':')) name = substr(name, dp);
-
-	trace("FS::mount(name)");
-	debugstr("FS::mount: \"%s\"\n", name);
 	assert(name && *name);
+
+	if (cptr dp = strchr(name, ':')) name = substr(name, dp); // if called with a fullpath
 
 	int idx = index_of(name);
 	if (idx >= 0) return file_systems[idx];
+
+	trace("FS::mount(name)");
+	debugstr("FS::mount: \"%s\"\n", name);
 
 	if (lceq(name, "rsrc")) { return new RsrcFS(name); }
 #if defined SDCARD_SPI
@@ -482,6 +483,7 @@ void remove(cstr path) throws
 	else fs->remove(path);							   // rm file
 }
 
+
 static void copy_file(cstr q, cstr z) throws
 {
 	trace(__func__);
@@ -492,14 +494,37 @@ static void copy_file(cstr q, cstr z) throws
 	FilePtr qf	 = openFile(q);
 	FilePtr zf	 = openFile(z, Devices::WRITE);
 	SIZE	size = qf->getSize();
-	char	bu[512];
-	while (size)
+
+	constexpr uint busize = 2 kB;
+	if (std::unique_ptr<char> buffer {new (std::nothrow) char[busize]})
 	{
-		uint n = min(size, 512u);
-		qf->read(bu, n);
-		zf->write(bu, n);
-		size -= n;
+		while (size)
+		{
+			uint n = min(size, busize);
+			Dispatcher::run();
+			qf->read(buffer.get(), n);
+			Dispatcher::run();
+			zf->write(buffer.get(), n);
+			size -= n;
+		}
 	}
+	else
+	{
+		while (size)
+		{
+			Dispatcher::run();
+			{
+				constexpr uint busize = 512;
+				char		   buffer[busize]; // on stack
+
+				uint n = min(size, busize);
+				qf->read(buffer, n);
+				zf->write(buffer, n);
+				size -= n;
+			}
+		}
+	}
+
 	zf->close();
 }
 
@@ -514,6 +539,7 @@ static void copy_dir(cstr indir, cstr outdir, cstr pattern = "*") throws
 	TempMemSave _;
 	if (!isaDirectory(indir)) throw DIRECTORY_NOT_FOUND;
 	makeDir(outdir);
+	Dispatcher::run();
 
 	cptr p		  = strchr(pattern, '/');
 	cstr filename = p ? substr(pattern, p) : pattern; // potential filename before "/"
@@ -560,9 +586,11 @@ void copy(cstr q, cstr z) throws
 	TempMemSave _;
 	q = makeFullPath(q);
 	z = makeFullPath(z);
+	Dispatcher::run();
 
 	FileSystemPtr _q = mount(q); // retain FS
 	FileSystemPtr _z = mount(z); // retain FS
+	Dispatcher::run();
 
 	if (!isaDirectory(z))		// cp file -> old_file|new_file
 		return copy_file(q, z); // may overwrite old file

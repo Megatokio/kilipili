@@ -5,11 +5,11 @@
 #include "FatFS.h"
 #include "FatDir.h"
 #include "FatFile.h"
-#include "Logger.h"
-#include "trace.h"
-#include "basic_math.h"
-#include "cdefs.h"
-#include "cstrings.h"
+#include "common/Logger.h"
+#include "common/basic_math.h"
+#include "common/cdefs.h"
+#include "common/cstrings.h"
+#include "common/trace.h"
 #include "devices_types.h"
 #include "ff15/source/diskio.h"
 #include "ff15/source/ffconf.h"
@@ -316,7 +316,7 @@ DSTATUS disk_status(BYTE id)
 DSTATUS disk_initialize(BYTE id)
 {
 	trace("FatFS::disk_initialize");
-	//debugstr("FatFS::disk_initialize(%i)", id);
+	//debugstr("FatFS::disk_initialize(%i)\n", id);
 
 	// required callback for FatFS:
 

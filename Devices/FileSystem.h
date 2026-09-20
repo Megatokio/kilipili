@@ -26,6 +26,7 @@ extern void makeFS(cstr devname, cstr type = "FAT") throws;
 /* 	Mount the well-known device with name `devicename`.
 	Currently well-known are:
 	- "sdcard"  the default SDCard
+	- "sdcard2" the second SDCard (if present)
 	- "rsrc"    the resource file system
 	- "flash"   the internal program flash
 	Normally not needed because the FS functions do this automatically.

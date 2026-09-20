@@ -46,6 +46,7 @@ constexpr char NO_MOUNTPOINT_FREE[]	   = "no mountpoint free";		  // mount()
 constexpr char NO_WORKING_DEVICE[]	   = "no current working device"; //
 constexpr char NAME_TOO_LONG[]		   = "name too long";			  // mount()
 constexpr char REGULAR_FILE[]		   = "not a directory";			  // remove()
+constexpr char DISK_FULL[]			   = "disk full";				  // write()
 
 
 enum FileOpenMode : uint8 {
