@@ -76,7 +76,7 @@ The `fillBuffer()` function can be called on timer interrupt or manually, e.g. i
 The audio interface automatically adjusts to a changed system clock when switching video modes.  
 - `[done]` PWM mono and stereo output
 - `[done]` I2S stereo output
-- `[test]` Sigma-delta mono and stereo output
+- `[done]` Sigma-delta mono and stereo output
 - `[done]` no audio and a simple beeper
 - `[done]` sinus and square wave generators
 - `[done]` sample rate adapter, mono <-> stereo adapters
@@ -95,7 +95,7 @@ The SDcard Interface accesses the SD card using the SPI interface.
 - `[done]` Read SDCard in SPI mode, either with normal SPI or PIO
 - `[done]` FAT file system 
 - `[done]` BlockDevice for the internal program flash
-- `[test]` Write to SDCard 
+- `[done]` Write to SDCard 
 
 
 ## Other
