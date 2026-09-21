@@ -23,6 +23,7 @@
   #include "common/standard_types.h"
   #include "common/system_clock.h"
   #include "sdcard_spi.h"
+  #include <cmath>
   #include <cstdio>
   #include <hardware/gpio.h>
   #include <hardware/pio.h>
@@ -186,8 +187,13 @@ void pio_spi_inst::init(uint prog_offs, uint clk_pin, uint tx_pin, uint rx_pin)
 	// MSB-first: shift to left, auto push/pull, threshold=nbits
 	sm_config_set_out_shift(&c, false, true, n_bits);
 	sm_config_set_in_shift(&c, false, true, n_bits);
+
+	// calculate clock divider for spi clock:
+	// use integer divider without fractional jitter because the pio program
+	// already sets D0 late (data is delayed to side-set)
+	// and the shorter clock pulses reduce the setup time even more.
 	constexpr uint cc_per_bit = 4;
-	float		   clkdiv	  = max(float(get_system_clock()) / float(spi_clock * cc_per_bit), 1.0f);
+	float		   clkdiv	  = ceilf(float(get_system_clock()) / float(spi_clock * cc_per_bit));
 	sm_config_set_clkdiv(&c, clkdiv);
 	if constexpr (debug) debugstr_spi_clock(clkdiv);
 
