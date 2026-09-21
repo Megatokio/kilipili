@@ -10,6 +10,7 @@
 #include "RsrcFS.h"
 #include "SDCard.h"
 #include "common/Dispatcher.h"
+#include "common/Logger.h"
 #include "common/cdefs.h"
 #include "common/cstrings.h"
 #include "common/trace.h"
@@ -393,8 +394,20 @@ FileType getFileType(cstr path) noexcept
 	assert(path);
 
 	TempMemSave _;
-	path = makeFullPath(path);
-	return mount(path)->getFileType(path);
+	try
+	{
+		path = makeFullPath(path);			   // throws
+		return mount(path)->getFileType(path); // throws
+	}
+	catch (Error e)
+	{
+		logline("%s", e);
+	}
+	catch (...)
+	{
+		logline("unknown error [408]");
+	}
+	return NoFile;
 }
 
 void makeDir(cstr path) throws
