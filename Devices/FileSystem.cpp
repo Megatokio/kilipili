@@ -448,6 +448,7 @@ static void remove_dir(FileSystem* fs, cstr path, cstr pattern = "") throws
 		// remove path/dirname				-> remove dir
 		// remove path/dirname/subpattern	-> remove subpattern
 
+		TempMemSave	 _;
 		DirectoryPtr dir = openDir(path);
 		while (FileInfo finfo = dir->next(pattern))
 		{
@@ -455,6 +456,7 @@ static void remove_dir(FileSystem* fs, cstr path, cstr pattern = "") throws
 			if (finfo.ftype == FileType::DirectoryFile) remove_dir(fs, filepath, subpattern);
 			else if (!sep) fs->remove(filepath);
 			// else ignore spurious dirname match
+			_.purge();
 		}
 		if (*pattern == 0) fs->remove(path);
 	}
@@ -503,6 +505,7 @@ static void copy_file(cstr q, cstr z) throws
 	assert(q);
 	assert(z);
 	debugstr("copy_file \"%s\" -> \"%s\"\n", q, z);
+	logline("copy %s", filenamefrompath(q));
 
 	FilePtr qf	 = openFile(q);
 	FilePtr zf	 = openFile(z, Devices::WRITE);
@@ -567,18 +570,21 @@ static void copy_dir(cstr indir, cstr outdir, cstr pattern = "*") throws
 		if (p || isaDirectory(infile)) return copy_dir(infile, outfile, pattern);
 		else return copy_file(infile, outfile);
 	}
-
-	DirectoryPtr dir = openDir(indir);
-	while (FileInfo finfo = dir->next(filename))
+	else
 	{
-		assert(finfo.ftype == FileType::RegularFile || finfo.ftype == FileType::DirectoryFile);
+		TempMemSave	 _;
+		DirectoryPtr dir = openDir(indir);
+		while (FileInfo finfo = dir->next(filename))
+		{
+			assert(finfo.ftype == FileType::RegularFile || finfo.ftype == FileType::DirectoryFile);
 
-		TempMemSave _;
-		cstr		infile	= catstr(indir, &"/"[is_rootdir(indir)], finfo.fname);
-		cstr		outfile = catstr(outdir, &"/"[is_rootdir(outdir)], finfo.fname);
+			cstr infile	 = catstr(indir, &"/"[is_rootdir(indir)], finfo.fname);
+			cstr outfile = catstr(outdir, &"/"[is_rootdir(outdir)], finfo.fname);
 
-		if (finfo.ftype == FileType::DirectoryFile) copy_dir(infile, outfile, pattern);
-		else if (!p) copy_file(infile, outfile);
+			if (finfo.ftype == FileType::DirectoryFile) copy_dir(infile, outfile, pattern);
+			else if (!p) copy_file(infile, outfile);
+			_.purge();
+		}
 	}
 }
 
