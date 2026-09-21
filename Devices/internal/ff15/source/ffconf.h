@@ -267,7 +267,9 @@
 */
 
 
-#define FF_FS_LOCK 4
+#ifndef FF_FS_LOCK
+  #define FF_FS_LOCK 4
+#endif
 /* The option FF_FS_LOCK switches file lock function to control duplicated file open
 /  and illegal operation to open objects. This option must be 0 when FF_FS_READONLY
 /  is 1.
