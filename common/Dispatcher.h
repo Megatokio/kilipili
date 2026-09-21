@@ -21,8 +21,8 @@ namespace Dispatcher
 	  rval == 0	 don't call again, remove me 
 	  rval < 0	 call again -rval µsec after last scheduled time for drift-free callback times
 	- The Handler must not throw.
-	- If the Handler uses temp strings then it must preserve the caller's tempmem:
-	  either create a TempMemSave or a TempMemOnStack (or a TempMem on heap).
+	- If the Handler uses temp strings then it must create a local `TempMemSave _;`
+	  to avoid flooding the heap.
 */
 using Handler = int(void* data) noexcept;
 

@@ -8,12 +8,12 @@
 #include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "common/LoadSensor.h"
-#include "common/trace.h"
 #include "common/cdefs.h"
 #include "common/memory.h"
 #include "common/stack_guard.h"
 #include "common/tempmem.h"
 #include "common/timing.h"
+#include "common/trace.h"
 #include <cstdio>
 #include <hardware/exception.h>
 #include <pico/multicore.h>
@@ -271,6 +271,8 @@ static void __noinline call_vblank_actions() noexcept
 	}
 
 	if (vblank_action) { vblank_action(); }
+
+	purge_tempmem();
 }
 
 static void RAM video_runner(int row0, uint32 cc_at_line_start)
