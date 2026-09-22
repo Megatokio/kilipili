@@ -13,8 +13,7 @@ if(${MAKE_TOOLS})
 	set(common_sources
 		linux/little_big_endian.h
 		linux/glue.cpp
-		linux/glue.h
-		linux/tempmem.cpp)
+		linux/glue.h)
 	set(common_includes
 		${CMAKE_CURRENT_LIST_DIR}/linux)
 else()
@@ -27,8 +26,7 @@ else()
 		LoadSensor.cpp
 		pico/little_big_endian.h
 		pico/glue.cpp
-		pico/glue.h
-		pico/tempmem.cpp)
+		pico/glue.h)
 	set(common_includes 
 		${CMAKE_CURRENT_LIST_DIR}/pico)
 	set(common_libraries 
@@ -75,6 +73,7 @@ add_library(kilipili_common STATIC
 	standard_types.h
 	system_clock.h 
 	template_helpers.h
+	tempmem.cpp
 	tempmem.h
 	timing.h
 	FlexQueue.h

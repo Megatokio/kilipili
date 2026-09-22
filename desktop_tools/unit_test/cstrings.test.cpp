@@ -250,20 +250,30 @@ TEST_CASE("cstrings: newcopy")
 
 TEST_CASE("cstrings: tempstr")
 {
-	TempMem z;
-	str		s1 = tempstr(20);
+	TempMemSave z;
+	str			s1 = tempstr(20);
 	CHECK(s1[20] == 0);
-	str s2 = tempstr(1); //CHECK(s2 == s1-2);	// not required but expected
+	str __unused s2 = tempstr(1);
+
+	TempMemSave	  z2;
+	cstr __unused s3 = xdupstr("x"); // purge z2 and allocates in z
+	cstr __unused s4 = xdupstr("y"); // purge z2 (again) and allocate in z
 }
 
-TEST_CASE("cstrings: tempstr")
+TEST_CASE("cstrings: xdupstr")
 {
-	TempMem z;
-	str		s1 = tempstr(20);
-	CHECK(s1[20] == 0);
-	TempMem z2;
-	//cstr s2 = xtempstr(1); CHECK(s2 == s1-2);	// not required but expected
-	cstr s2 = xdupstr("x");
+	TempMemSave z;
+	str			s1 = tempstr(2000);
+	CHECK(s1[2000] == 0);
+	str			s2 = tempstr(20000);	   // should allocate new tempmem block
+	TempMemSave z2;						   // save position at end of new block
+	s2 = dupstr("123");					   // 3rd block
+	s1 = xdupstr(s2);					   // z2 and allocate in z
+	s2 = dupstr("345");					   // allocate in z2
+	(void)dupstr("752394875239857239587"); // allocate in z2
+	CHECK(eq(s1, "123"));
+	(void)xdupstr("9483257");
+	CHECK(eq(s1, "123"));
 }
 
 TEST_CASE("cstrings: spacestr")
@@ -294,10 +304,10 @@ TEST_CASE("cstrings: xdupstr")
 	static const char s1[4] = "123";
 	const char*		  s2;
 	{
-		TempMem z;
+		TempMemSave z;
 		s2 = dupstr(s1);
 		s2 = xdupstr(s2);
-		z.purge();
+		z.purge(); // also now done by xdupstr()
 		(void)spacestr(66);
 	}
 	CHECK(eq(s1, s2));

@@ -158,8 +158,9 @@ int main()
 	Dispatcher::addHandler(&pollUSB);
 
 	for (;;)
-	{
+	{	
 		Dispatcher::run(1000); // blink the LED
+		purge_tempmem();
 	}
 }
 ```

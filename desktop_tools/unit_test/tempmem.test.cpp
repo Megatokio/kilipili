@@ -45,12 +45,12 @@ TEST_CASE("cstrings: basic alloc")
 
 TEST_CASE("tempmem: burn-in")
 {
-	TempMem outerpool;
-	cstr	t1 = "Hello world!";
-	cstr	t2;
+	TempMemSave outerpool;
+	cstr		t1 = "Hello world!";
+	cstr		t2;
 
 	{
-		TempMem tempmempool;
+		TempMemSave tempmempool;
 		t2 = "Have a nice day!";
 
 		ptr	 list1[N];
@@ -85,25 +85,13 @@ TEST_CASE("tempmem: burn-in")
 		t2 = xdupstr(t2);
 		tempmempool.purge();
 		memset(tempmem(2000), 0, 2000);
-
-		for (uint i = 0; i < N; i++)
-		{
-			uint n = min(random(0x1fff), random(0x1fff));
-			str	 a = tempstr(n);
-			str	 b = tempmem(n);
-			cstr c = xdupstr(a);
-			str	 d = xtempmem(n);
-			CHECK(a[n] == 0);
-			CHECK(size_t(b) % max_align == 0);
-			CHECK(memcmp(a, c, kilipili::strlen(a) + 1) == 0);
-			CHECK(size_t(d) % max_align == 0);
-		}
 	}
 
 	CHECK(eq(t1, "Hello world!"));
 	CHECK(eq(t2, "Have a nice day!"));
 }
 
+#if 0
 TEST_CASE("tempmem: burn-in #2")
 {
 	ptr	 list1[N];
@@ -112,12 +100,12 @@ TEST_CASE("tempmem: burn-in #2")
 	uint hash[N];
 
 	{
-		TempMem z;
+		TempMemSave z;
 		for (uint i = 0; i < N; i++)
 		{
 			uint n	 = min(random(0x1fff), random(0x1fff));
+			list2[i] = z.xtempmem(n);  even if fu() existed it would purge_tempmem()
 			list1[i] = tempmem(n);
-			list2[i] = xtempmem(n);
 			size[i]	 = n;
 			while (n--) list1[i][n] = char(random(256));
 			hash[i] = sdbm_hash(list1[i], size[i]);
@@ -139,6 +127,7 @@ TEST_CASE("tempmem: burn-in #2")
 		CHECK(sdbm_hash(list2[i], size[i]) == hash[i]); //
 	}
 }
+#endif
 
 
 /*

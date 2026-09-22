@@ -4,61 +4,75 @@
 
 #include "tempmem.h"
 #include "cdefs.h"
+#include "template_helpers.h"
 #include <cstring>
 #include <new>
-#include <pico/sync.h>
-
+#if !defined MAKE_TOOLS
+  #include <pico/sync.h>
+#endif
 
 namespace kilipili
 {
 
 char emptystr[1] = {'\0'};
 
-// initial pool sizes and size increments:
-static constexpr uint size0 = 800; // core 0
-static constexpr uint size1 = 100; // core 1
+using poolsize_t = select_type<sizeof(ptr) == 8, uint32, uint16>;
 
-template<uint SZ = 8>
-struct TPool
+struct Pool
 {
-	TPool(uint16 sz, TPool* prev) noexcept : prev(prev), size(sz), free(sz) {}
+	Pool(poolsize_t sz, Pool* prev) noexcept : prev(prev), size(sz), free(sz) {}
 	ptr	 current_position() noexcept { return &data[free]; }
 	bool contains(cptr s) noexcept { return size_t(s - data) <= size; }
 
-	TPool* prev;
-	uint16 size;
-	uint16 free;
-	char   data[SZ];
+	Pool*	   prev;
+	poolsize_t size;
+	poolsize_t free;
+	char	   data[8];
 };
 
-using Pool = TPool<8>;
+template<poolsize_t SZ>
+struct PoolSZ : public Pool
+{
+	PoolSZ() noexcept : Pool(SZ, nullptr) {}
+	char more_data[SZ - sizeof(data)];
+};
 
-static union
-{
-	Pool  pool0 {size0, nullptr};
-	uchar xxx[size0 + sizeof(TPool<0>)];
-};
-static union
-{
-	Pool  pool1 {size1, nullptr};
-	uchar yyy[size1 + sizeof(TPool<0>)];
-};
+
+#if defined MAKE_TOOLS
+
+static constexpr poolsize_t std_pool_size = 8000;
+static thread_local Pool*	current_pool  = new PoolSZ<std_pool_size>();
+static thread_local ptr		save_position = current_pool->data + std_pool_size;
+
+#else
+
+// initial pool sizes and size increments:
+static constexpr poolsize_t size0 = 800; // core 0
+static constexpr poolsize_t size1 = 100; // core 1
+
+static PoolSZ<size0> pool0;
+static PoolSZ<size1> pool1;
 
 static Pool* pools[2] = {&pool0, &pool1};						  // current pools
-static ptr	 saves[2] = {&pool0.data[size0], &pool1.data[size1]}; // TempMemSave
+static ptr	 saves[2] = {&pool0.data[size0], &pool1.data[size1]}; // last save position
+
+  #define current_pool	pools[get_core_num()]
+  #define save_position saves[get_core_num()]
+  #define std_pool_size (get_core_num() ? size1 : size0)
+
+#endif
 
 
 // ***********************************************************************
 
 
-static void restore_tempmem(ptr* const new_save = nullptr) noexcept
+static void restore_tempmem(ptr* const new_save) noexcept
 {
 	// purge tempmem up to the save position:
 
-	uint core = get_core_num();
-	ptr	 save = saves[core];
-	if (new_save) saves[core] = *new_save;
-	Pool*& pool = pools[core];
+	ptr save = save_position;
+	if (new_save) save_position = *new_save;
+	Pool*& pool = current_pool;
 
 	// while save position is not in the current_pool:
 	while (!pool->contains(save))
@@ -76,18 +90,18 @@ static void restore_tempmem(ptr* const new_save = nullptr) noexcept
 
 static ptr alloc_tempmem(uint sz, bool aligned)
 {
-	uint		   core			  = get_core_num();
-	Pool*&		   pool			  = pools[core];
+	Pool*&		   pool			  = current_pool;
 	constexpr uint alignment_mask = sizeof(ptr) - 1;
 
 	if (sz > pool->free)
 	{
-		uint len = core ? size1 : size0;
+		uint len = std_pool_size;
 		if (sz * 2 > len) len = (sz + alignment_mask) & ~alignment_mask;
 
-		Pool* p = reinterpret_cast<Pool*>(malloc(sizeof(TPool<0>) + len));
+		assert(poolsize_t(len) == len);
+		Pool* p = reinterpret_cast<Pool*>(malloc(sizeof(Pool) - sizeof(Pool::data) + len));
 		if (p == nullptr) throw OUT_OF_MEMORY;
-		pool = new (p) Pool(uint16(len), pool);
+		pool = new (p) Pool(poolsize_t(len), pool);
 	}
 
 	pool->free -= sz;
@@ -118,8 +132,8 @@ str newcopy(cstr s)
 
 	if unlikely (!s) return nullptr;
 
-	uint len = uint(strlen(s)) + 1;
-	str	 z	 = new char[len];
+	size_t len = strlen(s) + 1;
+	str	   z   = new char[len];
 	memcpy(z, s, len);
 	return z;
 }
@@ -128,7 +142,7 @@ void purge_tempmem() noexcept
 {
 	// reset tempmem to the last save position:
 
-	restore_tempmem();
+	restore_tempmem(nullptr);
 }
 
 ptr tempstr(uint len)
@@ -170,9 +184,8 @@ TempMemSave::TempMemSave() noexcept
 {
 	// save current tempmem position for later restore:
 
-	uint core	= get_core_num();
-	old_save	= saves[core];
-	saves[core] = pools[core]->current_position();
+	old_save	  = save_position;
+	save_position = current_pool->current_position();
 }
 
 TempMemSave::~TempMemSave() noexcept
@@ -189,7 +202,7 @@ void TempMemSave::purge() noexcept
 	restore_tempmem(nullptr);
 }
 
-str TempMemSave::xdupstr(cstr s)
+str xdupstr(cstr s)
 {
 	// purge tempmem and copy the (presumably temp) string before the save position
 	// so that the string survives when this TempMemSave is destroyed.
@@ -197,9 +210,8 @@ str TempMemSave::xdupstr(cstr s)
 	if unlikely (s == nullptr) return nullptr;
 	if unlikely (s[0] == 0) return emptystr;
 
-	uint   core	 = get_core_num();
-	Pool*& pool	 = pools[core];
-	ptr&   save	 = saves[core];
+	Pool*& pool	 = current_pool;
+	ptr&   save	 = save_position;
 	Pool*  qpool = nullptr;
 
 	// purge pools until we reach the pool which contains the current save position.
@@ -214,12 +226,12 @@ str TempMemSave::xdupstr(cstr s)
 		else free(z);
 	}
 
-	assert(size_t(save - pool->data) == uint16(save - pool->data));
-	pool->free = uint16(save - pool->data);
+	assert(size_t(save - pool->data) == poolsize_t(save - pool->data));
+	pool->free = poolsize_t(save - pool->data);
 
-	size_t slen = strlen(s) + 1;
-	save		= alloc_tempmem(slen, false); // this does not write anything into data[]
-	memmove(save, s, slen);					  // s may be -unprotected- in the current pool
+	uint slen = uint(strlen(s) + 1);
+	save	  = alloc_tempmem(poolsize_t(slen), false); // this does not write anything into data[]
+	memmove(save, s, slen);								// s may be -unprotected- in the current pool
 	free(qpool);
 	return save;
 }
