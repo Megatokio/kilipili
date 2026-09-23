@@ -97,7 +97,7 @@ extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
 
 #undef debugstr
 #ifdef DEBUG
-  #define debugstr(...) ::fprintf(stderr, __VA_ARGS__)
+  #define debugstr(...) fprintf(stderr, __VA_ARGS__)
 #else
   #define debugstr(...) ((void)0)
 #endif
@@ -106,11 +106,10 @@ extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
   #define debug_break() __asm__ volatile("bkpt")
 #endif
 
-#define LOL                                                         \
-	do {                                                            \
-		::printf("@%s:%i\n", filenamefrompath(__FILE__), __LINE__); \
-		stdio_flush();                                              \
-	}                                                               \
+#define LOL                                                                \
+	do {                                                                   \
+		fprintf(stderr, "@%s:%i\n", filenamefrompath(__FILE__), __LINE__); \
+	}                                                                      \
 	while (0);
 
 // WARNING: if OPTION_MEMORY_ID is defined it must be defined in the main program CMakeLists.txt.

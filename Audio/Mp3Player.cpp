@@ -12,7 +12,6 @@
 #include "common/trace.h"
 #include <cstdio>
 #include <cstring>
-#include <new>
 
 namespace kilipili::Audio
 {

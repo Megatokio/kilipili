@@ -229,10 +229,6 @@ static void __noreturn core1_runner() noexcept
 			}
 		}
 	}
-	catch (std::exception& e)
-	{
-		panic("core1: %s", e.what());
-	}
 	catch (Error e)
 	{
 		panic("core1: %s", e);

@@ -7,8 +7,8 @@
 //       SHOULD ONLY CONSIST OF PREPROCESSOR DIRECTIVES
 // -----------------------------------------------------
 
-#ifndef KIBOARD
-#define KIBOARD
+#ifndef KIBOARD_H
+#define KIBOARD_H
 
 // Serial
 #define PICO_DEFAULT_UART		 1
@@ -56,8 +56,8 @@
 
 // If you have one or more sdcard connectors on your board
 // #define SDCARD_SPI and the RX, CLK, TX and CS pins.
-// If you have two cards connectors also define CS2 pin.
-// 2 or more connectors must be connected to the same spi bus.
+// If you have two card connectors also define CS2 pin.
+// 2 or more connectors must be connected to the same SPI bus.
 
 #define SDCARD_SPI
 #define SDCARD_SPI_RX_PIN  16

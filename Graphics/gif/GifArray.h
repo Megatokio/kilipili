@@ -209,7 +209,7 @@ void GifArray<T>::Shrink(int new_count) noexcept
 		array		 = newcopy(old_array, new_count);
 		release(old_array);
 	}
-	catch (Error)
+	catch (...)
 	{} // but just don't do it if reallocation fails
 }
 

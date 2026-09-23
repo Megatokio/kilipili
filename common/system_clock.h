@@ -15,7 +15,7 @@
 #endif
 
 
-constexpr Error UNSUPPORTED_SYSTEM_CLOCK = "requested system clock is not supported";
+constexpr char UNSUPPORTED_SYSTEM_CLOCK[] = "requested system clock is not supported";
 
 
 namespace kilipili

@@ -549,7 +549,7 @@ void SDCard::connect() throws
 		sector_count	  = SIZE(total_size >> ss_write);
 		debugstr("SDCard:: ready\n");
 	}
-	catch (cstr& e)
+	catch (Error e)
 	{
 		debugstr("  %s\n", e);
 		disconnect();

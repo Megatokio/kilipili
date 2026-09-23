@@ -44,7 +44,7 @@ void ScanlineBuffer::setup(const VgaMode& vga_mode, uint buffer_size) throws
 	catch (...)
 	{
 		teardown();
-		throw OUT_OF_MEMORY;
+		throw;
 	}
 }
 

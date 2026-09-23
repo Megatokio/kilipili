@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "malloc.h"
-#include "../common/cdefs.h"
+#include "cdefs.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -79,11 +79,6 @@ void operator delete[](void* p, __unused size_t n) noexcept { free(p); }
   #endif
 
 #endif
-
-namespace kilipili
-{
-extern void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...);
-}
 
 
 /*	_________________________________________________________________________________________________

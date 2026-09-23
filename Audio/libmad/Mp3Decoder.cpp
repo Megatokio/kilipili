@@ -9,7 +9,6 @@
 #include "common/trace.h"
 #include <cstdio>
 #include <cstring>
-#include <new>
 
 namespace kilipili::Audio
 {
@@ -94,6 +93,10 @@ Error Mp3Decoder::play(int stream_options) noexcept
 	catch (Error e)
 	{
 		return e;
+	}
+	catch (...)
+	{
+		return UNKNOWN_ERROR;
 	}
 }
 

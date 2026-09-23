@@ -20,6 +20,7 @@ set(PICO_BOARD "vgaboard" CACHE STRING "the target board, e.g. \"vgaboard\"")
 add_compile_definitions(
 	MAKE_TOOLS
 	PICO_BOARD_H="boards/${PICO_BOARD}.h"
+	PICO_NO_HARDWARE=1
 	)
 
 add_subdirectory(kilipili/common)
