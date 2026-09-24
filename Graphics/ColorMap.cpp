@@ -25,10 +25,10 @@ constexpr Color default_i1_colors[2] =
 
 constexpr Color default_i2_colors[4] =
 {
-	vga::black,
-	vga::dark_grey,
-	vga::light_grey,
-	vga::bright_white,
+	black,
+	dark_grey,
+	light_grey,
+	white,
 };
 
 constexpr Color default_i4_colors[16] =
@@ -98,15 +98,15 @@ constexpr Color vga4_colors[16] =
 	vga::blue,
 	vga::magenta,
 	vga::cyan,
+	vga::light_grey,
+	vga::dark_grey,
+	vga::light_red,
+	vga::light_green,
+	vga::light_yellow,
+	vga::light_blue,
+	vga::light_magenta,
+	vga::light_cyan,
 	vga::white,
-	vga::bright_black,
-	vga::bright_red,
-	vga::bright_green,
-	vga::bright_yellow,
-	vga::bright_blue,
-	vga::bright_magenta,
-	vga::bright_cyan,
-	vga::bright_white,
 };
 
 constexpr Color vga8_colors[256] =
@@ -123,15 +123,15 @@ constexpr Color vga8_colors[256] =
 	vga::blue,
 	vga::magenta,
 	vga::cyan,
+	vga::light_grey,
+	vga::dark_grey,
+	vga::light_red,
+	vga::light_green,
+	vga::light_yellow,
+	vga::light_blue,
+	vga::light_magenta,
+	vga::light_cyan,
 	vga::white,
-	vga::bright_black,
-	vga::bright_red,
-	vga::bright_green,
-	vga::bright_yellow,
-	vga::bright_blue,
-	vga::bright_magenta,
-	vga::bright_cyan,
-	vga::bright_white,
 
 #define RGB(R, G, B) Color::fromRGB8(R * 51, G * 51, B * 51)
 #define RGx(R, G)	 RGB(R, G, 0), RGB(R, G, 1), RGB(R, G, 2), RGB(R, G, 3), RGB(R, G, 4), RGB(R, G, 5)

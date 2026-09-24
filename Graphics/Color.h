@@ -272,49 +272,79 @@ inline constexpr int Color::distance(const Color& b) const noexcept
 
 // =========================== Some Basic Colors ================================
 
-constexpr Color black		   = Color::fromRGB8(0x00, 0x00, 0x00);
-constexpr Color dark_grey	   = Color::fromRGB8(0x44, 0x44, 0x44);
-constexpr Color grey		   = Color::fromRGB8(0x88, 0x88, 0x88);
-constexpr Color blue		   = Color::fromRGB8(0x00, 0x00, 0xCC);
-constexpr Color red			   = Color::fromRGB8(0xCC, 0x00, 0x00);
-constexpr Color magenta		   = Color::fromRGB8(0xCC, 0x00, 0xCC);
-constexpr Color green		   = Color::fromRGB8(0x00, 0xCC, 0x00);
-constexpr Color cyan		   = Color::fromRGB8(0x00, 0xCC, 0xCC);
-constexpr Color yellow		   = Color::fromRGB8(0xCC, 0xCC, 0x00);
-constexpr Color white		   = Color::fromRGB8(0xCC, 0xCC, 0xCC);
+// grey scale: names for 8 values (3 significant bits):
+constexpr Color black		 = Color::fromGrey8(0b00000000);
+constexpr Color bright_black = Color::fromGrey8(0b00100100);
+constexpr Color dark_grey	 = Color::fromGrey8(0b01001001);
+constexpr Color grey		 = Color::fromGrey8(0b01101101);
+constexpr Color light_grey	 = Color::fromGrey8(0b10010010);
+constexpr Color dark_white	 = Color::fromGrey8(0b10110110);
+constexpr Color white		 = Color::fromGrey8(0b11011011);
+constexpr Color bright_white = Color::fromGrey8(0b11111111);
+
+// pastell colors: 100% + 66%
+constexpr Color pastell_blue	= Color::fromRGB8(0xAA, 0xAA, 0xFF);
+constexpr Color pastell_red		= Color::fromRGB8(0xFF, 0xAA, 0xAA);
+constexpr Color pastell_magenta = Color::fromRGB8(0xFF, 0xAA, 0xFF);
+constexpr Color pastell_green	= Color::fromRGB8(0xAA, 0xFF, 0xAA);
+constexpr Color pastell_cyan	= Color::fromRGB8(0xAA, 0xFF, 0xFF);
+constexpr Color pastell_yellow	= Color::fromRGB8(0xFF, 0xFF, 0xAA);
+
+// light colors: 100% + 33%
+constexpr Color light_blue	  = Color::fromRGB8(0x55, 0x55, 0xFF);
+constexpr Color light_red	  = Color::fromRGB8(0xFF, 0x55, 0x55);
+constexpr Color light_magenta = Color::fromRGB8(0xFF, 0x55, 0xFF);
+constexpr Color light_green	  = Color::fromRGB8(0x55, 0xFF, 0x55);
+constexpr Color light_cyan	  = Color::fromRGB8(0x55, 0xFF, 0xFF);
+constexpr Color light_yellow  = Color::fromRGB8(0xFF, 0xFF, 0x55);
+
+// bright colors: 100%
 constexpr Color bright_blue	   = Color::fromRGB8(0x00, 0x00, 0xFF);
 constexpr Color bright_red	   = Color::fromRGB8(0xFF, 0x00, 0x00);
 constexpr Color bright_magenta = Color::fromRGB8(0xFF, 0x00, 0xFF);
 constexpr Color bright_green   = Color::fromRGB8(0x00, 0xFF, 0x00);
 constexpr Color bright_cyan	   = Color::fromRGB8(0x00, 0xFF, 0xFF);
 constexpr Color bright_yellow  = Color::fromRGB8(0xFF, 0xFF, 0x00);
-constexpr Color bright_white   = Color::fromRGB8(0xFF, 0xFF, 0xFF);
+
+// normal colors: 80%
+constexpr Color blue	= Color::fromRGB8(0x00, 0x00, 0xCC);
+constexpr Color red		= Color::fromRGB8(0xCC, 0x00, 0x00);
+constexpr Color magenta = Color::fromRGB8(0xCC, 0x00, 0xCC);
+constexpr Color green	= Color::fromRGB8(0x00, 0xCC, 0x00);
+constexpr Color cyan	= Color::fromRGB8(0x00, 0xCC, 0xCC);
+constexpr Color yellow	= Color::fromRGB8(0xCC, 0xCC, 0x00);
+
+// dark colors: 40%
+constexpr Color dark_blue	 = Color::fromRGB8(0x00, 0x00, 0x66);
+constexpr Color dark_red	 = Color::fromRGB8(0x66, 0x00, 0x00);
+constexpr Color dark_magenta = Color::fromRGB8(0x66, 0x00, 0x66);
+constexpr Color dark_green	 = Color::fromRGB8(0x00, 0x66, 0x00);
+constexpr Color dark_cyan	 = Color::fromRGB8(0x00, 0x66, 0x66);
+constexpr Color dark_yellow	 = Color::fromRGB8(0x66, 0x66, 0x00);
 
 // 4 bit VGA colors:
 // note: CGA RGBI monitors used to reduce G in yellow to 0x55
 // --> https://en.wikipedia.org/wiki/ANSI_escape_code#3-bit_and_4-bit
 namespace vga
 {
-constexpr Color black	= Color::fromRGB8(0x00, 0x00, 0x00);
+constexpr Color black	   = Color::fromRGB8(0x00, 0x00, 0x00);
+constexpr Color dark_grey  = Color::fromRGB8(0x55, 0x55, 0x55);
+constexpr Color light_grey = Color::fromRGB8(0xAA, 0xAA, 0xAA);
+constexpr Color white	   = Color::fromRGB8(0xFF, 0xFF, 0xFF);
+
 constexpr Color blue	= Color::fromRGB8(0x00, 0x00, 0xAA);
 constexpr Color red		= Color::fromRGB8(0xAA, 0x00, 0x00);
 constexpr Color magenta = Color::fromRGB8(0xAA, 0x00, 0xAA);
 constexpr Color green	= Color::fromRGB8(0x00, 0xAA, 0x00);
 constexpr Color cyan	= Color::fromRGB8(0x00, 0xAA, 0xAA);
 constexpr Color yellow	= Color::fromRGB8(0xAA, 0xAA, 0x00);
-constexpr Color white	= Color::fromRGB8(0xAA, 0xAA, 0xAA);
 
-constexpr Color bright_black   = Color::fromRGB8(0x55, 0x55, 0x55);
-constexpr Color bright_blue	   = Color::fromRGB8(0x55, 0x55, 0xFF);
-constexpr Color bright_red	   = Color::fromRGB8(0xFF, 0x55, 0x55);
-constexpr Color bright_magenta = Color::fromRGB8(0xFF, 0x55, 0xFF);
-constexpr Color bright_green   = Color::fromRGB8(0x55, 0xFF, 0x55);
-constexpr Color bright_cyan	   = Color::fromRGB8(0x55, 0xFF, 0xFF);
-constexpr Color bright_yellow  = Color::fromRGB8(0xFF, 0xFF, 0x55);
-constexpr Color bright_white   = Color::fromRGB8(0xFF, 0xFF, 0xFF);
-
-constexpr Color light_grey = white;
-constexpr Color dark_grey  = bright_black;
+constexpr Color light_blue	  = Color::fromRGB8(0x55, 0x55, 0xFF);
+constexpr Color light_red	  = Color::fromRGB8(0xFF, 0x55, 0x55);
+constexpr Color light_magenta = Color::fromRGB8(0xFF, 0x55, 0xFF);
+constexpr Color light_green	  = Color::fromRGB8(0x55, 0xFF, 0x55);
+constexpr Color light_cyan	  = Color::fromRGB8(0x55, 0xFF, 0xFF);
+constexpr Color light_yellow  = Color::fromRGB8(0xFF, 0xFF, 0x55);
 } // namespace vga
 
 } // namespace kilipili::Graphics
