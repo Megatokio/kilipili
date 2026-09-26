@@ -307,11 +307,17 @@ template<ColorMode CM>
 FrameBuffer(RCPtr<Graphics::Pixmap<CM>>, const Graphics::ColorMap<get_colordepth(CM)>*)
 	-> FrameBuffer<Graphics::Pixmap<CM>>;
 
-template<ColorMode CM>
-FrameBuffer(Graphics::Pixmap<CM>*) -> FrameBuffer<Graphics::Pixmap<CM>>;
+// template<ColorMode CM>
+// FrameBuffer(Graphics::Pixmap<CM>*) -> FrameBuffer<Graphics::Pixmap<CM>>;
+//
+// template<ColorMode CM>
+// FrameBuffer(RCPtr<Graphics::Pixmap<CM>>) -> FrameBuffer<Graphics::Pixmap<CM>>;
 
-template<ColorMode CM>
-FrameBuffer(RCPtr<Graphics::Pixmap<CM>>) -> FrameBuffer<Graphics::Pixmap<CM>>;
+template<class T>
+FrameBuffer(T*) -> FrameBuffer<T>;
+
+template<class T>
+FrameBuffer(RCPtr<T>) -> FrameBuffer<T>;
 
 } // namespace kilipili::Video
 

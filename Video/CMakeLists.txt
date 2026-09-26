@@ -70,6 +70,8 @@ add_library(kilipili_video STATIC
 	UniColorBackdrop.cpp  
 	HamImageVideoPlane.h 
 	HamImageVideoPlane.cpp
+	FrameBuffer<SimpleCharMap>.h 
+	FrameBuffer<CharMap>.h 
 )
 
 target_compile_definitions(kilipili_video PUBLIC  
