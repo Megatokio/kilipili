@@ -49,6 +49,8 @@ add_library(kilipili_graphics STATIC
 	Pixmap_wAttr.cpp
 	systemfont.cpp 
 	systemfont.h
+	CharMap.h CharMap.cpp
+	SimpleCharMap.h SimpleCharMap.cpp
 )
 
 target_compile_definitions(kilipili_graphics PUBLIC  
