@@ -1,4 +1,4 @@
-// Copyright (c) 2025 - 2025 kio@little-bat.de
+// Copyright (c) 2025 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -7,7 +7,15 @@
 namespace kilipili::Graphics
 {
 
+// old format: all bytes of each char in one block:
+//
 extern const unsigned char systemfont256x12[256 * 12];
+
+// new format: all bytes of each scanline in one block:
+//
+extern const unsigned char latin1_256x12[12][256];
+extern const unsigned char ascii_256x12_inverse[12][256];
+
 
 // clang-format off
 enum:char
