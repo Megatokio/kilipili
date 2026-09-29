@@ -12,6 +12,15 @@ namespace kilipili::Graphics
 // how ugly can it be?
 #define AttrModePixmap Pixmap<CM, typename std::enable_if_t<is_attribute_mode(CM)>>
 
+using Pixmap_a1w1 = Pixmap<colormode_a1w1>;
+using Pixmap_a1w2 = Pixmap<colormode_a1w2>;
+using Pixmap_a1w4 = Pixmap<colormode_a1w4>;
+using Pixmap_a1w8 = Pixmap<colormode_a1w8>;
+using Pixmap_a2w1 = Pixmap<colormode_a2w1>;
+using Pixmap_a2w2 = Pixmap<colormode_a2w2>;
+using Pixmap_a2w4 = Pixmap<colormode_a2w4>;
+using Pixmap_a2w8 = Pixmap<colormode_a2w8>;
+
 
 /***************************************************************************
 				Template for the attribute color PixMaps
@@ -21,6 +30,10 @@ template<ColorMode CM>
 class AttrModePixmap final : public Pixmap<ColorMode(get_attrmode(CM))>
 {
 public:
+	static constexpr bool flag_wAttr		   = true;
+	static constexpr bool flag_is_direct_color = false;
+	static constexpr bool flag_is_true_color   = true;
+
 	static constexpr ColorDepth CD = get_colordepth(CM); // 0 .. 4  log2 of bits per color in attributes[]
 	static constexpr AttrMode	AM = get_attrmode(CM);	 // 0 .. 1  log2 of bits per pixel in pixmap[]
 	static constexpr AttrWidth	AW = get_attrwidth(CM);	 // 0 .. 3  log2 of width of color cells

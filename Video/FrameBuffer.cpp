@@ -1,9 +1,8 @@
-// Copyright (c) 2025 - 2025 kio@little-bat.de
+// Copyright (c) 2025 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "FrameBuffer.h"
-#include "Pixmap_wAttr.h"
 #include <hardware/gpio.h>
 
 #define XRAM __attribute__((section(".scratch_x.FB" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
@@ -14,13 +13,13 @@ namespace kilipili::Video
 {
 using namespace Graphics;
 
-void RAM FrameBuffer<ColorMode::colormode_rgb>::vblank(VideoPlane* vp) noexcept
+void RAM FrameBuffer<Pixmap_rgb>::vblank(VideoPlane* vp) noexcept
 {
 	auto* fb   = reinterpret_cast<FrameBuffer*>(vp);
 	fb->pixels = fb->pixmap->pixmap;
 }
 
-void XRAM FrameBuffer<colormode_rgb>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void XRAM FrameBuffer<Pixmap_rgb>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	// we don't check the row
 	// we rely on do_vblank() to reset the pointer
@@ -35,7 +34,7 @@ void XRAM FrameBuffer<colormode_rgb>::render(VideoPlane* vp, int __unused row, i
 
 //	_____________________________________________________________________________________
 
-void RAM FrameBuffer<colormode_i1>::vblank(VideoPlane* vp) noexcept
+void RAM FrameBuffer<Pixmap_i1>::vblank(VideoPlane* vp) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
@@ -43,7 +42,7 @@ void RAM FrameBuffer<colormode_i1>::vblank(VideoPlane* vp) noexcept
 	//fb->scanline_renderer.vblank();	nop
 }
 
-void XRAM FrameBuffer<colormode_i1>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void XRAM FrameBuffer<Pixmap_i1>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
@@ -60,14 +59,14 @@ void XRAM FrameBuffer<colormode_i1>::render(VideoPlane* vp, int __unused row, in
 
 //	_____________________________________________________________________________________
 
-void RAM FrameBuffer<colormode_i2>::vblank(VideoPlane* vp) noexcept
+void RAM FrameBuffer<Pixmap_i2>::vblank(VideoPlane* vp) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
 	fb->pixels = fb->pixmap->pixmap;
 }
 
-void XRAM FrameBuffer<colormode_i2>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void XRAM FrameBuffer<Pixmap_i2>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
@@ -82,14 +81,14 @@ void XRAM FrameBuffer<colormode_i2>::render(VideoPlane* vp, int __unused row, in
 
 //	_____________________________________________________________________________________
 
-void RAM FrameBuffer<colormode_i4>::vblank(VideoPlane* vp) noexcept
+void RAM FrameBuffer<Pixmap_i4>::vblank(VideoPlane* vp) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
 	fb->pixels = fb->pixmap->pixmap;
 }
 
-void XRAM FrameBuffer<colormode_i4>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void XRAM FrameBuffer<Pixmap_i4>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
@@ -104,14 +103,14 @@ void XRAM FrameBuffer<colormode_i4>::render(VideoPlane* vp, int __unused row, in
 
 //	_____________________________________________________________________________________
 
-void RAM FrameBuffer<colormode_i8>::vblank(VideoPlane* vp) noexcept
+void RAM FrameBuffer<Pixmap_i8>::vblank(VideoPlane* vp) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
 	fb->pixels = fb->pixmap->pixmap;
 }
 
-void XRAM FrameBuffer<colormode_i8>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void XRAM FrameBuffer<Pixmap_i8>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
@@ -160,19 +159,19 @@ void XRAM FrameBufferBase_wAttr::render(VideoPlane* vp, int __unused row, int wi
 // =========================================================================
 // define them all, the linker will know what we need:
 
-template class FrameBuffer<colormode_i1>;
-template class FrameBuffer<colormode_i2>;
-template class FrameBuffer<colormode_i4>;
-template class FrameBuffer<colormode_i8>;
-template class FrameBuffer<colormode_rgb>;
-template class FrameBuffer<colormode_a1w1>;
-template class FrameBuffer<colormode_a1w2>;
-template class FrameBuffer<colormode_a1w4>;
-template class FrameBuffer<colormode_a1w8>;
-template class FrameBuffer<colormode_a2w1>;
-template class FrameBuffer<colormode_a2w2>;
-template class FrameBuffer<colormode_a2w4>;
-template class FrameBuffer<colormode_a2w8>;
+template class FrameBuffer<Pixmap_i1>;
+template class FrameBuffer<Pixmap_i2>;
+template class FrameBuffer<Pixmap_i4>;
+template class FrameBuffer<Pixmap_i8>;
+template class FrameBuffer<Pixmap_rgb>;
+template class FrameBuffer<Pixmap_a1w1>;
+template class FrameBuffer<Pixmap_a1w2>;
+template class FrameBuffer<Pixmap_a1w4>;
+template class FrameBuffer<Pixmap_a1w8>;
+template class FrameBuffer<Pixmap_a2w1>;
+template class FrameBuffer<Pixmap_a2w2>;
+template class FrameBuffer<Pixmap_a2w4>;
+template class FrameBuffer<Pixmap_a2w8>;
 
 } // namespace kilipili::Video
 

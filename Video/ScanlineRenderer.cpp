@@ -1,4 +1,4 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -323,7 +323,7 @@ void XRAM ScanlineRenderer_rgb(uint32* dest, uint width, const uint8* q) noexcep
 // attribute mode with 1 bit/pixel with 1 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<colormode_a1w1>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
+void XRAM ScanlineRenderer<Pixmap_a1w1>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_1bpp;
 	setup_if_needed<ip>();
@@ -362,7 +362,7 @@ void XRAM ScanlineRenderer<colormode_a1w1>(uint32* _dest, uint width, const uint
 // attribute mode with 1 bit/pixel with 2 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<colormode_a1w2>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
+void XRAM ScanlineRenderer<Pixmap_a1w2>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_1bpp;
 	setup_if_needed<ip>();
@@ -397,7 +397,7 @@ void XRAM ScanlineRenderer<colormode_a1w2>(uint32* _dest, uint width, const uint
 // attribute mode with 1 bit/pixel with 4 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<colormode_a1w4>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
+void XRAM ScanlineRenderer<Pixmap_a1w4>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_1bpp;
 	setup_if_needed<ip>();
@@ -431,7 +431,7 @@ void XRAM ScanlineRenderer<colormode_a1w4>(uint32* _dest, uint width, const uint
 // attribute mode with 1 bit/pixel with 8 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<colormode_a1w8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
+void XRAM ScanlineRenderer<Pixmap_a1w8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	// 2023-10-27
 	// this version displays 1024x768 with avg/max load = 247.1/259.3MHz
@@ -605,7 +605,7 @@ void XRAM ScanlineRenderer<colormode_a1w8>(uint32* _dest, uint width, const uint
 // attribute mode with 2 bit/pixel with 1 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<colormode_a2w1>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
+void XRAM ScanlineRenderer<Pixmap_a2w1>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_2bpp;
 	setup_if_needed<ip>();
@@ -645,7 +645,7 @@ void XRAM ScanlineRenderer<colormode_a2w1>(uint32* _dest, uint width, const uint
 // attribute mode with 2 bit/pixel with 2 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<colormode_a2w2>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
+void XRAM ScanlineRenderer<Pixmap_a2w2>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_2bpp;
 	setup_if_needed<ip>();
@@ -681,7 +681,7 @@ void XRAM ScanlineRenderer<colormode_a2w2>(uint32* _dest, uint width, const uint
 // attribute mode with 2 bit/pixel with 4 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<colormode_a2w4>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
+void XRAM ScanlineRenderer<Pixmap_a2w4>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_2bpp;
 	setup_if_needed<ip>();
@@ -716,7 +716,7 @@ void XRAM ScanlineRenderer<colormode_a2w4>(uint32* _dest, uint width, const uint
 // attribute mode with 2 bit/pixel with 8 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<colormode_a2w8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
+void XRAM ScanlineRenderer<Pixmap_a2w8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = ip_2bpp;
 	setup_if_needed<ip>();

@@ -1,8 +1,9 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "Pixmap_wAttr.h"
 #include "graphics_types.h"
 
 
@@ -94,24 +95,24 @@ struct ScanlineRenderer_i8
 void ScanlineRenderer_rgb(uint32* scanline_out, uint width_in_pixels, const uint8* pixels_in) noexcept;
 
 // _________________________________________________________________
-template<ColorMode CM>
+template<class Pixmap>
 void ScanlineRenderer(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
 template<>
-void ScanlineRenderer<Graphics::colormode_a1w1>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
+void ScanlineRenderer<Graphics::Pixmap_a1w1>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::colormode_a1w2>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
+void ScanlineRenderer<Graphics::Pixmap_a1w2>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::colormode_a1w4>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
+void ScanlineRenderer<Graphics::Pixmap_a1w4>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::colormode_a1w8>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
+void ScanlineRenderer<Graphics::Pixmap_a1w8>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::colormode_a2w1>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
+void ScanlineRenderer<Graphics::Pixmap_a2w1>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::colormode_a2w2>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
+void ScanlineRenderer<Graphics::Pixmap_a2w2>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::colormode_a2w4>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
+void ScanlineRenderer<Graphics::Pixmap_a2w4>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::colormode_a2w8>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
+void ScanlineRenderer<Graphics::Pixmap_a2w8>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
 
 // _________________________________________________________________
 struct HamImageScanlineRenderer

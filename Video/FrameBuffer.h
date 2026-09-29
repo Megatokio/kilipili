@@ -1,10 +1,11 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
 #include "ColorMap.h"
 #include "Pixmap.h"
+#include "Pixmap_wAttr.h"
 #include "ScanlineRenderer.h"
 #include "VideoPlane.h"
 
@@ -15,7 +16,7 @@ namespace kilipili::Video
 /*	_____________________________________________________________________________________
 	Template class FrameBuffer renders whole Pixmaps.
 */
-template<ColorMode CM, typename = void>
+template<class BackingStore, typename = void>
 class FrameBuffer;
 
 
@@ -23,7 +24,7 @@ class FrameBuffer;
 	Explicit specialization for true color mode without attributes:
 */
 template<>
-class FrameBuffer<ColorMode::colormode_rgb> final : public VideoPlane
+class FrameBuffer<Graphics::Pixmap<ColorMode::colormode_rgb>> final : public VideoPlane
 {
 public:
 	static const ColorMode CM = Graphics::colormode_rgb;
@@ -56,7 +57,7 @@ public:
 	Explicit specialization for 1-bit indexed color mode:
 */
 template<>
-class FrameBuffer<Graphics::colormode_i1> final : public VideoPlane
+class FrameBuffer<Graphics::Pixmap<Graphics::colormode_i1>> final : public VideoPlane
 {
 public:
 	static constexpr Graphics::ColorMode CM = Graphics::colormode_i1;
@@ -94,7 +95,7 @@ public:
 	Explicit specialization for 2-bit indexed color mode:
 */
 template<>
-class FrameBuffer<Graphics::colormode_i2> final : public VideoPlane
+class FrameBuffer<Graphics::Pixmap<Graphics::colormode_i2>> final : public VideoPlane
 {
 public:
 	static constexpr Graphics::ColorMode CM = Graphics::colormode_i2;
@@ -132,7 +133,7 @@ public:
 	Explicit specialization for 4-bit indexed color mode:
 */
 template<>
-class FrameBuffer<Graphics::colormode_i4> final : public VideoPlane
+class FrameBuffer<Graphics::Pixmap<Graphics::colormode_i4>> final : public VideoPlane
 {
 public:
 	static constexpr Graphics::ColorMode CM = Graphics::colormode_i4;
@@ -170,7 +171,7 @@ public:
 	Explicit specialization for 8-bit indexed color mode:
 */
 template<>
-class FrameBuffer<Graphics::colormode_i8> final : public VideoPlane
+class FrameBuffer<Graphics::Pixmap<Graphics::colormode_i8>> final : public VideoPlane
 {
 public:
 	static constexpr Graphics::ColorMode CM = Graphics::colormode_i8;
@@ -247,15 +248,19 @@ private:
 };
 
 
+static_assert(Graphics::is_attribute_mode(ColorMode::colormode_a1w1));
+static_assert(Graphics::Pixmap<ColorMode::colormode_a1w1>::colormode);
+static_assert(Graphics::Pixmap_rgb::colormode == Graphics::colormode_rgb);
+
 /*	_____________________________________________________________________________________
 	Partial specialization for color modes with true color attributes.
 */
-template<ColorMode CM>
-class FrameBuffer<CM, std::enable_if_t<is_attribute_mode(CM)>> final : public FrameBufferBase_wAttr
+template<class Pixmap>
+class FrameBuffer<Pixmap, std::enable_if_t<Graphics::is_attribute_mode(Pixmap::colormode)>> final :
+	public FrameBufferBase_wAttr
 {
 public:
-	using Pixmap   = Graphics::Pixmap<CM>;
-	using ColorMap = Graphics::ColorMap<get_colordepth(CM)>;
+	using ColorMap = Graphics::ColorMap<Pixmap::CD>;
 	using Canvas   = Graphics::Canvas;
 
 	RCPtr<const Pixmap> pixmap;
@@ -263,13 +268,13 @@ public:
 	FrameBuffer(const Pixmap* px, const ColorMap* = nullptr) noexcept :
 		FrameBufferBase_wAttr(
 			px->pixmap, px->row_offset, px->attributes.pixmap, px->attributes.row_offset, px->attrheight,
-			&ScanlineRenderer<CM>),
+			&ScanlineRenderer<Pixmap>),
 		pixmap(px)
 	{}
 
 	FrameBuffer(const Canvas* px, const ColorMap* = nullptr) noexcept : FrameBuffer(static_cast<const Pixmap*>(px))
 	{
-		assert(px->colormode == CM);
+		assert(px->colormode == Pixmap::colormode);
 	}
 };
 
@@ -277,35 +282,36 @@ public:
 //	_____________________________________________________________________________________
 //  declare implementation in another file:
 
-extern template class FrameBuffer<ColorMode::colormode_i1>;
-extern template class FrameBuffer<ColorMode::colormode_i2>;
-extern template class FrameBuffer<ColorMode::colormode_i4>;
-extern template class FrameBuffer<ColorMode::colormode_i8>;
-extern template class FrameBuffer<ColorMode::colormode_rgb>;
-extern template class FrameBuffer<ColorMode::colormode_a1w1>;
-extern template class FrameBuffer<ColorMode::colormode_a1w2>;
-extern template class FrameBuffer<ColorMode::colormode_a1w4>;
-extern template class FrameBuffer<ColorMode::colormode_a1w8>;
-extern template class FrameBuffer<ColorMode::colormode_a2w1>;
-extern template class FrameBuffer<ColorMode::colormode_a2w2>;
-extern template class FrameBuffer<ColorMode::colormode_a2w4>;
-extern template class FrameBuffer<ColorMode::colormode_a2w8>;
+extern template class FrameBuffer<Graphics::Pixmap_i1>;
+extern template class FrameBuffer<Graphics::Pixmap_i2>;
+extern template class FrameBuffer<Graphics::Pixmap_i4>;
+extern template class FrameBuffer<Graphics::Pixmap_i8>;
+extern template class FrameBuffer<Graphics::Pixmap_rgb>;
+extern template class FrameBuffer<Graphics::Pixmap_a1w1>;
+extern template class FrameBuffer<Graphics::Pixmap_a1w2>;
+extern template class FrameBuffer<Graphics::Pixmap_a1w4>;
+extern template class FrameBuffer<Graphics::Pixmap_a1w8>;
+extern template class FrameBuffer<Graphics::Pixmap_a2w1>;
+extern template class FrameBuffer<Graphics::Pixmap_a2w2>;
+extern template class FrameBuffer<Graphics::Pixmap_a2w4>;
+extern template class FrameBuffer<Graphics::Pixmap_a2w8>;
 
 
 //	_____________________________________________________________________________________
 //	deduction guides:
 
 template<ColorMode CM>
-FrameBuffer(Graphics::Pixmap<CM>*, const Graphics::ColorMap<get_colordepth(CM)>*) -> FrameBuffer<CM>;
+FrameBuffer(Graphics::Pixmap<CM>*, const Graphics::ColorMap<get_colordepth(CM)>*) -> FrameBuffer<Graphics::Pixmap<CM>>;
 
 template<ColorMode CM>
-FrameBuffer(RCPtr<Graphics::Pixmap<CM>>, const Graphics::ColorMap<get_colordepth(CM)>*) -> FrameBuffer<CM>;
+FrameBuffer(RCPtr<Graphics::Pixmap<CM>>, const Graphics::ColorMap<get_colordepth(CM)>*)
+	-> FrameBuffer<Graphics::Pixmap<CM>>;
 
 template<ColorMode CM>
-FrameBuffer(Graphics::Pixmap<CM>*) -> FrameBuffer<CM>;
+FrameBuffer(Graphics::Pixmap<CM>*) -> FrameBuffer<Graphics::Pixmap<CM>>;
 
 template<ColorMode CM>
-FrameBuffer(RCPtr<Graphics::Pixmap<CM>>) -> FrameBuffer<CM>;
+FrameBuffer(RCPtr<Graphics::Pixmap<CM>>) -> FrameBuffer<Graphics::Pixmap<CM>>;
 
 } // namespace kilipili::Video
 

@@ -52,6 +52,9 @@ template<ColorMode CM>
 class DirectColorPixmap : public Canvas
 {
 public:
+	static constexpr bool flag_is_direct_color = true;
+	static constexpr bool flag_is_true_color   = CM == colormode_rgb;
+
 	Id("Pixmap ");
 	const int	 row_offset; // in pixmap[]
 	uint8* const pixmap;
