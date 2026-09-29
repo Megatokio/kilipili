@@ -1,4 +1,4 @@
-// Copyright (c) 2012 - 2025 kio@little-bat.de
+// Copyright (c) 2012 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -12,8 +12,83 @@
 namespace kilipili::Graphics
 {
 
+class Printer : public RCObject
+{
+public:
+	Printer(int rows, int cols) noexcept;
 
-class TextVDU : public RCObject
+	virtual void reset(bool cls = false) noexcept;
+	virtual void clearRect(int row, int col, int rows, int cols) noexcept									 = 0;
+	virtual void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept = 0;
+
+	void showCursor(bool on = true) noexcept;
+	void hideCursor() noexcept;
+
+	virtual void printChar(char c, int count = 1) noexcept = 0;			// no ctl
+	virtual void print(cstr text) noexcept;								// supports \n and \t
+	void		 printf(cstr fmt, ...) noexcept __printflike(2, 3);		// supports \n and \t
+	void		 printf(cstr fmt, va_list) noexcept __printflike(2, 0); // supports \n and \t
+
+	str inputLine(std::function<int()> getchar, str oldtext = nullptr, int epos = 0);
+
+	enum AutoWrap : bool { nowrap, wrap };
+
+	void validateCursorPosition(bool col80ok) noexcept;
+	void limitCursorPosition() noexcept;
+	void moveTo(int row, int col, AutoWrap = nowrap) noexcept;
+	void moveToCol(int col, AutoWrap = nowrap) noexcept;
+	void moveToRow(int row, AutoWrap = nowrap) noexcept;
+	void cursorLeft(int count = 1, AutoWrap = wrap) noexcept;
+	void cursorRight(int count = 1, AutoWrap = wrap) noexcept;
+	void cursorUp(int count = 1, AutoWrap = wrap) noexcept;
+	void cursorDown(int count = 1, AutoWrap = wrap) noexcept;
+	void cursorTab(int count = 1) noexcept;
+	void cursorReturn() noexcept;
+	void newLine() noexcept;
+
+	void cls() noexcept { reset(true); }
+	void clearToStartOfLine(bool incl_cursorpos = 0) noexcept;
+	void clearToStartOfScreen(bool incl_cursorpos = 0) noexcept;
+	void clearToEndOfLine() noexcept;
+	void clearToEndOfScreen() noexcept;
+
+	void scrollScreen(int dy, int dx) noexcept;
+	void scrollScreenUp(int rows = 1) noexcept;
+	void scrollScreenDown(int rows = 1) noexcept;
+	void scrollScreenLeft(int cols = 1) noexcept;
+	void scrollScreenRight(int cols = 1) noexcept;
+
+	void scrollRect(int row, int col, int rows, int cols, int dy, int dx) noexcept;
+	void scrollRectLeft(int row, int col, int rows, int cols, int dist = 1) noexcept;
+	void scrollRectRight(int row, int col, int rows, int cols, int dist = 1) noexcept;
+	void scrollRectUp(int row, int col, int rows, int cols, int dist = 1) noexcept;
+	void scrollRectDown(int row, int col, int rows, int cols, int dist = 1) noexcept;
+
+	void insertChars(int count = 1) noexcept;
+	void deleteChars(int count = 1) noexcept;
+	void insertRows(int count = 1) noexcept;
+	void deleteRows(int count = 1) noexcept;
+	void insertColumns(int count = 1) noexcept;
+	void deleteColumns(int count = 1) noexcept;
+
+	// Screen size: [characters]
+	const int rows, cols;
+
+	// current print position:
+	int	  row, col;
+	int	  scroll_count;
+	uint8 dx, dy;		  // 1 or 2, if double width & double height
+	uint8 attributes;	  //
+	bool  cursor_visible; // currently visible?
+
+protected:
+	virtual void show_cursor(bool f) noexcept {}
+	void		 validate_hpos(bool col80ok) noexcept;
+	void		 validate_vpos() noexcept;
+};
+
+
+class TextVDU : public Printer
 {
 public:
 	Id("TextVDU");
@@ -39,7 +114,7 @@ public:
 		GRAPHICS	  = 1 << 7
 	};
 
-	enum AutoWrap : bool { nowrap, wrap };
+	//enum AutoWrap : bool { nowrap, wrap };
 
 	CanvasPtr pixmap;
 
@@ -53,8 +128,8 @@ public:
 	char			 _padding = 0;
 
 	// Screen size:
-	const int cols; // [characters]
-	const int rows; // [characters]
+	//const int cols; // [characters]
+	//const int rows; // [characters]
 
 	// foreground and background color:
 	uint bgcolor; // paper color
@@ -63,81 +138,81 @@ public:
 	uint bg_ink;  // for attribute pixmaps
 
 	// current print position:
-	int		   row, col;
-	int		   scroll_count;
-	uint8	   dx, dy; // 1 or 2, if double width & double height
-	Attributes attributes;
+	//int		   row, col;
+	//int		   scroll_count;
+	// uint8	   dx, dy; // 1 or 2, if double width & double height
+	// Attributes attributes;
 
 	// cursor blob:
-	bool   cursorVisible;  // currently visible?
+	//bool   cursorVisible;  // currently visible?
 	uint32 cursorXorColor; // value used to xor the colors
 
 	TextVDU(CanvasPtr) noexcept;
 
-	str inputLine(std::function<int()> getchar, str oldtext = nullptr, int epos = 0);
+	// str inputLine(std::function<int()> getchar, str oldtext = nullptr, int epos = 0);
 
-	void reset() noexcept;
-	void cls() noexcept;
+	void reset(bool cls = false) noexcept override;
+	//void cls() noexcept;
 	void identify() noexcept;
-	void moveTo(int row, int col, AutoWrap = nowrap) noexcept;
-	void moveToCol(int col, AutoWrap = nowrap) noexcept;
-	void moveToRow(int row, AutoWrap = nowrap) noexcept;
+	// void moveTo(int row, int col, AutoWrap = nowrap) noexcept;
+	// void moveToCol(int col, AutoWrap = nowrap) noexcept;
+	// void moveToRow(int row, AutoWrap = nowrap) noexcept;
 	void setAttributes(uint add, uint remove = 0xff) noexcept;
 	void addAttributes(uint a) noexcept { setAttributes(a, 0); }
 	void removeAttributes(uint a = 0xff) noexcept { setAttributes(0, a); }
 	void printCharMatrix(CharMatrix, int count = 1) noexcept;
-	void printChar(char c, int count = 1) noexcept;				// no ctl
-	void print(cstr text) noexcept;								// supports \n and \t
-	void printf(cstr fmt, ...) noexcept __printflike(2, 3);		// supports \n and \t
-	void printf(cstr fmt, va_list) noexcept __printflike(2, 0); // supports \n and \t
-	void cursorLeft(int count = 1, AutoWrap = wrap) noexcept;
-	void cursorRight(int count = 1, AutoWrap = wrap) noexcept;
-	void cursorUp(int count = 1, AutoWrap = wrap) noexcept;
-	void cursorDown(int count = 1, AutoWrap = wrap) noexcept;
-	void cursorTab(int count = 1) noexcept;
-	void cursorReturn() noexcept;
-	void newLine() noexcept;
-	void showCursor(bool on = true) noexcept;
-	void hideCursor() noexcept;
-	void validateCursorPosition(bool col80ok) noexcept;
-	void limitCursorPosition() noexcept;
+	void printChar(char c, int count = 1) noexcept override; // no ctl
+	void print(cstr text) noexcept override;				 // supports \n and \t
+	// void printf(cstr fmt, ...) noexcept __printflike(2, 3);		// supports \n and \t
+	// void printf(cstr fmt, va_list) noexcept __printflike(2, 0); // supports \n and \t
+	// void cursorLeft(int count = 1, AutoWrap = wrap) noexcept;
+	// void cursorRight(int count = 1, AutoWrap = wrap) noexcept;
+	// void cursorUp(int count = 1, AutoWrap = wrap) noexcept;
+	// void cursorDown(int count = 1, AutoWrap = wrap) noexcept;
+	// void cursorTab(int count = 1) noexcept;
+	// void cursorReturn() noexcept;
+	// void newLine() noexcept;
+	//void showCursor(bool on = true) noexcept;
+	//void hideCursor() noexcept;
+	//void validateCursorPosition(bool col80ok) noexcept;
+	//void limitCursorPosition() noexcept;
 	void readBmp(CharMatrix, bool use_fgcolor) noexcept;
 	void writeBmp(CharMatrix, uint8 attr) noexcept;
 	void getCharMatrix(CharMatrix, char c) noexcept;
 	void getGraphicsCharMatrix(CharMatrix, char c) noexcept;
 	void applyAttributes(CharMatrix) noexcept;
 
-	void clearRect(int row, int col, int rows, int cols) noexcept;
-	void clearToStartOfLine(bool incl_cursorpos = 0) noexcept;
-	void clearToStartOfScreen(bool incl_cursorpos = 0) noexcept;
-	void clearToEndOfLine() noexcept;
-	void clearToEndOfScreen() noexcept;
+	void clearRect(int row, int col, int rows, int cols) noexcept override;
+	// void clearToStartOfLine(bool incl_cursorpos = 0) noexcept;
+	// void clearToStartOfScreen(bool incl_cursorpos = 0) noexcept;
+	// void clearToEndOfLine() noexcept;
+	// void clearToEndOfScreen() noexcept;
 
-	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept;
+	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
 
-	void scrollScreen(int dy, int dx) noexcept;
-	void scrollScreenUp(int rows = 1) noexcept;
-	void scrollScreenDown(int rows = 1) noexcept;
-	void scrollScreenLeft(int cols = 1) noexcept;
-	void scrollScreenRight(int cols = 1) noexcept;
+	// void scrollScreen(int dy, int dx) noexcept;
+	// void scrollScreenUp(int rows = 1) noexcept;
+	// void scrollScreenDown(int rows = 1) noexcept;
+	// void scrollScreenLeft(int cols = 1) noexcept;
+	// void scrollScreenRight(int cols = 1) noexcept;
 
-	void scrollRect(int row, int col, int rows, int cols, int dy, int dx) noexcept;
-	void scrollRectLeft(int row, int col, int rows, int cols, int dist = 1) noexcept;
-	void scrollRectRight(int row, int col, int rows, int cols, int dist = 1) noexcept;
-	void scrollRectUp(int row, int col, int rows, int cols, int dist = 1) noexcept;
-	void scrollRectDown(int row, int col, int rows, int cols, int dist = 1) noexcept;
+	// void scrollRect(int row, int col, int rows, int cols, int dy, int dx) noexcept;
+	// void scrollRectLeft(int row, int col, int rows, int cols, int dist = 1) noexcept;
+	// void scrollRectRight(int row, int col, int rows, int cols, int dist = 1) noexcept;
+	// void scrollRectUp(int row, int col, int rows, int cols, int dist = 1) noexcept;
+	// void scrollRectDown(int row, int col, int rows, int cols, int dist = 1) noexcept;
 
-	void insertChars(int count = 1) noexcept;
-	void deleteChars(int count = 1) noexcept;
-	void insertRows(int count = 1) noexcept;
-	void deleteRows(int count = 1) noexcept;
-	void insertColumns(int count = 1) noexcept;
-	void deleteColumns(int count = 1) noexcept;
+	// void insertChars(int count = 1) noexcept;
+	// void deleteChars(int count = 1) noexcept;
+	// void insertRows(int count = 1) noexcept;
+	// void deleteRows(int count = 1) noexcept;
+	// void insertColumns(int count = 1) noexcept;
+	// void deleteColumns(int count = 1) noexcept;
 
 private:
-	void show_cursor(bool f) noexcept;
-	void validate_hpos(bool col80ok) noexcept;
-	void validate_vpos() noexcept;
+	void show_cursor(bool f) noexcept override;
+	//void validate_hpos(bool col80ok) noexcept;
+	//void validate_vpos() noexcept;
 };
 
 
@@ -145,22 +220,22 @@ private:
 // ####################### Implementations #############################
 //
 
-inline void TextVDU::scrollScreenUp(int rows) noexcept
+inline void Printer::scrollScreenUp(int rows) noexcept
 {
 	if (rows > 0) scrollScreen(-rows, 0);
 }
 
-inline void TextVDU::scrollScreenDown(int rows) noexcept
+inline void Printer::scrollScreenDown(int rows) noexcept
 {
 	if (rows > 0) scrollScreen(+rows, 0);
 }
 
-inline void TextVDU::scrollScreenLeft(int cols) noexcept
+inline void Printer::scrollScreenLeft(int cols) noexcept
 {
 	if (cols > 0) scrollScreen(0, -cols);
 }
 
-inline void TextVDU::scrollScreenRight(int cols) noexcept
+inline void Printer::scrollScreenRight(int cols) noexcept
 {
 	if (cols > 0) scrollScreen(0, +cols);
 }

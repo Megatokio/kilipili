@@ -1,4 +1,4 @@
-// Copyright (c) 2012 - 2025 kio@little-bat.de
+// Copyright (c) 2012 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -6,6 +6,7 @@
 #include "USBHost/USBKeyboard.h"
 #include "common/cstrings.h"
 #include "common/trace.h"
+#include "systemfont.h"
 #include <memory>
 #include <stdarg.h>
 #include <string.h>
@@ -22,10 +23,6 @@ namespace kilipili::Graphics
 	((b & 128) >> 7) + ((b & 64) >> 5) + ((b & 32) >> 3) + ((b & 16) >> 1) + ((b & 8) << 1) + ((b & 4) << 3) + \
 		((b & 2) << 5) + ((b & 1) << 7)
 
-// the system font:
-//
-extern const unsigned char systemfont256x12[256 * 12];
-
 // convert nibble -> double width byte:
 //
 static constexpr const uint8 dblw[16] = {
@@ -38,8 +35,24 @@ static constexpr const uint8 dblw[16] = {
 //							F U N C T I O N S
 // =============================================================================
 
+/*
+	bool  cursorVisible; // currently visible?
+*/
+
+
+Printer::Printer(int rows, int cols) noexcept : rows(rows), cols(cols) {}
+
+void Printer::reset(bool cls) noexcept
+{
+	hideCursor();
+	row = col	 = 0;
+	scroll_count = 0;
+	dx = dy	   = 1;
+	attributes = 0; // NORMAL;
+}
 
 TextVDU::TextVDU(CanvasPtr _pixmap) noexcept :
+	Printer(_pixmap->height / CHAR_HEIGHT, _pixmap->width / CHAR_WIDTH),
 	pixmap(std::move(_pixmap)),
 	colormode(pixmap->colormode),
 	attrheight(pixmap->attrheight),
@@ -47,43 +60,24 @@ TextVDU::TextVDU(CanvasPtr _pixmap) noexcept :
 	attrmode(get_attrmode(colormode)),		// -1 .. 1 log2 of bits per color in pixmap[]
 	attrwidth(get_attrwidth(colormode)),	// 0 .. 3  log2 of width of tiles
 	bits_per_color(uint8(1 << colordepth)), // bits per color in pixmap[] or attributes[]
-	bits_per_pixel(is_attribute_mode(colormode) ? uint8(1 << attrmode) : bits_per_color), // bpp in pixmap[]
-	cols(pixmap->width / CHAR_WIDTH),
-	rows(pixmap->height / CHAR_HEIGHT)
+	bits_per_pixel(is_attribute_mode(colormode) ? uint8(1 << attrmode) : bits_per_color) // bpp in pixmap[]
 {
-	cursorVisible = false;
-	reset();
+	cursor_visible = false;
+	TextVDU::reset();
 }
 
-void TextVDU::reset() noexcept
+void TextVDU::reset(bool cls) noexcept
 {
 	// all settings = default, home cursor
-	// does not clear screen
-
-	hideCursor();
+	// clears screen if cls = true
 
 	bgcolor = default_bgcolor; // white / light
 	fgcolor = default_fgcolor; // black / dark
 	bg_ink	= 0;
 	fg_ink	= 1;
 
-	row = col	 = 0;
-	scroll_count = 0;
-	dx = dy	   = 1;
-	attributes = NORMAL;
-}
-
-void TextVDU::cls() noexcept
-{
-	// CLS, HOME CURSOR, RESET ATTR
-
-	row = col	 = 0;
-	scroll_count = 0;
-	dx = dy		  = 1;
-	attributes	  = NORMAL;
-	cursorVisible = false;
-
-	pixmap->clear(bgcolor);
+	Printer::reset();
+	if (cls) pixmap->clear(bgcolor);
 }
 
 void TextVDU::identify() noexcept
@@ -110,12 +104,12 @@ void TextVDU::show_cursor(bool show) noexcept
 	}
 
 	pixmap->xorRect(col * CHAR_WIDTH, row * CHAR_HEIGHT, CHAR_WIDTH, CHAR_HEIGHT, cursorXorColor);
-	cursorVisible = show;
+	cursor_visible = show;
 }
 
-void TextVDU::showCursor(bool on) noexcept
+void Printer::showCursor(bool on) noexcept
 {
-	if (cursorVisible == on) return;
+	if (cursor_visible == on) return;
 	if (on)
 	{
 		validate_hpos(false);
@@ -124,16 +118,16 @@ void TextVDU::showCursor(bool on) noexcept
 	show_cursor(on);
 }
 
-void TextVDU::hideCursor() noexcept
+void Printer::hideCursor() noexcept
 {
-	if (cursorVisible) show_cursor(false);
+	if (cursor_visible) show_cursor(false);
 }
 
-void TextVDU::validate_hpos(bool col80ok) noexcept
+void Printer::validate_hpos(bool col80ok) noexcept
 {
 	// wraps & scrolls
 
-	assert(!cursorVisible);
+	assert(!cursor_visible);
 	if unlikely (uint(col) >= uint(cols) + col80ok)
 	{
 		while (col < 0)
@@ -150,11 +144,11 @@ void TextVDU::validate_hpos(bool col80ok) noexcept
 	}
 }
 
-void TextVDU::validate_vpos() noexcept
+void Printer::validate_vpos() noexcept
 {
 	// scrolls
 
-	assert(!cursorVisible);
+	assert(!cursor_visible);
 	if unlikely (uint(row) >= uint(rows))
 	{
 		if (row < 0)
@@ -172,7 +166,7 @@ void TextVDU::validate_vpos() noexcept
 	}
 }
 
-void TextVDU::validateCursorPosition(bool col80ok) noexcept
+void Printer::validateCursorPosition(bool col80ok) noexcept
 {
 	// validate cursor position
 	// moves cursor into previous/next line if the column is out of screen
@@ -183,21 +177,21 @@ void TextVDU::validateCursorPosition(bool col80ok) noexcept
 	// col := in range [0 .. [screen_width
 	// row := in range [0 .. [screen_height
 
-	if (cursorVisible) return;
+	if (cursor_visible) return;
 	validate_hpos(col80ok);
 	validate_vpos();
 }
 
-void TextVDU::limitCursorPosition() noexcept
+void Printer::limitCursorPosition() noexcept
 {
 	// limit cursor position: don't wrap, don't scroll
 
-	if (cursorVisible) return;
+	if (cursor_visible) return;
 	limit(0, col, cols - 1);
 	limit(0, row, rows - 1);
 }
 
-void TextVDU::moveTo(int row, int col, AutoWrap auto_wrap) noexcept
+void Printer::moveTo(int row, int col, AutoWrap auto_wrap) noexcept
 {
 	// auto_wrap=0: stop at border.
 	// auto_wrap=1: wrap & scroll, col80ok.
@@ -209,7 +203,7 @@ void TextVDU::moveTo(int row, int col, AutoWrap auto_wrap) noexcept
 	else limitCursorPosition();
 }
 
-void TextVDU::moveToCol(int col, AutoWrap auto_wrap) noexcept
+void Printer::moveToCol(int col, AutoWrap auto_wrap) noexcept
 {
 	// auto_wrap=0: stop at border.
 	// auto_wrap=1: wrap & scroll, col80ok.
@@ -220,7 +214,7 @@ void TextVDU::moveToCol(int col, AutoWrap auto_wrap) noexcept
 	else limit(0, this->col, cols - 1);
 }
 
-void TextVDU::moveToRow(int row, AutoWrap auto_wrap) noexcept
+void Printer::moveToRow(int row, AutoWrap auto_wrap) noexcept
 {
 	// auto_wrap=0: stop at border.
 	// auto_wrap=1: wrap & scroll.
@@ -231,29 +225,29 @@ void TextVDU::moveToRow(int row, AutoWrap auto_wrap) noexcept
 	else limit(0, this->row, rows - 1);
 }
 
-void TextVDU::cursorLeft(int count, AutoWrap auto_wrap) noexcept
+void Printer::cursorLeft(int count, AutoWrap auto_wrap) noexcept
 {
 	moveToCol(col - max(count * dx, 0), auto_wrap); //
 }
 
-void TextVDU::cursorRight(int count, AutoWrap auto_wrap) noexcept
+void Printer::cursorRight(int count, AutoWrap auto_wrap) noexcept
 {
 	// if auto_wrap then col80ok
 
 	moveToCol(col + max(count * dx, 0), auto_wrap);
 }
 
-void TextVDU::cursorUp(int count, AutoWrap auto_wrap) noexcept
+void Printer::cursorUp(int count, AutoWrap auto_wrap) noexcept
 {
 	moveToRow(row - max(count * dx, 0), auto_wrap); //
 }
 
-void TextVDU::cursorDown(int count, AutoWrap auto_wrap) noexcept
+void Printer::cursorDown(int count, AutoWrap auto_wrap) noexcept
 {
 	moveToRow(row + max(count * dx, 0), auto_wrap); //
 }
 
-void TextVDU::cursorTab(int count) noexcept
+void Printer::cursorTab(int count) noexcept
 {
 	// scrolls, allows col = cols
 	// note: if cols%8 != 0 then there is a last tab stop at cols
@@ -283,7 +277,7 @@ void TextVDU::cursorTab(int count) noexcept
 	}
 }
 
-void TextVDU::cursorReturn() noexcept
+void Printer::cursorReturn() noexcept
 {
 	// COL := 0
 
@@ -291,7 +285,7 @@ void TextVDU::cursorReturn() noexcept
 	col = 0;
 }
 
-void TextVDU::newLine() noexcept
+void Printer::newLine() noexcept
 {
 	hideCursor();
 	col = 0;
@@ -313,12 +307,14 @@ void TextVDU::clearRect(int row, int col, int rows, int cols) noexcept
 	}
 }
 
-void TextVDU::scrollRect(int row, int col, int rows, int cols, int dy, int dx) noexcept
+void Printer::scrollRect(int row, int col, int rows, int cols, int dy, int dx) noexcept
 {
-	if unlikely (row < 0) { rows += row, row = 0; }
+	// clang-format off
+	if unlikely (row < 0) { rows += row; row = 0; }
 	if unlikely (row + rows > this->rows) rows = this->rows - row;
-	if unlikely (col < 0) { cols += col, col = 0; }
+	if unlikely (col < 0) { cols += col; col = 0; }
 	if unlikely (col + cols > this->cols) cols = this->cols - col;
+	// clang-format on
 
 	int h = rows - abs(dy);
 	int w = cols - abs(dx);
@@ -338,46 +334,46 @@ void TextVDU::scrollRect(int row, int col, int rows, int cols, int dy, int dx) n
 	if (dy < 0) clearRect(row + h, col, -dy, cols);
 }
 
-void TextVDU::scrollRectLeft(int row, int col, int rows, int cols, int dist) noexcept
+void Printer::scrollRectLeft(int row, int col, int rows, int cols, int dist) noexcept
 {
 	if (dist > 0) scrollRect(row, col, rows, cols, 0, -dist);
 }
 
-void TextVDU::scrollRectRight(int row, int col, int rows, int cols, int dist) noexcept
+void Printer::scrollRectRight(int row, int col, int rows, int cols, int dist) noexcept
 {
 	if (dist > 0) scrollRect(row, col, rows, cols, 0, +dist);
 }
 
-void TextVDU::scrollRectUp(int row, int col, int rows, int cols, int dist) noexcept
+void Printer::scrollRectUp(int row, int col, int rows, int cols, int dist) noexcept
 {
 	if (dist > 0) scrollRect(row, col, rows, cols, -dist, 0);
 }
 
-void TextVDU::scrollRectDown(int row, int col, int rows, int cols, int dist) noexcept
+void Printer::scrollRectDown(int row, int col, int rows, int cols, int dist) noexcept
 {
 	if (dist > 0) scrollRect(row, col, rows, cols, +dist, 0);
 }
 
-void TextVDU::insertRows(int n) noexcept { scrollRectDown(row, 0, rows - row, cols, n); }
+void Printer::insertRows(int n) noexcept { scrollRectDown(row, 0, rows - row, cols, n); }
 
-void TextVDU::deleteRows(int n) noexcept { scrollRectUp(row, 0, rows - row, cols, n); }
+void Printer::deleteRows(int n) noexcept { scrollRectUp(row, 0, rows - row, cols, n); }
 
-void TextVDU::insertColumns(int n) noexcept { scrollRectRight(0, col, rows, cols - col, n); }
+void Printer::insertColumns(int n) noexcept { scrollRectRight(0, col, rows, cols - col, n); }
 
-void TextVDU::deleteColumns(int n) noexcept { scrollRectLeft(0, col, rows, cols - col, n); }
+void Printer::deleteColumns(int n) noexcept { scrollRectLeft(0, col, rows, cols - col, n); }
 
-void TextVDU::insertChars(int n) noexcept { scrollRectRight(row, col, 1, cols - col, n); }
+void Printer::insertChars(int n) noexcept { scrollRectRight(row, col, 1, cols - col, n); }
 
-void TextVDU::deleteChars(int n) noexcept { scrollRectLeft(row, col, 1, cols - col, n); }
+void Printer::deleteChars(int n) noexcept { scrollRectLeft(row, col, 1, cols - col, n); }
 
-void TextVDU::clearToStartOfLine(bool incl_cpos) noexcept
+void Printer::clearToStartOfLine(bool incl_cpos) noexcept
 {
 	// allow col80, even if incl_cpos = true
 
 	clearRect(row, 0, 1, col + incl_cpos);
 }
 
-void TextVDU::clearToStartOfScreen(bool incl_cpos) noexcept
+void Printer::clearToStartOfScreen(bool incl_cpos) noexcept
 {
 	// allow col80, even if incl_cpos = true
 
@@ -385,7 +381,7 @@ void TextVDU::clearToStartOfScreen(bool incl_cpos) noexcept
 	clearRect(0, 0, row, cols);
 }
 
-void TextVDU::clearToEndOfLine() noexcept
+void Printer::clearToEndOfLine() noexcept
 {
 	// allow col80
 	// this allows to print an arbitrary string up to the last char and clear to eol.
@@ -393,7 +389,7 @@ void TextVDU::clearToEndOfLine() noexcept
 	clearRect(row, col, 1, cols - col);
 }
 
-void TextVDU::clearToEndOfScreen() noexcept
+void Printer::clearToEndOfScreen() noexcept
 {
 	// allow col80
 	// this allows to print an arbitrary string up to the last char and clear to end of screen
@@ -415,7 +411,7 @@ void TextVDU::copyRect(int dest_row, int dest_col, int src_row, int src_col, int
 	}
 }
 
-void TextVDU::scrollScreen(int dy /*chars*/, int dx /*chars*/) noexcept
+void Printer::scrollScreen(int dy /*chars*/, int dx /*chars*/) noexcept
 {
 	int w = (cols - abs(dx));
 	int h = (rows - abs(dy));
@@ -467,7 +463,7 @@ void TextVDU::applyAttributes(CharMatrix bmp) noexcept
 		if (a & INVERTED)
 		{
 			uint8 i = 12;
-			while (i--) bmp[i] = ~bmp[i];
+			while (i--) bmp[i] = bmp[i] ^ 0xff;
 		}
 	}
 }
@@ -563,8 +559,8 @@ void TextVDU::getCharMatrix(CharMatrix charmatrix, char cc) noexcept
 	if (attributes & GRAPHICS) { getGraphicsCharMatrix(charmatrix, cc); }
 	else
 	{
-		const uchar* p = systemfont256x12 + uchar(cc) * CHAR_HEIGHT;
-		memcpy(charmatrix, p, CHAR_HEIGHT);
+		const uchar* p = latin1_256x12[0] + uchar(cc);
+		for (int i = 0; i < CHAR_HEIGHT; i++) { charmatrix[i] = p[i * 256]; }
 	}
 }
 
@@ -641,7 +637,7 @@ void TextVDU::getGraphicsCharMatrix(CharMatrix charmatrix, char cc) noexcept
 	//	else if (c<0xB0)	// 48 unused
 	//	{}
 
-	else // if (c < 0xF0)   // 80 Liniengrafiken: dünne und dicke Linien
+	else // if (c < 0x100)   // 80 Liniengrafiken: dünne und dicke Linien
 	{	 // total: 3^4 = 81, aber 4 x ohne => use 'space' oder Grafik '\0'
 		uint8 a, d;
 		c += 1 - 0xB0;
@@ -666,8 +662,6 @@ void TextVDU::getGraphicsCharMatrix(CharMatrix charmatrix, char cc) noexcept
 			charmatrix[5] |= 0x1F;
 		}
 	}
-
-	// else {} // 16 unused
 }
 
 void TextVDU::printCharMatrix(CharMatrix charmatrix, int count) noexcept
@@ -681,6 +675,36 @@ void TextVDU::printChar(char c, int count) noexcept
 	CharMatrix charmatrix;
 	getCharMatrix(charmatrix, c);
 	printCharMatrix(charmatrix, count);
+}
+
+void Printer::print(cstr s) noexcept
+{
+	// print printable text string.
+	// control characters: only \t and \n.
+
+	while (char c = *s++)
+	{
+		if unlikely (uchar(c) < 32)
+		{
+			if (c == '\n')
+			{
+				newLine();
+				continue;
+			}
+			if (c == '\t')
+			{
+				cursorTab();
+				continue;
+			}
+			if (c == '\r')
+			{
+				cursorReturn();
+				continue;
+			}
+		}
+
+		printChar(c);
+	}
 }
 
 void TextVDU::print(cstr s) noexcept
@@ -715,7 +739,7 @@ void TextVDU::print(cstr s) noexcept
 	}
 }
 
-void TextVDU::printf(cstr fmt, va_list va) noexcept
+void Printer::printf(cstr fmt, va_list va) noexcept
 {
 	// note: caller must call va_start() before and va_end() afterwards.
 
@@ -745,7 +769,7 @@ void TextVDU::printf(cstr fmt, va_list va) noexcept
 	}
 }
 
-void TextVDU::printf(cstr fmt, ...) noexcept
+void Printer::printf(cstr fmt, ...) noexcept
 {
 	va_list va;
 	va_start(va, fmt);
@@ -753,7 +777,7 @@ void TextVDU::printf(cstr fmt, ...) noexcept
 	va_end(va);
 }
 
-str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
+str Printer::inputLine(std::function<int()> getc, str oldtext, int epos)
 {
 	// enter a new line or edit an existing line of text by the user.
 	// supports multiple types of cursor control.
@@ -775,10 +799,13 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 	if (oldtext == nullptr) oldtext = emptystr;
 	assert(epos <= int(strlen(oldtext)));
 
-	int col0 = col; // todo: this assumes that the screen won't scroll!
+	int col0 = col;
 	int row0 = row + scroll_count;
 
 	print(oldtext);
+
+	// TODO: this is not yet perfect, because while editing tempmem piles up:
+	TempMemSave _;
 
 	for (;;)
 	{
@@ -801,7 +828,7 @@ str TextVDU::inputLine(std::function<int()> getc, str oldtext, int epos)
 			case RETURN:
 				print(oldtext + epos);
 				newLine();
-				return oldtext;
+				return xdupstr(oldtext);
 			case RUBOUT:
 			case BACKSPACE: c = KEY_BACKSPACE; break;
 			case ESC:
