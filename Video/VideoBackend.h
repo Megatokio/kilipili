@@ -47,7 +47,17 @@ extern uint32 time_cc_32() noexcept; // equivalent to time_us_32() but for cpu c
 		optimized or not takes time, the overall time for the bad cases takes even longer 
 		than non-optimized. Specifically 1024*768 is also not guaranteed to display colorful 
 		contents properly, while 1024*768 can *just* be displayed without optimization 
-		regardless of the screen contents.  
+		regardless of the screen contents.
+	- VIDEO_SUPPORT_200x150_A1W8
+	- VIDEO_SUPPORT_400x300_A1W8
+		See ScanlineRenderer.h
+	- VIDEO_MAX_SYSCLOCK_MHz
+		Upper limit for the system clock set by start_video_backend()
+	- VIDEO_MAX_SCANLINE_BUFFERS
+		Max. size of the rolling scanline buffer. See ScanlineBuffer.h
+	- VIDEO_INTERP0_MODE
+	- VIDEO_INTERP1_MODE
+		See ScanlineRenderer.h
 
 	General capabilities and drawbacks:
 	  - The supply of pixel data is not part of the backend. The backend displays pixels from a 
@@ -58,7 +68,7 @@ extern uint32 time_cc_32() noexcept; // equivalent to time_us_32() but for cpu c
 	    Limitations generally come from available RAM and CPU processing power for the pixel supply,
 	    which is not part of the video backend.
 	  - It uses 3 DMA channels and 2 state machines in PIO1 and a shared interrupt on DMA_IRQ_1.
-	  - The pixel clock must be a multiple of the system clock. (min. times 2)
+	  - The system clock must be a multiple of the pixel clock. (min. times 2)
 	  - The system clock must be a multiple of 1 MHz.
 	  - Currently there is no event/interrupt per scanline which makes waiting with wfe() impossible. 
 	
@@ -76,7 +86,8 @@ extern uint32 time_cc_32() noexcept; // equivalent to time_us_32() but for cpu c
 */
 
 /**
-	Initialize the hardware and claim the DMA channels and state machines	  
+	Initialize the hardware and claim the DMA channels and state machines
+	Do not call directly! Only called by the frontend. 
 */
 extern void initialize_video_backend() noexcept; // panics
 
@@ -84,6 +95,7 @@ extern void initialize_video_backend() noexcept; // panics
 	Start video display in the requested resolution found in VgaMode.
 	Pixels will be display from the cyclic scanline_buffer, 
 	starting at scanline_buffer[0] for the first scanline in the first frame.
+	Do not call directly! Only called by the frontend. 
 */
 extern void start_video_backend(const VgaMode&, uint32 min_sys_clock = 0) throws;
 
@@ -91,6 +103,7 @@ extern void start_video_backend(const VgaMode&, uint32 min_sys_clock = 0) throws
 	Stop video display, releasing all resources.
 	Actually does not stop_video_output video output but outputs a black screen.
 	The scanline_buffer can now be purged and initialized for the new video mode to come.
+	Do not call directly! Only called by the frontend. 
 */
 extern void stop_video_backend() noexcept;
 
