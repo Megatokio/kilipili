@@ -11,20 +11,12 @@
 */
 
 #include "ScanlineRenderer.h"
-#include "Interp.h"
-#include "basic_math.h"
+#include "common/basic_math.h"
+#include "common/template_helpers.h"
+#include "internal/Interp.h"
 #include <hardware/gpio.h>
-#include <hardware/interp.h>
 #include <pico/stdio.h>
 
-
-#ifndef VIDEO_INTERP0_MODE
-  #define VIDEO_INTERP0_MODE ip_any
-#endif
-
-#ifndef VIDEO_INTERP1_MODE
-  #define VIDEO_INTERP1_MODE ip_a1w8
-#endif
 
 #ifndef VIDEO_OPTIMISTIC_A1W8
   #define VIDEO_OPTIMISTIC_A1W8 OFF
@@ -38,13 +30,6 @@
   #define VIDEO_SUPPORT_400x300_A1W8 true
 #endif
 
-
-// silence warnings:
-// clang-format off
-#define interp_hw_array ((interp_hw_t *)(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET))
-// clang-format on
-#undef interp_hw_array
-#define interp_hw_array reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET)
 
 // all hot video code should go into ram to allow video while flash lockout.
 // also, there should be no const data accessed in hot video code for the same reason.
@@ -61,77 +46,12 @@ namespace kilipili::Video
 
 using namespace Graphics;
 
-
-enum InterpMode {
-	ip_any	= -1,
-	ip_1bpp = 0,
-	ip_2bpp = 1,
-	ip_4bpp = 2,
-	ip_8bpp = 3,
-	ip_a1w8 = 0b101,
-
-	ip0_mode = VIDEO_INTERP0_MODE,
-	ip1_mode = VIDEO_INTERP1_MODE,
-};
-
 static constexpr uint ss_color	   = msbit(sizeof(Color));
 static constexpr uint ss_twocolors = ss_color + 1;
-constexpr InterpMode  ip_modes[2]  = {ip0_mode, ip1_mode};
 
-// clang-format off
-template<uint sz> struct uint_with_size{using type=uint8;};
-template<> struct uint_with_size<2>{using type=uint16;};
-template<> struct uint_with_size<4>{using type=uint32;};
-template<> struct uint_with_size<8>{using type=uint64;};
-// clang-format on
-
-using onecolor	 = uint_with_size<sizeof(Color) * 1>::type;
-using twocolors	 = uint_with_size<sizeof(Color) * 2>::type;
-using fourcolors = uint_with_size<sizeof(Color) * 4>::type;
-
-static_assert(SIO_INTERP1_ACCUM0_OFFSET - SIO_INTERP0_ACCUM0_OFFSET == sizeof(Interp));
-
-
-// ============================================================================================
-
-template<InterpMode mode>
-static constexpr int ipi = ip1_mode == mode || (ip0_mode != mode && ip1_mode == ip_any);
-
-template<InterpMode mode>
-constexpr bool need_setup = (ip_modes[ipi<mode>]) != mode;
-
-template<InterpMode mode>
-constexpr bool need_cleanup = need_setup<mode> && ip_modes[ipi<mode>] != ip_any;
-
-template<InterpMode mode>
-static __force_inline void setup(Interp* ip) noexcept //
-{
-	ip->setup(1 << (mode & 3), ss_color + uint(mode >> 2));
-}
-
-template<InterpMode mode>
-static __force_inline void setup_if_needed() noexcept
-{
-	if constexpr (need_setup<mode>) setup<mode>(&interp0[ipi<mode>]);
-}
-
-template<InterpMode mode>
-static __force_inline void cleanup_if_needed() noexcept
-{
-	if constexpr (need_cleanup<mode>) setup<ip_modes[ipi<mode>]>(&interp0[ipi<mode>]);
-}
-
-void initializeInterpolators() noexcept
-{
-	assert(get_core_num() == 1);
-	constexpr uint lane0 = 0;
-
-	interp0->base[lane0] = 0; // interp0.lane0: add nothing
-	if constexpr (ip0_mode != ip_any) setup<ip0_mode>(interp0);
-
-	interp1->base[lane0] = 0; // interp1.lane0: add nothing
-	if constexpr (ip1_mode != ip_any) setup<ip1_mode>(interp1);
-}
+using onecolor	 = uint_with_size<sizeof(Color) * 1>;
+using twocolors	 = uint_with_size<sizeof(Color) * 2>;
+using fourcolors = uint_with_size<sizeof(Color) * 4>;
 
 
 // ============================================================================================
@@ -205,7 +125,7 @@ void XRAM ScanlineRenderer_i2::render(uint32* dest, uint width, const uint8* pix
 
 void XRAM ScanlineRenderer_i4::render(uint32* _dest, uint width, const uint8* _pixels) noexcept
 {
-	constexpr InterpMode ip = ip_4bpp;
+	constexpr InterpMode ip = InterpMode::i4;
 	setup_if_needed<ip>();
 	Interp* const interp = &interp0[ipi<ip>];
 	interp->set_color_base(colormap);
@@ -231,7 +151,7 @@ void XRAM ScanlineRenderer_i4::render(uint32* _dest, uint width, const uint8* _p
 
 void XRAM ScanlineRenderer_i8::render(uint32* _dest, uint width, const uint8* _pixels) noexcept
 {
-	constexpr InterpMode ip = ip_8bpp;
+	constexpr InterpMode ip = InterpMode::i8;
 	setup_if_needed<ip>();
 	Interp* const interp = &interp0[ipi<ip>];
 	interp->set_color_base(colormap);
@@ -325,7 +245,7 @@ void XRAM ScanlineRenderer_rgb(uint32* dest, uint width, const uint8* q) noexcep
 template<>
 void XRAM ScanlineRenderer<Pixmap_a1w1>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
-	constexpr InterpMode ip = ip_1bpp;
+	constexpr InterpMode ip = InterpMode::i1;
 	setup_if_needed<ip>();
 	Interp* const interp = &interp0[ipi<ip>];
 
@@ -364,7 +284,7 @@ void XRAM ScanlineRenderer<Pixmap_a1w1>(uint32* _dest, uint width, const uint8* 
 template<>
 void XRAM ScanlineRenderer<Pixmap_a1w2>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
-	constexpr InterpMode ip = ip_1bpp;
+	constexpr InterpMode ip = InterpMode::i1;
 	setup_if_needed<ip>();
 	Interp* const interp = &interp0[ipi<ip>];
 
@@ -399,7 +319,7 @@ void XRAM ScanlineRenderer<Pixmap_a1w2>(uint32* _dest, uint width, const uint8* 
 template<>
 void XRAM ScanlineRenderer<Pixmap_a1w4>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
-	constexpr InterpMode ip = ip_1bpp;
+	constexpr InterpMode ip = InterpMode::i1;
 	setup_if_needed<ip>();
 	Interp* const interp = &interp0[ipi<ip>];
 
@@ -436,7 +356,7 @@ void XRAM ScanlineRenderer<Pixmap_a1w8>(uint32* _dest, uint width, const uint8* 
 	// 2023-10-27
 	// this version displays 1024x768 with avg/max load = 247.1/259.3MHz
 
-	constexpr InterpMode ip		= ip_a1w8;
+	constexpr InterpMode ip		= InterpMode::a1w8;
 	Interp* const		 interp = &interp0[ipi<ip>];
 	setup_if_needed<ip>();
 
@@ -607,7 +527,7 @@ void XRAM ScanlineRenderer<Pixmap_a1w8>(uint32* _dest, uint width, const uint8* 
 template<>
 void XRAM ScanlineRenderer<Pixmap_a2w1>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
-	constexpr InterpMode ip = ip_2bpp;
+	constexpr InterpMode ip = InterpMode::i2;
 	setup_if_needed<ip>();
 	Interp* const interp = &interp0[ipi<ip>];
 
@@ -647,7 +567,7 @@ void XRAM ScanlineRenderer<Pixmap_a2w1>(uint32* _dest, uint width, const uint8* 
 template<>
 void XRAM ScanlineRenderer<Pixmap_a2w2>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
-	constexpr InterpMode ip = ip_2bpp;
+	constexpr InterpMode ip = InterpMode::i2;
 	setup_if_needed<ip>();
 	Interp* const interp = &interp0[ipi<ip>];
 
@@ -683,7 +603,7 @@ void XRAM ScanlineRenderer<Pixmap_a2w2>(uint32* _dest, uint width, const uint8* 
 template<>
 void XRAM ScanlineRenderer<Pixmap_a2w4>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
-	constexpr InterpMode ip = ip_2bpp;
+	constexpr InterpMode ip = InterpMode::i2;
 	setup_if_needed<ip>();
 	Interp* const interp = &interp0[ipi<ip>];
 
@@ -718,7 +638,7 @@ void XRAM ScanlineRenderer<Pixmap_a2w4>(uint32* _dest, uint width, const uint8* 
 template<>
 void XRAM ScanlineRenderer<Pixmap_a2w8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
-	constexpr InterpMode ip = ip_2bpp;
+	constexpr InterpMode ip = InterpMode::i2;
 	setup_if_needed<ip>();
 	Interp* const interp = &interp0[ipi<ip>];
 
