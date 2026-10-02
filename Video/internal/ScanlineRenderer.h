@@ -77,22 +77,6 @@ void ScanlineRenderer<Graphics::Pixmap_a2w4>(uint32* dest, uint width, const uin
 template<>
 void ScanlineRenderer<Graphics::Pixmap_a2w8>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
 
-// _________________________________________________________________
-struct HamImageScanlineRenderer
-{
-	const Color* colormap;
-	uint16		 first_rel_code;
-	Color		 first_color; // initial color at start of next row
-
-	HamImageScanlineRenderer(const Color* colors, uint16 num_abs_codes) noexcept : //
-		colormap(colors),
-		first_rel_code(num_abs_codes)
-	{}
-
-	inline void vblank() noexcept { first_color = Graphics::black; }
-	void		render(uint32* dest, uint width_in_pixels, const uint8* pixels_in) noexcept;
-};
-
 
 } // namespace kilipili::Video
 

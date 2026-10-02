@@ -1,4 +1,4 @@
-// Copyright (c) 2024 - 2025 kio@little-bat.de
+// Copyright (c) 2024 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -6,7 +6,6 @@
 #include "ColorMap.h"
 #include "Pixmap.h"
 #include "VideoPlane.h"
-#include "internal/ScanlineRenderer.h"
 
 namespace kilipili::Video
 {
@@ -14,7 +13,7 @@ namespace kilipili::Video
 /*
 	The HoldAndModifyVideoPlane is an 8 bit indexed color FrameBuffer
 	which uses part of it's colormap for relative color offset codes.
-	This is only a useful mode if sizeof(Color) != 1.
+	This is only a useful mode if sizeof(Color) > 1.
 	RGB images can be encoded for this color mode with desktop_tools/rsrc_writer.
 */
 class HamImageVideoPlane final : public VideoPlane
@@ -28,11 +27,13 @@ public:
 
 	void setupNextImage(int row_offset, uint16 first_rel_code);
 
-	RCPtr<const Pixmap>		 pixmap;
-	RCPtr<const ColorMap>	 colormap;
-	HamImageScanlineRenderer scanline_renderer;
-	int						 row_offset;
-	const uint8*			 pixels; // next position
+	RCPtr<const Pixmap>	  pixmap;
+	RCPtr<const ColorMap> colormap;
+
+	int			 row_offset;	 //
+	const uint8* pixels;		 // next position
+	uint16		 first_rel_code; //
+	Color		 first_color;	 // initial color at start of next row
 
 private:
 	static void do_render(VideoPlane*, int row, int width, uint32* fbu) noexcept;
