@@ -664,49 +664,6 @@ void XRAM ScanlineRenderer<Pixmap_a2w8>(uint32* _dest, uint width, const uint8* 
 	cleanup_if_needed<ip>();
 }
 
-// ============================================================================================
-// special 8-bit indexed color mode for Hold-and-Modify image:
-
-static __force_inline Color operator+(Color a, Color b) { return Color(a.raw + b.raw); }
-
-void XRAM HamImageScanlineRenderer::render(uint32* framebuffer, uint width, const uint8* _pixels) noexcept
-{
-	constexpr InterpMode ip = ip_8bpp;
-	setup_if_needed<ip>();
-	Interp* const interp = &interp0[ipi<ip>];
-	interp->set_color_base(colormap);
-
-	// we don't check the row
-	// we rely on do_vblank() to reset the pointer
-	// and if we actually miss a scanline then let it be
-
-	const Color*  first_rel_color = &colormap[first_rel_code];
-	Color		  current_color	  = first_color;
-	const uint16* pixels		  = reinterpret_cast<const uint16*>(_pixels);
-
-	Color* dest		   = reinterpret_cast<Color*>(framebuffer);
-	Color* first_pixel = dest;
-
-	for (uint i = 0; i < width / 4; i++)
-	{
-		const Color* color;
-
-		interp->set_pixels(*pixels++);
-		color	= interp->next_color();
-		*dest++ = current_color = color >= first_rel_color ? current_color + *color : *color;
-		color					= interp->next_color();
-		*dest++ = current_color = color >= first_rel_color ? current_color + *color : *color;
-
-		interp->set_pixels(*pixels++);
-		color	= interp->next_color();
-		*dest++ = current_color = color >= first_rel_color ? current_color + *color : *color;
-		color					= interp->next_color();
-		*dest++ = current_color = color >= first_rel_color ? current_color + *color : *color;
-	}
-
-	first_color = *first_pixel;
-	cleanup_if_needed<ip>();
-}
 
 } // namespace kilipili::Video
 
