@@ -3,9 +3,6 @@
 // https://spdx.org/licenses/BSD-2-Clause.html
 
 #include "Video.h"
-#include "ScanlineBuffer.h"
-#include "ScanlineRenderer.h"
-#include "VideoBackend.h"
 #include "VideoPlane.h"
 #include "common/LoadSensor.h"
 #include "common/cdefs.h"
@@ -14,6 +11,9 @@
 #include "common/tempmem.h"
 #include "common/timing.h"
 #include "common/trace.h"
+#include "internal/Interp.h"
+#include "internal/ScanlineBuffer.h"
+#include "internal/VideoBackend.h"
 #include <cstdio>
 #include <hardware/exception.h>
 #include <pico/multicore.h>

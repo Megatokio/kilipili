@@ -3,10 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Frames.h"
-#include "Shape.h"
 #include "Sprite.h"
 #include "VideoPlane.h"
+#include "internal/Frames.h"
+#include "internal/Shape.h"
 
 #define XRAM __attribute__((section(".scratch_x.SSP" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
 #define RAM	 __attribute__((section(".time_critical.SSP" __XSTRING(__LINE__)))) // general ram

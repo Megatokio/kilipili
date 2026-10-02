@@ -31,12 +31,13 @@ endif()
 add_library(kilipili_video STATIC  
 	${video_sources}  
 	VgaMode.h
-	video_options.h
-	Shape.h
-	Frames.h
-	Interp.h  
-	scanline.pio
-	timing.pio
+	internal/video_options.h
+	internal/Shape.h
+	internal/Frames.h
+	internal/Interp.h  
+	internal/Interp.cpp  
+	internal/scanline.pio
+	internal/timing.pio
 	AnimatedSprite.h
 	Sprite.cpp      	
 	Sprite.h
@@ -48,10 +49,10 @@ add_library(kilipili_video STATIC
 	VideoPlane.cpp
 	Video.h	
 	Video.cpp
-	ScanlineBuffer.h 	
-	ScanlineBuffer.cpp
-	VideoBackend.h  	
-	VideoBackend.cpp
+	internal/ScanlineBuffer.h 	
+	internal/ScanlineBuffer.cpp
+	internal/VideoBackend.h  	
+	internal/VideoBackend.cpp
 	HamImageInfo.h  	
 	HamImageInfo.cpp
 	Passepartout.h  	
@@ -60,8 +61,8 @@ add_library(kilipili_video STATIC
 	VerticalLayout.cpp
 	HorizontalLayout.h	
 	HorizontalLayout.cpp
-	ScanlineRenderer.h	
-	ScanlineRenderer.cpp
+	internal/ScanlineRenderer.h	
+	internal/ScanlineRenderer.cpp
 	MultiSpritesPlane.h	
 	MultiSpritesPlane.cpp
 	SingleSpritePlane.h	
@@ -102,8 +103,8 @@ target_link_libraries(kilipili_video PUBLIC
 	hardware_exception
 )
 
-pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/timing.pio)
-pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/scanline.pio)
+pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/timing.pio)
+pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/scanline.pio)
 
 
 

@@ -5,11 +5,11 @@
 #pragma once
 #include "VgaMode.h"
 #include "VideoPlane.h"
+#include "internal/VideoBackend.h"
 #include "timing.h"
 #include <functional>
 #include <pico/sem.h>
 #include <pico/types.h>
-
 
 namespace kilipili::Video
 {
@@ -37,18 +37,6 @@ namespace kilipili::Video
 using IdleAction	= std::function<void()>;
 using VBlankAction	= std::function<void()>;
 using OneTimeAction = std::function<void()>;
-
-// in VideoBackend.cpp:
-extern VgaMode		   vga_mode;			// VGAMode in use
-extern uint32		   cc_per_scanline;		// cc per logical scanline (scaled by vss)
-extern uint32		   cc_per_frame;		//
-extern uint			   cc_per_px;			// cpu clock cycles per pixel
-extern uint			   cc_per_us;			// cpu clock cycles per microsecond
-extern volatile bool   in_vblank;			// set while in vblank (set and reset ~2 scanlines early)
-extern volatile int	   line_at_frame_start; // rolling line number at start of current frame
-extern volatile uint32 time_us_at_frame_start;
-extern volatile uint32 time_cc_at_frame_start;
-extern volatile int	   current_frame;
 
 inline int screen_width() noexcept { return vga_mode.width; }
 inline int screen_height() noexcept { return vga_mode.height; }

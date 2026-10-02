@@ -4,8 +4,8 @@
 
 #pragma once
 #include "AnimatedSprite.h"
-#include "Shape.h"
 #include "VideoPlane.h"
+#include "internal/Shape.h"
 #include <pico/sync.h>
 
 

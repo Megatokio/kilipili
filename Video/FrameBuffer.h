@@ -6,8 +6,8 @@
 #include "ColorMap.h"
 #include "Pixmap.h"
 #include "Pixmap_wAttr.h"
-#include "ScanlineRenderer.h"
 #include "VideoPlane.h"
+#include "internal/ScanlineRenderer.h"
 
 
 namespace kilipili::Video
