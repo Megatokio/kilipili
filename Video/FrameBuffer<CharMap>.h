@@ -6,6 +6,7 @@
 #include "FrameBuffer.h"
 #include "Graphics/Color.h"
 #include "VideoPlane.h"
+#include "internal/Interp.h"
 
 
 namespace kilipili::Video
@@ -95,9 +96,7 @@ template<class CharMap>
 FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::FrameBuffer(CharMap* charmap) noexcept :
 	VideoPlane(&do_vblank, &do_render),
 	charmap(charmap)
-{
-	//setup_colors();
-}
+{}
 
 template<class CharMap>
 inline void RAM FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::setup_colors() noexcept
@@ -109,9 +108,9 @@ inline void RAM FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::s
 }
 
 template<class CharMap>
-void XRAM FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_vblank(VideoPlane* vp) noexcept
+void RAM FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_vblank(VideoPlane* vp) noexcept
 {
-	auto* me		= static_cast<FrameBuffer<CharMap>*>(vp);
+	auto* me		= static_cast<FrameBuffer*>(vp);
 	me->raster_line = 0;
 	me->last_y		= 0;
 	me->row_ptr		= cuptr(me->charmap->data);
@@ -121,10 +120,10 @@ void XRAM FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_vbla
 }
 
 template<class CharMap>
-void RAM FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render( //
+void XRAM FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 	VideoPlane* vp, int y, int width, uint32* buffer) noexcept
 {
-	auto* me = static_cast<FrameBuffer<CharMap>*>(vp);
+	auto* me = static_cast<FrameBuffer*>(vp);
 
 	assert(char_width == 8);
 	assert(char_height == 12);
@@ -142,6 +141,11 @@ void RAM FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_rende
 		}
 	}
 
+	constexpr InterpMode ip		= InterpMode::i2u32;
+	Interp* const		 interp = &interp0[ipi<ip>];
+	if constexpr (sizeof(Color) == 2) interp->setup(ip);
+	if constexpr (sizeof(Color) == 2) interp->set_color_base(mask4x2);
+
 	int			 cols = width >> 3;						  // assumes char_width = 8
 	const uchar* font = me->font + me->raster_line * 256; // TODO: this assumes 256 glyphs in font
 
@@ -156,19 +160,23 @@ void RAM FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_rende
 		{
 			if (attr & bold_mask) byte |= byte << 1;
 			uint32 fg = me->fgcolors[(attr & fg_mask) >> fg_ss];
-			if constexpr (sizeof(Color) <= 2) fg = fg ^ bg; // xor instead of fg color
 
 			if constexpr (sizeof(Color) == 1)
 			{
+				fg = fg ^ bg;
+
 				*buffer++ = bg ^ (fg & mask16x1[byte & 0x0f]);
 				*buffer++ = bg ^ (fg & mask16x1[byte >> 4]);
 			}
 			else if constexpr (sizeof(Color) == 2)
 			{
-				*buffer++ = bg ^ (fg & mask4x2[byte & 3]);
-				*buffer++ = bg ^ (fg & mask4x2[(byte >> 2) & 3]);
-				*buffer++ = bg ^ (fg & mask4x2[(byte >> 4) & 3]);
-				*buffer++ = bg ^ (fg & mask4x2[byte >> 6]);
+				fg = fg ^ bg;
+
+				interp->set_pixels(byte, 2);
+				*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
+				*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
+				*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
+				*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
 			}
 			else // Color = 4 bytes
 			{
@@ -196,6 +204,8 @@ void RAM FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_rende
 			if constexpr (sizeof(Color) == 4) *buffer++ = bg;
 		}
 	}
+
+	if constexpr (sizeof(Color) == 2) cleanup_if_needed<ip>();
 }
 
 #undef RAM
