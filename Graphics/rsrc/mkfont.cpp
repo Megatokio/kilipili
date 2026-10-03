@@ -3,11 +3,12 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 
-using uchar = unsigned char;
+using uchar	 = unsigned char;
 using uint32 = uint32_t;
+using uint8	 = uint8_t;
 
 
 // printing options:
@@ -15,16 +16,18 @@ using uint32 = uint32_t;
 #define hex	 1
 #define dec	 0
 #define bin	 0
-#define step 1	  // 1 or 4:hex
+#define step 1 // 1 or 4:hex
 
 
 // font data:
 static constexpr uchar font[] = {
-//#include "latin1_12x8_source.h"
-#include "ascii_12x8_inverse_source.h"
+//#include "glyphs_12x8/latin1_12x8_source.h"
+//#include "glyphs_12x8/ascii_12x8_bold_source.h"
+//#include "glyphs_12x8/ascii_12x8_inverse_source.h"
+#include "glyphs_12x8/graphics_12x8_source.h"
 };
 
-static_assert(sizeof(font)==num_codes*char_height);
+static_assert(sizeof(font) == num_codes * char_height);
 
 
 int print_bytes(const uchar* data)
