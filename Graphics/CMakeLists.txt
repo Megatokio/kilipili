@@ -33,8 +33,6 @@ add_library(kilipili_graphics STATIC
 	gif/Pixelmap.h
 	img/ImageDecoder.h	
 	img/ImageDecoder.cpp
-	rsrc/ascii_12x8_inverse.h
-	rsrc/latin1_12x8.h
 	Canvas.h	
 	Canvas.cpp
 	Pixmap.h	
@@ -51,6 +49,10 @@ add_library(kilipili_graphics STATIC
 	systemfont.h
 	CharMap.h CharMap.cpp
 	SimpleCharMap.h SimpleCharMap.cpp
+	rsrc/graphics_12x8.h
+	rsrc/ascii_12x8_inverse.h
+	rsrc/ascii_12x8_bold.h
+	rsrc/latin1_12x8.h
 )
 
 target_compile_definitions(kilipili_graphics PUBLIC  
