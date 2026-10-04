@@ -47,12 +47,13 @@ public:
 	uint8  attr		= 0;
 	uint8  _padding = 0;
 
-	cuptr  font = ascii_256x12_inverse[0];
-	uchar* data = nullptr;
-	int	   rows;
-	int	   cols;
-	Color  fgcolor = black;
-	Color  bgcolor = white;
+	cuptr		 font = ascii_256x12_inverse[0];
+	static cuptr font2; // n.ex.: for similarity with CharMap
+	uchar*		 data = nullptr;
+	int			 rows;
+	int			 cols;
+	Color		 fgcolor = black;
+	Color		 bgcolor = white;
 };
 
 

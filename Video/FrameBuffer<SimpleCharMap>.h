@@ -56,7 +56,6 @@ public:
 	int			 last_y		 = 0;
 
 private:
-	void		setup_colors() noexcept;
 	static void do_vblank(VideoPlane*) noexcept;
 	static void do_render(VideoPlane*, int row, int width, uint32* buffer) noexcept;
 };
@@ -68,30 +67,17 @@ private:
 // *****************************************************************************
 //
 
-#define XRAM __attribute__((section(".scratch_x.CFB" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.CFB" __XSTRING(__LINE__)))) // general ram
-
 template<typename Flag>
 FrameBuffer<SimpleCharMap, Flag>::FrameBuffer(SimpleCharMap* charmap) noexcept :
 	charmap(charmap),
 	VideoPlane(&do_vblank, &do_render)
 {
-	setup_colors();
+	// setup_colors in first vblank:
+	charmap->bgcolor = ~colorstrips[0][0];
 }
 
 template<typename Flag>
-void RAM FrameBuffer<SimpleCharMap, Flag>::setup_colors() noexcept
-{
-	Color  colors[2] = {charmap->bgcolor, charmap->fgcolor};
-	Color* p		 = &colorstrips[0][0];
-	for (int byte = 0; byte < (small ? 16 : 256); byte++)
-	{
-		for (int bit = 0; bit < (small ? 4 : 8); bit++) { *p++ = colors[(byte >> bit) & 1]; }
-	}
-}
-
-template<typename Flag>
-void RAM FrameBuffer<SimpleCharMap, Flag>::do_vblank(VideoPlane* vp) noexcept
+void FrameBuffer<SimpleCharMap, Flag>::do_vblank(VideoPlane* vp) noexcept
 {
 	auto* me = static_cast<FrameBuffer<SimpleCharMap, Flag>*>(vp);
 
@@ -102,11 +88,19 @@ void RAM FrameBuffer<SimpleCharMap, Flag>::do_vblank(VideoPlane* vp) noexcept
 	me->font = me->charmap->font;
 	if (me->charmap->bgcolor != me->colorstrips[0][0] ||
 		me->charmap->fgcolor != me->colorstrips[NELEM(colorstrips) - 1][0])
-		me->setup_colors();
+	{
+		// setup_colors:
+		Color  colors[2] = {me->charmap->bgcolor, me->charmap->fgcolor};
+		Color* p		 = &me->colorstrips[0][0];
+		for (int byte = 0; byte < (small ? 16 : 256); byte++)
+		{
+			for (int bit = 0; bit < (small ? 4 : 8); bit++) { *p++ = colors[(byte >> bit) & 1]; }
+		}
+	}
 }
 
 template<typename Flag>
-void XRAM FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int width, uint32* buffer) noexcept
+void FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int width, uint32* buffer) noexcept
 {
 	auto* me = static_cast<FrameBuffer<SimpleCharMap, Flag>*>(vp);
 
@@ -179,6 +173,22 @@ void XRAM FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int
 		}
 	}
 }
+
+// rant:
+// gcc ignores attributes in templates!
+// we must specify the section in every instantiation!
+// we cannot just instantiate the class,
+// we must instantiate every single function!
+// at least there are only 2 versions of the SimpleCharMap...
+
+#define XRAM __attribute__((section(".scratch_x.SCFB")))	 // the 4k page with the core1 stack
+#define RAM	 __attribute__((section(".time_critical.SCFB"))) // general ram
+
+template void RAM FrameBuffer<SimpleCharMap, Fast>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+template void RAM FrameBuffer<SimpleCharMap, Fast>::do_vblank(VideoPlane*) noexcept;
+
+template void RAM FrameBuffer<SimpleCharMap, Small>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+template void RAM FrameBuffer<SimpleCharMap, Small>::do_vblank(VideoPlane*) noexcept;
 
 #undef RAM
 #undef XRAM
