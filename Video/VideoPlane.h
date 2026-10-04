@@ -1,13 +1,10 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
 #include "RCPtr.h"
 #include "standard_types.h"
-
-#define XRAM __attribute__((section(".scratch_x.VP" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.VP" __XSTRING(__LINE__)))) // general ram
 
 
 namespace kilipili::Video
@@ -68,13 +65,9 @@ protected:
 	static void do_render(VideoPlane*, int row, int width, uint32* buffer) noexcept;
 
 	VideoPlane() noexcept : vblank_fu(&do_vblank), render_fu(&do_render) {}
-	VideoPlane(VblankFu* a, RenderFu* b) noexcept : vblank_fu(a), render_fu(b) {}
+	VideoPlane(VblankFu* a, RenderFu* b) noexcept;
 };
 
 using VideoPlanePtr = RCPtr<VideoPlane>;
 
-
 } // namespace kilipili::Video
-
-#undef RAM
-#undef XRAM
