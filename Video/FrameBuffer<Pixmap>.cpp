@@ -2,7 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "FrameBuffer.h"
+#include "FrameBuffer<Pixmap>.h"
 
 #define RENDER __section(RAM ".fb")
 #define VBLANK __section(RAM ".fb")

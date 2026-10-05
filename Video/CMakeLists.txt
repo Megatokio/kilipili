@@ -43,8 +43,9 @@ add_library(kilipili_video STATIC
 	AnimatedSprite.h
 	Sprite.cpp      	
 	Sprite.h
-	FrameBuffer.h   	
-	FrameBuffer.cpp
+	FrameBuffer.h 
+	FrameBuffer<Pixmap>.h   	
+	FrameBuffer<Pixmap>.cpp
 	MousePointer.h  	
 	MousePointer.cpp
 	VideoPlane.h    	

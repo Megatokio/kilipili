@@ -6,7 +6,6 @@
 #include "FrameBuffer.h"
 #include "Graphics/CharMap.h"
 #include "Graphics/Color.h"
-#include "VideoPlane.h"
 #include "internal/Interp.h"
 
 
