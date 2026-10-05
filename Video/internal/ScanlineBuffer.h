@@ -8,8 +8,6 @@
 #include "standard_types.h"
 #include <pico.h>
 
-#define RAM __attribute__((section(".time_critical.SLB"))) // general ram
-
 #if !defined VIDEO_MAX_SCANLINE_BUFFERS
   #define VIDEO_MAX_SCANLINE_BUFFERS 16 // 2 .. 2^N .. 16
 #endif
@@ -45,7 +43,7 @@ struct ScanlineBuffer
 
 	/*
 	*/
-	__force_inline RAM uint32* operator[](int rolling_index) noexcept
+	__force_inline uint32* operator[](int rolling_index) noexcept
 	{
 		assert(count);
 		return scanlines[(uint(rolling_index) & mask) << vss];
@@ -64,5 +62,3 @@ extern ScanlineBuffer scanline_buffer;
 
 
 } // namespace kilipili::Video
-
-#undef RAM

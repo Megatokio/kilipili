@@ -1,14 +1,10 @@
-// Copyright (c) 2025 - 2025 kio@little-bat.de
+// Copyright (c) 2025 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Passepartout.h"
 #include "Graphics/Color.h"
 #include "Video.h"
-
-#define XRAM __attribute__((section(".scratch_x.PPT" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.PPT" __XSTRING(__LINE__)))) // general ram
-
 
 namespace kilipili ::Video
 {
@@ -17,7 +13,7 @@ using namespace Graphics;
 
 constexpr int ss = sizeof(Color) == 1 ? 2 : sizeof(Color) == 2 ? 1 : 0;
 
-void RAM clear_row(volatile uint32* z, int w) noexcept
+void __section(RAM ".ppt") clear_row(volatile uint32* z, int w) noexcept
 {
 	while (--w >= 0) { *z++ = 0x00; }
 }
@@ -36,7 +32,7 @@ Passepartout::Passepartout(RCPtr<VideoPlane> vp, int inner_width, int inner_heig
 	setSize(screen_width(), screen_height(), inner_width, inner_height);
 }
 
-void RAM Passepartout::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
+void __section(RAM ".ppt") Passepartout::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
 {
 	width >>= ss; // measured in uint32
 
@@ -61,7 +57,7 @@ void RAM Passepartout::do_render(VideoPlane* vp, int row, int width, uint32* fbu
 	}
 }
 
-void RAM Passepartout::do_vblank(VideoPlane* vp) noexcept
+void __section(RAM ".ppt") Passepartout::do_vblank(VideoPlane* vp) noexcept
 {
 	Passepartout* me = reinterpret_cast<Passepartout*>(vp);
 

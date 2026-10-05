@@ -1,12 +1,9 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "UniColorBackdrop.h"
 #include "BitBlit.h"
-
-#define XRAM __attribute__((section(".scratch_x.UCBD" __XSTRING(__LINE__))))	 // the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.UCBD" __XSTRING(__LINE__)))) // general ram
 
 
 namespace kilipili::Video
@@ -15,11 +12,13 @@ namespace kilipili::Video
 using namespace Graphics;
 
 UniColorBackdrop::UniColorBackdrop(Color color) noexcept :
-	VideoPlane(do_vblank, &render),
+	VideoPlane(&vblank, &render),
 	color(Graphics::flood_filled_color<Graphics::colordepth_rgb>(color))
 {}
 
-void RAM UniColorBackdrop::render(VideoPlane* vp, int __unused row, int width, uint32* fbu) noexcept
+void __section(RAM ".ucbd") UniColorBackdrop::vblank(VideoPlane*) noexcept {}
+
+void __section(XRAM ".ucbd") UniColorBackdrop::render(VideoPlane* vp, int __unused row, int width, uint32* fbu) noexcept
 {
 	UniColorBackdrop* me	= reinterpret_cast<UniColorBackdrop*>(vp);
 	uint32			  color = me->color;

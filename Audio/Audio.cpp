@@ -45,10 +45,6 @@ static constexpr uint ibu_size = 64;
   #define dma_hw reinterpret_cast<dma_hw_t*>(DMA_BASE)	 // replace with c++-style definition
 // clang-format on
 
-  #define WRAP(X)  #X
-  #define XWRAP(X) WRAP(X)
-  #define XRAM	   __attribute__((section(".scratch_x.VB" XWRAP(__LINE__))))	 // the 4k page with the core1 stack
-  #define RAM	   __attribute__((section(".time_critical.VB" XWRAP(__LINE__)))) // general ram
 
 // =========================================================
 
@@ -206,7 +202,7 @@ static void stop_pio() noexcept
 	pio_set_sm_mask_enabled(audio_pio, mask, false);
 }
 
-static void RAM audio_isr() noexcept
+static void __section(RAM ".audio") audio_isr() noexcept
 {
 	for (uint i = 0; i < dma_num_channels; i++)
 	{

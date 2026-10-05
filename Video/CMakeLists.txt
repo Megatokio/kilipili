@@ -11,11 +11,12 @@ set(VIDEO_MAX_SYSCLOCK_MHz "290" CACHE STRING "maximum system clock set by Video
 set(VIDEO_MAX_SCANLINE_BUFFERS "16" CACHE STRING "max. number of prepared scanlines (2^N)")
 set(VIDEO_INTERP0_MODE "a1w8" CACHE STRING "configure interp0: any, i1, i2, i4, i8, a1w8 (default): colormode")
 set(VIDEO_INTERP1_MODE "any"  CACHE STRING "configure interp1: any (default), i1, i2, i4, i8, a1w8: colormode")
+set(VIDEO_SCANLINE_RENDERER_SECTION "XRAM" CACHE STRING "section for predefined scanline renderers: RAM or XRAM")
 
 set_property(CACHE VIDEO_MAX_SCANLINE_BUFFERS PROPERTY STRINGS "2" "4" "8" "16" "32")
 set_property(CACHE VIDEO_INTERP0_MODE PROPERTY STRINGS "any" "i1" "i2" "i4" "i8" "a1w8")
 set_property(CACHE VIDEO_INTERP1_MODE PROPERTY STRINGS "any" "i1" "i2" "i4" "i8" "a1w8")
-set_property(CACHE VIDEO_INTERP1_MODE PROPERTY STRINGS "any" "i1" "i2" "i4" "i8" "a1w8")
+set_property(CACHE VIDEO_SCANLINE_RENDERER_SECTION PROPERTY STRINGS "RAM" "XRAM")
 
 
 set(video_sources)
@@ -85,6 +86,7 @@ target_compile_definitions(kilipili_video PUBLIC
 	VIDEO_MAX_SCANLINE_BUFFERS=${VIDEO_MAX_SCANLINE_BUFFERS}
 	VIDEO_INTERP0_MODE=${VIDEO_INTERP0_MODE}
 	VIDEO_INTERP1_MODE=${VIDEO_INTERP1_MODE}
+	VIDEO_SCANLINE_RENDERER_SECTION=${VIDEO_SCANLINE_RENDERER_SECTION}
 )
 
 target_include_directories(kilipili_video PUBLIC  

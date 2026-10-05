@@ -5,6 +5,7 @@
 #include "VideoBackend.h"
 #include "ScanlineBuffer.h"
 #include "common/basic_math.h"
+#include "common/cdefs.h"
 #include "common/system_clock.h"
 #include "scanline.pio.h"
 #include "timing.h"
@@ -29,12 +30,6 @@ namespace kilipili::Video
 #undef dma_hw											// undef c-style definition
 #define dma_hw reinterpret_cast<dma_hw_t*>(DMA_BASE)	// replace with c++-style definition
 // clang-format on
-
-#define WRAP(X)	 #X
-#define XWRAP(X) WRAP(X)
-#define XRAM	 __attribute__((section(".scratch_x.VB" XWRAP(__LINE__))))	   // the 4k page with the core1 stack
-#define RAM		 __attribute__((section(".time_critical.VB" XWRAP(__LINE__)))) // general ram
-
 
 #define video_pio pio0
 
@@ -103,7 +98,7 @@ static uint8		  timing_program_load_offset;
 
 // =========================================================
 
-uint32 RAM time_cc_32() noexcept
+uint32 __section(RAM ".vb") time_cc_32() noexcept
 {
 	// calculated from the usec time
 	// => up to cc_per_us too low ((plus time for evaluation))
@@ -141,7 +136,7 @@ dma_channel_transfer_from_buffer_now(uint channel, const volatile void* read_add
 	hw->al1_transfer_count_trig = transfer_count;
 }
 
-static void RAM timing_isr() noexcept
+static void __section(RAM ".vb") timing_isr() noexcept
 {
 	// DMA complete
 	// interrupt for for timing pio
@@ -488,7 +483,7 @@ void start_video_backend(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 		vreg_set_voltage(params.voltage); // down
 	}
 
-	uint fps = (pixel_clock / vga_mode.h_total() * 1000 + vga_mode.v_total() / 2) / vga_mode.v_total();
+	uint __unused fps = (pixel_clock / vga_mode.h_total() * 1000 + vga_mode.v_total() / 2) / vga_mode.v_total();
 	debugstr("set resolution %i x %i @ %u.%03u Hz\n", vga_mode.width, vga_mode.height, fps / 1000, fps % 1000);
 	debugstr("system clock = %u\n", new_sys_clock);
 	debugstr("pixel clock  = %u\n", pixel_clock);

@@ -53,6 +53,12 @@ constexpr bool debug = true;
   #define __packed __attribute__((__packed__))
 #endif
 
+#ifndef __section
+  #define __section(x) __attribute__((section(x)))
+#endif
+#define XRAM ".scratch_x"	  // the 4k core1 stack page
+#define RAM	 ".time_critical" // general ram
+
 // this is the most portable FALLTHROUGH annotation.
 // only disadvantage: you must not write a ';' after it
 #define __fallthrough               \

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -7,9 +7,6 @@
 #include "VideoPlane.h"
 #include "internal/Frames.h"
 #include "internal/Shape.h"
-
-#define XRAM __attribute__((section(".scratch_x.SSP" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.SSP" __XSTRING(__LINE__)))) // general ram
 
 
 namespace kilipili::Video
@@ -156,7 +153,7 @@ void SingleSpritePlane<Sprite>::replace(const Shape* shapes, const uint16* dur, 
 // ============================================================================
 
 template<typename Sprite>
-void /*RAM*/ SingleSpritePlane<Sprite>::SingleSpritePlane::vblank() noexcept
+void /* __section(RAM ".ssp") */ SingleSpritePlane<Sprite>::SingleSpritePlane::vblank() noexcept
 {
 	if constexpr (is_animated)
 	{
@@ -176,7 +173,8 @@ void /*RAM*/ SingleSpritePlane<Sprite>::SingleSpritePlane::vblank() noexcept
 }
 
 template<typename Sprite>
-void RAM SingleSpritePlane<Sprite>::renderScanline(int row, int __unused width, uint32* scanline) noexcept
+void __section(RAM ".ssp") SingleSpritePlane<Sprite>::renderScanline( //
+	int row, int __unused width, uint32* scanline) noexcept
 {
 	if (!is_hot)
 	{
@@ -190,9 +188,6 @@ void RAM SingleSpritePlane<Sprite>::renderScanline(int row, int __unused width, 
 
 
 } // namespace kilipili::Video
-
-#undef RAM
-#undef XRAM
 
 
 /*

@@ -7,7 +7,6 @@
 #include "Graphics/Color.h"
 #include "Graphics/SimpleCharMap.h"
 
-
 namespace kilipili::Video
 {
 using Color			= Graphics::Color;
@@ -181,17 +180,17 @@ void FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int widt
 // we must instantiate every single function!
 // at least there are only 2 versions of the SimpleCharMap...
 
-#define XRAM __attribute__((section(".scratch_x.SCFB")))	 // the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.SCFB"))) // general ram
+#ifndef VIDEO_SCANLINE_RENDERER_SECTION
+  #define VIDEO_SCANLINE_RENDERER_SECTION XRAM
+#endif
 
-template void RAM FrameBuffer<SimpleCharMap, Fast>::do_render(VideoPlane*, int, int, uint32*) noexcept;
-template void RAM FrameBuffer<SimpleCharMap, Fast>::do_vblank(VideoPlane*) noexcept;
+template void __section(RAM ".scfb") FrameBuffer<SimpleCharMap, Fast>::do_vblank(VideoPlane*) noexcept;
+template void __section(VIDEO_SCANLINE_RENDERER_SECTION
+						".scfb") FrameBuffer<SimpleCharMap, Fast>::do_render(VideoPlane*, int, int, uint32*) noexcept;
 
-template void RAM FrameBuffer<SimpleCharMap, Small>::do_render(VideoPlane*, int, int, uint32*) noexcept;
-template void RAM FrameBuffer<SimpleCharMap, Small>::do_vblank(VideoPlane*) noexcept;
-
-#undef RAM
-#undef XRAM
+template void __section(RAM ".scfb") FrameBuffer<SimpleCharMap, Small>::do_vblank(VideoPlane*) noexcept;
+template void __section(VIDEO_SCANLINE_RENDERER_SECTION
+						".scfb") FrameBuffer<SimpleCharMap, Small>::do_render(VideoPlane*, int, int, uint32*) noexcept;
 
 
 } // namespace kilipili::Video

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -6,9 +6,9 @@
 #include <string.h>
 
 #if !defined GRAPHICS_SYSTEM_COLORMAP_IN_XRAM || GRAPHICS_SYSTEM_COLORMAP_IN_XRAM
-  #define XRAM __attribute__((section(".scratch_x.ColorMap"))) // the 4k page with the core1 stack
+  #define CMRAM ".scratch_x" // core1 stack page
 #else
-  #define XRAM
+  #define CMRAM ".time_critical" // standard RAM
 #endif
 
 
@@ -196,7 +196,7 @@ ColorMap<colordepth_8bpp>::ColorMap(const Color* src) noexcept : ColorMap<colord
 
 
 // The system_colormap is intended to be used by the frame buffer:
-ColorMap<colordepth_8bpp> XRAM system_colormap(vga8_colors);
+ColorMap<colordepth_8bpp> __section(CMRAM ".cm_data") system_colormap(vga8_colors);
 
 
 static struct OnInit

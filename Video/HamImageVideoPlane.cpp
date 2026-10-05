@@ -6,10 +6,6 @@
 #include "internal/Interp.h"
 
 
-#define RAM	 __attribute__((section(".time_critical.HAM" __XSTRING(__LINE__)))) // general ram
-#define XRAM __attribute__((section(".scratch_x.HAM" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
-
-
 namespace kilipili::Video
 {
 
@@ -40,7 +36,7 @@ void HamImageVideoPlane::setupNextImage(int new_row_offset, uint16 new_first_rel
 	first_rel_code = new_first_rel_code;
 }
 
-void RAM HamImageVideoPlane::do_vblank(VideoPlane* vp) noexcept
+void __section(RAM ".ham") HamImageVideoPlane::do_vblank(VideoPlane* vp) noexcept
 {
 	HamImageVideoPlane* me = static_cast<HamImageVideoPlane*>(vp);
 	me->pixels			   = me->pixmap->pixmap;
@@ -49,7 +45,8 @@ void RAM HamImageVideoPlane::do_vblank(VideoPlane* vp) noexcept
 
 static __force_inline Color operator+(Color a, Color b) { return Color(a.raw + b.raw); }
 
-void XRAM HamImageVideoPlane::do_render(VideoPlane* vp, int /*row*/, int width, uint32* framebuffer) noexcept
+void __section(XRAM ".ham") HamImageVideoPlane::do_render( //
+	VideoPlane* vp, int /*row*/, int width, uint32* framebuffer) noexcept
 {
 	HamImageVideoPlane* me = static_cast<HamImageVideoPlane*>(vp);
 

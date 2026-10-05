@@ -1,10 +1,10 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "MultiSpritesPlane.h"
-#include "trace.h"
 #include "cdefs.h"
+#include "trace.h"
 #include <pico/platform.h>
 #include <pico/stdlib.h>
 #include <pico/sync.h>
@@ -14,14 +14,6 @@ namespace kilipili::Video
 {
 
 using namespace Graphics;
-
-// all hot video code should go into ram to allow video while flashing.
-// also, there should be no const data accessed in hot video code for the same reason.
-// the most timecritical things should go into core1 stack page because it is not contended.
-
-#define XRAM __attribute__((section(".scratch_x.MSP" __XSTRING(__LINE__))))		// the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.MSP" __XSTRING(__LINE__)))) // general ram
-
 
 bool hotlist_overflow = false; // set by add_to_hotlist()
 
@@ -103,7 +95,7 @@ void MultiSpritesPlane<Sprite, WZ>::replace(Sprite* s, const Shape& new_shape) n
 // in RAM:
 
 template<typename Sprite, ZPlane WZ>
-void RAM MultiSpritesPlane<Sprite, WZ>::_unlink(Sprite* s) noexcept
+void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::_unlink(Sprite* s) noexcept // TODO: gcc ignores section
 {
 	// used in renderScanline()
 
@@ -179,7 +171,7 @@ void MultiSpritesPlane<Sprite, WZ>::_link(Sprite* s) noexcept
 }
 
 template<typename Sprite, ZPlane WZ>
-void RAM MultiSpritesPlane<Sprite, WZ>::_move(Sprite* s) noexcept
+void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::_move(Sprite* s) noexcept // TODO gcc ignores section
 {
 	trace(__func__);
 	assert(is_spin_locked(sprites_spinlock));
@@ -206,7 +198,8 @@ void RAM MultiSpritesPlane<Sprite, WZ>::_move(Sprite* s) noexcept
 }
 
 template<typename Sprite, ZPlane WZ>
-void RAM MultiSpritesPlane<Sprite, WZ>::add_to_hotlist(const Sprite* sprite) noexcept
+void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::add_to_hotlist( //
+	const Sprite* sprite) noexcept										  // TODO gcc ignores section
 {
 	if unlikely (num_hot == max_hot)
 	{
@@ -241,7 +234,8 @@ void RAM MultiSpritesPlane<Sprite, WZ>::add_to_hotlist(const Sprite* sprite) noe
 }
 
 template<typename Sprite, ZPlane WZ>
-void RAM MultiSpritesPlane<Sprite, WZ>::renderScanline(int hot_row, int width, uint32* scanline) noexcept
+void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::renderScanline( //
+	int hot_row, int width, uint32* scanline) noexcept					  // TODO gcc ignores section
 {
 	trace(__func__);
 	assert(get_core_num() == 1);
@@ -282,7 +276,7 @@ void RAM MultiSpritesPlane<Sprite, WZ>::renderScanline(int hot_row, int width, u
 }
 
 template<typename Sprite, ZPlane WZ>
-void RAM MultiSpritesPlane<Sprite, WZ>::vblank() noexcept
+void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::vblank() noexcept // TODO gcc ignores section
 {
 	// called by VideoController before first renderScanline().
 	// called by VideoController at start of each frame.
@@ -319,6 +313,9 @@ void RAM MultiSpritesPlane<Sprite, WZ>::vblank() noexcept
 
 
 // the linker will know what we need:
+
+// TODO: gcc ignores section!
+
 template class MultiSpritesPlane<Sprite<Shape>, NoZ>;
 template class MultiSpritesPlane<Sprite<Shape>, HasZ>;
 template class MultiSpritesPlane<Sprite<SoftenedShape>, NoZ>;

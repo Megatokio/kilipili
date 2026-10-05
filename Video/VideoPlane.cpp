@@ -6,9 +6,6 @@
 #include "common/Logger.h"
 #include "common/memory.h"
 
-#define XRAM __attribute__((section(".scratch_x.VP" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.VP" __XSTRING(__LINE__)))) // general ram
-
 namespace kilipili::Video
 {
 
@@ -27,12 +24,12 @@ VideoPlane::VideoPlane(VblankFu* a, RenderFu* b) noexcept : vblank_fu(a), render
 	}
 }
 
-void RAM VideoPlane::do_vblank(VideoPlane* vp) noexcept
+void __section(RAM ".vp") VideoPlane::do_vblank(VideoPlane* vp) noexcept
 {
 	if (!locked_out) vp->vblank();
 }
 
-void RAM VideoPlane::do_render(VideoPlane* vp, int row, int width, uint32* buffer) noexcept
+void __section(RAM ".vp") VideoPlane::do_render(VideoPlane* vp, int row, int width, uint32* buffer) noexcept
 {
 	if (!locked_out) vp->renderScanline(row, width, buffer);
 }

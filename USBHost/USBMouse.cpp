@@ -12,11 +12,6 @@
 // also, there should be no const data accessed in hot video code for the same reason.
 // the most timecritical things should go into core1 stack page because it is not contended.
 
-#define WRAP(X)	 #X
-#define XWRAP(X) WRAP(X)
-#define XRAM	 __attribute__((section(".scratch_x.mouse" XWRAP(__LINE__))))	  // the 4k page with the core1 stack
-#define RAM		 __attribute__((section(".time_critical.mouse" XWRAP(__LINE__)))) // general ram
-
 
 // ====================================================================
 
@@ -46,7 +41,7 @@ void setMouseLimits(int width, int height) noexcept
 	old_y		  = screen_height / 3;
 }
 
-Point RAM getMousePosition() noexcept //
+Point __section(RAM ".usbm") getMousePosition() noexcept //
 {
 	return Point(old_x, old_y);
 }

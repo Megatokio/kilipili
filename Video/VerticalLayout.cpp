@@ -1,14 +1,10 @@
-// Copyright (c) 2025 - 2025 kio@little-bat.de
+// Copyright (c) 2025 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "VerticalLayout.h"
 #include <cstdio>
 #include <hardware/gpio.h>
-
-#define XRAM __attribute__((section(".scratch_x.VL" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.VL" __XSTRING(__LINE__)))) // general ram
-
 
 namespace kilipili ::Video
 {
@@ -46,7 +42,7 @@ VerticalLayout<4>::VerticalLayout(
 }
 
 
-void RAM VerticalLayout<2>::do_vblank(VideoPlane* vp) noexcept
+void __section(RAM ".vert") VerticalLayout<2>::do_vblank(VideoPlane* vp) noexcept
 {
 	VerticalLayout* me = reinterpret_cast<VerticalLayout*>(vp);
 
@@ -61,7 +57,7 @@ void RAM VerticalLayout<2>::do_vblank(VideoPlane* vp) noexcept
 	}
 }
 
-void RAM VerticalLayout<2>::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
+void __section(RAM ".vert") VerticalLayout<2>::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
 {
 	VerticalLayout* me = reinterpret_cast<VerticalLayout*>(vp);
 

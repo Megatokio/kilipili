@@ -12,9 +12,6 @@
 
 namespace kilipili::Video
 {
-using Color = Graphics::Color;
-
-
 /*	Implementation of template `FrameBuffer<>` for template character array `CharMap<>`.
 
 	template class FrameBuffer<CharMap> uses one attribute per character.
@@ -26,13 +23,31 @@ using Color = Graphics::Color;
 		bgbits:    background color bits
 		bold:      enable bold attribute
 		underline: enable underline attribute
-		graphics:  enable secondary font
+		graphics:  enable secondary font (default: graphics)
 	The total number of bits must not exceed 8.
+
+	Because gcc has a long outstanding bug in handling attributes in template instantiations,
+	you should not simply instantiate the FrameBuffer<> for your CharMap<> of choice,
+	because then gcc will then put the callback functions into flash. (except you are fine with this.)
+	Instead you must instantiate the callback functions explicitly with the desired section attribute.
+	To simplify this the #define DEFINE_FB_CB(...) is provided.
+	Use DEFINE_FB_CM(fgbits,bgbits,bold,ul,gra,section) to define the callbacks for the FrameBuffer you actually use:
+	e.g.:
+		  namespace kilipili::Video{
+		  DEFINE_FB_CM(2, 2, 1, 1, 0, XRAM)   // XRAM = ".scratch_x" is defined in cdefs.h
+	    }
+
+	There are some variants predefined for a quick start anyway:
+		DEFINE_FB_CM(0, 0, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION) // works safely up to 1024x768
+		DEFINE_FB_CM(3, 3, 1, 1, 0, VIDEO_SCANLINE_RENDERER_SECTION) // up to 800x600
+		DEFINE_FB_CM(3, 2, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION) // up to 800x600
 */
 
 template<class CharMap>
 class FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>> final : public VideoPlane
 {
+	using Color = Graphics::Color;
+
 	static constexpr int   fg_bits		  = CharMap::fg_bits;
 	static constexpr int   bg_bits		  = CharMap::bg_bits;
 	static constexpr bool  bold			  = CharMap::bold;
@@ -216,30 +231,22 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 	if constexpr (sizeof(Color) == 2) cleanup_if_needed<ip>();
 }
 
-// rant:
-// gcc ignores attributes in templates!
-// we must specify the section in every instantiation!
-// we cannot just instantiate the class,
-// we must instantiate every single function!
-
 // clang-format off
 #define DEFINE_FB_CM(a,b,c,d,e,SECTION)\
-template void SECTION FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_render(VideoPlane*, int, int, uint32*) noexcept;\
-template void SECTION FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_vblank(VideoPlane*) noexcept;
+template void __section(SECTION ".FB_CM") FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_render(VideoPlane*, int, int, uint32*) noexcept;\
+template void __section(RAM ".FB_CM") FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_vblank(VideoPlane*) noexcept;
 // clang-format on
 
+#ifndef VIDEO_SCANLINE_RENDERER_SECTION
+  #define VIDEO_SCANLINE_RENDERER_SECTION XRAM
+#endif
 
-// use DEFINE_FB_CM(..) to define the callbacks for the FrameBuffer you actually use:
-// e.g.:
-//	#define XRAM __attribute__((section(".scratch_x.FB_CM")))	  // the 4k core1 stack page
-//	#define RAM	 __attribute__((section(".time_critical.FB_CM"))) // general ram
-//  namespace kilipili::Video{
-//	 DEFINE_FB_CM(0, 0, 1, 1, 1, XRAM)
-//	 DEFINE_FB_CM(3, 3, 1, 1, 0, XRAM)
-//	 DEFINE_FB_CM(3, 2, 1, 1, 1, XRAM)
-//  }
-//	#undef RAM
-//	#undef XRAM
+// pre-define some for a quick start:
+DEFINE_FB_CM(0, 0, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION) // works safely up to 1024x768
+DEFINE_FB_CM(3, 3, 1, 1, 0, VIDEO_SCANLINE_RENDERER_SECTION) // up to 800x600
+DEFINE_FB_CM(3, 2, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION) // up to 800x600
+#undef DEFAULT
+
 
 } // namespace kilipili::Video
 

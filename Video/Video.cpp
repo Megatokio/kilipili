@@ -1,10 +1,11 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD 2-clause license
 // https://spdx.org/licenses/BSD-2-Clause.html
 
 #include "Video.h"
 #include "VideoPlane.h"
 #include "common/LoadSensor.h"
+#include "common/cdefs.h"
 #include "common/cdefs.h"
 #include "common/memory.h"
 #include "common/stack_guard.h"
@@ -17,11 +18,6 @@
 #include <cstdio>
 #include <hardware/exception.h>
 #include <pico/multicore.h>
-
-
-#define XRAM __attribute__((section(".scratch_x.VC" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.VC" __XSTRING(__LINE__)))) // general ram
-
 
 using namespace kilipili::Video;
 
@@ -49,7 +45,7 @@ __weak_symbol void resume_core1() noexcept
 	__sev();
 }
 
-__noreturn RAM static void hard_fault_handler() noexcept
+__noreturn static void __section(RAM ".vc") hard_fault_handler() noexcept
 {
 	if (!locked_out) kilipili::panic("HARDFAULT_EXCEPTION");
 
@@ -168,7 +164,7 @@ void stopVideo() noexcept
 	onetime_action = nullptr; // if planes were added but the VideoController was never started
 }
 
-static void __noinline RAM poll_isr(volatile bool& lockout) noexcept
+static void __noinline __section(RAM ".vc") poll_isr(volatile bool& lockout) noexcept
 {
 	while (lockout) { __wfe(); }
 }
@@ -271,7 +267,7 @@ static void __noinline call_vblank_actions() noexcept
 	purge_tempmem();
 }
 
-static void RAM video_runner(int row0, uint32 cc_at_line_start)
+static void __section(RAM ".vc") video_runner(int row0, uint32 cc_at_line_start)
 {
 	trace(__func__);
 	assert(!locked_out);

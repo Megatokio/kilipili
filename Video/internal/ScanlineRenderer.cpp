@@ -12,11 +12,11 @@
 
 #include "ScanlineRenderer.h"
 #include "common/basic_math.h"
+#include "common/cdefs.h"
 #include "common/template_helpers.h"
 #include "internal/Interp.h"
 #include <hardware/gpio.h>
 #include <pico/stdio.h>
-
 
 #ifndef VIDEO_OPTIMISTIC_A1W8
   #define VIDEO_OPTIMISTIC_A1W8 OFF
@@ -30,13 +30,10 @@
   #define VIDEO_SUPPORT_400x300_A1W8 true
 #endif
 
-
-// all hot video code should go into ram to allow video while flash lockout.
-// also, there should be no const data accessed in hot video code for the same reason.
-// the most timecritical things should go into core1 stack page because it is not contended.
-
-#define XRAM __attribute__((section(".scratch_x.SRFu" __XSTRING(__LINE__))))	 // the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.SRFu" __XSTRING(__LINE__)))) // general ram
+#ifndef VIDEO_SCANLINE_RENDERER_SECTION
+  #define VIDEO_SCANLINE_RENDERER_SECTION XRAM
+#endif
+#define SECTION __section(VIDEO_SCANLINE_RENDERER_SECTION ".slr")
 
 
 // ============================================================================================
@@ -71,7 +68,7 @@ ScanlineRenderer_i1::ScanlineRenderer_i1(const Color* colormap_in) noexcept
 	}
 }
 
-void XRAM ScanlineRenderer_i1::render(uint32* dest, uint width, const uint8* pixels) noexcept
+void SECTION ScanlineRenderer_i1::render(uint32* dest, uint width, const uint8* pixels) noexcept
 {
 	const twocolors* colors = reinterpret_cast<const twocolors*>(colormap);
 
@@ -103,7 +100,7 @@ ScanlineRenderer_i2::ScanlineRenderer_i2(const Color* colormap_in) noexcept
 	}
 }
 
-void XRAM ScanlineRenderer_i2::render(uint32* dest, uint width, const uint8* pixels) noexcept
+void SECTION ScanlineRenderer_i2::render(uint32* dest, uint width, const uint8* pixels) noexcept
 {
 	const twocolors* colors = reinterpret_cast<const twocolors*>(colormap);
 
@@ -123,7 +120,7 @@ void XRAM ScanlineRenderer_i2::render(uint32* dest, uint width, const uint8* pix
 // ============================================================================================
 // 4-bit indexed color mode:
 
-void XRAM ScanlineRenderer_i4::render(uint32* _dest, uint width, const uint8* _pixels) noexcept
+void SECTION ScanlineRenderer_i4::render(uint32* _dest, uint width, const uint8* _pixels) noexcept
 {
 	constexpr InterpMode ip = InterpMode::i4;
 	setup_if_needed<ip>();
@@ -149,7 +146,7 @@ void XRAM ScanlineRenderer_i4::render(uint32* _dest, uint width, const uint8* _p
 // ============================================================================================
 // 8-bit indexed color mode:
 
-void XRAM ScanlineRenderer_i8::render(uint32* _dest, uint width, const uint8* _pixels) noexcept
+void SECTION ScanlineRenderer_i8::render(uint32* _dest, uint width, const uint8* _pixels) noexcept
 {
 	constexpr InterpMode ip = InterpMode::i8;
 	setup_if_needed<ip>();
@@ -177,7 +174,7 @@ void XRAM ScanlineRenderer_i8::render(uint32* _dest, uint width, const uint8* _p
 // ============================================================================================
 // true color mode:
 
-void XRAM ScanlineRenderer_rgb(uint32* dest, uint width, const uint8* q) noexcept
+void SECTION ScanlineRenderer_rgb(uint32* dest, uint width, const uint8* q) noexcept
 {
 	volatile uint32* z = dest;
 
@@ -243,7 +240,7 @@ void XRAM ScanlineRenderer_rgb(uint32* dest, uint width, const uint8* q) noexcep
 // attribute mode with 1 bit/pixel with 1 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<Pixmap_a1w1>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
+void SECTION ScanlineRenderer<Pixmap_a1w1>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = InterpMode::i1;
 	setup_if_needed<ip>();
@@ -282,7 +279,7 @@ void XRAM ScanlineRenderer<Pixmap_a1w1>(uint32* _dest, uint width, const uint8* 
 // attribute mode with 1 bit/pixel with 2 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<Pixmap_a1w2>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
+void SECTION ScanlineRenderer<Pixmap_a1w2>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = InterpMode::i1;
 	setup_if_needed<ip>();
@@ -317,7 +314,7 @@ void XRAM ScanlineRenderer<Pixmap_a1w2>(uint32* _dest, uint width, const uint8* 
 // attribute mode with 1 bit/pixel with 4 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<Pixmap_a1w4>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
+void SECTION ScanlineRenderer<Pixmap_a1w4>(uint32* _dest, uint width, const uint8* pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = InterpMode::i1;
 	setup_if_needed<ip>();
@@ -351,7 +348,8 @@ void XRAM ScanlineRenderer<Pixmap_a1w4>(uint32* _dest, uint width, const uint8* 
 // attribute mode with 1 bit/pixel with 8 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<Pixmap_a1w8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
+void __section(XRAM ".slr") ScanlineRenderer<Pixmap_a1w8>( //
+	uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	// 2023-10-27
 	// this version displays 1024x768 with avg/max load = 247.1/259.3MHz
@@ -525,7 +523,7 @@ void XRAM ScanlineRenderer<Pixmap_a1w8>(uint32* _dest, uint width, const uint8* 
 // attribute mode with 2 bit/pixel with 1 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<Pixmap_a2w1>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
+void SECTION ScanlineRenderer<Pixmap_a2w1>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = InterpMode::i2;
 	setup_if_needed<ip>();
@@ -565,7 +563,7 @@ void XRAM ScanlineRenderer<Pixmap_a2w1>(uint32* _dest, uint width, const uint8* 
 // attribute mode with 2 bit/pixel with 2 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<Pixmap_a2w2>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
+void SECTION ScanlineRenderer<Pixmap_a2w2>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = InterpMode::i2;
 	setup_if_needed<ip>();
@@ -601,7 +599,7 @@ void XRAM ScanlineRenderer<Pixmap_a2w2>(uint32* _dest, uint width, const uint8* 
 // attribute mode with 2 bit/pixel with 4 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<Pixmap_a2w4>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
+void SECTION ScanlineRenderer<Pixmap_a2w4>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = InterpMode::i2;
 	setup_if_needed<ip>();
@@ -636,7 +634,7 @@ void XRAM ScanlineRenderer<Pixmap_a2w4>(uint32* _dest, uint width, const uint8* 
 // attribute mode with 2 bit/pixel with 8 pixel wide attributes and true colors:
 
 template<>
-void XRAM ScanlineRenderer<Pixmap_a2w8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
+void SECTION ScanlineRenderer<Pixmap_a2w8>(uint32* _dest, uint width, const uint8* _pixels, const uint8* _attr) noexcept
 {
 	constexpr InterpMode ip = InterpMode::i2;
 	setup_if_needed<ip>();

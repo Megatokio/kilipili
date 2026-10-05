@@ -3,23 +3,22 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "FrameBuffer.h"
-#include <hardware/gpio.h>
 
-#define XRAM __attribute__((section(".scratch_x.FB" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.FB" __XSTRING(__LINE__)))) // general ram
+#define RENDER __section(RAM ".fb")
+#define VBLANK __section(RAM ".fb")
 
 
 namespace kilipili::Video
 {
 using namespace Graphics;
 
-void RAM FrameBuffer<Pixmap_rgb>::vblank(VideoPlane* vp) noexcept
+void VBLANK FrameBuffer<Pixmap_rgb>::vblank(VideoPlane* vp) noexcept
 {
 	auto* fb   = reinterpret_cast<FrameBuffer*>(vp);
 	fb->pixels = fb->pixmap->pixmap;
 }
 
-void XRAM FrameBuffer<Pixmap_rgb>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void RENDER FrameBuffer<Pixmap_rgb>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	// we don't check the row
 	// we rely on do_vblank() to reset the pointer
@@ -34,7 +33,7 @@ void XRAM FrameBuffer<Pixmap_rgb>::render(VideoPlane* vp, int __unused row, int 
 
 //	_____________________________________________________________________________________
 
-void RAM FrameBuffer<Pixmap_i1>::vblank(VideoPlane* vp) noexcept
+void VBLANK FrameBuffer<Pixmap_i1>::vblank(VideoPlane* vp) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
@@ -42,31 +41,7 @@ void RAM FrameBuffer<Pixmap_i1>::vblank(VideoPlane* vp) noexcept
 	//fb->scanline_renderer.vblank();	nop
 }
 
-void XRAM FrameBuffer<Pixmap_i1>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
-{
-	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
-
-	// we don't check the row
-	// we rely on do_vblank() to reset the pointer
-	// and if we miss a scanline then the remainder of the screen is shifted
-
-	//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
-	fb->scanline_renderer.render(scanline, uint(width), fb->pixels);
-	fb->pixels += fb->row_offset;
-	//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
-}
-
-
-//	_____________________________________________________________________________________
-
-void RAM FrameBuffer<Pixmap_i2>::vblank(VideoPlane* vp) noexcept
-{
-	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
-
-	fb->pixels = fb->pixmap->pixmap;
-}
-
-void XRAM FrameBuffer<Pixmap_i2>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void RENDER FrameBuffer<Pixmap_i1>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
@@ -81,14 +56,14 @@ void XRAM FrameBuffer<Pixmap_i2>::render(VideoPlane* vp, int __unused row, int w
 
 //	_____________________________________________________________________________________
 
-void RAM FrameBuffer<Pixmap_i4>::vblank(VideoPlane* vp) noexcept
+void VBLANK FrameBuffer<Pixmap_i2>::vblank(VideoPlane* vp) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
 	fb->pixels = fb->pixmap->pixmap;
 }
 
-void XRAM FrameBuffer<Pixmap_i4>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void RENDER FrameBuffer<Pixmap_i2>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
@@ -103,14 +78,14 @@ void XRAM FrameBuffer<Pixmap_i4>::render(VideoPlane* vp, int __unused row, int w
 
 //	_____________________________________________________________________________________
 
-void RAM FrameBuffer<Pixmap_i8>::vblank(VideoPlane* vp) noexcept
+void VBLANK FrameBuffer<Pixmap_i4>::vblank(VideoPlane* vp) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
 	fb->pixels = fb->pixmap->pixmap;
 }
 
-void XRAM FrameBuffer<Pixmap_i8>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void RENDER FrameBuffer<Pixmap_i4>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
 
@@ -118,14 +93,36 @@ void XRAM FrameBuffer<Pixmap_i8>::render(VideoPlane* vp, int __unused row, int w
 	// we rely on do_vblank() to reset the pointer
 	// and if we miss a scanline then the remainder of the screen is shifted
 
-	fb->scanline_renderer.render(scanline, uint(width), fb->pixels); // *** NOT HERE
+	fb->scanline_renderer.render(scanline, uint(width), fb->pixels);
 	fb->pixels += fb->row_offset;
 }
 
 
 //	_____________________________________________________________________________________
 
-void RAM FrameBufferBase_wAttr::vblank(VideoPlane* vp) noexcept
+void VBLANK FrameBuffer<Pixmap_i8>::vblank(VideoPlane* vp) noexcept
+{
+	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
+
+	fb->pixels = fb->pixmap->pixmap;
+}
+
+void RENDER FrameBuffer<Pixmap_i8>::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+{
+	FrameBuffer* fb = reinterpret_cast<FrameBuffer*>(vp);
+
+	// we don't check the row
+	// we rely on do_vblank() to reset the pointer
+	// and if we miss a scanline then the remainder of the screen is shifted
+
+	fb->scanline_renderer.render(scanline, uint(width), fb->pixels);
+	fb->pixels += fb->row_offset;
+}
+
+
+//	_____________________________________________________________________________________
+
+void VBLANK FrameBufferBase_wAttr::vblank(VideoPlane* vp) noexcept
 {
 	FrameBufferBase_wAttr* fb = reinterpret_cast<FrameBufferBase_wAttr*>(vp);
 
@@ -134,7 +131,7 @@ void RAM FrameBufferBase_wAttr::vblank(VideoPlane* vp) noexcept
 	fb->arow	   = fb->attrheight;
 }
 
-void XRAM FrameBufferBase_wAttr::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
+void RENDER FrameBufferBase_wAttr::render(VideoPlane* vp, int __unused row, int width, uint32* scanline) noexcept
 {
 	FrameBufferBase_wAttr* fb = reinterpret_cast<FrameBufferBase_wAttr*>(vp);
 
@@ -142,9 +139,7 @@ void XRAM FrameBufferBase_wAttr::render(VideoPlane* vp, int __unused row, int wi
 	// we rely on do_vblank() to reset the pointer
 	// and if we miss a scanline then the remainder of the screen is shifted
 
-	//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
-	fb->render_fu(scanline, uint(width), fb->pixels, fb->attributes); // *** NOT HERE
-	//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
+	fb->render_fu(scanline, uint(width), fb->pixels, fb->attributes);
 
 	fb->pixels += fb->row_offset;
 

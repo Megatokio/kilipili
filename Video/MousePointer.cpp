@@ -6,13 +6,6 @@
 #include "MousePointer.h"
 #include "AnimatedSprite.h"
 
-// all hot video code should go into ram to allow video while flashing.
-// also, there should be no const data accessed in hot video code for the same reason.
-// the most timecritical things should go into core1 stack page because it is not contended.
-
-#define XRAM __attribute__((section(".scratch_x.MP" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.MP" __XSTRING(__LINE__)))) // general ram
-
 
 // =============================================================
 
@@ -266,12 +259,45 @@ void MousePointer<Shape>::vblank() noexcept
 
 // ################################################################
 
+// Note:
+// These instantiations go into flash.
+// to force them into ram, each do_vblank() and do_render() function must be instantiated individually
+// with the desired __section().
+// Since the mouse pointer overrides the _virtual_ functions it will disappear during flash lockout anyway.
+// So no great deal in using RAM here:
 
 // the linker will know what we need:
 template class MousePointer<Sprite<Shape>>;
-//template class MousePointer<Sprite<SoftenedShape>>;
 template class MousePointer<AnimatedSprite<Shape>>;
-//template class MousePointer<AnimatedSprite<SoftenedShape>>;
 
 
 } // namespace kilipili::Video
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

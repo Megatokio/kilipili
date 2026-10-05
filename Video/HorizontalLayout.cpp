@@ -7,9 +7,6 @@
 #include "basic_math.h"
 #include <hardware/gpio.h>
 
-#define XRAM __attribute__((section(".scratch_x.HL" __XSTRING(__LINE__))))	   // the 4k page with the core1 stack
-#define RAM	 __attribute__((section(".time_critical.HL" __XSTRING(__LINE__)))) // general ram
-
 
 namespace kilipili ::Video
 {
@@ -44,7 +41,7 @@ HorizontalLayout<4>::HorizontalLayout(
 }
 
 
-void RAM HorizontalLayout<2>::do_vblank(VideoPlane* vp) noexcept
+void __section(RAM ".hor") HorizontalLayout<2>::do_vblank(VideoPlane* vp) noexcept
 {
 	HorizontalLayout* me = reinterpret_cast<HorizontalLayout*>(vp);
 
@@ -58,7 +55,7 @@ void RAM HorizontalLayout<2>::do_vblank(VideoPlane* vp) noexcept
 	//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
 }
 
-void RAM HorizontalLayout<2>::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
+void __section(RAM ".hor") HorizontalLayout<2>::do_render(VideoPlane* vp, int row, int width, uint32* fbu) noexcept
 {
 	HorizontalLayout* me = reinterpret_cast<HorizontalLayout*>(vp);
 
