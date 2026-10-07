@@ -38,18 +38,14 @@ public:
 	FrameBuffer(SimpleCharMap* charmap) noexcept;
 	NO_COPY_MOVE(FrameBuffer);
 
-	//void vblank() noexcept override;
-	//void renderScanline(int row, int width, uint32* buffer) noexcept override;
+	static constexpr int char_width = 8;
 
-	static constexpr int char_width	 = 8;
-	static constexpr int char_height = 12;
-
-	RCPtr<SimpleCharMap> charmap;
+	RCPtr<SimpleCharMap>		charmap;
+	RCPtr<const Graphics::Font> font;
 
 	using ColorStrip = Color[small ? 4 : 8];
 	ColorStrip __aligned(4) colorstrips[small ? 16 : 256];
 
-	const uchar* font		 = nullptr; // new format: font[12][256]
 	const uchar* row_ptr	 = nullptr; // charmap row
 	int			 raster_line = 0;		// line within character
 	int			 last_y		 = 0;
@@ -69,8 +65,12 @@ private:
 template<typename Flag>
 FrameBuffer<SimpleCharMap, Flag>::FrameBuffer(SimpleCharMap* charmap) noexcept :
 	charmap(charmap),
+	font(charmap->font1),
 	VideoPlane(&do_vblank, &do_render)
 {
+	assert(font->char_width == 8);
+	assert(font->first_glyph == 0);
+
 	// setup_colors in first vblank:
 	charmap->bgcolor = ~colorstrips[0][0];
 }
@@ -80,16 +80,20 @@ void FrameBuffer<SimpleCharMap, Flag>::do_vblank(VideoPlane* vp) noexcept
 {
 	auto* me = static_cast<FrameBuffer<SimpleCharMap, Flag>*>(vp);
 
-	me->row_ptr		= me->charmap->data;
+	SimpleCharMap* charmap = me->charmap;
+
+	me->row_ptr		= charmap->data;
 	me->raster_line = 0;
 	me->last_y		= 0;
+	me->font		= charmap->font1;
 
-	me->font = me->charmap->font;
-	if (me->charmap->bgcolor != me->colorstrips[0][0] ||
-		me->charmap->fgcolor != me->colorstrips[NELEM(colorstrips) - 1][0])
+	// assert(me->font->char_width == 8);
+	// assert(me->font->first_glyph == 0);
+
+	if (charmap->bgcolor != me->colorstrips[0][0] || charmap->fgcolor != me->colorstrips[NELEM(colorstrips) - 1][0])
 	{
 		// setup_colors:
-		Color  colors[2] = {me->charmap->bgcolor, me->charmap->fgcolor};
+		Color  colors[2] = {charmap->bgcolor, charmap->fgcolor};
 		Color* p		 = &me->colorstrips[0][0];
 		for (int byte = 0; byte < (small ? 16 : 256); byte++)
 		{
@@ -103,24 +107,23 @@ void FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int widt
 {
 	auto* me = static_cast<FrameBuffer<SimpleCharMap, Flag>*>(vp);
 
-	assert(char_width == 8);
-	assert(char_height == 12);
-	assert(y < me->charmap->rows * char_height);
+	static_assert(char_width == 8);
+	assert_lt(y, me->charmap->rows * me->font->char_height);
 	assert_le(width, me->charmap->cols * 8);
 	assert(width % 8 == 0);
 
 	while (me->last_y < y)
 	{
 		me->last_y++;
-		if (++me->raster_line >= char_height)
+		if (++me->raster_line >= me->font->char_height)
 		{
 			me->raster_line = 0;
 			me->row_ptr += me->charmap->cols;
 		}
 	}
 
-	int		cols = width >> 3;
-	cuptr	font = me->font + me->raster_line * 256; // TODO: this assumes 256 glyphs in font
+	int		cols = width >> 3;												// if char_width = 8
+	cuptr	font = me->font->data + me->raster_line * me->font->row_offset; // if first_char = 0
 	uint32* z	 = buffer;
 
 	for (cuptr p = me->row_ptr, end = p + cols; p < end;)

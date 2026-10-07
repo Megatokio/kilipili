@@ -4,10 +4,11 @@
 
 #pragma once
 #include "Color.h"
+#include "Font.h"
+#include "RCPtr.h"
 #include "common/cdefs.h"
 #include "common/no_copy_move.h"
 #include "common/standard_types.h"
-#include "systemfont.h"
 
 namespace kilipili::Video
 {
@@ -129,8 +130,8 @@ public:
 	void					set_fgcolor(int i, Color c) noexcept { fgcolors[i & ((1 << fg_bits) - 1)] = c * mul; }
 	void					set_bgcolor(int i, Color c) noexcept { bgcolors[i & ((1 << bg_bits) - 1)] = c * mul; }
 
-	cuptr font {latin1_256x12[0]};	  // should be copied into ram
-	cuptr font2 {graphics_256x12[0]}; // only used if graphics = true
+	RCPtr<const Font> font1 {&latin1_12x8};	  // should be copied into ram
+	RCPtr<const Font> font2 {&graphics_12x8}; // only used if graphics = true
 
 private:
 	// colors are stored as floodfilled uint32's, as needed by FrameBuffer<>:

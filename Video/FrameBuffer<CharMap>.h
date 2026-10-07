@@ -26,20 +26,17 @@ namespace kilipili::Video
 	The total number of bits must not exceed 8.
 
 	Because gcc has a long outstanding bug in handling attributes in template instantiations,
-	you should not simply instantiate the FrameBuffer<> for your CharMap<> of choice,
+	you should not simply automatically instantiate the FrameBuffer<> for your CharMap<> of choice,
 	because then gcc will then put the callback functions into flash. (except you are fine with this.)
 	Instead you must instantiate the callback functions explicitly with the desired section attribute.
-	To simplify this the #define DEFINE_FB_CB(...) is provided.
-	Use DEFINE_FB_CM(fgbits,bgbits,bold,ul,gra,section) to define the callbacks for the FrameBuffer you actually use:
-	e.g.:
-		  namespace kilipili::Video{
-		  DEFINE_FB_CM(2, 2, 1, 1, 0, XRAM)   // XRAM = ".scratch_x" is defined in cdefs.h
+
+	To simplify this the #define DEFINE_FB_CM(fgbits,bgbits,bold,ul,gra,section) is provided:
+	use:
+		namespace kilipili::Video{
+		DEFINE_FB_CM(2, 2, 1, 1, 0, XRAM)   // XRAM = ".scratch_x" is defined in cdefs.h
 	    }
 
-	There are some variants predefined for a quick start anyway:
-		DEFINE_FB_CM(0, 0, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION) // works safely up to 1024x768
-		DEFINE_FB_CM(3, 3, 1, 1, 0, VIDEO_SCANLINE_RENDERER_SECTION) // up to 800x600
-		DEFINE_FB_CM(3, 2, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION) // up to 800x600
+	Some are predefined for a quick start at the end of this file!
 */
 
 template<class CharMap>
@@ -68,13 +65,15 @@ public:
 	FrameBuffer(CharMap*) noexcept;
 	NO_COPY_MOVE(FrameBuffer);
 
-	static constexpr int char_width	 = 8;
-	static constexpr int char_height = 12;
+	static constexpr int char_width = 8;
 
-	RCPtr<CharMap> charmap;
-	const uchar*   row_ptr	   = nullptr; // charmap row
-	int			   raster_line = 0;		  // line within character
-	int			   last_y	   = 0;
+	RCPtr<CharMap>				charmap;
+	RCPtr<const Graphics::Font> font1;
+	RCPtr<const Graphics::Font> font2;
+
+	const uchar* row_ptr	 = nullptr; // source row in charmap.data[]
+	int			 raster_line = 0;		// line within character
+	int			 last_y		 = 0;
 
 private:
 	static void do_vblank(VideoPlane*) noexcept;
@@ -105,8 +104,16 @@ static constexpr XRAM_DATA uint32 mask4x2[4] = {0x00000000, 0x0000ffff, 0xffff00
 template<class CharMap>
 FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::FrameBuffer(CharMap* charmap) noexcept :
 	VideoPlane(&do_vblank, &do_render),
-	charmap(charmap)
-{}
+	charmap(charmap),
+	font1(charmap->font1),
+	font2(charmap->font2)
+{
+	assert(font1->char_width == 8);
+	assert(font2->char_width == 8);
+	assert(font1->char_height == font2->char_height);
+	assert(font1->first_glyph == 0);
+	assert(font2->first_glyph == 0);
+}
 
 template<class CharMap>
 void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_vblank(VideoPlane* vp) noexcept
@@ -114,7 +121,14 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_vblank(Vi
 	auto* me		= static_cast<FrameBuffer*>(vp);
 	me->raster_line = 0;
 	me->last_y		= 0;
-	me->row_ptr		= cuptr(me->charmap->data);
+	me->row_ptr		= cuptr(me->charmap->data); // source ptr
+
+	me->font1 = me->charmap->font1;
+	me->font2 = me->charmap->font2;
+
+	// assert(me->font1->char_width == 8);
+	// assert(me->font2->char_width == 8);
+	// assert(me->font1->char_height == me->font2->char_height);
 }
 
 template<class CharMap>
@@ -123,16 +137,15 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 {
 	auto* me = static_cast<FrameBuffer*>(vp);
 
-	assert(char_width == 8);
-	assert(char_height == 12);
-	assert(y < me->charmap->rows * char_height);
+	static_assert(char_width == 8);
+	assert_lt(y, me->charmap->rows * me->font1->char_height);
 	assert_le(width, me->charmap->cols * char_width);
-	assert(width % char_width == 0);
+	assert_eq(width % char_width, 0);
 
 	while (me->last_y < y)
 	{
 		me->last_y++;
-		if (++me->raster_line >= char_height)
+		if (++me->raster_line >= me->font1->char_height)
 		{
 			me->raster_line = 0;
 			me->row_ptr += me->charmap->cols * 2;
@@ -144,8 +157,8 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 	if constexpr (sizeof(Color) == 2) interp->setup(ip);
 	if constexpr (sizeof(Color) == 2) interp->set_color_base(mask4x2);
 
-	int			 cols = width >> 3;								   // assumes char_width = 8
-	const uchar* font = me->charmap->font + me->raster_line * 256; // TODO: this assumes 256 glyphs in font
+	int			 cols = width >> 3;												   // if char_width = 8
+	const uchar* font = me->font1->data + me->raster_line * me->font1->row_offset; // if first_char = 0
 
 	const uchar*  font2;	// only if graphics = true
 	const uint32* fgcolors; // only if fg_bits > 0
@@ -154,8 +167,8 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 	uint32		  bgc;		// only if bg_bits = 0
 	uint8		  ul;		// only if underline = true
 
-	if constexpr (graphics) font2 = me->charmap->font2 + me->raster_line * 256;
-	if constexpr (underline) ul = me->raster_line == 10 ? underline_mask : 0;
+	if constexpr (graphics) font2 = me->font2->data + me->raster_line * me->font2->row_offset;
+	if constexpr (underline) ul = me->raster_line == 10 ? underline_mask : 0; // if char_height = 12
 	if constexpr (fg_bits != 0) fgcolors = me->charmap->fgcolors;
 	if constexpr (bg_bits != 0) bgcolors = me->charmap->bgcolors;
 	if constexpr (fg_bits == 0) fgc = *me->charmap->fgcolors;
@@ -230,21 +243,36 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 	if constexpr (sizeof(Color) == 2) cleanup_if_needed<ip>();
 }
 
+
+// ___________________________________________________________
+// pre-define some for a quick start:
+
 // clang-format off
+#define DEFINE_FB_CM(a,b,c,d,e)\
+extern template void FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_render(VideoPlane*, int, int, uint32*) noexcept;\
+extern template void FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_vblank(VideoPlane*) noexcept;
+
+DEFINE_FB_CM(0, 0, 1, 1, 1) // monochrome: works safely up to 1024x768
+
+DEFINE_FB_CM(4, 4, 0, 0, 0) // up to 800x600, 16 fg and 16 bg colors
+
+DEFINE_FB_CM(4, 3, 1, 0, 0) // up to 800x600 + bold
+DEFINE_FB_CM(4, 3, 0, 0, 1) // up to 800x600 + graphics
+
+DEFINE_FB_CM(4, 2, 1, 1, 0) // up to 800x600 + bold + underline
+DEFINE_FB_CM(4, 2, 1, 0, 1) // up to 800x600 + bold + graphics
+
+DEFINE_FB_CM(3, 3, 1, 1, 0) // up to 800x600 + bold + underline
+DEFINE_FB_CM(3, 3, 1, 0, 1) // up to 800x600 + bold + graphics
+
+DEFINE_FB_CM(3, 2, 1, 1, 1) // up to 800x600 + bold + underline + graphics
+DEFINE_FB_CM(2, 2, 1, 1, 1) // up to 800x600 + bold + underline + graphics
+
+#undef DEFINE_FB_CM
 #define DEFINE_FB_CM(a,b,c,d,e,SECTION)\
 template void __section(SECTION ".FB_CM") FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_render(VideoPlane*, int, int, uint32*) noexcept;\
 template void __section(RAM ".FB_CM") FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_vblank(VideoPlane*) noexcept;
 // clang-format on
-
-#ifndef VIDEO_SCANLINE_RENDERER_SECTION
-  #define VIDEO_SCANLINE_RENDERER_SECTION XRAM
-#endif
-
-// pre-define some for a quick start:
-DEFINE_FB_CM(0, 0, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION) // works safely up to 1024x768
-DEFINE_FB_CM(3, 3, 1, 1, 0, VIDEO_SCANLINE_RENDERER_SECTION) // up to 800x600
-DEFINE_FB_CM(3, 2, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION) // up to 800x600
-#undef DEFAULT
 
 
 } // namespace kilipili::Video

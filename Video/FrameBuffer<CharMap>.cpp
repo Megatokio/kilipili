@@ -1,0 +1,67 @@
+// Copyright (c) 2026 - 2026 kio@little-bat.de
+// BSD-2-Clause license
+// https://opensource.org/licenses/BSD-2-Clause
+
+#include "FrameBuffer<CharMap>.h"
+#include "common/cdefs.h"
+
+namespace kilipili::Video
+{
+
+#ifndef VIDEO_SCANLINE_RENDERER_SECTION
+  #define VIDEO_SCANLINE_RENDERER_SECTION XRAM
+#endif
+
+DEFINE_FB_CM(0, 0, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION)
+DEFINE_FB_CM(4, 4, 0, 0, 0, VIDEO_SCANLINE_RENDERER_SECTION)
+DEFINE_FB_CM(4, 3, 1, 0, 0, VIDEO_SCANLINE_RENDERER_SECTION)
+DEFINE_FB_CM(4, 3, 0, 0, 1, VIDEO_SCANLINE_RENDERER_SECTION)
+DEFINE_FB_CM(4, 2, 1, 1, 0, VIDEO_SCANLINE_RENDERER_SECTION)
+DEFINE_FB_CM(4, 2, 1, 0, 1, VIDEO_SCANLINE_RENDERER_SECTION)
+DEFINE_FB_CM(3, 3, 1, 1, 0, VIDEO_SCANLINE_RENDERER_SECTION)
+DEFINE_FB_CM(3, 3, 1, 0, 1, VIDEO_SCANLINE_RENDERER_SECTION)
+DEFINE_FB_CM(3, 2, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION)
+DEFINE_FB_CM(2, 2, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION)
+
+} // namespace kilipili::Video
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

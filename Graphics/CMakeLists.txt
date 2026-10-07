@@ -45,14 +45,14 @@ add_library(kilipili_graphics STATIC
 	ColorMap.cpp
 	Pixmap_wAttr.h 
 	Pixmap_wAttr.cpp
-	systemfont.cpp 
-	systemfont.h
+	Latin1_enums.h
 	CharMap.h CharMap.cpp
 	SimpleCharMap.h SimpleCharMap.cpp
 	rsrc/graphics_12x8.h
 	rsrc/ascii_12x8_inverse.h
 	rsrc/ascii_12x8_bold.h
-	rsrc/latin1_12x8.h
+	rsrc/latin-1_12x8.h
+	Font.h Font.cpp
 )
 
 target_compile_definitions(kilipili_graphics PUBLIC  

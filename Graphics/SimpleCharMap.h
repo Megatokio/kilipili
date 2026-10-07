@@ -4,10 +4,11 @@
 
 #pragma once
 #include "Color.h"
+#include "Font.h"
+#include "RCPtr.h"
 #include "common/cdefs.h"
 #include "common/no_copy_move.h"
 #include "common/standard_types.h"
-#include "systemfont.h"
 
 namespace kilipili::Graphics
 {
@@ -47,13 +48,14 @@ public:
 	uint8  attr		= 0;
 	uint8  _padding = 0;
 
-	cuptr		 font = ascii_256x12_inverse[0];
-	static cuptr font2; // n.ex.: for similarity with CharMap
-	uchar*		 data = nullptr;
-	int			 rows;
-	int			 cols;
-	Color		 fgcolor = black;
-	Color		 bgcolor = white;
+	RCPtr<const Font>  font1 {&ascii_12x8_inverse};
+	static const Font* font2; // n.ex.: for similarity with CharMap
+
+	uchar* data = nullptr;
+	int	   rows;
+	int	   cols;
+	Color  fgcolor = black;
+	Color  bgcolor = white;
 };
 
 

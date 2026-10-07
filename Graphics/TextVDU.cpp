@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "TextVDU.h"
+#include "Font.h"
 #include "USBHost/USBKeyboard.h"
 #include "common/cstrings.h"
 #include "common/trace.h"
@@ -563,8 +564,8 @@ void TextVDU::getCharMatrix(CharMatrix charmatrix, char cc) noexcept
 	if (attributes & GRAPHICS) { getGraphicsCharMatrix(charmatrix, cc); }
 	else
 	{
-		const uchar* p = systemfont256x12 + uchar(cc) * CHAR_HEIGHT;
-		memcpy(charmatrix, p, CHAR_HEIGHT);
+		const uchar* p = latin1_12x8.data + uchar(cc);
+		for (int i = 0; i < CHAR_HEIGHT; i++) { charmatrix[i] = p[i * 256]; }
 	}
 }
 

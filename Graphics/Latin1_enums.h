@@ -7,12 +7,8 @@
 namespace kilipili::Graphics
 {
 
-// new format: all bytes of each scanline in one block:
+// Font graphics_12x8:
 //
-extern const unsigned char latin1_256x12[12][256];
-extern const unsigned char ascii_256x12_inverse[12][256];
-extern const unsigned char ascii_256x12_bold[12][256];
-
 //	0x20 .. 0x2F    4/4 Block Graphics, black&white
 //	0x30 .. 0x3F:   4/4 Block Graphics, grey/white
 //	0x40 .. 0x4F:   4/4 Block Graphics, black/grey
@@ -28,11 +24,12 @@ extern const unsigned char ascii_256x12_bold[12][256];
 //		where A/B/C/D = left/top/right/bottom line stub
 //		with 0/1/2 = no/thin/thick line
 //		code point 0xAF (no line at all) does not exist
-extern const unsigned char graphics_256x12[12][256];
 
 
+// enums for Font latin1_12x8 graphics characters:
+//
 // clang-format off
-enum:char
+enum Latin1:char
 {
 	block_space=0,
 	block_br,
