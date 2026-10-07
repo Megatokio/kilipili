@@ -28,6 +28,7 @@
 
 	You don't need to use base class RCObject, you can also provide the
 	reference count `rc` in your class which may be any variant of `int`.
+	if `rc` is a signed int, then setting rc to -1 disables reference counting for static or const objects.
 	Your class does not need to be virtual, but if it has subclasses it better is.
 
 	The RCPtr is made thread safe by using a spinlock.
@@ -94,24 +95,30 @@ class RCPtr
 private:
 	static void retain(T* p) noexcept
 	{
-		if (!p) return;
-		kilipili_lock_spinlock();
-		++const_cast<nvptr>(p)->rc;
-		kilipili_unlock_spinlock();
+		// note: the test for p->rc >= 0 should be a nop for unsigned int:
+
+		if (p && p->rc >= 0)
+		{
+			kilipili_lock_spinlock();
+			++const_cast<nvptr>(p)->rc;
+			kilipili_unlock_spinlock();
+		}
 	}
 	static void release(T* p) noexcept
 	{
-		if (!p) return;
-		kilipili_lock_spinlock();
-		auto n = --const_cast<nvptr>(p)->rc;
-		kilipili_unlock_spinlock();
-		if (n == 0) delete p;
+		if (p && p->rc >= 0)
+		{
+			kilipili_lock_spinlock();
+			auto n = --const_cast<nvptr>(p)->rc;
+			kilipili_unlock_spinlock();
+			if (n == 0) delete p;
+		}
 	}
 	static void retain_release(T* q, T* p) noexcept
 	{
 		kilipili_lock_spinlock();
-		if (q) ++const_cast<nvptr>(q)->rc;
-		bool f = p && --const_cast<nvptr>(p)->rc == 0;
+		if (q && q->rc >= 0) ++const_cast<nvptr>(q)->rc;
+		bool f = p && p->rc >= 0 && --const_cast<nvptr>(p)->rc == 0;
 		kilipili_unlock_spinlock();
 		if (f) delete p;
 	}
@@ -238,8 +245,8 @@ class MTPtr
 		kilipili_lock_spinlock();
 		T* old = p;
 		p	   = q;
-		if (q) ++const_cast<nvptr>(q)->rc;
-		bool f = old && --const_cast<nvptr>(old)->rc == 0;
+		if (q && q->rc >= 0) ++const_cast<nvptr>(q)->rc;
+		bool f = old && old->rc >= 0 && --const_cast<nvptr>(old)->rc == 0;
 		kilipili_unlock_spinlock();
 		if (f) delete old;
 	}
@@ -249,7 +256,7 @@ class MTPtr
 		T* old = p;
 		p	   = q;
 		q	   = nullptr;
-		bool f = old && --const_cast<nvptr>(old)->rc == 0;
+		bool f = old && old->rc >= 0 && --const_cast<nvptr>(old)->rc == 0;
 		kilipili_unlock_spinlock();
 		if (f) delete old;
 	}
@@ -259,25 +266,29 @@ public:
 	MTPtr(std::nullptr_t) noexcept : p(nullptr) {}
 	MTPtr(T* q) noexcept : p(q)
 	{
-		if (!p) return;
-		kilipili_lock_spinlock();
-		++const_cast<nvptr>(p)->rc;
-		kilipili_unlock_spinlock();
+		if (p && p->rc >= 0)
+		{
+			kilipili_lock_spinlock();
+			++const_cast<nvptr>(p)->rc;
+			kilipili_unlock_spinlock();
+		}
 	}
 	~MTPtr() noexcept
 	{
-		if (!p) return;
-		kilipili_lock_spinlock();
-		auto n = --const_cast<nvptr>(p)->rc;
-		kilipili_unlock_spinlock();
-		if (n == 0) delete p;
+		if (p && p->rc >= 0)
+		{
+			kilipili_lock_spinlock();
+			auto n = --const_cast<nvptr>(p)->rc;
+			kilipili_unlock_spinlock();
+			if (n == 0) delete p;
+		}
 	}
 
 	MTPtr(const MTPtr& q) noexcept
 	{
 		kilipili_lock_spinlock();
 		p = q.p;
-		if (p) ++const_cast<nvptr>(p)->rc;
+		if (p && p->rc >= 0) ++const_cast<nvptr>(p)->rc;
 		kilipili_unlock_spinlock();
 	}
 	MTPtr(MTPtr&& q) noexcept : p(q.p) // assuming void source has no second ref
@@ -290,7 +301,7 @@ public:
 	{
 		kilipili_lock_spinlock();
 		p = q.p;
-		if (p) ++const_cast<nvptr>(p)->rc;
+		if (p && p->rc >= 0) ++const_cast<nvptr>(p)->rc;
 		kilipili_unlock_spinlock();
 	}
 	template<typename T2, subclass_only>
@@ -353,7 +364,7 @@ public:
 		RCPtr<T2> rcptr;
 		kilipili_lock_spinlock();
 		rcptr->p = p;
-		if (p) ++const_cast<nvptr>(p)->rc;
+		if (p && p->rc >= 0) ++const_cast<nvptr>(p)->rc;
 		kilipili_unlock_spinlock();
 		return rcptr;
 	}
@@ -423,20 +434,24 @@ class NVPtr<RCPtr<volatile T>>
 
 	inline void unlock()
 	{
-		if (!p) return;
-		p->unlock();
-		kilipili_lock_spinlock();
-		auto n = --p->rc;
-		kilipili_unlock_spinlock();
-		if (n == 0) delete p;
+		if (p && p->rc >= 0)
+		{
+			p->unlock();
+			kilipili_lock_spinlock();
+			auto n = --p->rc;
+			kilipili_unlock_spinlock();
+			if (n == 0) delete p;
+		}
 	}
 	inline void lock()
 	{
-		if (!p) return;
-		kilipili_lock_spinlock();
-		++p->rc;
-		kilipili_unlock_spinlock();
-		p->lock();
+		if (p && p->rc >= 0)
+		{
+			kilipili_lock_spinlock();
+			++p->rc;
+			kilipili_unlock_spinlock();
+			p->lock();
+		}
 	}
 	void copy(volatile T*& q)
 	{
@@ -444,8 +459,8 @@ class NVPtr<RCPtr<volatile T>>
 		if (old) old->unlock();
 		kilipili_lock_spinlock();
 		p = const_cast<T*>(q);
-		if (p) ++p->rc;
-		bool f = old && --old->rc == 0;
+		if (p && p->rc >= 0) ++p->rc;
+		bool f = old && old->rc >= 0 && --old->rc == 0;
 		kilipili_unlock_spinlock();
 		if (f) delete old;
 		if (p) p->lock();
@@ -466,7 +481,7 @@ public:
 	{
 		kilipili_lock_spinlock();
 		p = const_cast<T2*>(q.p);
-		if (p) ++p->rc;
+		if (p && p->rc >= 0) ++p->rc;
 		kilipili_unlock_spinlock();
 		if (p) p->lock();
 	}

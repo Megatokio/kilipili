@@ -50,7 +50,7 @@ struct MadSynth
 										/* [ch][eo][peo][s][v] */
 
 	uint phase;	 /* current processing phase */
-	int	 rc = 0; // RCPtr<>
+	uint rc = 0; // RCPtr<>
 
 	MadPcmBuffer pcm; /* PCM output */
 

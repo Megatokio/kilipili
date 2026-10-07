@@ -42,7 +42,7 @@ public:
 		void   reset() noexcept { count = 0; }
 		uchar  data[size]; // input stream buffer
 		uint16 count = 0;
-		int16  rc	 = 0;
+		uint16 rc	 = 0;
 	};
 	RCPtr<Buffer>	 buffer; // stream buffer for mp3 decoder
 	RCPtr<MadSynth>	 synth;	 // size > 13 kB
