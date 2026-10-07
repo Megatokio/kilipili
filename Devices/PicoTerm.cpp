@@ -1,4 +1,4 @@
-// Copyright (c) 2012 - 2025 kio@little-bat.de
+// Copyright (c) 2012 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -50,19 +50,19 @@ uint32 PicoTerm::ioctl(IoCtl cmd, void*, void*)
 	}
 }
 
-#define BEGIN       \
-  switch (sm_state) \
-  {                 \
-  default:
+#define BEGIN         \
+	switch (sm_state) \
+	{                 \
+	default:
 
-#define GETC()           \
-  while (idx == count)   \
-  {                      \
-	sm_state = __LINE__; \
-	return count;        \
-  case __LINE__:;        \
-  }                      \
-  c = data[idx++]
+#define GETC()               \
+	while (idx == count)     \
+	{                        \
+		sm_state = __LINE__; \
+		return count;        \
+	case __LINE__:;          \
+	}                        \
+	c = data[idx++]
 
 #define FINISH }
 
@@ -150,11 +150,12 @@ char* PicoTerm::identify()
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=rgb
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=i8 attr=8*12
 
-	cstr amstr = text->attrmode == attrmode_none ? "" : usingstr(" attr=%u*%u", 1 << text->attrwidth, text->attrheight);
+	cstr amstr =
+		text->attrmode == attrmode_none ? "" : usingstr(" attr=%u*%u", 1u << text->attrwidth, text->attrheight);
 
 	return usingstr(
-		"PicoTerm gfx=%u*%u txt=%u*%u chr=%u*%u cm=%s%s", text->pixmap->width, text->pixmap->height, text->cols,
-		text->rows, text->CHAR_WIDTH, text->CHAR_HEIGHT, tostr(text->colordepth), amstr);
+		"PicoTerm gfx=%i*%i txt=%i*%i chr=%i*%i cm=%s%s", text->pixmap->width, text->pixmap->height, text->cols,
+		text->rows, text->CHAR_WIDTH, text->font1->char_height, tostr(text->colordepth), amstr);
 }
 
 } // namespace kilipili::Devices

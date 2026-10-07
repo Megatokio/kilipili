@@ -37,8 +37,8 @@ add_library(kilipili_graphics STATIC
 	Canvas.cpp
 	Pixmap.h	
 	Pixmap.cpp
-	TextVDU.h	
-	TextVDU.cpp
+	Printer<Canvas>.h
+	Printer<Canvas>.cpp
 	BitBlit.h	
 	BitBlit.cpp
 	ColorMap.h	
@@ -53,6 +53,7 @@ add_library(kilipili_graphics STATIC
 	rsrc/ascii_12x8_bold.h
 	rsrc/latin-1_12x8.h
 	Font.h Font.cpp
+	Printer.h Printer.cpp
 )
 
 target_compile_definitions(kilipili_graphics PUBLIC  

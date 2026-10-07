@@ -5,7 +5,7 @@
 #pragma once
 #include "Devices/SerialDevice.h"
 #include "Graphics/Canvas.h"
-#include "Graphics/TextVDU.h"
+#include "Graphics/Printer<Canvas>.h"
 
 namespace kilipili::Devices
 {
@@ -14,7 +14,7 @@ class PicoTerm : public SerialDevice
 {
 public:
 	using super		= SerialDevice;
-	using TextVDU	= Graphics::TextVDU;
+	using TextVDU	= Graphics::Printer<Graphics::Canvas>;
 	using CanvasPtr = Graphics::CanvasPtr;
 
 	// Control Characters:

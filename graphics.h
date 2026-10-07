@@ -6,5 +6,5 @@
 #include "Graphics/ColorMap.h"
 #include "Graphics/Pixmap.h"
 #include "Graphics/Pixmap_wAttr.h"
-#include "Graphics/TextVDU.h"
+#include "Graphics/Printer<Canvas>.h"
 #include "Graphics/graphics_types.h"
