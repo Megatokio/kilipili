@@ -54,6 +54,10 @@ add_library(kilipili_graphics STATIC
 	rsrc/latin-1_12x8.h
 	Font.h Font.cpp
 	Printer.h Printer.cpp
+	Printer<SimpleCharMap>.h 
+	Printer<SimpleCharMap>.cpp
+	Printer<CharMap>.h 
+	Printer<CharMap>.cpp
 )
 
 target_compile_definitions(kilipili_graphics PUBLIC  

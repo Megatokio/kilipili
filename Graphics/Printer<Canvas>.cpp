@@ -126,52 +126,52 @@ void Printer<Canvas>::copyRect(int dest_row, int dest_col, int src_row, int src_
 
 	if (rows > 0 && cols > 0)
 	{
-		int CHAR_HEIGHT = font1->char_height;
+		int char_height = font1->char_height;
 		pixmap->copyRect(
-			dest_col * CHAR_WIDTH, dest_row * CHAR_HEIGHT, src_col * CHAR_WIDTH, src_row * CHAR_HEIGHT,
-			cols * CHAR_WIDTH, rows * CHAR_HEIGHT);
+			dest_col * CHAR_WIDTH, dest_row * char_height, src_col * CHAR_WIDTH, src_row * char_height,
+			cols * CHAR_WIDTH, rows * char_height);
 	}
 }
 
 void Printer<Canvas>::setAttributes(uint add, uint remove) noexcept
 {
 	attributes = Attributes((attributes & ~remove) | add);
-	dx		   = attributes & DOUBLE_WIDTH ? 2 : 1;
-	dy		   = attributes & DOUBLE_HEIGHT ? 2 : 1;
+	dx		   = attributes & double_width ? 2 : 1;
+	dy		   = attributes & double_height ? 2 : 1;
 }
 
 void Printer<Canvas>::applyAttributes(CharMatrix bmp) noexcept
 {
 	// apply the simple attributes to a character matrix
-	// - BOLD
-	// - UNDERLINE
-	// - ITALIC
-	// - INVERTED
+	// - bold
+	// - underline
+	// - italic
+	// - inverted
 
 	uint8 a			  = attributes;
-	int	  CHAR_HEIGHT = font1->char_height;
+	int	  char_height = font1->char_height;
 
 	if (int8(a) > 0) // any attr except graphics_char_mode set?
 	{
-		if (a & BOLD)
+		if (a & bold)
 		{
-			for (int i = 0; i < CHAR_HEIGHT; i++) bmp[i] |= bmp[i] >> 1;
+			for (int i = 0; i < char_height; i++) bmp[i] |= bmp[i] >> 1;
 		}
-		if (a & UNDERLINE)
+		if (a & underline)
 		{
-			int row	 = (CHAR_HEIGHT + font1->baseline) / 2;
+			int row	 = (char_height + font1->baseline) / 2;
 			bmp[row] = 0xff;
 		}
-		if (a & ITALIC)
+		if (a & italic)
 		{
 			int i = 0;
-			while (3 * i < CHAR_HEIGHT) bmp[i++] >>= 1;
-			while (3 * i < 2 * CHAR_HEIGHT) i++;
-			while (i < CHAR_HEIGHT) bmp[i] <<= 1;
+			while (3 * i < char_height) bmp[i++] >>= 1;
+			while (3 * i < 2 * char_height) i++;
+			while (i < char_height) bmp[i] <<= 1;
 		}
-		if (a & INVERTED)
+		if (a & inverted)
 		{
-			for (int i = 0; i < CHAR_HEIGHT; i++) { bmp[i] ^= 0xff; }
+			for (int i = 0; i < char_height; i++) { bmp[i] ^= 0xff; }
 		}
 	}
 }
@@ -188,10 +188,10 @@ void Printer<Canvas>::readBmp(CharMatrix bmp, bool use_fgcolor) noexcept
 	validate_hpos(false);
 	assert(row >= 0 && row < rows);
 
-	int CHAR_HEIGHT = font1->char_height;
+	int char_height = font1->char_height;
 	int x			= col++ * CHAR_WIDTH;
-	int y			= row * CHAR_HEIGHT;
-	pixmap->readBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, CHAR_HEIGHT, use_fgcolor ? fgcolor : bgcolor, use_fgcolor);
+	int y			= row * char_height;
+	pixmap->readBmp(x, y, bmp, 1 /*row_offset*/, CHAR_WIDTH, char_height, use_fgcolor ? fgcolor : bgcolor, use_fgcolor);
 }
 
 void Printer<Canvas>::writeBmp(CharMatrix bmp, uint8 attr) noexcept
@@ -204,25 +204,25 @@ void Printer<Canvas>::writeBmp(CharMatrix bmp, uint8 attr) noexcept
 	// at cursor position
 	// increment col
 
-	int CHAR_HEIGHT = font1->char_height;
+	int char_height = font1->char_height;
 
 	hideCursor();
 	if unlikely (uint(col) >= uint(cols)) validate_hpos(false);
 	if unlikely (uint(row) >= uint(rows)) validate_vpos();
 
-	if unlikely (attr & DOUBLE_WIDTH)
+	if unlikely (attr & double_width)
 	{
 		CharMatrix bmp2;
-		assert(uint(CHAR_HEIGHT) <= sizeof(bmp2));
+		assert(uint(char_height) <= sizeof(bmp2));
 
 		// if in last column, don't print 2 half characters:
 		if (col == cols - 1)
 		{
-			memset(bmp2, 0, uint(CHAR_HEIGHT));
-			uint8 attr2 = attr & ~DOUBLE_WIDTH;
+			memset(bmp2, 0, uint(char_height));
+			uint8 attr2 = attr & ~double_width;
 
 			// if in top-right corner don't scroll screen down:
-			if (row == 0) attr2 &= ~DOUBLE_HEIGHT;
+			if (row == 0) attr2 &= ~double_height;
 
 			// clear to eol and incr col:
 			writeBmp(bmp2, attr2);
@@ -230,25 +230,25 @@ void Printer<Canvas>::writeBmp(CharMatrix bmp, uint8 attr) noexcept
 			assert(col == 0);
 		}
 
-		for (int i = 0; i < CHAR_HEIGHT; i++) { bmp2[i] = dblw[bmp[i] >> 4]; }
-		writeBmp(bmp2, attr &= ~DOUBLE_WIDTH);
+		for (int i = 0; i < char_height; i++) { bmp2[i] = dblw[bmp[i] >> 4]; }
+		writeBmp(bmp2, attr &= ~double_width);
 
-		for (int i = 0; i < CHAR_HEIGHT; i++) { bmp[i] = dblw[bmp[i] & 15]; }
+		for (int i = 0; i < char_height; i++) { bmp[i] = dblw[bmp[i] & 15]; }
 	}
 
-	if unlikely (attr & DOUBLE_HEIGHT)
+	if unlikely (attr & double_height)
 	{
 		CharMatrix bmp2;
-		assert(uint(CHAR_HEIGHT) <= sizeof(bmp2));
+		assert(uint(char_height) <= sizeof(bmp2));
 
-		for (int i = 0; i < CHAR_HEIGHT; i++) { bmp2[i] = bmp[i / 2]; }
+		for (int i = 0; i < char_height; i++) { bmp2[i] = bmp[i / 2]; }
 		row--;
 		validate_vpos();
-		writeBmp(bmp2, attr & ~DOUBLE_HEIGHT);
+		writeBmp(bmp2, attr & ~double_height);
 		col--;
 		row++;
 
-		for (int i = 0; i < CHAR_HEIGHT; i++) { bmp[i] = bmp[CHAR_HEIGHT / 2 + i / 2]; }
+		for (int i = 0; i < char_height; i++) { bmp[i] = bmp[char_height / 2 + i / 2]; }
 	}
 
 	assert(col >= 0 && col < cols);
@@ -256,11 +256,11 @@ void Printer<Canvas>::writeBmp(CharMatrix bmp, uint8 attr) noexcept
 	assert_lt(row, rows);
 
 	int x = col++ * CHAR_WIDTH;
-	int y = row * CHAR_HEIGHT;
+	int y = row * char_height;
 
-	if (!(attr & TRANSPARENT)) pixmap->fillRect(x, y, CHAR_WIDTH, CHAR_HEIGHT, bgcolor, bg_ink);
+	if (!(attr & transparent)) pixmap->fillRect(x, y, CHAR_WIDTH, char_height, bgcolor, bg_ink);
 	static_assert(CHAR_WIDTH == 8);
-	pixmap->drawChar(x, y, bmp, CHAR_HEIGHT, fgcolor, fg_ink);
+	pixmap->drawChar(x, y, bmp, char_height, fgcolor, fg_ink);
 }
 
 void Printer<Canvas>::getCharMatrix(CharMatrix charmatrix, char cc) noexcept
@@ -269,11 +269,9 @@ void Printer<Canvas>::getCharMatrix(CharMatrix charmatrix, char cc) noexcept
 	// returns ASCII, UDG or LATIN-1 characters
 	// or GRAPHICS CHARACTERS if attribute ATTR_GRAPHICS_CHARACTERS is set
 
-	const Font* font		= attributes & GRAPHICS ? font2 : font1;
-	int			CHAR_HEIGHT = font->char_height;
-
-	const uchar* p = font->data + uchar(cc) - font->first_glyph;
-	for (int i = 0; i < CHAR_HEIGHT; i++)
+	const Font*	 font = attributes & graphics ? font2 : font1;
+	const uchar* p	  = font->data + uchar(cc) - font->first_glyph;
+	for (int i = 0; i < font1->char_height; i++)
 	{
 		charmatrix[i] = *p;
 		p += font->row_offset;
@@ -289,8 +287,7 @@ void Printer<Canvas>::printCharMatrix(CharMatrix charmatrix, int count) noexcept
 void Printer<Canvas>::printChar(char c, int count) noexcept
 {
 	CharMatrix charmatrix;
-	int		   CHAR_HEIGHT = font1->char_height;
-	assert(uint(CHAR_HEIGHT) <= sizeof(charmatrix));
+	assert(uint(font1->char_height) <= sizeof(charmatrix));
 
 	getCharMatrix(charmatrix, c);
 	printCharMatrix(charmatrix, count);
@@ -302,8 +299,7 @@ void Printer<Canvas>::print(cstr s) noexcept
 	// control characters: only \t and \n.
 
 	CharMatrix charmatrix;
-	int		   CHAR_HEIGHT = font1->char_height;
-	assert(uint(CHAR_HEIGHT) <= sizeof(charmatrix));
+	assert(uint(font1->char_height) <= sizeof(charmatrix));
 
 	while (char c = *s++)
 	{

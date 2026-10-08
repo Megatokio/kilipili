@@ -36,12 +36,12 @@ SimpleCharMap::SimpleCharMap(int rows, int cols) : //
 	clear();
 }
 
-void SimpleCharMap::clear(char c) noexcept
+void SimpleCharMap::clear(char c, uint8 attr) noexcept
 {
 	memset(data, c | attr, rows * cols); //
 }
 
-void SimpleCharMap::clearRect(int row, int col, int rows, int cols, char c) noexcept
+void SimpleCharMap::clearRect(int row, int col, int rows, int cols, char c, uint8 attr) noexcept
 {
 	// clang-format off
 	if (row < 0) { rows += row; row = 0; }
@@ -98,7 +98,15 @@ void SimpleCharMap::copyRect(int dest_row, int dest_col, int src_row, int src_co
 	}
 }
 
-void SimpleCharMap::putChar(int row, int col, char c) noexcept
+char SimpleCharMap::getChar(int row, int col) noexcept
+{
+	if unlikely (uint(row) >= uint(rows)) return 0;
+	if unlikely (uint(col) >= uint(cols)) return 0;
+
+	return data[row * cols + col];
+}
+
+void SimpleCharMap::putChar(int row, int col, char c, uint8 attr) noexcept
 {
 	if (uint(row) >= uint(rows)) return;
 	if (uint(col) >= uint(cols)) return;
@@ -106,7 +114,7 @@ void SimpleCharMap::putChar(int row, int col, char c) noexcept
 	data[row * cols + col] = c | attr;
 }
 
-void SimpleCharMap::putStr(int row, int col, cstr s) noexcept
+void SimpleCharMap::putStr(int row, int col, cstr s, uint8 attr) noexcept
 {
 	if (uint(row) >= uint(rows)) return;
 	limit(0, col, cols);

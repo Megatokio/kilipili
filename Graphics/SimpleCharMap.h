@@ -33,29 +33,35 @@ public:
 	~SimpleCharMap() noexcept { delete[] data; }
 	NO_COPY_MOVE(SimpleCharMap);
 
-	void reset() noexcept { attr = 0; }
-
-	void clear(char c = ' ') noexcept;
-	void clearRect(int row, int col, int rows, int cols, char = ' ') noexcept;
+	void clear(char c = ' ', uint8 attr = 0) noexcept;
+	void clearRect(int row, int col, int rows, int cols, char = ' ', uint8 attr = 0) noexcept;
 	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept;
 
-	void setAttr(uint8 a) noexcept { attr = a & 0x80; }
-	void putChar(int row, int col, char) noexcept;
-	void putStr(int row, int col, cstr) noexcept;
+	void putChar(int row, int col, char, uint8 attr = 0) noexcept;
+	void putStr(int row, int col, cstr, uint8 attr = 0) noexcept;
+	char getChar(int row, int col) noexcept;
 
 	Id("CharMap");
+
 	uint16 rc		= 0; // RCPtr<>
-	uint8  attr		= 0;
-	uint8  _padding = 0;
+	uint16 _padding = 0;
 
 	RCPtr<const Font>  font1 {&ascii_12x8_inverse};
 	static const Font* font2; // n.ex.: for similarity with CharMap
 
-	uchar* data = nullptr;
+	uchar* data		  = nullptr;
+	uchar* cursor_ptr = nullptr;
 	int	   rows;
 	int	   cols;
 	Color  fgcolor = black;
 	Color  bgcolor = white;
+
+	// attributes:
+	// should be updated if another font is set:
+	uint8 bold		= 0x80;
+	uint8 inverted	= 0;
+	uint8 underline = 0;
+	uint8 graphics	= 0;
 };
 
 

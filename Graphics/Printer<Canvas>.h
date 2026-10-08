@@ -25,10 +25,7 @@ public:
 	void clearRect(int row, int col, int rows, int cols) noexcept override;
 	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
 	cstr identify() override;
-
-	void setAttributes(uint add, uint remove = 0xff) noexcept;
-	void addAttributes(uint a) noexcept { setAttributes(a, 0); }
-	void removeAttributes(uint a = 0xff) noexcept { setAttributes(0, a); }
+	void setAttributes(uint add, uint remove = 0xff) noexcept override;
 
 
 	RCPtr<Canvas>	  pixmap;
@@ -54,15 +51,15 @@ public:
 
 	// print attributes:
 	enum Attributes : uint8 {
-		NORMAL		  = 0,
-		BOLD		  = 1 << 0,
-		UNDERLINE	  = 1 << 1,
-		INVERTED	  = 1 << 2,
-		ITALIC		  = 1 << 3,
-		TRANSPARENT	  = 1 << 4,
-		DOUBLE_WIDTH  = 1 << 5,
-		DOUBLE_HEIGHT = 1 << 6,
-		GRAPHICS	  = 1 << 7
+		normal		  = 0,
+		bold		  = 1 << 0,
+		underline	  = 1 << 1,
+		inverted	  = 1 << 2,
+		italic		  = 1 << 3,
+		transparent	  = 1 << 4,
+		double_width  = 1 << 5,
+		double_height = 1 << 6,
+		graphics	  = 1 << 7
 	};
 
 	// cursor blob:

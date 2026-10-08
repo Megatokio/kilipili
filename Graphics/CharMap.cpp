@@ -24,7 +24,7 @@ static inline __unused void* memmove(void* z, const void* q, int n) noexcept //
 namespace kilipili::Graphics
 {
 
-void CharMap<>::clearRect(int row, int col, int rows, int cols, char c) noexcept
+void CharMap<>::clearRect(int row, int col, int rows, int cols, char c, uint8 attr) noexcept
 {
 	// clang-format off
 	if (row < 0) { rows += row; row = 0; }
@@ -34,11 +34,12 @@ void CharMap<>::clearRect(int row, int col, int rows, int cols, char c) noexcept
 	cols = min(cols, this->cols - col);
 	if (rows <= 0 || cols <= 0) return;
 
-	uint16* p = data + row * this->cols + col;
+	uint16* p		= data + row * this->cols + col;
+	uint16	c_wAttr = char_with_attr(c, attr);
 
 	while (--rows >= 0)
 	{
-		for (int i = 0; i < cols; i++) p[i] = char_with_attr(c);
+		for (int i = 0; i < cols; i++) p[i] = c_wAttr;
 		p += this->cols;
 	}
 }
@@ -81,15 +82,23 @@ void CharMap<>::copyRect(int dest_row, int dest_col, int src_row, int src_col, i
 	}
 }
 
-void CharMap<>::putChar(int row, int col, char c) noexcept
+char CharMap<>::getChar(int row, int col) noexcept
+{
+	if unlikely (uint(row) >= uint(rows)) return 0;
+	if unlikely (uint(col) >= uint(cols)) return 0;
+
+	return char(data[row * cols + col]);
+}
+
+void CharMap<>::putChar(int row, int col, char c, uint8 attr) noexcept
 {
 	if (uint(row) >= uint(rows)) return;
 	if (uint(col) >= uint(cols)) return;
 
-	data[row * cols + col] = char_with_attr(c);
+	data[row * cols + col] = char_with_attr(c, attr);
 }
 
-void CharMap<>::putStr(int row, int col, cstr s) noexcept
+void CharMap<>::putStr(int row, int col, cstr s, uint8 attr) noexcept
 {
 	if (uint(row) >= uint(rows)) return;
 	limit(0, col, cols);
@@ -97,7 +106,7 @@ void CharMap<>::putStr(int row, int col, cstr s) noexcept
 	uint16* p = data + row * cols + col;   // print position
 	int		n = (rows - row) * cols - col; // remaining chars in screen
 
-	while (--n >= 0 && *s) { *p++ = char_with_attr(*s++); }
+	while (--n >= 0 && *s) { *p++ = char_with_attr(*s++, attr); }
 }
 
 

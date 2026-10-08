@@ -44,20 +44,17 @@ class FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>> final : publ
 {
 	using Color = Graphics::Color;
 
-	static constexpr int   fg_bits		  = CharMap::fg_bits;
-	static constexpr int   bg_bits		  = CharMap::bg_bits;
-	static constexpr bool  bold			  = CharMap::bold;
-	static constexpr bool  underline	  = CharMap::underline;
-	static constexpr bool  graphics		  = CharMap::graphics;
-	static constexpr int   fg_ss		  = CharMap::fg_ss;
-	static constexpr int   bg_ss		  = CharMap::bg_ss;
-	static constexpr uchar fg_mask		  = CharMap::fg_mask;
-	static constexpr uchar bg_mask		  = CharMap::bg_mask;
-	static constexpr uchar bold_mask	  = CharMap::bold_mask;
-	static constexpr uchar underline_mask = CharMap::underline_mask;
-	static constexpr uchar graphics_mask  = CharMap::graphics_mask;
+	static constexpr int   fg_bits	 = CharMap::fg_bits;
+	static constexpr int   bg_bits	 = CharMap::bg_bits;
+	static constexpr uint8 bold		 = CharMap::bold;
+	static constexpr uint8 underline = CharMap::underline;
+	static constexpr uint8 graphics	 = CharMap::graphics;
+	static constexpr int   fg_ss	 = CharMap::fg_ss;
+	static constexpr int   bg_ss	 = CharMap::bg_ss;
+	static constexpr uchar fg_mask	 = CharMap::fg_mask;
+	static constexpr uchar bg_mask	 = CharMap::bg_mask;
 
-	static_assert(fg_bits + bg_bits + bold + underline + graphics <= 8);
+	static_assert(fg_bits + bg_bits + !!bold + !!underline + !!graphics <= 8);
 	static_assert(uint(fg_bits <= 8));
 	static_assert(uint(bg_bits <= 8));
 
@@ -72,6 +69,7 @@ public:
 	RCPtr<const Graphics::Font> font2;
 
 	const uchar* row_ptr	 = nullptr; // source row in charmap.data[]
+	const uchar* cursor_ptr	 = nullptr; //
 	int			 raster_line = 0;		// line within character
 	int			 last_y		 = 0;
 
@@ -121,7 +119,8 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_vblank(Vi
 	auto* me		= static_cast<FrameBuffer*>(vp);
 	me->raster_line = 0;
 	me->last_y		= 0;
-	me->row_ptr		= cuptr(me->charmap->data); // source ptr
+	me->row_ptr		= cuptr(me->charmap->data);			  // source ptr
+	me->cursor_ptr	= cuptr(me->charmap->cursor_ptr) + 2; //
 
 	me->font1 = me->charmap->font1;
 	me->font2 = me->charmap->font2;
@@ -168,7 +167,7 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 	uint8		  ul;		// only if underline = true
 
 	if constexpr (graphics) font2 = me->font2->data + me->raster_line * me->font2->row_offset;
-	if constexpr (underline) ul = me->raster_line == 10 ? underline_mask : 0; // if char_height = 12
+	if constexpr (underline) ul = me->raster_line == 10 ? underline : 0; // if char_height = 12
 	if constexpr (fg_bits != 0) fgcolors = me->charmap->fgcolors;
 	if constexpr (bg_bits != 0) bgcolors = me->charmap->bgcolors;
 	if constexpr (fg_bits == 0) fgc = *me->charmap->fgcolors;
@@ -179,7 +178,7 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 		uchar  c	= *p++;
 		uint8  attr = *p++;
 		uint32 bg;
-		uchar  byte;
+		uint   byte;
 
 		if unlikely (underline && (attr & ul))
 		{
@@ -188,11 +187,13 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 		}
 
 		bg	 = bg_bits ? bgcolors[(attr & bg_mask) >> bg_ss] : bgc;
-		byte = (graphics && (attr & graphics_mask) ? font2 : font)[c];
+		byte = (graphics && (attr & graphics) ? font2 : font)[c];
+
+		if unlikely (p == me->cursor_ptr) byte = ~byte;
 
 		if (byte)
 		{
-			if (bold && (attr & bold_mask)) byte |= byte << 1;
+			if (bold && (attr & bold)) byte |= uint8(byte << 1);
 			uint32 fg = fg_bits ? fgcolors[(attr & fg_mask) >> fg_ss] : fgc;
 
 			if constexpr (sizeof(Color) == 1)

@@ -106,7 +106,7 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 		if (c == 127)
 		{
 			auto attr = text->attributes;
-			text->removeAttributes(text->TRANSPARENT);
+			text->removeAttributes(text->transparent);
 			text->cursorLeft(repeat_cnt);
 			text->printChar(' ', repeat_cnt);
 			text->cursorLeft(repeat_cnt);

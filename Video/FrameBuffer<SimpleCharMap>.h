@@ -49,6 +49,7 @@ public:
 	const uchar* row_ptr	 = nullptr; // charmap row
 	int			 raster_line = 0;		// line within character
 	int			 last_y		 = 0;
+	const uint8* cursor_ptr	 = nullptr;
 
 private:
 	static void do_vblank(VideoPlane*) noexcept;
@@ -85,6 +86,7 @@ void FrameBuffer<SimpleCharMap, Flag>::do_vblank(VideoPlane* vp) noexcept
 	me->row_ptr		= charmap->data;
 	me->raster_line = 0;
 	me->last_y		= 0;
+	me->cursor_ptr	= charmap->cursor_ptr + 1;
 	me->font		= charmap->font1;
 
 	// assert(me->font->char_width == 8);
@@ -128,7 +130,10 @@ void FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int widt
 
 	for (cuptr p = me->row_ptr, end = p + cols; p < end;)
 	{
-		if (int byte = font[*p++])
+		int byte = font[*p++];
+		if unlikely (p == me->cursor_ptr) byte = ~byte;
+
+		if (byte)
 		{
 			if constexpr (small)
 			{
