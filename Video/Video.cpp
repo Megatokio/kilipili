@@ -6,7 +6,6 @@
 #include "VideoPlane.h"
 #include "common/LoadSensor.h"
 #include "common/cdefs.h"
-#include "common/cdefs.h"
 #include "common/memory.h"
 #include "common/stack_guard.h"
 #include "common/tempmem.h"
@@ -363,6 +362,17 @@ static void __section(RAM ".vc") video_runner(int row0, uint32 cc_at_line_start)
 			//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
 		}
 	}
+}
+
+bool isVideoPlaneAdded(const VideoPlane* vp) noexcept
+{
+	Locker _; // a pending removal may cause us to miss the plane
+
+	for (uint i = 0; i < num_planes; i++)
+	{
+		if (vp == planes[i]) return true;
+	}
+	return false;
 }
 
 void addVideoPlane(VideoPlanePtr plane, bool wait)

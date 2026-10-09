@@ -105,6 +105,12 @@ extern void addOneTimeAction(const OneTimeAction& fu) noexcept;
 */
 extern bool isVideoRunning() noexcept;
 
+/*	test whether video plane is already added to the display stack.
+	a plane added recently with wait=false returns false until it is added during vblank.
+	a plane added while video is off doesn't show up until video is started.
+*/
+extern bool isVideoPlaneAdded(const VideoPlane*) noexcept;
+
 
 extern uint			 scanlines_missed;
 extern volatile bool locked_out;
