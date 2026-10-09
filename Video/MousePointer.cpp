@@ -250,6 +250,12 @@ MousePointer<Sprite>::MousePointer(const Shape& s) : //
 {}
 
 template<typename Shape>
+void MousePointer<Shape>::replace(MousePointerID id)
+{
+	super::replace(shape_for_id(id));
+}
+
+template<typename Shape>
 void MousePointer<Shape>::vblank() noexcept
 {
 	setPosition(USB::getMousePosition());

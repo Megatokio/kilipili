@@ -39,6 +39,8 @@ public:
 	using super::getPosition;
 	using super::replace;
 	using super::setPosition;
+
+	void replace(MousePointerID);
 };
 
 
