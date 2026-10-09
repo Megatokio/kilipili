@@ -87,18 +87,15 @@ private:
 // *****************************************************************************
 //
 
-#define XRAM_DATA __attribute__((section(".scratch_x.FB_CM_DATA")))
 
 // all permutations of mask for four 1-byte Colors in a uint32:
-static constexpr XRAM_DATA uint32 mask16x1[16] = {
+constexpr __section(".scratch_x.FB_CM_DATA1") uint32 mask16x1[16] = {
 	0x00000000, 0x000000ff, 0x0000ff00, 0x0000ffff, 0x00ff0000, 0x00ff00ff, 0x00ffff00, 0x00ffffff, //
 	0xff000000, 0xff0000ff, 0xff00ff00, 0xff00ffff, 0xffff0000, 0xffff00ff, 0xffffff00, 0xffffffff,
 };
 
 // all permutations of mask for two 2-byte Colors in a uint32:
-static constexpr XRAM_DATA uint32 mask4x2[4] = {0x00000000, 0x0000ffff, 0xffff0000, 0xffffffff};
-
-#undef XRAM_DATA
+constexpr __section(".scratch_x.FB_CM_DATA2") uint32 mask4x2[4] = {0x00000000, 0x0000ffff, 0xffff0000, 0xffffffff};
 
 
 template<class CharMap>
@@ -119,8 +116,8 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_vblank(Vi
 	auto* me		= static_cast<FrameBuffer*>(vp);
 	me->raster_line = 0;
 	me->last_y		= 0;
-	me->row_ptr		= cuptr(me->charmap->data);			  // source ptr
-	me->cursor_ptr	= cuptr(me->charmap->cursor_ptr) + 2; //
+	me->row_ptr		= cuptr(me->charmap->data);		  // source ptr
+	me->cursor_ptr	= cuptr(me->charmap->cursor_ptr); //
 
 	me->font1 = me->charmap->font1;
 	me->font2 = me->charmap->font2;

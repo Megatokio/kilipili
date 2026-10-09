@@ -28,10 +28,12 @@ public:
 	virtual void clearRect(int row, int col, int rows, int cols) noexcept									 = 0;
 	virtual void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept = 0;
 	virtual void printChar(char c, int count = 1) noexcept = 0; // no ctl
-	virtual void print(cstr text) noexcept;						// supports \n and \t
+	virtual void print(cstr text) noexcept;						// supports \n, \r and \t
+	virtual void write(cptr text, int count) noexcept;			// any char, even chr(0)
 
-	void printf(cstr fmt, ...) noexcept __printflike(2, 3);		// supports \n and \t
-	void printf(cstr fmt, va_list) noexcept __printflike(2, 0); // supports \n and \t
+	void printAt(int row, int col, cstr text) noexcept;			// supports \n, \r and \t
+	void printf(cstr fmt, ...) noexcept __printflike(2, 3);		// supports \n, \r and \t
+	void printf(cstr fmt, va_list) noexcept __printflike(2, 0); // supports \n, \r and \t
 
 	virtual void setAttributes(uint add, uint remove = 0xff) noexcept = 0;
 	void		 addAttributes(uint a) noexcept { setAttributes(a, 0); }

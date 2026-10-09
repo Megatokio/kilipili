@@ -33,7 +33,8 @@
 #ifndef VIDEO_SCANLINE_RENDERER_SECTION
   #define VIDEO_SCANLINE_RENDERER_SECTION XRAM
 #endif
-#define SECTION __section(VIDEO_SCANLINE_RENDERER_SECTION ".slr")
+
+#define SECTION __section(VIDEO_SCANLINE_RENDERER_SECTION ".slr" __XSTRING(__LINE__))
 
 
 // ============================================================================================

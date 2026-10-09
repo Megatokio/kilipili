@@ -343,6 +343,13 @@ void Printer<>::scrollScreenRight(int cols) noexcept
 	if (cols > 0) scrollScreen(0, +cols);
 }
 
+void Printer<>::write(cptr text, int count) noexcept
+{
+	// any char, even chr(0)
+
+	for (int i = 0; i < count; i++) { printChar(text[i]); }
+}
+
 void Printer<>::print(cstr s) noexcept
 {
 	// print printable text string.
@@ -371,6 +378,12 @@ void Printer<>::print(cstr s) noexcept
 
 		printChar(c);
 	}
+}
+
+void Printer<>::printAt(int row, int col, cstr text) noexcept
+{
+	moveTo(row, col);
+	print(text);
 }
 
 void Printer<>::printf(cstr fmt, va_list va) noexcept

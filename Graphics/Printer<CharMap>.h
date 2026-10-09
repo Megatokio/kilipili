@@ -23,6 +23,7 @@ public:
 	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
 	void printChar(char c, int count = 1) noexcept override; // no ctl
 	void print(cstr text) noexcept override;				 // supports \n and \t
+	void write(cptr text, int count) noexcept override;		 // any char, even chr(0)
 	void setAttributes(uint add, uint remove = 0xff) noexcept override;
 
 	RCPtr<CharMap<>> charmap;
@@ -113,6 +114,12 @@ inline void Printer<CharMap<>>::setAttributes(uint add, uint remove) noexcept
 	attributes &= ~remove;
 	attributes |= add;
 }
+
+// _____________________________________________________________________
+// deduction guides:
+
+Printer(CharMap<>*) -> Printer<CharMap<>>;
+//Printer(RCPtr<CharMap<>>) -> Printer<CharMap<>>;
 
 } // namespace kilipili::Graphics
 

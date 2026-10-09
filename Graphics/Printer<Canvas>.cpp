@@ -293,6 +293,20 @@ void Printer<Canvas>::printChar(char c, int count) noexcept
 	printCharMatrix(charmatrix, count);
 }
 
+void Printer<Canvas>::write(cptr text, int count) noexcept
+{
+	// any char, even chr(0)
+
+	CharMatrix charmatrix;
+	assert(uint(font1->char_height) <= sizeof(charmatrix));
+
+	for (int i = 0; i < count; i++)
+	{
+		getCharMatrix(charmatrix, text[i]);
+		printCharMatrix(charmatrix, 1);
+	}
+}
+
 void Printer<Canvas>::print(cstr s) noexcept
 {
 	// print printable text string.

@@ -57,6 +57,20 @@ void Printer<SimpleCharMap>::printChar(char c, int count) noexcept
 	}
 }
 
+void Printer<SimpleCharMap>::write(cptr text, int count) noexcept
+{
+	// any char, even chr(0)
+
+	hide_cursor();
+
+	for (int i = 0; i < count; i++)
+	{
+		if unlikely (uint(col) >= uint(cols)) validate_hpos(false);
+		if unlikely (uint(row) >= uint(rows)) validate_vpos();
+		charmap->putChar(row, col++, text[i], attributes);
+	}
+}
+
 void Printer<SimpleCharMap>::print(cstr s) noexcept
 {
 	hide_cursor();
