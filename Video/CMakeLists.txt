@@ -75,6 +75,7 @@ add_library(kilipili_video STATIC
 	HamImageVideoPlane.h 
 	HamImageVideoPlane.cpp
 	FrameBuffer<SimpleCharMap>.h 
+	FrameBuffer<SimpleCharMap>.cpp
 	FrameBuffer<CharMap>.h 
 	FrameBuffer<CharMap>.cpp
 )

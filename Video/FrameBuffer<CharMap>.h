@@ -25,18 +25,20 @@ namespace kilipili::Video
 		graphics:  enable secondary font (default: graphics)
 	The total number of bits must not exceed 8.
 
-	Because gcc has a long outstanding bug in handling attributes in template instantiations,
-	you should not simply automatically instantiate the FrameBuffer<> for your CharMap<> of choice,
+	Font and Colors are taken from the CharMap and updated every frame.
+	The FrameBuffer provides a hardware cursor (inverted character).
+
+	Because gcc has a long standing bug in handling attributes in template instantiations,
+	you should not rely on automatic instantiation of the FrameBuffer<> for your CharMap<> of choice,
 	because then gcc will then put the callback functions into flash. (except you are fine with this.)
+
 	Instead you must instantiate the callback functions explicitly with the desired section attribute.
+	For convenience the most commonly used are predefined at the end of this file. 
+	To can override them if your XRAM overflows by providing your own instantiation using RAM in your program.
 
 	To simplify this the #define DEFINE_FB_CM(fgbits,bgbits,bold,ul,gra,section) is provided:
 	use:
-		namespace kilipili::Video{
-		DEFINE_FB_CM(2, 2, 1, 1, 0, XRAM)   // XRAM = ".scratch_x" is defined in cdefs.h
-	    }
-
-	Some are predefined for a quick start at the end of this file!
+		DEFINE_FB_CM(2, 2, 1, 1, 0, XRAM)   // RAM or XRAM are defined in common/cdefs.h
 */
 
 template<class CharMap>
@@ -109,8 +111,6 @@ FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::FrameBuffer(CharM
 	assert(font1->char_width == 8);
 	assert(font2->char_width == 8);
 	assert(font1->char_height == font2->char_height);
-	assert(font1->first_glyph == 0);
-	assert(font2->first_glyph == 0);
 }
 
 template<class CharMap>
@@ -124,10 +124,6 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_vblank(Vi
 
 	me->font1 = me->charmap->font1;
 	me->font2 = me->charmap->font2;
-
-	// assert(me->font1->char_width == 8);
-	// assert(me->font2->char_width == 8);
-	// assert(me->font1->char_height == me->font2->char_height);
 }
 
 template<class CharMap>
@@ -156,8 +152,8 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 	if constexpr (sizeof(Color) == 2) interp->setup(ip);
 	if constexpr (sizeof(Color) == 2) interp->set_color_base(mask4x2);
 
-	int			 cols = width >> 3;												   // if char_width = 8
-	const uchar* font = me->font1->data + me->raster_line * me->font1->row_offset; // if first_char = 0
+	int			 cols = width >> (3 - 1); // if char_width = 8
+	const uchar* font = me->font1->data + me->raster_line * me->font1->row_offset - me->font1->first_glyph;
 
 	const uchar*  font2;	// only if graphics = true
 	const uint32* fgcolors; // only if fg_bits > 0
@@ -166,94 +162,108 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 	uint32		  bgc;		// only if bg_bits = 0
 	uint8		  ul;		// only if underline = true
 
-	if constexpr (graphics) font2 = me->font2->data + me->raster_line * me->font2->row_offset;
+	if constexpr (graphics) font2 = me->font2->data + me->raster_line * me->font2->row_offset - me->font2->first_glyph;
 	if constexpr (underline) ul = me->raster_line == 10 ? underline : 0; // if char_height = 12
 	if constexpr (fg_bits != 0) fgcolors = me->charmap->fgcolors;
 	if constexpr (bg_bits != 0) bgcolors = me->charmap->bgcolors;
 	if constexpr (fg_bits == 0) fgc = *me->charmap->fgcolors;
 	if constexpr (bg_bits == 0) bgc = *me->charmap->bgcolors;
 
-	for (cuptr p = me->row_ptr, end = p + 2 * cols; p < end;)
+	for (cuptr p = me->row_ptr, bu_end = p + cols; p < bu_end;)
 	{
-		uchar  c	= *p++;
-		uint8  attr = *p++;
-		uint32 bg;
-		uint   byte;
+		uchar c	   = p[0];
+		uint8 attr = p[1];
+		uint8 byte = (graphics && (attr & graphics) ? font2 : font)[c];
 
-		if unlikely (underline && (attr & ul))
+		cuptr end = bu_end;
+		if unlikely (me->cursor_ptr >= p && me->cursor_ptr < end)
 		{
-			bg = fg_bits ? fgcolors[(attr & fg_mask) >> fg_ss] : fgc;
-			goto space;
+			if (p == me->cursor_ptr) byte = uint8(~byte);
+			else end = me->cursor_ptr;
 		}
 
-		bg	 = bg_bits ? bgcolors[(attr & bg_mask) >> bg_ss] : bgc;
-		byte = (graphics && (attr & graphics) ? font2 : font)[c];
-
-		if unlikely (p == me->cursor_ptr) byte = ~byte;
-
-		if (byte)
+		while (p < end)
 		{
-			if (bold && (attr & bold)) byte |= uint8(byte << 1);
-			uint32 fg = fg_bits ? fgcolors[(attr & fg_mask) >> fg_ss] : fgc;
+			uint32 bg;
 
-			if constexpr (sizeof(Color) == 1)
+			if unlikely (underline && (attr & ul))
 			{
-				fg = fg ^ bg;
-
-				*buffer++ = bg ^ (fg & mask16x1[byte & 0x0f]);
-				*buffer++ = bg ^ (fg & mask16x1[byte >> 4]);
+				bg = fg_bits ? fgcolors[(attr & fg_mask) >> fg_ss] : fgc;
+				goto space;
 			}
-			else if constexpr (sizeof(Color) == 2)
+
+			bg = bg_bits ? bgcolors[(attr & bg_mask) >> bg_ss] : bgc;
+
+			if (byte)
 			{
-				fg = fg ^ bg;
+				if (bold && (attr & bold)) byte |= uint8(byte << 1);
+				uint32 fg = fg_bits ? fgcolors[(attr & fg_mask) >> fg_ss] : fgc;
 
-				interp->set_pixels(byte, 2);
-				*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
-				*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
-				*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
-				*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
+				if constexpr (sizeof(Color) == 1)
+				{
+					fg = fg ^ bg;
+
+					*buffer++ = bg ^ (fg & mask16x1[byte & 0x0f]);
+					*buffer++ = bg ^ (fg & mask16x1[byte >> 4]);
+				}
+				else if constexpr (sizeof(Color) == 2)
+				{
+					fg = fg ^ bg;
+
+					interp->set_pixels(byte, 2);
+					*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
+					*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
+					*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
+					*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
+				}
+				else // Color = 4 bytes
+				{
+					*buffer++ = byte & 1 ? fg : bg;
+					*buffer++ = byte & 2 ? fg : bg;
+					*buffer++ = byte & 4 ? fg : bg;
+					*buffer++ = byte & 8 ? fg : bg;
+					*buffer++ = byte & 0x10 ? fg : bg;
+					*buffer++ = byte & 0x20 ? fg : bg;
+					*buffer++ = byte & 0x40 ? fg : bg;
+					*buffer++ = byte & 0x80 ? fg : bg;
+				}
 			}
-			else // Color = 4 bytes
+			else // byte = 0x00
 			{
-				*buffer++ = byte & 1 ? fg : bg;
-				*buffer++ = byte & 2 ? fg : bg;
-				*buffer++ = byte & 4 ? fg : bg;
-				*buffer++ = byte & 8 ? fg : bg;
-				*buffer++ = byte & 0x10 ? fg : bg;
-				*buffer++ = byte & 0x20 ? fg : bg;
-				*buffer++ = byte & 0x40 ? fg : bg;
-				*buffer++ = byte & 0x80 ? fg : bg;
+			space:
+				*buffer++ = bg;
+				*buffer++ = bg;
+
+				if constexpr (sizeof(Color) >= 2) *buffer++ = bg;
+				if constexpr (sizeof(Color) >= 2) *buffer++ = bg;
+
+				if constexpr (sizeof(Color) == 4) *buffer++ = bg;
+				if constexpr (sizeof(Color) == 4) *buffer++ = bg;
+				if constexpr (sizeof(Color) == 4) *buffer++ = bg;
+				if constexpr (sizeof(Color) == 4) *buffer++ = bg;
 			}
-		}
-		else // byte = 0x00
-		{
-		space:
-			*buffer++ = bg;
-			*buffer++ = bg;
 
-			if constexpr (sizeof(Color) >= 2) *buffer++ = bg;
-			if constexpr (sizeof(Color) >= 2) *buffer++ = bg;
-
-			if constexpr (sizeof(Color) == 4) *buffer++ = bg;
-			if constexpr (sizeof(Color) == 4) *buffer++ = bg;
-			if constexpr (sizeof(Color) == 4) *buffer++ = bg;
-			if constexpr (sizeof(Color) == 4) *buffer++ = bg;
+			p += 2;
+			c	 = p[0];
+			attr = p[1];
+			byte = (graphics && (attr & graphics) ? font2 : font)[c];
 		}
 	}
-
 	if constexpr (sizeof(Color) == 2) cleanup_if_needed<ip>();
 }
 
 
-// ___________________________________________________________
+// _______________________________________
 // pre-define some for a quick start:
+// scanline renderers go into XRAM.
+// you can override this by providing an instantiation in your program!
 
 // clang-format off
-#define DEFINE_FB_CM(a,b,c,d,e)\
-extern template void FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_render(VideoPlane*, int, int, uint32*) noexcept;\
+#define DEFINE_FB_CM(a,b,c,d,e) \
+extern template void FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_render(VideoPlane*, int, int, uint32*) noexcept; \
 extern template void FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_vblank(VideoPlane*) noexcept;
 
-DEFINE_FB_CM(0, 0, 1, 1, 1) // monochrome: works safely up to 1024x768
+DEFINE_FB_CM(0, 0, 1, 1, 1) // up to 1280x768, monochrome + bold + underline + graphics
 
 DEFINE_FB_CM(4, 4, 0, 0, 0) // up to 800x600, 16 fg and 16 bg colors
 
@@ -268,11 +278,15 @@ DEFINE_FB_CM(3, 3, 1, 0, 1) // up to 800x600 + bold + graphics
 
 DEFINE_FB_CM(3, 2, 1, 1, 1) // up to 800x600 + bold + underline + graphics
 DEFINE_FB_CM(2, 2, 1, 1, 1) // up to 800x600 + bold + underline + graphics
-
 #undef DEFINE_FB_CM
-#define DEFINE_FB_CM(a,b,c,d,e,SECTION)\
-template void __section(SECTION ".FB_CM") FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_render(VideoPlane*, int, int, uint32*) noexcept;\
-template void __section(RAM ".FB_CM") FrameBuffer<Graphics::CharMap<a,b,c,d,e>>::do_vblank(VideoPlane*) noexcept;
+
+
+// _______________________________________
+// use DEFINE_FB_CM(..) if you need other variants:
+
+#define DEFINE_FB_CM(a,b,c,d,e,SECTION) namespace kilipili::Video{ \
+template void __section(RAM ".FB_CM") FrameBuffer<kilipili::Graphics::CharMap<a,b,c,d,e>>::do_vblank(VideoPlane*) noexcept; \
+template void __section(SECTION ".FB_CM") FrameBuffer<kilipili::Graphics::CharMap<a,b,c,d,e>>::do_render(VideoPlane*, int, int, uint32*) noexcept; }
 // clang-format on
 
 

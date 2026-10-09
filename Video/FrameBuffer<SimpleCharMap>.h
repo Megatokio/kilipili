@@ -13,18 +13,21 @@ using Color			= Graphics::Color;
 using SimpleCharMap = Graphics::SimpleCharMap;
 
 
-/*	template class CharacterFrameBuffer is the bare minimum character-based FrameBuffer:
+/*	template class FrameBuffer<SimpleCharMap> is the bare minimum character-based FrameBuffer:
 	It supports only one foreground and one background color. No attributes!
-	Characters are expected to be 8 pixels wide and 12 pixels high.
-	All character codes incl. 0x00 are available.
+	Characters are expected to be 8 pixels wide.
+
+	Font and Colors are taken from the CharMap and updated every frame.
+	The FrameBuffer provides a hardware cursor (inverted character).
 
 	The class contains precalculated strips of all 4 or 8 pixel combinations:
-	Flag = Small: strips of 4 pixels x 16 versions = 64 Colors   ~ 5cc per pixel
-	Flag = Fast:  strips of 8 pixels x 256 versions = 2k Colors  ~ 4cc per pixel
+	Flag = Small: strips of 4 pixels x 16 versions  = 64 Colors  
+	Flag = Fast:  strips of 8 pixels x 256 versions = 2k Colors (2 or 4 kB!)
 
-	Inverted colors (or bold characters) may be achieved by modifying character codes 128++.
-	--> latin1_256x12[][]  or
-	--> ascii_256x12_inverse[][]
+	Inverted colors or bold characters can be achieved by modified character codes 128++.
+	--> latin1_256x12  
+	--> ascii_256x12_inverse
+	--> ascii_256x12_bold
 */
 using Fast	= int;
 using Small = void; // => this is the default
@@ -70,7 +73,6 @@ FrameBuffer<SimpleCharMap, Flag>::FrameBuffer(SimpleCharMap* charmap) noexcept :
 	VideoPlane(&do_vblank, &do_render)
 {
 	assert(font->char_width == 8);
-	assert(font->first_glyph == 0);
 
 	// setup_colors in first vblank:
 	charmap->bgcolor = ~colorstrips[0][0];
@@ -88,9 +90,6 @@ void FrameBuffer<SimpleCharMap, Flag>::do_vblank(VideoPlane* vp) noexcept
 	me->last_y		= 0;
 	me->cursor_ptr	= charmap->cursor_ptr + 1;
 	me->font		= charmap->font1;
-
-	// assert(me->font->char_width == 8);
-	// assert(me->font->first_glyph == 0);
 
 	if (charmap->bgcolor != me->colorstrips[0][0] || charmap->fgcolor != me->colorstrips[NELEM(colorstrips) - 1][0])
 	{
@@ -124,81 +123,91 @@ void FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int widt
 		}
 	}
 
-	int		cols = width >> 3;												// if char_width = 8
-	cuptr	font = me->font->data + me->raster_line * me->font->row_offset; // if first_char = 0
+	int		cols = width >> 3; // if char_width = 8
+	cuptr	font = me->font->data + me->raster_line * me->font->row_offset - me->font->first_glyph;
 	uint32* z	 = buffer;
 
-	for (cuptr p = me->row_ptr, end = p + cols; p < end;)
+	for (cuptr p = me->row_ptr, bu_end = p + cols; p < bu_end;)
 	{
-		int byte = font[*p++];
-		if unlikely (p == me->cursor_ptr) byte = ~byte;
+		uint8 byte = font[*p];
+		cuptr end  = bu_end;
 
-		if (byte)
+		if unlikely (me->cursor_ptr >= p && me->cursor_ptr < end)
 		{
-			if constexpr (small)
-			{
-				uint32* colors = reinterpret_cast<uint32*>(me->colorstrips[byte & 0x0f]);
-
-				*z++ = colors[0];
-				if (sizeof(Color) >= 2) *z++ = colors[1];
-				if (sizeof(Color) == 4) *z++ = colors[2];
-				if (sizeof(Color) == 4) *z++ = colors[3];
-
-				colors = reinterpret_cast<uint32*>(me->colorstrips[byte >> 4]);
-
-				*z++ = colors[0];
-				if (sizeof(Color) >= 2) *z++ = colors[1];
-				if (sizeof(Color) == 4) *z++ = colors[2];
-				if (sizeof(Color) == 4) *z++ = colors[3];
-			}
-			else // fast:
-			{
-				uint32* colors = reinterpret_cast<uint32*>(me->colorstrips[byte]);
-
-				*z++ = colors[0];
-				*z++ = colors[1];
-				if (sizeof(Color) >= 2) *z++ = colors[2];
-				if (sizeof(Color) >= 2) *z++ = colors[3];
-				if (sizeof(Color) == 4) *z++ = colors[4];
-				if (sizeof(Color) == 4) *z++ = colors[5];
-				if (sizeof(Color) == 4) *z++ = colors[6];
-				if (sizeof(Color) == 4) *z++ = colors[7];
-			}
+			if (p == me->cursor_ptr) byte = uint8(~byte);
+			else end = me->cursor_ptr;
 		}
-		else // byte = 0x00
-		{
-			uint32 bg = *reinterpret_cast<uint32*>(me->colorstrips[0]);
 
-			*z++ = bg;
-			*z++ = bg;
-			if (sizeof(Color) >= 2) *z++ = bg;
-			if (sizeof(Color) >= 2) *z++ = bg;
-			if (sizeof(Color) == 4) *z++ = bg;
-			if (sizeof(Color) == 4) *z++ = bg;
-			if (sizeof(Color) == 4) *z++ = bg;
-			if (sizeof(Color) == 4) *z++ = bg;
+		for (; p < end; byte = font[*++p])
+		{
+			if (byte)
+			{
+				if constexpr (small)
+				{
+					uint32* colors = reinterpret_cast<uint32*>(me->colorstrips[byte & 0x0f]);
+
+					*z++ = colors[0];
+					if (sizeof(Color) >= 2) *z++ = colors[1];
+					if (sizeof(Color) == 4) *z++ = colors[2];
+					if (sizeof(Color) == 4) *z++ = colors[3];
+
+					colors = reinterpret_cast<uint32*>(me->colorstrips[byte >> 4]);
+
+					*z++ = colors[0];
+					if (sizeof(Color) >= 2) *z++ = colors[1];
+					if (sizeof(Color) == 4) *z++ = colors[2];
+					if (sizeof(Color) == 4) *z++ = colors[3];
+				}
+				else // fast:
+				{
+					uint32* colors = reinterpret_cast<uint32*>(me->colorstrips[byte]);
+
+					*z++ = colors[0];
+					*z++ = colors[1];
+					if (sizeof(Color) >= 2) *z++ = colors[2];
+					if (sizeof(Color) >= 2) *z++ = colors[3];
+					if (sizeof(Color) == 4) *z++ = colors[4];
+					if (sizeof(Color) == 4) *z++ = colors[5];
+					if (sizeof(Color) == 4) *z++ = colors[6];
+					if (sizeof(Color) == 4) *z++ = colors[7];
+				}
+			}
+			else // byte = 0x00
+			{
+				uint32 bg = *reinterpret_cast<uint32*>(me->colorstrips[0]);
+
+				*z++ = bg;
+				*z++ = bg;
+				if (sizeof(Color) >= 2) *z++ = bg;
+				if (sizeof(Color) >= 2) *z++ = bg;
+				if (sizeof(Color) == 4) *z++ = bg;
+				if (sizeof(Color) == 4) *z++ = bg;
+				if (sizeof(Color) == 4) *z++ = bg;
+				if (sizeof(Color) == 4) *z++ = bg;
+			}
 		}
 	}
 }
 
-// rant:
-// gcc ignores attributes in templates!
-// we must specify the section in every instantiation!
-// we cannot just instantiate the class,
-// we must instantiate every single function!
-// at least there are only 2 versions of the SimpleCharMap...
 
-#ifndef VIDEO_SCANLINE_RENDERER_SECTION
-  #define VIDEO_SCANLINE_RENDERER_SECTION XRAM
-#endif
+// _________________________________________________
+// the scanline renderers are placed in XRAM but you can provide your own instantiation to override this:
 
-template void __section(RAM ".scfb") FrameBuffer<SimpleCharMap, Fast>::do_vblank(VideoPlane*) noexcept;
-template void __section(VIDEO_SCANLINE_RENDERER_SECTION
-						".scfb") FrameBuffer<SimpleCharMap, Fast>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+extern template void FrameBuffer<SimpleCharMap, Fast>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+extern template void FrameBuffer<SimpleCharMap, Fast>::do_vblank(VideoPlane*) noexcept;
 
-template void __section(RAM ".scfb") FrameBuffer<SimpleCharMap, Small>::do_vblank(VideoPlane*) noexcept;
-template void __section(VIDEO_SCANLINE_RENDERER_SECTION
-						".scfb") FrameBuffer<SimpleCharMap, Small>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+extern template void FrameBuffer<SimpleCharMap, Small>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+extern template void FrameBuffer<SimpleCharMap, Small>::do_vblank(VideoPlane*) noexcept;
+
+
+// _______________________________________
+// use DEFINE_FB_SCM(..) to place the callbacks into different sections:
+
+// clang-format off
+#define DEFINE_FB_SCM(SPEED,SECTION) namespace kilipili::Video{ using namespace kilipili::Graphics; \
+template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::do_vblank(VideoPlane*)noexcept; \
+template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::do_render(VideoPlane*,int,int,uint32*)noexcept;}
+// clang-format on
 
 
 } // namespace kilipili::Video

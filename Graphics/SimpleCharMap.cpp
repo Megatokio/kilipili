@@ -108,6 +108,8 @@ char SimpleCharMap::getChar(int row, int col) noexcept
 
 void SimpleCharMap::putChar(int row, int col, char c, uint8 attr) noexcept
 {
+	assert((attr & 0x7f) == 0);
+
 	if (uint(row) >= uint(rows)) return;
 	if (uint(col) >= uint(cols)) return;
 
@@ -116,6 +118,8 @@ void SimpleCharMap::putChar(int row, int col, char c, uint8 attr) noexcept
 
 void SimpleCharMap::putStr(int row, int col, cstr s, uint8 attr) noexcept
 {
+	assert((attr & 0x7f) == 0);
+
 	if (uint(row) >= uint(rows)) return;
 	limit(0, col, cols);
 

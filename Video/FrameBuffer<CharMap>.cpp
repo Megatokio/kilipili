@@ -7,21 +7,36 @@
 
 namespace kilipili::Video
 {
+using namespace Graphics;
 
-#ifndef VIDEO_SCANLINE_RENDERER_SECTION
-  #define VIDEO_SCANLINE_RENDERER_SECTION XRAM
-#endif
+// ______________________________________________________________________________
+// scanline renderers go into XRAM
+// vblank callbacks go into normal RAM
+// you can override this by providing the instantiation in your program!
 
-DEFINE_FB_CM(0, 0, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION)
-DEFINE_FB_CM(4, 4, 0, 0, 0, VIDEO_SCANLINE_RENDERER_SECTION)
-DEFINE_FB_CM(4, 3, 1, 0, 0, VIDEO_SCANLINE_RENDERER_SECTION)
-DEFINE_FB_CM(4, 3, 0, 0, 1, VIDEO_SCANLINE_RENDERER_SECTION)
-DEFINE_FB_CM(4, 2, 1, 1, 0, VIDEO_SCANLINE_RENDERER_SECTION)
-DEFINE_FB_CM(4, 2, 1, 0, 1, VIDEO_SCANLINE_RENDERER_SECTION)
-DEFINE_FB_CM(3, 3, 1, 1, 0, VIDEO_SCANLINE_RENDERER_SECTION)
-DEFINE_FB_CM(3, 3, 1, 0, 1, VIDEO_SCANLINE_RENDERER_SECTION)
-DEFINE_FB_CM(3, 2, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION)
-DEFINE_FB_CM(2, 2, 1, 1, 1, VIDEO_SCANLINE_RENDERER_SECTION)
+#define define template void __section
+
+define(XRAM ".FB_CM1") FrameBuffer<CharMap<0, 0, 1, 1, 1>>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+define(RAM ".FB_CM1") FrameBuffer<CharMap<0, 0, 1, 1, 1>>::do_vblank(VideoPlane*) noexcept;
+define(XRAM ".FB_CM2") FrameBuffer<CharMap<4, 4, 0, 0, 0>>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+define(RAM ".FB_CM2") FrameBuffer<CharMap<4, 4, 0, 0, 0>>::do_vblank(VideoPlane*) noexcept;
+define(XRAM ".FB_CM3") FrameBuffer<CharMap<4, 3, 1, 0, 0>>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+define(RAM ".FB_CM3") FrameBuffer<CharMap<4, 3, 1, 0, 0>>::do_vblank(VideoPlane*) noexcept;
+define(XRAM ".FB_CM4") FrameBuffer<CharMap<4, 3, 0, 0, 1>>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+define(RAM ".FB_CM4") FrameBuffer<CharMap<4, 3, 0, 0, 1>>::do_vblank(VideoPlane*) noexcept;
+define(XRAM ".FB_CM5") FrameBuffer<CharMap<4, 2, 1, 1, 0>>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+define(RAM ".FB_CM5") FrameBuffer<CharMap<4, 2, 1, 1, 0>>::do_vblank(VideoPlane*) noexcept;
+define(XRAM ".FB_CM6") FrameBuffer<CharMap<4, 2, 1, 0, 1>>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+define(RAM ".FB_CM6") FrameBuffer<CharMap<4, 2, 1, 0, 1>>::do_vblank(VideoPlane*) noexcept;
+define(XRAM ".FB_CM7") FrameBuffer<CharMap<3, 3, 1, 1, 0>>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+define(RAM ".FB_CM7") FrameBuffer<CharMap<3, 3, 1, 1, 0>>::do_vblank(VideoPlane*) noexcept;
+define(XRAM ".FB_CM8") FrameBuffer<CharMap<3, 3, 1, 0, 1>>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+define(RAM ".FB_CM8") FrameBuffer<CharMap<3, 3, 1, 0, 1>>::do_vblank(VideoPlane*) noexcept;
+define(XRAM ".FB_CM9") FrameBuffer<CharMap<2, 2, 1, 1, 1>>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+define(RAM ".FB_CM9") FrameBuffer<CharMap<2, 2, 1, 1, 1>>::do_vblank(VideoPlane*) noexcept;
+define(XRAM ".FB_CM10") FrameBuffer<CharMap<3, 2, 1, 1, 1>>::do_render(VideoPlane*, int, int, uint32*) noexcept;
+define(RAM ".FB_CM10") FrameBuffer<CharMap<3, 2, 1, 1, 1>>::do_vblank(VideoPlane*) noexcept;
+
 
 } // namespace kilipili::Video
 
