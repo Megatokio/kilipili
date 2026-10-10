@@ -57,6 +57,7 @@ public:
 private:
 	static void do_vblank(VideoPlane*) noexcept;
 	static void do_render(VideoPlane*, int row, int width, uint32* buffer) noexcept;
+	void		render_scanline(uint32* z, cuptr p, int cols) noexcept;
 };
 
 
@@ -88,7 +89,7 @@ void FrameBuffer<SimpleCharMap, Flag>::do_vblank(VideoPlane* vp) noexcept
 	me->row_ptr		= charmap->data;
 	me->raster_line = 0;
 	me->last_y		= 0;
-	me->cursor_ptr	= charmap->cursor_ptr + 1;
+	me->cursor_ptr	= charmap->cursor_ptr;
 	me->font		= charmap->font1;
 
 	if (charmap->bgcolor != me->colorstrips[0][0] || charmap->fgcolor != me->colorstrips[NELEM(colorstrips) - 1][0])
@@ -99,6 +100,63 @@ void FrameBuffer<SimpleCharMap, Flag>::do_vblank(VideoPlane* vp) noexcept
 		for (int byte = 0; byte < (small ? 16 : 256); byte++)
 		{
 			for (int bit = 0; bit < (small ? 4 : 8); bit++) { *p++ = colors[(byte >> bit) & 1]; }
+		}
+	}
+}
+
+template<typename Flag>
+void FrameBuffer<SimpleCharMap, Flag>::render_scanline(uint32* z, cuptr q, int cols) noexcept
+{
+	cuptr glyphs = font->data + raster_line * font->row_offset - font->first_glyph;
+
+	for (cuptr end = q + cols; q < end;)
+	{
+		uint8 byte = glyphs[*q++];
+
+		if (byte)
+		{
+			if constexpr (small)
+			{
+				uint32* colors = reinterpret_cast<uint32*>(colorstrips[byte & 0x0f]);
+
+				*z++ = colors[0];
+				if (sizeof(Color) >= 2) *z++ = colors[1];
+				if (sizeof(Color) == 4) *z++ = colors[2];
+				if (sizeof(Color) == 4) *z++ = colors[3];
+
+				colors = reinterpret_cast<uint32*>(colorstrips[byte >> 4]);
+
+				*z++ = colors[0];
+				if (sizeof(Color) >= 2) *z++ = colors[1];
+				if (sizeof(Color) == 4) *z++ = colors[2];
+				if (sizeof(Color) == 4) *z++ = colors[3];
+			}
+			else // fast:
+			{
+				uint32* colors = reinterpret_cast<uint32*>(colorstrips[byte]);
+
+				*z++ = colors[0];
+				*z++ = colors[1];
+				if (sizeof(Color) >= 2) *z++ = colors[2];
+				if (sizeof(Color) >= 2) *z++ = colors[3];
+				if (sizeof(Color) == 4) *z++ = colors[4];
+				if (sizeof(Color) == 4) *z++ = colors[5];
+				if (sizeof(Color) == 4) *z++ = colors[6];
+				if (sizeof(Color) == 4) *z++ = colors[7];
+			}
+		}
+		else // byte = 0x00
+		{
+			uint32 bg = *reinterpret_cast<uint32*>(colorstrips[0]);
+
+			*z++ = bg;
+			*z++ = bg;
+			if (sizeof(Color) >= 2) *z++ = bg;
+			if (sizeof(Color) >= 2) *z++ = bg;
+			if (sizeof(Color) == 4) *z++ = bg;
+			if (sizeof(Color) == 4) *z++ = bg;
+			if (sizeof(Color) == 4) *z++ = bg;
+			if (sizeof(Color) == 4) *z++ = bg;
 		}
 	}
 }
@@ -123,69 +181,29 @@ void FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int widt
 		}
 	}
 
-	int		cols = width >> 3; // if char_width = 8
-	cuptr	font = me->font->data + me->raster_line * me->font->row_offset - me->font->first_glyph;
-	uint32* z	 = buffer;
+	int cols = width >> 3; // if char_width = 8
 
-	for (cuptr p = me->row_ptr, bu_end = p + cols; p < bu_end;)
+	me->render_scanline(buffer, me->row_ptr, cols);
+
+	if unlikely (unsigned(me->cursor_ptr - me->row_ptr) < unsigned(cols))
 	{
-		uint8 byte = font[*p];
-		cuptr end  = bu_end;
+		uint32* z = buffer + (me->cursor_ptr - me->row_ptr) * (8 * sizeof(Color) / sizeof(uint32));
 
-		if unlikely (me->cursor_ptr >= p && me->cursor_ptr < end)
-		{
-			if (p == me->cursor_ptr) byte = uint8(~byte);
-			else end = me->cursor_ptr;
-		}
+		uint32 xc =
+			reinterpret_cast<uint32*>(me->colorstrips[0])[0] ^ reinterpret_cast<uint32*>(me->colorstrips[15])[0];
 
-		for (; p < end; byte = font[*++p])
-		{
-			if (byte)
-			{
-				if constexpr (small)
-				{
-					uint32* colors = reinterpret_cast<uint32*>(me->colorstrips[byte & 0x0f]);
+		//uint32 xc = me->charmap->bgcolor ^ me->charmap->fgcolor;
+		//if (sizeof(Color) <= 2) xc |= xc << 16;
+		//if (sizeof(Color) == 1) xc |= xc << 8;
 
-					*z++ = colors[0];
-					if (sizeof(Color) >= 2) *z++ = colors[1];
-					if (sizeof(Color) == 4) *z++ = colors[2];
-					if (sizeof(Color) == 4) *z++ = colors[3];
-
-					colors = reinterpret_cast<uint32*>(me->colorstrips[byte >> 4]);
-
-					*z++ = colors[0];
-					if (sizeof(Color) >= 2) *z++ = colors[1];
-					if (sizeof(Color) == 4) *z++ = colors[2];
-					if (sizeof(Color) == 4) *z++ = colors[3];
-				}
-				else // fast:
-				{
-					uint32* colors = reinterpret_cast<uint32*>(me->colorstrips[byte]);
-
-					*z++ = colors[0];
-					*z++ = colors[1];
-					if (sizeof(Color) >= 2) *z++ = colors[2];
-					if (sizeof(Color) >= 2) *z++ = colors[3];
-					if (sizeof(Color) == 4) *z++ = colors[4];
-					if (sizeof(Color) == 4) *z++ = colors[5];
-					if (sizeof(Color) == 4) *z++ = colors[6];
-					if (sizeof(Color) == 4) *z++ = colors[7];
-				}
-			}
-			else // byte = 0x00
-			{
-				uint32 bg = *reinterpret_cast<uint32*>(me->colorstrips[0]);
-
-				*z++ = bg;
-				*z++ = bg;
-				if (sizeof(Color) >= 2) *z++ = bg;
-				if (sizeof(Color) >= 2) *z++ = bg;
-				if (sizeof(Color) == 4) *z++ = bg;
-				if (sizeof(Color) == 4) *z++ = bg;
-				if (sizeof(Color) == 4) *z++ = bg;
-				if (sizeof(Color) == 4) *z++ = bg;
-			}
-		}
+		*z++ ^= xc;
+		*z++ ^= xc;
+		if (sizeof(Color) >= 2) *z++ ^= xc;
+		if (sizeof(Color) >= 2) *z++ ^= xc;
+		if (sizeof(Color) == 4) *z++ ^= xc;
+		if (sizeof(Color) == 4) *z++ ^= xc;
+		if (sizeof(Color) == 4) *z++ ^= xc;
+		if (sizeof(Color) == 4) *z++ ^= xc;
 	}
 }
 
@@ -199,12 +217,16 @@ extern template void FrameBuffer<SimpleCharMap, Fast>::do_vblank(VideoPlane*) no
 extern template void FrameBuffer<SimpleCharMap, Small>::do_render(VideoPlane*, int, int, uint32*) noexcept;
 extern template void FrameBuffer<SimpleCharMap, Small>::do_vblank(VideoPlane*) noexcept;
 
+extern template void FrameBuffer<SimpleCharMap, Small>::render_scanline(uint32* z, cuptr p, int cols) noexcept;
+extern template void FrameBuffer<SimpleCharMap, Fast>::render_scanline(uint32* z, cuptr p, int cols) noexcept;
+
 
 // _______________________________________
 // use DEFINE_FB_SCM(..) to place the callbacks into different sections:
 
 // clang-format off
 #define DEFINE_FB_SCM(SPEED,SECTION) namespace kilipili::Video{ using namespace kilipili::Graphics; \
+template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::render_scanline(uint32*,cuptr,int)noexcept;\
 template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::do_vblank(VideoPlane*)noexcept; \
 template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::do_render(VideoPlane*,int,int,uint32*)noexcept;}
 // clang-format on
