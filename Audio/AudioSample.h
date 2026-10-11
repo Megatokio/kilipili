@@ -5,7 +5,7 @@
 #pragma once
 #include "standard_types.h"
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 using Sample = int16;
@@ -209,7 +209,7 @@ template<> inline constexpr uint16 convert_sample(const uint16 q) noexcept { ret
 // clang-format on
 
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 
 /*

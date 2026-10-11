@@ -6,7 +6,7 @@
 #include "FileSystem.h"
 #include "ff15/source/ff.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 class FatFS final : public FileSystem
@@ -32,8 +32,8 @@ private:
 	friend class FatDir;
 	friend class FatFile;
 	friend class RCPtr<FatFS>;
-	friend FileSystemPtr mount(cstr, BlockDevicePtr);
-	friend FileSystemPtr mount(cstr);
+	friend FileSystemPtr mountFS(cstr, BlockDevicePtr);
+	friend FileSystemPtr mountFS(cstr);
 	friend void			 makeFS(BlockDevicePtr, cstr);
 
 	static void mkfs(BlockDevice*, int volume_idx, cstr type = "FAT");
@@ -43,7 +43,7 @@ private:
 
 using FatFSPtr = RCPtr<FatFS>;
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 
 extern cstr tostr(FRESULT) noexcept;

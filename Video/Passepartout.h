@@ -6,7 +6,7 @@
 #include "VideoPlane.h"
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 class Passepartout final : public VideoPlane
@@ -32,7 +32,7 @@ private:
 };
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 /*
 

@@ -8,7 +8,7 @@
 #include "common/RCPtr.h"
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 template<>
@@ -61,4 +61,4 @@ inline void Printer<SimpleCharMap>::setAttributes(uint add, uint remove) noexcep
 Printer(SimpleCharMap*) -> Printer<SimpleCharMap>;
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili

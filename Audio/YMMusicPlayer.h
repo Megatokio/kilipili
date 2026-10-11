@@ -8,7 +8,7 @@
 #include "Ay38912.h"
 
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 class YMMusicPlayer : public Ay38912_player<hw_num_channels>, public AudioPlayer
@@ -74,7 +74,7 @@ private:
 };
 
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 
 /*

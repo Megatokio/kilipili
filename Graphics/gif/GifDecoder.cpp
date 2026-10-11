@@ -21,7 +21,7 @@
 //#define IMAGE_COMPLETE 1 /* finished reading or writing */
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 struct _Lzw
 {
@@ -829,7 +829,7 @@ void GifDecoder::decode_image(Canvas& dest, Color* cmap, int* transp_color, int 
 }
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 /*
 

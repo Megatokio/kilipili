@@ -8,10 +8,10 @@
 #include <hardware/gpio.h>
 
 
-namespace kilipili ::Video
+namespace kilipili
 {
 
-constexpr int ss = msbit(sizeof(Graphics::Color));
+constexpr int ss = msbit(sizeof(Color));
 constexpr int zz = 2 - ss;
 
 constexpr int stopper = 8000;
@@ -84,7 +84,7 @@ template class HorizontalLayout<3>;
 template class HorizontalLayout<4>;
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 /*
 

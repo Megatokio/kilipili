@@ -9,11 +9,10 @@
 
 // =============================================================
 
-
-namespace kilipili::Video
+namespace kilipili
 {
+using namespace Video;
 
-using namespace Graphics;
 
 // =============================================================
 //		MousePointer
@@ -277,7 +276,7 @@ template class MousePointer<Sprite<Shape>>;
 template class MousePointer<AnimatedSprite<Shape>>;
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

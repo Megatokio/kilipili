@@ -38,7 +38,7 @@
   #endif
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 // clang-format off
@@ -218,7 +218,7 @@ void pio_spi_inst::init(uint prog_offs, uint clk_pin, uint tx_pin, uint rx_pin)
 	pio_sm_set_enabled(pio, sm, true);
 }
 
-void sysclockChanged(uint32 new_clock) noexcept
+void devicesSysclockChanged(uint32 new_clock) noexcept
 {
 	// callback for system_clock:
 	// TODO: don't define sysclockChanged() when pio_spi is not used
@@ -347,7 +347,7 @@ void sdcard_spi_init() noexcept
 	}
 }
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 #endif
 

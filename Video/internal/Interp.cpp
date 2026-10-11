@@ -4,7 +4,7 @@
 
 #include "Interp.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 void initializeInterpolators() noexcept
@@ -19,4 +19,4 @@ void initializeInterpolators() noexcept
 	if (ip1_mode != InterpMode::any) interp1->setup(ip1_mode);
 }
 
-} // namespace kilipili::Video
+} // namespace kilipili

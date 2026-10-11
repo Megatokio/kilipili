@@ -16,7 +16,7 @@
 #include "Pixelmap.h"
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 #define HT_SIZE		8192   /* 13 bit hash table size */
@@ -65,9 +65,6 @@ enum // Graphic Control Block:  ((Gif89a++))
 
 class GifEncoder
 {
-	using File	  = Devices::File;
-	using FilePtr = Devices::FilePtr;
-
 	FilePtr	 fd;
 	Colormap global_cmap; // if not used, then global_cmap.used = 0
 
@@ -193,7 +190,7 @@ public:
 	void writeImage(Pixelmap& pm) throws { writeImage(pm, global_cmap); }
 };
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 /*
 

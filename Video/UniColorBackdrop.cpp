@@ -6,14 +6,12 @@
 #include "BitBlit.h"
 
 
-namespace kilipili::Video
+namespace kilipili
 {
-
-using namespace Graphics;
 
 UniColorBackdrop::UniColorBackdrop(Color color) noexcept :
 	VideoPlane(&vblank, &render),
-	color(Graphics::flood_filled_color<Graphics::colordepth_rgb>(color))
+	color(flood_filled_color<colordepth_rgb>(color))
 {}
 
 void __section(RAM ".ucbd") UniColorBackdrop::vblank(VideoPlane*) noexcept {}
@@ -34,4 +32,4 @@ void __section(XRAM ".ucbd") UniColorBackdrop::render(VideoPlane* vp, int __unus
 	}
 }
 
-} // namespace kilipili::Video
+} // namespace kilipili

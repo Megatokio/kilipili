@@ -7,7 +7,7 @@
 #include "Pixmap.h"
 #include "VideoPlane.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /*
@@ -19,9 +19,8 @@ namespace kilipili::Video
 class HamImageVideoPlane final : public VideoPlane
 {
 public:
-	using Pixmap   = Graphics::Pixmap<Graphics::colormode_i8>;
-	using Color	   = Graphics::Color;
-	using ColorMap = Graphics::ColorMap<Graphics::colordepth_8bpp>;
+	using Pixmap   = Pixmap<colormode_i8>;
+	using ColorMap = ColorMap<colordepth_8bpp>;
 
 	HamImageVideoPlane(const Pixmap*, const ColorMap*, uint16 first_rel_code);
 
@@ -41,7 +40,7 @@ private:
 };
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

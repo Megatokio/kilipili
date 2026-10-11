@@ -22,8 +22,6 @@
 
 namespace kilipili
 {
-using namespace Graphics;
-using namespace Devices;
 using namespace std;
 
 
@@ -203,7 +201,7 @@ struct alignas(int) RelCode
 
 	int	 distance(int dr, int dg, int db) const;
 	bool operator==(const RelCode& o) const { return dr == o.dr && dg == o.dg && db == o.db; }
-		 operator Color() const;
+	operator Color() const;
 };
 
 
@@ -222,7 +220,7 @@ struct AbsCodes
 		void	add_usage() { usage += usage < 0xffff; }
 		void	add_usage(int n) { usage += min(n, 0xffff - usage); }
 		uint	deviation_x_usage() const { return deviation * usage; }
-				operator bool() const { return deviation != 0xffffu; } // true = is_valid
+		operator bool() const { return deviation != 0xffffu; } // true = is_valid
 	};
 	struct CodeInfo
 	{
@@ -265,7 +263,7 @@ struct RelCodes
 		RelCode rel_code;
 		void	add_usage() { usage += usage != 0xffffu; }
 		void	add_usage(int n) { usage += min(n, 0xffff - usage); }
-				operator bool() const { return deviation != 0xffffu; } // true = is_valid
+		operator bool() const { return deviation != 0xffffu; } // true = is_valid
 	};
 	struct CodeInfo
 	{
@@ -1132,7 +1130,7 @@ void EncodedImage::write_to_file(File* file)
 
 void EncodedImage::write_to_file(cstr fpath)
 {
-	StdFile file {fpath, Devices::WRITE};
+	StdFile file {fpath, FileOpenMode::WRITE};
 	write_to_file(&file);
 	file.close();
 }
@@ -1433,7 +1431,7 @@ uint RgbImageCompressor::encodeImage(cstr infile, File* outfile, int verbose, Di
 	encoded_image->write_to_file(outfile);
 	if (verbose)
 	{
-		StdFile console {stdout, Flags::writable};
+		StdFile console {stdout, FSFlags::writable};
 		image->print_statistics(&console);
 		encoded_image->print_statistics(&console);
 	}
@@ -1448,9 +1446,9 @@ void RgbImageCompressor::encodeImage(cstr indir, cstr outdir, cstr infile, int v
 	cstr basename = catstr(outdir, directory_and_basename_from_path(infile));
 	if (enriched_filenames) basename = catstr(basename, "-", tostr(dithermode), "-", rgbstr);
 
-	FilePtr console = new StdFile(stdout, Flags::writable);
+	FilePtr console = new StdFile(stdout, FSFlags::writable);
 	FilePtr statsfile;
-	if (write_stats_file) statsfile = new StdFile(catstr(basename, ".txt"), Devices::WRITE);
+	if (write_stats_file) statsfile = new StdFile(catstr(basename, ".txt"), FileOpenMode::WRITE);
 
 	printf("File: %s\n", filenamefrompath(infile));
 	if (statsfile)

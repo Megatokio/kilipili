@@ -11,7 +11,7 @@
 #include <memory>
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 Printer<>::Printer(int rows, int cols) noexcept : rows(rows), cols(cols) {}
@@ -537,7 +537,7 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 }
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

@@ -6,7 +6,7 @@
 #include "cdefs.h"
 #include "devices_types.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 /*
@@ -24,7 +24,7 @@ public:
 	uint8 ss_read;	// log2 of physical read sector size, 0 = 1 byte
 	uint8 ss_write; // log2 of physical write sector size, 0 = 1 byte
 	uint8 ss_erase; // log2 of physical erase block size, 0 = not needed or not overwritable
-	Flags flags;
+	FSFlags flags;
 
 	virtual ~BlockDevice() noexcept override = default;
 
@@ -52,7 +52,7 @@ public:
 	bool isRemovable() const noexcept { return flags & removable; }
 
 protected:
-	BlockDevice(SIZE sectors, uint ss_read, uint ss_write, uint ss_erase, Flags f) noexcept :
+	BlockDevice(SIZE sectors, uint ss_read, uint ss_write, uint ss_erase, FSFlags f) noexcept :
 		sector_count(sectors),
 		ss_read(uint8(ss_read)),
 		ss_write(uint8(ss_write)),
@@ -70,7 +70,7 @@ inline void BlockDevice::readSectors(LBA, void*, SIZE) throws { throw NOT_READAB
 inline void BlockDevice::writeSectors(LBA, const void*, SIZE) throws { throw NOT_WRITABLE; }
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 
 /*

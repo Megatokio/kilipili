@@ -11,7 +11,7 @@
 	default sector size is 1<<9 = 512 bytes.
 */
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 template<uint ss = 9>
@@ -126,7 +126,7 @@ public:
 	}
 };
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 /*
 

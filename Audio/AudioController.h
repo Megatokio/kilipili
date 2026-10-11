@@ -13,7 +13,7 @@
 */
 
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 // enumeration of supported types of audio hardware.
@@ -45,14 +45,14 @@ extern void beep(float frequency_hz = 880, float volume = .5f, uint32 duration_m
 		the sample frequency is not changed directly but only on the next call to `fillAudioBuffer()`.
 		the default sample frequency can be set with AUDIO_DEFAULT_SAMPLE_FREQUENCY.
 	*/
-extern void setSampleFrequency(float f) noexcept;
+extern void setAudioSampleFrequency(float f) noexcept;
 
 /* _______________________________________________________________________________________
 		get the actually used sample frequency.
 		if the sample frequency was recently changed and `startAudio()` was called with_timer = true
 		then this function waits until hw_sample_frequency is updated in the next timer call.
 	*/
-extern float getSampleFrequency() noexcept;
+extern float getAudioSampleFrequency() noexcept;
 
 /* _______________________________________________________________________________________
 		set the maximum latency for audio output.
@@ -61,7 +61,7 @@ extern float getSampleFrequency() noexcept;
 		the default values are 10 ms for the max. latency, but the dma buffer reduces that to approx. 5ms
 		for the default AUDIO_DMA_BUFFER_SIZE and AUDIO_DEFAULT_SAMPLE_FREQUENCY of 44100 Hz.
 	*/
-extern void setMaxLatency(uint32 msec) noexcept;
+extern void setAudioMaxLatency(uint32 msec) noexcept;
 
 /* _______________________________________________________________________________________
 	start the audio output.
@@ -127,7 +127,7 @@ extern void removeAudioSource(RCPtr<HwAudioSource>) noexcept;
 
 extern void removeAllAudioSources() noexcept;
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 /*
 

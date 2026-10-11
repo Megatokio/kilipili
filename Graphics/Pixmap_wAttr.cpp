@@ -5,7 +5,7 @@
 
 #include "Pixmap_wAttr.h"
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 
@@ -223,4 +223,4 @@ template class Pixmap<colormode_a2w4>;
 template class Pixmap<colormode_a2w8>;
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili

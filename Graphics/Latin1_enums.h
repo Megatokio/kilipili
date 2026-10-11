@@ -4,7 +4,7 @@
 
 #pragma once
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 // Font graphics_12x8:
@@ -111,4 +111,4 @@ enum Latin1:char
 static_assert(symbol_tbd_7 == 0x20 - 1);
 static_assert(symbol_error_br == 0xa0 - 1);
 
-} // namespace kilipili::Graphics
+} // namespace kilipili

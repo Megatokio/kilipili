@@ -6,10 +6,10 @@
 #include "cstrings.h"
 
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 // for reference:
 extern void exportStSoundWavFile(cstr infile, cstr outfile);
 
-} // namespace kilipili::Audio
+} // namespace kilipili

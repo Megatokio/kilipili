@@ -17,7 +17,7 @@
 #include <new>
 
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 #if defined AUDIO_INPUT_BUFFER_ON_STACK && AUDIO_INPUT_BUFFER_ON_STACK
@@ -602,7 +602,7 @@ bool isAudioRunning() noexcept
 	return is_running;
 }
 
-void setMaxLatency(uint32 ms) noexcept
+void setAudioMaxLatency(uint32 ms) noexcept
 {
 	//if unlikely (!is_initialized) initialize();
 
@@ -610,7 +610,7 @@ void setMaxLatency(uint32 ms) noexcept
 	check_timing = true;
 }
 
-void setSampleFrequency(float f) noexcept
+void setAudioSampleFrequency(float f) noexcept
 {
 	// sample frequency will be updated next time fill_buffer() is called
 
@@ -620,7 +620,7 @@ void setSampleFrequency(float f) noexcept
 	check_timing			   = true;
 }
 
-float getSampleFrequency() noexcept
+float getAudioSampleFrequency() noexcept
 {
 	//if unlikely (!is_initialized) initialize();
 
@@ -682,7 +682,7 @@ void removeAllAudioSources() noexcept
 	}
 }
 
-void sysclockChanged(uint32 /*new_clock*/) noexcept
+void audioSysclockChanged(uint32 /*new_clock*/) noexcept
 {
 	// called from set_system_clock():
 	// sample frequency will be changed next time fill_buffer() is called
@@ -785,7 +785,7 @@ void beep(float, float, uint32 duration_ms)
 
 #endif
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 
 /*

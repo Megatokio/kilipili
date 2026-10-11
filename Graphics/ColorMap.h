@@ -5,7 +5,7 @@
 #pragma once
 #include "graphics_types.h"
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 // ---------------------- system Color tables --------------------------
@@ -92,7 +92,7 @@ struct ColorMap<colordepth_8bpp> : public ColorMap<colordepth_4bpp>
 extern ColorMap<colordepth_8bpp> system_colormap;
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

@@ -6,7 +6,7 @@
 #include "Pixmap.h"
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 // how ugly can it be?
@@ -495,7 +495,7 @@ extern template class Pixmap<colormode_a2w4>;
 extern template class Pixmap<colormode_a2w8>;
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

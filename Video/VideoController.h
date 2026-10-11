@@ -11,7 +11,7 @@
 #include <pico/sem.h>
 #include <pico/types.h>
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /*
@@ -99,7 +99,7 @@ extern void setVBlankAction(const VBlankAction& fu) noexcept;
 /*	register a function to be called during next vblank.
 	multiple onetime actions can be registered in the same frame. 
 */
-extern void addOneTimeAction(const OneTimeAction& fu) noexcept;
+extern void addVBlankOneTimeAction(const OneTimeAction& fu) noexcept;
 
 /*	test whether video output is running.
 */
@@ -115,7 +115,7 @@ extern bool isVideoPlaneAdded(const VideoPlane*) noexcept;
 extern uint			 scanlines_missed;
 extern volatile bool locked_out;
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

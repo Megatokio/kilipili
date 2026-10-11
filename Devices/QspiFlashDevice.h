@@ -6,7 +6,7 @@
 #include "BlockDevice.h"
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 /*
@@ -31,11 +31,11 @@ class QspiFlashDevice : public BlockDevice
 {
 public:
 	// create BlockDevice at with 'size' at 'offset' in program flash.
-	QspiFlashDevice(uint32 offset, uint32 size, Flags = readable | writable) throws;
+	QspiFlashDevice(uint32 offset, uint32 size, FSFlags = readable | writable) throws;
 
 	// create BlockDevice at with 'size' at end of program flash.
 	// if FLASH_PREFERENCES is defined then the size is reduced to preserve the preferences.
-	QspiFlashDevice(uint32 size, Flags = readable | writable) throws;
+	QspiFlashDevice(uint32 size, FSFlags = readable | writable) throws;
 
 	// BlockDevice interface:
 	virtual void   readSectors(LBA, void* data, SIZE count) throws override;
@@ -54,4 +54,4 @@ extern template class QspiFlashDevice<8>;
 extern template class QspiFlashDevice<9>;
 extern template class QspiFlashDevice<12>;
 
-} // namespace kilipili::Devices
+} // namespace kilipili

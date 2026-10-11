@@ -7,7 +7,7 @@
 #include "little_big_endian.h"
 #include "no_copy_move.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 constexpr uint gets_max_len = 512; // max string length handled by gets()
@@ -20,10 +20,10 @@ class SerialDevice
 public:
 	uint16 rc		 = 0;
 	char   last_char = 0; // used by gets()
-	Flags  flags;
+	FSFlags  flags;
 
 public:
-	SerialDevice(Flags flags) noexcept : flags(flags) {}
+	SerialDevice(FSFlags flags) noexcept : flags(flags) {}
 	virtual ~SerialDevice() noexcept = default;
 	NO_COPY_MOVE(SerialDevice);
 
@@ -124,4 +124,4 @@ public:
 inline SIZE SerialDevice::read(void*, SIZE, bool) { throw NOT_READABLE; }
 inline SIZE SerialDevice::write(const void*, SIZE, bool) { throw NOT_WRITABLE; }
 
-} // namespace kilipili::Devices
+} // namespace kilipili

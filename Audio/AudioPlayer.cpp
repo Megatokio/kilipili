@@ -10,9 +10,7 @@
 #include "cstrings.h"
 
 
-using namespace kilipili::Devices;
-
-namespace kilipili::Audio
+namespace kilipili
 {
 
 AudioPlayer::AudioPlayer(cstr fn_pattern) noexcept : fn_pattern(fn_pattern) {}
@@ -136,7 +134,7 @@ File* AudioPlayer::nextInputFile()
 }
 
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 
 /*

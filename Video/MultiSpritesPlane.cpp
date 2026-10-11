@@ -13,8 +13,6 @@
 namespace kilipili::Video
 {
 
-using namespace Graphics;
-
 bool hotlist_overflow = false; // set by add_to_hotlist()
 
 

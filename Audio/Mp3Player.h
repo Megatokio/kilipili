@@ -11,7 +11,7 @@
 #include "libmad/MadStream.h"
 #include "libmad/MadSynth.h"
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 class Mp3Player : public AudioPlayer
@@ -60,4 +60,4 @@ public:
 };
 
 
-} // namespace kilipili::Audio
+} // namespace kilipili

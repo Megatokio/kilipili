@@ -13,7 +13,7 @@
 #include <cstdio>
 #include <cstring>
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 static int mp3_callback(void* data) noexcept
@@ -31,7 +31,7 @@ Mp3Player::~Mp3Player() noexcept
 {
 	Dispatcher::removeHandler(mp3_callback, this);
 	if (output_adapter) output_adapter->eof = true;
-	Audio::setSampleFrequency(AUDIO_DEFAULT_SAMPLE_FREQUENCY);
+	setAudioSampleFrequency(AUDIO_DEFAULT_SAMPLE_FREQUENCY);
 }
 
 void Mp3Player::setVolume(float v) //
@@ -139,7 +139,7 @@ int Mp3Player::run() noexcept
 				{
 					if (output_adapter->queue.avail()) return 5 * 1000; // back to YIELD(3)
 					debugstr("pcm.f = %u Hz\n", pcm.samplerate);
-					Audio::setSampleFrequency(float(sample_rate = pcm.samplerate));
+					setAudioSampleFrequency(float(sample_rate = pcm.samplerate));
 				}
 
 				uint			   nchannels = pcm.channels;
@@ -229,7 +229,7 @@ int Mp3Player::run() noexcept
 }
 
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 
 /*

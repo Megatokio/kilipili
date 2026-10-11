@@ -5,7 +5,7 @@
 #pragma once
 #include "VideoPlane.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /*	Template class FrameBuffer
@@ -27,4 +27,4 @@ template<class T>
 FrameBuffer(RCPtr<T>) -> FrameBuffer<T>;
 
 
-} // namespace kilipili::Video
+} // namespace kilipili

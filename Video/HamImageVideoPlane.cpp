@@ -6,10 +6,8 @@
 #include "internal/Interp.h"
 
 
-namespace kilipili::Video
+namespace kilipili
 {
-
-using namespace Graphics;
 
 HamImageVideoPlane::HamImageVideoPlane(const Pixmap* pm, const ColorMap* cm, uint16 first_rel_code) :
 	VideoPlane(&do_vblank, &do_render),
@@ -40,7 +38,7 @@ void __section(RAM ".ham") HamImageVideoPlane::do_vblank(VideoPlane* vp) noexcep
 {
 	HamImageVideoPlane* me = static_cast<HamImageVideoPlane*>(vp);
 	me->pixels			   = me->pixmap->pixmap;
-	me->first_color		   = Graphics::black;
+	me->first_color		   = black;
 }
 
 static __force_inline Color operator+(Color a, Color b) { return Color(a.raw + b.raw); }
@@ -90,7 +88,7 @@ void __section(XRAM ".ham") HamImageVideoPlane::do_render( //
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

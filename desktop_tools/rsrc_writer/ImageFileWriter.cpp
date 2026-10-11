@@ -24,8 +24,6 @@
 
 namespace kilipili
 {
-using namespace Graphics;
-using namespace Devices;
 
 ImageFileWriter::~ImageFileWriter() {}
 

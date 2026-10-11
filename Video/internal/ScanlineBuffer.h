@@ -12,7 +12,7 @@
   #define VIDEO_MAX_SCANLINE_BUFFERS 16 // 2 .. 2^N .. 16
 #endif
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /*
@@ -61,4 +61,4 @@ struct ScanlineBuffer
 extern ScanlineBuffer scanline_buffer;
 
 
-} // namespace kilipili::Video
+} // namespace kilipili

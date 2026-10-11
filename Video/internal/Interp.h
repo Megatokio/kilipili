@@ -18,7 +18,7 @@
 #endif
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /*	Interpolator setup for the ScanlineRenderers:
@@ -90,7 +90,7 @@ struct InterpConfig
 
 struct Interp : public interp_hw_t
 {
-	static constexpr uint ss_color = msbit(sizeof(Graphics::Color));
+	static constexpr uint ss_color = msbit(sizeof(Color));
 	static constexpr uint lane0	   = 0;
 	static constexpr uint lane1	   = 1;
 
@@ -135,7 +135,7 @@ struct Interp : public interp_hw_t
 	__force_inline void set_color_base(const void* colors) noexcept { base[lane1] = uint32(colors); }
 	__force_inline void set_pixels(uint32 value, uint ss = ss_color) noexcept { accum[lane0] = value << ss; }
 
-	template<typename T = Graphics::Color>
+	template<typename T = Color>
 	const __force_inline T* next_color() noexcept
 	{
 		return reinterpret_cast<const T*>(pop[lane1]);
@@ -182,7 +182,7 @@ static __force_inline void cleanup_if_needed() noexcept
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 /*
 

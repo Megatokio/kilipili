@@ -7,11 +7,8 @@
 #include "Graphics/Color.h"
 #include "Graphics/SimpleCharMap.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
-using Color			= Graphics::Color;
-using SimpleCharMap = Graphics::SimpleCharMap;
-
 
 /*	template class FrameBuffer<SimpleCharMap> is the bare minimum character-based FrameBuffer:
 	It supports only one foreground and one background color. No attributes!
@@ -43,8 +40,8 @@ public:
 
 	static constexpr int char_width = 8;
 
-	RCPtr<SimpleCharMap>		charmap;
-	RCPtr<const Graphics::Font> font;
+	RCPtr<SimpleCharMap> charmap;
+	RCPtr<const Font>	 font;
 
 	using ColorStrip = Color[small ? 4 : 8];
 	ColorStrip __aligned(4) colorstrips[small ? 16 : 256];
@@ -310,7 +307,7 @@ extern template void FrameBuffer<SimpleCharMap, Small>::do_vblank(VideoPlane*) n
 // use DEFINE_FB_SCM(..) to place the callbacks into different sections:
 
 // clang-format off
-#define DEFINE_FB_SCM(SPEED,SECTION) namespace kilipili::Video{ using namespace kilipili::Graphics; \
+#define DEFINE_FB_SCM(SPEED,SECTION) namespace kilipili{ \
 template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::do_vblank(VideoPlane*)noexcept; \
 template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::do_render(VideoPlane*,int,int,uint32*)noexcept;}
 // clang-format on
@@ -322,7 +319,6 @@ extern template void FrameBuffer<SimpleCharMap, Fast>::render_scanline(uint32* z
   #define DEFINE_FB_SCM(SPEED, SECTION)                                                                              \
 	  namespace kilipili::Video                                                                                      \
 	  {                                                                                                              \
-	  using namespace kilipili::Graphics;                                                                            \
 	  template void __section(SECTION ".FB_SCM")                                                                     \
 		  FrameBuffer<SimpleCharMap, SPEED>::render_scanline(uint32*, cuptr, int) noexcept;                          \
 	  template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap, SPEED>::do_vblank(VideoPlane*) noexcept; \
@@ -332,7 +328,7 @@ extern template void FrameBuffer<SimpleCharMap, Fast>::render_scanline(uint32* z
 #endif
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

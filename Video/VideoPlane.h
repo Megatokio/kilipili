@@ -7,7 +7,7 @@
 #include "standard_types.h"
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /*
@@ -70,4 +70,4 @@ protected:
 
 using VideoPlanePtr = RCPtr<VideoPlane>;
 
-} // namespace kilipili::Video
+} // namespace kilipili

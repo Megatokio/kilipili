@@ -6,10 +6,8 @@
 #include "Graphics/Color.h"
 #include "VideoController.h"
 
-namespace kilipili ::Video
+namespace kilipili
 {
-
-using namespace Graphics;
 
 constexpr int ss = sizeof(Color) == 1 ? 2 : sizeof(Color) == 2 ? 1 : 0;
 
@@ -85,7 +83,7 @@ void Passepartout::setSize(int width, int height) noexcept
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

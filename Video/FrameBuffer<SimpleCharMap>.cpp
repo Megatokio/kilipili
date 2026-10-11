@@ -5,9 +5,8 @@
 #include "FrameBuffer<SimpleCharMap>.h"
 #include "common/cdefs.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
-using namespace Graphics;
 
 // ______________________________________________________________________________
 // scanline renderers go into XRAM

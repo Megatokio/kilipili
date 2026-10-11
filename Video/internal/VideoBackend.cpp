@@ -18,7 +18,7 @@
 #include <pico/sync.h>
 #include <stdio.h>
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 // clang-format off
@@ -444,8 +444,8 @@ void start_video_backend(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 	const uint cc_per_pixel	 = (new_sys_clock + vga_mode.pixel_clock / 2) / vga_mode.pixel_clock;
 	uint32	   pixel_clock	 = new_sys_clock / cc_per_pixel;
 
-	Video::vga_mode				= vga_mode;
-	Video::vga_mode.pixel_clock = pixel_clock;
+	kilipili::vga_mode			   = vga_mode;
+	kilipili::vga_mode.pixel_clock = pixel_clock;
 	setup_state_machines(vga_mode, cc_per_pixel);
 	setup_timing_programs(vga_mode);
 	setup_dma(vga_mode);
@@ -535,7 +535,7 @@ void initialize_video_backend() noexcept
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

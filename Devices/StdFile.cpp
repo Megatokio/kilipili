@@ -5,7 +5,7 @@
 #include "StdFile.h"
 #include <cstring>
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 static cstr modestr_for_mode(FileOpenMode mode)
@@ -29,8 +29,8 @@ StdFile::StdFile(cstr fpath, FileOpenMode mode) : File(mode)
 	if (!file) throw strerror(errno); // "could not open file";
 }
 
-StdFile::StdFile(FILE* file, Flags flags) : //
-	File(flags | Flags::dont_close),
+StdFile::StdFile(FILE* file, FSFlags flags) : //
+	File(flags | FSFlags::dont_close),
 	file(file)
 {}
 
@@ -153,7 +153,7 @@ void StdFile::close()
 	}
 }
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 /*
 

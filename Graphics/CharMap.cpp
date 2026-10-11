@@ -21,7 +21,7 @@ static inline __unused void* memmove(void* z, const void* q, int n) noexcept //
 }
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 void CharMapBase::clearRect(int row, int col, int rows, int cols, char c, uint8 attr) noexcept
@@ -110,7 +110,7 @@ void CharMapBase::putStr(int row, int col, cstr s, uint8 attr) noexcept
 }
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

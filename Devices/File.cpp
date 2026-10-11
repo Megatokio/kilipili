@@ -4,17 +4,17 @@
 
 #include "File.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
-Flags File::flags_for_mode(FileOpenMode mode) noexcept
+FSFlags File::flags_for_mode(FileOpenMode mode) noexcept
 {
 	static_assert(FileOpenMode::READ == 1 + 16);  // READ has also bit EXIST
 	static_assert(FileOpenMode::WRITE == 2 + 32); // WRITE has also bit TRUNCATE
 	static_assert(FileOpenMode::APPEND == 2 + 4); // APPEND has also bit WRITE
 
-	Flags flags = Flags(mode & 3);
-	return mode & 4 ? flags | Flags::APPEND_MODE : flags;
+	FSFlags flags = FSFlags(mode & 3);
+	return mode & 4 ? flags | FSFlags::APPEND_MODE : flags;
 }
 
 uint32 File::ioctl(IoCtl cmd, void*, void*)
@@ -43,4 +43,4 @@ char File::getc()
 	return last_char;
 }
 
-} // namespace kilipili::Devices
+} // namespace kilipili

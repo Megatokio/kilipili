@@ -5,11 +5,11 @@
 #include "RsrcFileEncoder.h"
 #include "cstrings.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 RsrcFileEncoder::RsrcFileEncoder(FilePtr file, cstr rsrc_fname, bool write_fsize) :
-	File(Flags::writable),
+	File(FSFlags::writable),
 	file(file),
 	write_fsize(write_fsize)
 {
@@ -90,7 +90,7 @@ void RsrcFileEncoder::setFpos(ADDR new_fpos)
 }
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 /*
 

@@ -5,7 +5,7 @@
 #include "Printer<SimpleCharMap>.h"
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 Printer<SimpleCharMap>::Printer(SimpleCharMap* cm) : //
@@ -118,7 +118,7 @@ void Printer<SimpleCharMap>::show_cursor(bool f) noexcept
 }
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

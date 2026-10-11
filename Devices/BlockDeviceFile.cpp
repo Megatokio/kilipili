@@ -11,7 +11,7 @@
 #endif
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 BlockDeviceFile::BlockDeviceFile(RCPtr<BlockDevice> bdev) noexcept :
@@ -66,7 +66,7 @@ void BlockDeviceFile::close()
 	bdev->sync(); //
 }
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 /*
 

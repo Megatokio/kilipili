@@ -6,11 +6,11 @@
 #include "Devices/devices_types.h"
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 using FilePtr = Devices::FilePtr;
 
 extern void LogGifFile(FilePtr);
 
-} // namespace kilipili::Graphics
+} // namespace kilipili

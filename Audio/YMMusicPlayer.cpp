@@ -9,7 +9,7 @@
 #include "common/cdefs.h"
 #include "common/trace.h"
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 uint YMMusicPlayer::bs_read_bits(uint nbits)
@@ -282,7 +282,7 @@ void YMMusicPlayer::setVolume(float v)
 	super::setVolume(v);
 }
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 /*
 

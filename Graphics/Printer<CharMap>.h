@@ -8,7 +8,7 @@
 #include "common/RCPtr.h"
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 template<>
@@ -65,7 +65,7 @@ private:
 Printer(CharMapBase*) -> Printer<CharMapBase>;
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

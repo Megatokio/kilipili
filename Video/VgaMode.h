@@ -6,7 +6,7 @@
 #include "common/geometry.h"
 #include "common/standard_types.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 // clang-format off

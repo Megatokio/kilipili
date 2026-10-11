@@ -5,7 +5,7 @@
 #include "AudioSource.h"
 #include <cmath>
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 constexpr double steppi = 3.1415926535898 / 2 / nelem_quarter_sine;
@@ -18,7 +18,7 @@ const uint16 quarter_sine[nelem_quarter_sine + 1] = {
 };
 
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 /*
 

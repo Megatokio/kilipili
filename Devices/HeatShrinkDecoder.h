@@ -6,7 +6,7 @@
 #include "File.h"
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 extern bool isHeatShrinkEncoded(File*);
@@ -146,4 +146,4 @@ private:
 };
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili

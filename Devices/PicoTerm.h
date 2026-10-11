@@ -7,15 +7,14 @@
 #include "Graphics/Canvas.h"
 #include "Graphics/Printer<Canvas>.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 class PicoTerm : public SerialDevice
 {
 public:
-	using super		= SerialDevice;
-	using TextVDU	= Graphics::Printer<Graphics::Canvas>;
-	using CanvasPtr = Graphics::CanvasPtr;
+	using super	  = SerialDevice;
+	using TextVDU = Printer<Canvas>;
 
 	// Control Characters:
 	enum : uchar {
@@ -53,7 +52,7 @@ public:
 	/* SerialDevice Interface:
 	*/
 	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) override;
-	virtual SIZE   read(void*, SIZE, bool = false) override { throw Devices::NOT_READABLE; }
+	virtual SIZE   read(void*, SIZE, bool = false) override { throw NOT_READABLE; }
 	virtual SIZE   write(const void* data, SIZE, bool partial = false) override;
 	//virtual SIZE putc(char) override;
 	//virtual SIZE puts(cstr) override;
@@ -73,7 +72,7 @@ protected:
 };
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 
 /*

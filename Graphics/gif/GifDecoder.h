@@ -17,7 +17,7 @@
 #include "standard_types.h"
 #include <functional>
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 static constexpr int  LZ_BITS	   = 12;
 static constexpr uint LZ_SIZE	   = 1 << LZ_BITS;
@@ -33,9 +33,6 @@ using store_scanline = std::function<void(int x, int y, int w, uchar* pixels, Co
 class GifDecoder
 {
 public:
-	using File	  = Devices::File;
-	using FilePtr = Devices::FilePtr;
-
 	/* ctor: after this check `isa_gif_file`.
 	   create pixmap with screen_width, screen_height and total_color_bits.
 	   clear image to global_cmap[background_color].
@@ -101,7 +98,7 @@ private:
 };
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

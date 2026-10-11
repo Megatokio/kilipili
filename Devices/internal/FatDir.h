@@ -6,7 +6,7 @@
 #include "Directory.h"
 #include "ff15/source/ff.h"
 
-namespace kilipili ::Devices
+namespace kilipili 
 {
 
 class FatFS;
@@ -26,4 +26,4 @@ private:
 	friend class FatFS;
 };
 
-} // namespace kilipili::Devices
+} // namespace kilipili

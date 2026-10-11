@@ -79,9 +79,6 @@
 namespace kilipili
 {
 
-using Color = Graphics::Color;
-using File	= Devices::File;
-
 enum class DitherMode : uint8 { None, Pattern, Diffusion };
 
 

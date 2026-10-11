@@ -6,19 +6,12 @@
 #include "Color.h"
 #include "standard_types.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 class File;
-}
-
-namespace kilipili::Video
-{
 
 struct HamImageInfo
 {
-	using Color = Graphics::Color;
-	using File	= Devices::File;
-
 	uint32 magic;
 	char   rgbstr[4];
 	uint16 width, height;
@@ -39,4 +32,4 @@ private:
 };
 
 
-} // namespace kilipili::Video
+} // namespace kilipili

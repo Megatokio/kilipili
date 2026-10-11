@@ -7,9 +7,8 @@
 #include "little_big_endian.h"
 #include <string.h>
 
-namespace kilipili::Video
+namespace kilipili
 {
-using namespace Graphics;
 
 Color HamImageInfo::convert_abs_color(int qcolor)
 {
@@ -108,4 +107,4 @@ HamImageInfo::HamImageInfo(File* file)
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili

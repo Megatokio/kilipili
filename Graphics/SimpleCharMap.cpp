@@ -7,21 +7,21 @@
 #include <cstring>
 
 
-static void* memcpy(void* __restrict z, const void* __restrict q, ssize_t n) noexcept
+static void* memcpy(void* __restrict z, const void* __restrict q, int n) noexcept //
 {
 	return memcpy(z, q, size_t(n));
 }
-static void* memset(void* z, int c, ssize_t n) noexcept //
+static void* memset(void* z, int c, int n) noexcept //
 {
 	return memset(z, c, size_t(n));
 }
-static void* memmove(void* z, const void* q, ssize_t n) noexcept //
+static void* memmove(void* z, const void* q, int n) noexcept //
 {
 	return memmove(z, q, size_t(n));
 }
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 SimpleCharMap::SimpleCharMap(int rows, int cols) : //
@@ -130,7 +130,7 @@ void SimpleCharMap::putStr(int row, int col, cstr s, uint8 attr) noexcept
 }
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

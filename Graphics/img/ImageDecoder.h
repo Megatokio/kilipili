@@ -9,7 +9,7 @@
 #include "standard_types.h"
 #include <functional>
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 /*	Image file format:
@@ -43,9 +43,6 @@ class ImageDecoder
 {
 public:
 	uint8 rc = 0; // --> can use RCPtr
-
-	using File	  = Devices::File;
-	using FilePtr = Devices::FilePtr;
 
 	using store_scanline = std::function<void(int x, int y, int w, uint8* pixeldata)>;
 
@@ -88,4 +85,4 @@ private:
 };
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili

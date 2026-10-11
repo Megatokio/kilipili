@@ -5,7 +5,7 @@
 #include "Font.h"
 #include <cstring>
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 
@@ -73,7 +73,7 @@ Font::Font(const Font& q) :
 {}
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

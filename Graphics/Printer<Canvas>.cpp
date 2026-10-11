@@ -7,7 +7,7 @@
 #include "cstrings.h"
 #include <string.h>
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 // ------------------------------------------------------------
@@ -342,7 +342,7 @@ void Printer<Canvas>::print(cstr s) noexcept
 }
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 /*
 

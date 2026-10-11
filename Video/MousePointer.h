@@ -6,7 +6,7 @@
 #include "AnimatedSprite.h"
 #include "SingleSpritePlane.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 enum MousePointerID {
@@ -21,10 +21,10 @@ enum MousePointerID {
 
 
 template<typename Sprite>
-class MousePointer : public SingleSpritePlane<Sprite>
+class MousePointer : public Video::SingleSpritePlane<Sprite>
 {
 public:
-	using super = SingleSpritePlane<Sprite>;
+	using super = Video::SingleSpritePlane<Sprite>;
 	using Shape = typename Sprite::Shape;
 	static_assert(Shape::isa_shape);
 
@@ -47,12 +47,10 @@ public:
 // =========================================================================
 
 // yes, we have them all!
-extern template class MousePointer<Sprite<Shape>>;
-extern template class MousePointer<Sprite<SoftenedShape>>;
-extern template class MousePointer<AnimatedSprite<Shape>>;
-extern template class MousePointer<AnimatedSprite<SoftenedShape>>;
+extern template class MousePointer<Video::Sprite<Video::Shape>>;
+extern template class MousePointer<Video::AnimatedSprite<Video::Shape>>;
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 namespace kilipili::USB

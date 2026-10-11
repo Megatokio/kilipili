@@ -9,7 +9,7 @@
 #define HEATSHRINK_USE_INDEX 1
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 /*	____________________________________________________________________________________
@@ -162,7 +162,7 @@ private:
 };
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 
 /*

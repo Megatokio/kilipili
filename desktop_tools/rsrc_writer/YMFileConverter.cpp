@@ -29,9 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-using namespace kilipili::Devices;
-
-namespace kilipili::Audio
+namespace kilipili
 {
 
 YMFileConverter::~YMFileConverter() { delete[] register_data; }
@@ -264,7 +262,7 @@ YMFileConverter::YMFileConverter(cstr fpath, bool verbose)
 	import_file(file, fpath, verbose);
 }
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 /*
 

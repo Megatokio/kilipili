@@ -7,7 +7,7 @@
 #include "common/RCPtr.h"
 
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 // Interface:
@@ -31,7 +31,7 @@ public:
 
 	//virtual void setVolume(float) noexcept = 0;
 
-	Devices::File* nextInputFile();
+	File* nextInputFile();
 
 	const char* fn_pattern; // e.g. "*.mp3"
 
@@ -40,12 +40,12 @@ public:
 	cstr next_dir  = nullptr;
 
 	// the current directory (if any) while playing:
-	RCPtr<Devices::Directory> current_dir;
-	RCPtr<Devices::File>	  input_file;
+	RCPtr<Directory> current_dir;
+	RCPtr<File>		 input_file;
 
 	bool paused		 = false;
 	bool repeat_file = false;
 	bool repeat_dir	 = false;
 };
 
-} // namespace kilipili::Audio
+} // namespace kilipili

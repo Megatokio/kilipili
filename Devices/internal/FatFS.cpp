@@ -24,8 +24,8 @@ static const cstr ff_errors[] = {
 	/*  FR_DISK_ERR,			*/ "A hard error occurred in the low level disk I/O layer",
 	/*  FR_INT_ERR,				*/ "Assertion failed",
 	/*  FR_NOT_READY,			*/ "The physical drive cannot work",
-	/*  FR_NO_FILE,				*/ kilipili::Devices::FILE_NOT_FOUND,
-	/*  FR_NO_PATH,				*/ kilipili::Devices::DIRECTORY_NOT_FOUND,
+	/*  FR_NO_FILE,				*/ kilipili::FILE_NOT_FOUND,
+	/*  FR_NO_PATH,				*/ kilipili::DIRECTORY_NOT_FOUND,
 	/*  FR_INVALID_NAME,		*/ "The path name format is invalid",
 	/*  FR_DENIED,				*/ "Access denied due to prohibited access or directory full",
 	/*  FR_EXIST,				*/ "An object with the same name already exists",
@@ -35,11 +35,11 @@ static const cstr ff_errors[] = {
 	/*  FR_NOT_ENABLED,			*/ "The volume has no work area",
 	/*  FR_NO_FILESYSTEM,		*/ "There is no valid FAT volume",
 	/*  FR_MKFS_ABORTED,		*/ "The f_mkfs() aborted due to any problem",
-	/*  FR_TIMEOUT,				*/ kilipili::Devices::TIMEOUT,
+	/*  FR_TIMEOUT,				*/ kilipili::TIMEOUT,
 	/*  FR_LOCKED,				*/ "The operation is rejected according to the file sharing policy",
 	/*  FR_NOT_ENOUGH_CORE,		*/ "LFN working buffer could not be allocated",
 	/*  FR_TOO_MANY_OPEN_FILES, */ "Number of open files > FF_FS_LOCK",
-	/*  FR_INVALID_PARAMETER	*/ kilipili::Devices::INVALID_ARGUMENT,
+	/*  FR_INVALID_PARAMETER	*/ kilipili::INVALID_ARGUMENT,
 };
 
 cstr tostr(FRESULT err) noexcept
@@ -49,7 +49,7 @@ cstr tostr(FRESULT err) noexcept
 }
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 // BlockDevices matching VolumeStr[]:
@@ -283,14 +283,13 @@ void FatFS::mkfs(BlockDevice* blkdev, int idx, cstr /*type*/)
 	if (err) throw tostr(err);
 }
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 
 // ######################################################################
 
 
 using namespace kilipili;
-using namespace kilipili::Devices;
 
 DSTATUS disk_status(BYTE id)
 {
@@ -503,9 +502,9 @@ DRESULT disk_ioctl(BYTE id, BYTE cmd, void* buff)
 		case IoCtl::CTRL_TRIM:
 		{
 			assert(buff);
-			LBA_t*		  bu	= reinterpret_cast<LBA_t*>(buff);
-			Devices::LBA  lba	= bu[0];
-			Devices::SIZE count = bu[1] - bu[0] + 1;
+			LBA_t* bu	 = reinterpret_cast<LBA_t*>(buff);
+			LBA	   lba	 = bu[0];
+			SIZE   count = bu[1] - bu[0] + 1;
 			debugstr("CTRL_TRIM: [%u to %u]\n", bu[0], bu[1]);
 
 			blkdev->ioctl(IoCtl(IoCtl::CTRL_TRIM, IoCtl::LBA, IoCtl::SIZE), &lba, &count);

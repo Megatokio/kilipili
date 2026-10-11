@@ -38,7 +38,7 @@
 // ==================================================
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 SDCard* SDCard::getInstance(int id) // static
@@ -1032,4 +1032,4 @@ void SDCard::printCardInfo(SerialDevice* sio, bool v)
 	printSCR(sio, v);
 }
 
-} // namespace kilipili::Devices
+} // namespace kilipili

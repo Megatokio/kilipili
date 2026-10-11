@@ -9,7 +9,7 @@
 #include "common/standard_types.h"
 
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 class Mp3Decoder
@@ -35,4 +35,4 @@ public:
 	virtual void output(const MadHeader*, const MadPcmBuffer*) = 0;
 };
 
-} // namespace kilipili::Audio
+} // namespace kilipili

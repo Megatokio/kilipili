@@ -5,7 +5,7 @@
 #pragma once
 #include "Devices/File.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 class StdFile : public File
@@ -14,7 +14,7 @@ class StdFile : public File
 
 public:
 	StdFile(cstr fpath, FileOpenMode = READ);
-	StdFile(FILE*, Flags); // intended for stdin|out|err: file will not be closed in dtor
+	StdFile(FILE*, FSFlags); // intended for stdin|out|err: file will not be closed in dtor
 
 	virtual ~StdFile() override;
 	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) override;
@@ -44,4 +44,4 @@ private:
 };
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili

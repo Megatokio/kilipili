@@ -7,7 +7,7 @@
 #include "common/standard_types.h"
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 class Font
@@ -69,7 +69,7 @@ constexpr Font::~Font() noexcept
 	}
 }
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

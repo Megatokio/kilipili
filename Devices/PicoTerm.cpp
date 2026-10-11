@@ -6,10 +6,8 @@
 #include "USBHost/USBKeyboard.h"
 #include "common/cstrings.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
-
-using namespace Graphics;
 
 // =============================================================================
 //							F U N C T I O N S
@@ -158,7 +156,7 @@ char* PicoTerm::identify()
 		text->rows, text->CHAR_WIDTH, text->font1->char_height, tostr(text->colordepth), amstr);
 }
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 /*
 

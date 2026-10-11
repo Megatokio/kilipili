@@ -10,7 +10,7 @@
 #include <cstdio>
 #include <cstring>
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 void Mp3Decoder::filter(const MadStream*, MadFrame*) {}
@@ -100,7 +100,7 @@ Error Mp3Decoder::play(int stream_options) noexcept
 	}
 }
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 
 /*

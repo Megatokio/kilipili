@@ -6,7 +6,7 @@
 #include "extern/StSoundLibrary/StSoundLibrary.h"
 #include <cstdio>
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 struct WAVHeader
@@ -77,8 +77,8 @@ void exportStSoundWavFile(cstr filename, cstr destfile)
 	fwrite(&head, 1, sizeof(WAVHeader), out);
 	fseek(out, 0, SEEK_END);
 	fclose(out);
-	printf("%d samples written (%.02f MB).\n", totalNbSample, double(totalNbSample * sizeof(ymsample)) / (1024 * 1024));
+	printf("%u samples written (%.02f MB).\n", totalNbSample, double(totalNbSample * sizeof(ymsample)) / (1024 * 1024));
 	ymMusicDestroy(pMusic);
 }
 
-} // namespace kilipili::Audio
+} // namespace kilipili

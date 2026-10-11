@@ -9,7 +9,7 @@
 #include <cstdio>
 
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 /*	class YMMFileConverter converts .ym music file to .ymm format.
@@ -57,10 +57,6 @@ namespace kilipili::Audio
 class YMMFileConverter
 {
 public:
-	using File		   = Devices::File;
-	using FilePtr	   = Devices::FilePtr;
-	using SerialDevice = Devices::SerialDevice;
-
 	enum FType { UNSET = 0, YM2, YM3, YM3b, YM5, YM6 };
 	enum Attributes { NotInterleaved = 1 };
 
@@ -97,4 +93,4 @@ private:
 };
 
 
-} // namespace kilipili::Audio
+} // namespace kilipili

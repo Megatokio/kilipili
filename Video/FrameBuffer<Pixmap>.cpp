@@ -8,9 +8,8 @@
 #define VBLANK __section(RAM ".fb")
 
 
-namespace kilipili::Video
+namespace kilipili
 {
-using namespace Graphics;
 
 void VBLANK FrameBuffer<Pixmap_rgb>::vblank(VideoPlane* vp) noexcept
 {
@@ -168,7 +167,7 @@ template class FrameBuffer<Pixmap_a2w2>;
 template class FrameBuffer<Pixmap_a2w4>;
 template class FrameBuffer<Pixmap_a2w8>;
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 /*
 

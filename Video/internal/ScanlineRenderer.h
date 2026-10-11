@@ -10,11 +10,8 @@
 */
 
 
-namespace kilipili::Video
+namespace kilipili
 {
-using ColorMode = Graphics::ColorMode;
-using Color		= Graphics::Color;
-
 
 // _________________________________________________________________
 struct ScanlineRenderer_i1
@@ -61,24 +58,24 @@ void ScanlineRenderer_rgb(uint32* scanline_out, uint width_in_pixels, const uint
 template<class Pixmap>
 void ScanlineRenderer(uint32* dest, uint width_in_pixels, const uint8* pixels_in, const uint8* attributes) noexcept;
 template<>
-void ScanlineRenderer<Graphics::Pixmap_a1w1>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
+void ScanlineRenderer<Pixmap_a1w1>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::Pixmap_a1w2>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
+void ScanlineRenderer<Pixmap_a1w2>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::Pixmap_a1w4>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
+void ScanlineRenderer<Pixmap_a1w4>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::Pixmap_a1w8>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
+void ScanlineRenderer<Pixmap_a1w8>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::Pixmap_a2w1>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
+void ScanlineRenderer<Pixmap_a2w1>(uint32* dest, uint width, const uint8* pix, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::Pixmap_a2w2>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
+void ScanlineRenderer<Pixmap_a2w2>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::Pixmap_a2w4>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
+void ScanlineRenderer<Pixmap_a2w4>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
 template<>
-void ScanlineRenderer<Graphics::Pixmap_a2w8>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
+void ScanlineRenderer<Pixmap_a2w8>(uint32* dest, uint width, const uint8* px, const uint8* attr) noexcept;
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

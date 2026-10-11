@@ -8,7 +8,7 @@
 #include "Printer.h"
 #undef CHAR_WIDTH
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 template<>
@@ -83,7 +83,7 @@ private:
 Printer(Canvas*) -> Printer<Canvas>;
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

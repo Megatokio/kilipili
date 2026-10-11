@@ -8,7 +8,7 @@
 #include <common/Array.h>
 #include <cstdio>
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 /*	class YMFileConverter provides some conversion functions for YM music files.
@@ -17,9 +17,6 @@ namespace kilipili::Audio
 class YMFileConverter
 {
 public:
-	using File	  = Devices::File;
-	using FilePtr = Devices::FilePtr;
-
 	enum FType { UNSET = 0, YM2, YM3, YM3b, YM5, YM6 };
 	enum Attributes { NotInterleaved = 1 };
 
@@ -53,4 +50,4 @@ private:
 	void   interleave_registers();
 };
 
-} // namespace kilipili::Audio
+} // namespace kilipili

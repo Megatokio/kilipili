@@ -6,7 +6,7 @@
 #include "Devices/File.h"
 #include "standard_types.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 /*	the RsrcFileEncoder encodes the input data into comma separated ascii encoded values.
@@ -31,7 +31,7 @@ namespace kilipili::Devices
 	  uint8  cflags		wbits << 4 + lbits
 	  char[] data       compressed data
 */
-class RsrcFileEncoder : public File
+class RsrcFileEncoder final : public File
 {
 public:
 	RsrcFileEncoder(FilePtr file, cstr rsrc_fname, bool write_fsize = true);
@@ -53,4 +53,4 @@ private:
 };
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili

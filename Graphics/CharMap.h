@@ -10,15 +10,8 @@
 #include "common/no_copy_move.h"
 #include "common/standard_types.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
-template<class CharMap, typename>
-class FrameBuffer;
-}
-
-namespace kilipili::Graphics
-{
-
 /*	template class CharMap provides a character buffer where each character is accompanied by an attribute byte.
 	The attribute byte for each character follows immediately after the character.
 	It is intended to be used as a backing store for a character-based FrameBuffer.
@@ -48,6 +41,8 @@ namespace kilipili::Graphics
 	All others display only if they contain a fair amount of spaces. (not recommended to use.)
 */
 
+template<class CharMap, typename>
+class FrameBuffer;
 
 template<int fg_bits = -1, int bg_bits = 0, bool bold = true, bool underline = true, bool graphics = false>
 class CharMap;
@@ -145,11 +140,11 @@ private:
 	uint32 fgcolors[1 << fg_bits] = {black * mul};
 	uint32 bgcolors[1 << bg_bits] = {white * mul};
 
-	friend class Video::FrameBuffer<CharMap, void>;
+	friend class FrameBuffer<CharMap, void>;
 };
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

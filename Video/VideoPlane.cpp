@@ -6,7 +6,7 @@
 #include "common/Logger.h"
 #include "common/memory.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 extern volatile bool locked_out; // in Video.cpp
@@ -35,4 +35,4 @@ void __section(RAM ".vp") VideoPlane::do_render(VideoPlane* vp, int row, int wid
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili

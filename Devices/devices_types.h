@@ -8,7 +8,7 @@
 #include "tempmem.h"
 #include <memory>
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 using SIZE = uint; // byte count for read/write/erase
@@ -171,9 +171,9 @@ struct IoCtl
 
 	enum Arg {
 		NONE = 0,
-		SIZE = sizeof(kilipili::Devices::SIZE),
-		ADDR = sizeof(kilipili::Devices::ADDR),
-		LBA	 = sizeof(kilipili::Devices::LBA),
+		SIZE = sizeof(kilipili::SIZE),
+		ADDR = sizeof(kilipili::ADDR),
+		LBA	 = sizeof(kilipili::LBA),
 	};
 
 	uint cmd  : 16;
@@ -185,7 +185,7 @@ struct IoCtl
 
 
 // Device Flags:
-enum Flags : uint8 {
+enum FSFlags : uint8 {
 	readable	 = 1,	 //
 	writable	 = 2,	 //
 	overwritable = 4,	 // can overwrite old data without formatting. else eventually 0xff->anyvalue->0x00.
@@ -196,8 +196,8 @@ enum Flags : uint8 {
 	APPEND_MODE	 = 0x80, // File
 	readwrite	 = readable | writable | overwritable,
 };
-inline Flags operator|(Flags a, Flags b) { return Flags(uint(a) | uint(b)); }
-inline Flags operator&(Flags a, int b) { return Flags(uint(a) & uint(b)); }
+inline FSFlags operator|(FSFlags a, FSFlags b) { return FSFlags(uint(a) | uint(b)); }
+inline FSFlags operator&(FSFlags a, int b) { return FSFlags(uint(a) & uint(b)); }
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili

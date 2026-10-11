@@ -6,7 +6,7 @@
 #include "Flash.h"
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 #if defined FLASH_PREFERENCES && FLASH_PREFERENCES
@@ -17,7 +17,7 @@ static constexpr uint prefs_size = 0;
 
 
 template<int ssw>
-QspiFlashDevice<ssw>::QspiFlashDevice(uint32 addr, uint32 size, Flags flags) throws :
+QspiFlashDevice<ssw>::QspiFlashDevice(uint32 addr, uint32 size, FSFlags flags) throws :
 	BlockDevice(size >> ssw, 0, ssw, Flash::sse, flags),
 	first_sector(addr >> ssw)
 {
@@ -30,7 +30,7 @@ QspiFlashDevice<ssw>::QspiFlashDevice(uint32 addr, uint32 size, Flags flags) thr
 }
 
 template<int ssw>
-QspiFlashDevice<ssw>::QspiFlashDevice(uint32 size, Flags flags) throws :
+QspiFlashDevice<ssw>::QspiFlashDevice(uint32 size, FSFlags flags) throws :
 	QspiFlashDevice(Flash::flash_size() - size, size - prefs_size, flags)
 {}
 
@@ -99,7 +99,7 @@ template class QspiFlashDevice<9>;
 template class QspiFlashDevice<12>;
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 /*
 

@@ -5,7 +5,7 @@
 #include "Directory.h"
 #include "cstrings.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 Directory::Directory(RCPtr<FileSystem> fs, cstr full_path) : fs(std::move(fs)), dirpath(nullptr)
@@ -15,4 +15,4 @@ Directory::Directory(RCPtr<FileSystem> fs, cstr full_path) : fs(std::move(fs)), 
 	this->dirpath = newcopy(full_path);
 }
 
-} // namespace kilipili::Devices
+} // namespace kilipili

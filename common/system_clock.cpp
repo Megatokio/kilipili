@@ -11,13 +11,13 @@
 // possible callback for the application:
 __weak_symbol void sysclockChanged(uint32 new_clock) noexcept;
 
-namespace kilipili::Audio
+namespace kilipili
 {
-__weak_symbol void sysclockChanged(uint32 new_clock) noexcept;
+__weak_symbol void audioSysclockChanged(uint32 new_clock) noexcept;
 }
-namespace kilipili::Devices
+namespace kilipili
 {
-__weak_symbol void sysclockChanged(uint32 new_clock) noexcept;
+__weak_symbol void devicesSysclockChanged(uint32 new_clock) noexcept;
 }
 namespace kilipili::LoadSensor
 {
@@ -149,8 +149,8 @@ void sysclock_changed(uint32 new_clock) noexcept
 	uart_set_baudrate(PICO_DEFAULT_UART_INSTANCE(), PICO_DEFAULT_UART_BAUD_RATE);
 #endif
 	if (LoadSensor::recalibrate) LoadSensor::recalibrate();
-	if (Audio::sysclockChanged) Audio::sysclockChanged(new_clock);
-	if (Devices::sysclockChanged) Devices::sysclockChanged(new_clock);
+	if (audioSysclockChanged) audioSysclockChanged(new_clock);
+	if (devicesSysclockChanged) devicesSysclockChanged(new_clock);
 	if (::sysclockChanged) ::sysclockChanged(new_clock);
 }
 

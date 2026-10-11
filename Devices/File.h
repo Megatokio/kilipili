@@ -6,7 +6,7 @@
 #include "SerialDevice.h"
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 /* Interface class `File`
@@ -26,7 +26,7 @@ class File : public SerialDevice
 protected:
 	Id("File   ");
 
-	File(Flags flags) noexcept : SerialDevice(flags) {}
+	File(FSFlags flags) noexcept : SerialDevice(flags) {}
 	File(FileOpenMode mode) noexcept : SerialDevice(flags_for_mode(mode)) {}
 
 public:
@@ -62,11 +62,11 @@ protected:
 	void clear_eof_pending() noexcept { flags = flags & ~EOF_PENDING; }
 
 private:
-	static Flags flags_for_mode(FileOpenMode mode) noexcept;
+	static FSFlags flags_for_mode(FileOpenMode mode) noexcept;
 };
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 
 /*

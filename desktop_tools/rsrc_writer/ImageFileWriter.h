@@ -42,9 +42,6 @@ namespace kilipili
 class ImageFileWriter
 {
 public:
-	using FilePtr = Devices::FilePtr;
-	using File	  = Devices::File;
-
 	static constexpr uint32 magic = 0xd7e3bc09;
 
 	ImageFileWriter(bool use_hw_color, bool with_transparency = true) :
@@ -82,7 +79,7 @@ private:
 
 	//void store_byte(File*, uint8);
 	//void store(File*, const void*, uint cnt);
-	void store(File*, Graphics::Color);
+	void store(File*, Color);
 };
 
 } // namespace kilipili

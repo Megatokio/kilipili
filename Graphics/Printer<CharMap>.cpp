@@ -6,7 +6,7 @@
 #include "cstrings.h"
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 Printer<CharMapBase>::Printer(CharMapBase* charmap) : //
@@ -188,7 +188,7 @@ void Printer<CharMapBase>::show_cursor(bool f) noexcept
 }
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

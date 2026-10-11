@@ -25,7 +25,7 @@
   #define UCHAR_MAX 255
 #endif
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 extern bool isLzhEncoded(File*);
@@ -118,4 +118,4 @@ private:
 	uint  obu_ri;
 };
 
-} // namespace kilipili::Devices
+} // namespace kilipili

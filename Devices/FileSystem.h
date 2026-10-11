@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -7,7 +7,7 @@
 
 extern const unsigned char resource_file_data[] __weak_symbol;
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 // =================================================== //
@@ -33,8 +33,8 @@ extern void makeFS(cstr devname, cstr type = "FAT") throws;
 	But you may store the returned FileSystemPtr to keep the FileSystem alive.
 	setWorkDevice() keeps the FileSystem alive too.
 */
-extern FileSystemPtr mount(cstr devicename_or_fullpath_with_colon);
-extern FileSystemPtr mount(cstr name, BlockDevicePtr device) throws;
+extern FileSystemPtr mountFS(cstr devicename_or_fullpath_with_colon) throws;
+extern FileSystemPtr mountFS(cstr name, BlockDevicePtr device) throws;
 
 // needed by FatFS:
 extern int index_of(FileSystem*) noexcept;
@@ -47,7 +47,7 @@ extern int index_of(FileSystem*) noexcept;
 	To really unmount a FS you must also release all FileSystemPtr's you may have yourself.
 	You may check the retain count `FileSystem::rc`.
 */
-extern void unmount(FileSystem*);
+extern void unmountFS(FileSystem*);
 extern void unmountAll();
 
 /*	Set the current working directory.
@@ -66,7 +66,7 @@ extern cstr makeFullPath(cstr path);
 extern FileType getFileType(cstr path) noexcept;
 inline bool		isaDirectory(cstr path) noexcept { return getFileType(path) == FileType::DirectoryFile; }
 inline bool		isaFile(cstr path) noexcept { return getFileType(path) == FileType::RegularFile; }
-inline bool		exists(cstr path) noexcept { return getFileType(path) != FileType::NoFile; }
+inline bool		nodeExists(cstr path) noexcept { return getFileType(path) != FileType::NoFile; }
 extern ADDR		getFileSize(cstr path) throws;
 
 /* 	Open a file or directory.
@@ -84,8 +84,8 @@ extern ADDR		getFileSize(cstr path) throws;
 extern FilePtr		openFile(cstr path, FileOpenMode flags = READ) throws;
 extern DirectoryPtr openDir(cstr path) throws;
 extern void			makeDir(cstr path) throws;
-extern void			remove(cstr path_and_pattern) throws;
-extern void			copy(cstr source_path_and_pattern, cstr dest_path) throws;
+extern void			removeFile(cstr path_and_pattern) throws;
+extern void			copyFile(cstr source_path_and_pattern, cstr dest_path) throws;
 
 
 /* ____________________________________________________________
@@ -125,7 +125,7 @@ protected:
 };
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 /*
 

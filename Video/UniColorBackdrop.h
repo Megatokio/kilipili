@@ -6,13 +6,13 @@
 #include "Color.h"
 #include "VideoPlane.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 class UniColorBackdrop : public VideoPlane
 {
 public:
-	UniColorBackdrop(Graphics::Color color) noexcept;
+	UniColorBackdrop(Color color) noexcept;
 
 private:
 	static void render(VideoPlane*, int row, int width, uint32* fbu) noexcept;
@@ -21,4 +21,4 @@ private:
 	uint32 color;
 };
 
-} // namespace kilipili::Video
+} // namespace kilipili

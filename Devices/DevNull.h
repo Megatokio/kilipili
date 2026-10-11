@@ -6,7 +6,7 @@
 #include "SerialDevice.h"
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 class DevNull final : public SerialDevice
@@ -22,4 +22,4 @@ public:
 
 extern DevNull dev_null;
 
-} // namespace kilipili::Devices
+} // namespace kilipili

@@ -10,7 +10,7 @@
 #include <functional>
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 template<class = void>
@@ -102,7 +102,7 @@ protected:
 };
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 /*
 

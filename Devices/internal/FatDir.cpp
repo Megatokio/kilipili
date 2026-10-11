@@ -12,7 +12,7 @@
 #include <pico/stdio.h>
 #include <utility>
 
-namespace kilipili ::Devices
+namespace kilipili 
 {
 
 template<>
@@ -74,7 +74,7 @@ FileInfo FatDir::next(cstr pattern) throws
 }
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 
 /*

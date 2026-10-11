@@ -11,7 +11,7 @@
 //#include <hardware/spi.h>
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 struct CID
@@ -118,7 +118,7 @@ private:
 	void __attribute__((noreturn)) throwR1ResponseError(uint8 r1);
 };
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 /*
 

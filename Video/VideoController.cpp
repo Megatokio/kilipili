@@ -18,7 +18,7 @@
 #include <hardware/exception.h>
 #include <pico/multicore.h>
 
-using namespace kilipili::Video;
+using namespace kilipili;
 
 static volatile bool lockout_requested = false;
 
@@ -77,7 +77,7 @@ __weak void setMouseLimits(int, int) noexcept {}
 
 // =========================================================
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 uint		  scanlines_missed = 0;
@@ -384,7 +384,7 @@ void addVideoPlane(VideoPlanePtr plane, bool wait)
 	assert(wait == false || state == RUNNING); // else we'll hang
 	trace(__func__);
 
-	addOneTimeAction([plane] {
+	addVBlankOneTimeAction([plane] {
 		assert_lt(num_planes, max_planes);
 		planes[num_planes++] = plane;
 	});
@@ -401,7 +401,7 @@ void removeVideoPlane(VideoPlanePtr plane, bool wait)
 	assert(wait == false || state == RUNNING); // else we'll hang
 	trace(__func__);
 
-	addOneTimeAction([plane] {
+	addVBlankOneTimeAction([plane] {
 		for (uint i = num_planes; i;)
 		{
 			if (planes[--i] != plane) continue;
@@ -421,10 +421,10 @@ void setVBlankAction(const VBlankAction& fu) noexcept
 	// use addOneTimeAction() to set VBlankAction:
 	// => video_runner() doesn't need to lock spinlock before calling vblank_action().
 
-	addOneTimeAction([fu]() { vblank_action = fu; });
+	addVBlankOneTimeAction([fu]() { vblank_action = fu; });
 }
 
-void addOneTimeAction(const std::function<void()>& fu) noexcept
+void addVBlankOneTimeAction(const std::function<void()>& fu) noexcept
 {
 	// the spinlock is blocked for ~10 .. ~100 usec
 	// if MALLOC_EXTENDED_LOGGING=ON then up to ~3000 usec (depending on serial speed)
@@ -453,7 +453,7 @@ bool isVideoRunning() noexcept
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

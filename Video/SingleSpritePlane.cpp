@@ -8,7 +8,6 @@
 
 namespace kilipili::Video
 {
-using namespace Graphics;
 
 struct HotShapeFoo
 {

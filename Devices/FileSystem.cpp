@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -22,7 +22,7 @@ static constexpr uint prefs_size = FLASH_PREFERENCES;
 static constexpr uint prefs_size = 0;
 #endif
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 static FileSystem* file_systems[FF_VOLUMES] = {}; // all NULL
@@ -98,7 +98,7 @@ void makeFS(cstr devicename, cstr type) throws
 	else throw UNKNOWN_DEVICE;
 }
 
-FileSystemPtr mount(cstr devicename, BlockDevicePtr bdev) throws
+FileSystemPtr mountFS(cstr devicename, BlockDevicePtr bdev) throws
 {
 	// discover the FileSystem on the BlockDevice and mount it with the given name.
 	// throws if a FS with that name is already mounted.
@@ -132,7 +132,7 @@ FileSystemPtr mount(cstr devicename, BlockDevicePtr bdev) throws
 	throw UNKNOWN_FILESYSTEM;
 }
 
-FileSystemPtr mount(cstr name) throws
+FileSystemPtr mountFS(cstr name) throws
 {
 	// mount the FileSystem on the well-known BlockDevice with the given name.
 	// returns the already mounted FS if it is mounted.
@@ -165,7 +165,7 @@ FileSystemPtr mount(cstr name) throws
 	throw UNKNOWN_DEVICE;
 }
 
-void unmount(FileSystem* fs)
+void unmountFS(FileSystem* fs)
 {
 	if (fs == cwd) cwd = nullptr;
 }
@@ -339,7 +339,7 @@ DirectoryPtr openDir(cstr path) throws
 
 	TempMemSave _;
 	path = makeFullPath(path);
-	return mount(path)->openDir(path);
+	return mountFS(path)->openDir(path);
 }
 
 FilePtr openFile(cstr path, FileOpenMode flags) throws
@@ -348,7 +348,7 @@ FilePtr openFile(cstr path, FileOpenMode flags) throws
 
 	TempMemSave _;
 	path = makeFullPath(path);
-	return mount(path)->openFile(path, flags);
+	return mountFS(path)->openFile(path, flags);
 }
 
 ADDR getFileSize(cstr path) throws
@@ -357,7 +357,7 @@ ADDR getFileSize(cstr path) throws
 
 	TempMemSave _;
 	path = makeFullPath(path);
-	return mount(path)->getFileSize(path);
+	return mountFS(path)->getFileSize(path);
 }
 
 FileSystemPtr getWorkDevice()
@@ -384,7 +384,7 @@ void setWorkDir(cstr path)
 
 	TempMemSave _;
 	path = makeFullPath(path);
-	cwd	 = mount(path);
+	cwd	 = mountFS(path);
 	cwd->setWorkDir(path);
 }
 
@@ -396,8 +396,8 @@ FileType getFileType(cstr path) noexcept
 	TempMemSave _;
 	try
 	{
-		path = makeFullPath(path);			   // throws
-		return mount(path)->getFileType(path); // throws
+		path = makeFullPath(path);				 // throws
+		return mountFS(path)->getFileType(path); // throws
 	}
 	catch (Error e)
 	{
@@ -417,7 +417,7 @@ void makeDir(cstr path) throws
 
 	TempMemSave _;
 	path = makeFullPath(path);
-	mount(path)->makeDir(path);
+	mountFS(path)->makeDir(path);
 }
 
 static inline bool is_rootdir(cstr path) { return strchr(path, ':')[2] == 0; }
@@ -473,7 +473,7 @@ static void remove_dir(FileSystem* fs, cstr path, cstr pattern = "") throws
 	}
 }
 
-void remove(cstr path) throws
+void removeFile(cstr path) throws
 {
 	trace("remove");
 	assert(path);
@@ -481,7 +481,7 @@ void remove(cstr path) throws
 
 	TempMemSave _;
 	path			 = makeFullPath(path);
-	FileSystemPtr fs = mount(path);
+	FileSystemPtr fs = mountFS(path);
 
 	cptr p1 = strchr(path, '*');
 	cptr p2 = strchr(path, '?');
@@ -508,7 +508,7 @@ static void copy_file(cstr q, cstr z) throws
 	logline("copy %s", filenamefrompath(q));
 
 	FilePtr qf	 = openFile(q);
-	FilePtr zf	 = openFile(z, Devices::WRITE);
+	FilePtr zf	 = openFile(z, WRITE);
 	SIZE	size = qf->getSize();
 
 	constexpr uint busize = 2 kB;
@@ -588,7 +588,7 @@ static void copy_dir(cstr indir, cstr outdir, cstr pattern = "*") throws
 	}
 }
 
-void copy(cstr q, cstr z) throws
+void copyFile(cstr q, cstr z) throws
 {
 	trace(__func__);
 	assert(q);
@@ -607,8 +607,8 @@ void copy(cstr q, cstr z) throws
 	z = makeFullPath(z);
 	Dispatcher::run();
 
-	FileSystemPtr _q = mount(q); // retain FS
-	FileSystemPtr _z = mount(z); // retain FS
+	FileSystemPtr _q = mountFS(q); // retain FS
+	FileSystemPtr _z = mountFS(z); // retain FS
 	Dispatcher::run();
 
 	if (!isaDirectory(z))		// cp file -> old_file|new_file
@@ -683,7 +683,7 @@ void FileSystem::setWorkDir(cstr path)
 	workdir = newcopy(path);
 }
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 /*
 

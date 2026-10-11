@@ -8,7 +8,7 @@
 #include "geometry.h"
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 /*
@@ -410,7 +410,7 @@ extern template class Pixmap<colormode_i4>;
 extern template class Pixmap<colormode_i8>;
 extern template class Pixmap<colormode_rgb>;
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

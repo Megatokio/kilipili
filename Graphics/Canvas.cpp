@@ -25,7 +25,7 @@ inline constexpr T min(T a, T b, T c, T d) noexcept
 } // namespace kilipili
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 void Canvas::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
@@ -1279,7 +1279,7 @@ void Canvas::drawBezier(
 }
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

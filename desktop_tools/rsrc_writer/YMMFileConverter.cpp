@@ -20,12 +20,9 @@
 #include <dirent.h>
 #include <stdlib.h>
 
-using namespace kilipili::Devices;
 
-
-namespace kilipili::Audio
+namespace kilipili
 {
-
 
 struct BitArray
 {
@@ -803,7 +800,7 @@ uint32 YMMFileConverter::convertFile(cstr infilepath, File* outfile, int verbose
 	return uint32(outfile->getSize());
 }
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 
 /*

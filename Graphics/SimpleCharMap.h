@@ -10,7 +10,7 @@
 #include "common/no_copy_move.h"
 #include "common/standard_types.h"
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 /*	class SimpleCharMap is a pure 2-dimensional character array with no attributes.
@@ -65,7 +65,7 @@ public:
 };
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
 /*

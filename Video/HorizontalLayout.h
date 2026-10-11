@@ -6,7 +6,7 @@
 #include "VideoPlane.h"
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 template<int num_planes>
@@ -68,4 +68,4 @@ HorizontalLayout(VideoPlane*, VideoPlane*, VideoPlane*, int, int) -> HorizontalL
 HorizontalLayout(VideoPlane*, VideoPlane*, VideoPlane*, VideoPlane*, int, int, int) -> HorizontalLayout<4>;
 
 
-} // namespace kilipili::Video
+} // namespace kilipili

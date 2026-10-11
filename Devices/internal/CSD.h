@@ -6,7 +6,7 @@
 #include "standard_types.h"
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 inline uint16 peek_u16(uint8* p) { return (p[0] * 256 + p[1]); }
@@ -204,4 +204,4 @@ struct CSDv3 : public CSDv2 // SDUC card
 	}
 };
 
-} // namespace kilipili::Devices
+} // namespace kilipili

@@ -9,7 +9,7 @@
 #include "internal/Interp.h"
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 /*	Implementation of template `FrameBuffer<>` for template character array `CharMap<>`.
 
@@ -42,7 +42,7 @@ namespace kilipili::Video
 */
 
 
-/*	class FrameBufferCharMapBase is the base class for all FrameBuffer<Graphics::CharMap<..>>.
+/*	class FrameBufferCharMapBase is the base class for all FrameBuffer<CharMap<..>>.
 	It provides do_vblank() and do_render() which calls function scanline_renderer for the actual rendering.
 */
 class FrameBufferCharMapBase : public VideoPlane
@@ -50,19 +50,17 @@ class FrameBufferCharMapBase : public VideoPlane
 public:
 	NO_COPY_MOVE(FrameBufferCharMapBase);
 
-	using Font				 = Graphics::Font;
-	using Color				 = Graphics::Color;
 	using scanline_render_fu = void(VideoPlane* vp, uint32* z, cuptr q, int cols) noexcept;
 
 	static constexpr int char_width = 8;
 
 	// set in ctor:
-	RCPtr<Graphics::CharMapBase> charmap;
-	RCPtr<const Font>			 font1;
-	RCPtr<const Font>			 font2;
-	scanline_render_fu*			 scanline_renderer = nullptr;
-	uint32*						 fgcolors		   = nullptr;
-	uint32*						 bgcolors		   = nullptr;
+	RCPtr<CharMapBase>	charmap;
+	RCPtr<const Font>	font1;
+	RCPtr<const Font>	font2;
+	scanline_render_fu* scanline_renderer = nullptr;
+	uint32*				fgcolors		  = nullptr;
+	uint32*				bgcolors		  = nullptr;
 
 	// set in do_vblank:
 	const uchar* cursor_ptr = nullptr; // set in vblank
@@ -74,7 +72,7 @@ public:
 	int			 last_y		 = 0;		// line within screen
 
 protected:
-	FrameBufferCharMapBase(Graphics::CharMapBase*, scanline_render_fu*, uint32* fg, uint32* bg) noexcept;
+	FrameBufferCharMapBase(CharMapBase*, scanline_render_fu*, uint32* fg, uint32* bg) noexcept;
 	static void do_vblank(VideoPlane*) noexcept;
 	static void do_render(VideoPlane*, int row, int width, uint32* buffer) noexcept;
 };
@@ -89,8 +87,6 @@ template<class CharMap>
 class FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>> final : public FrameBufferCharMapBase
 {
 public:
-	using Color = Graphics::Color;
-
 	static constexpr int   fg_bits	 = CharMap::fg_bits;
 	static constexpr int   bg_bits	 = CharMap::bg_bits;
 	static constexpr uint8 bold		 = CharMap::bold;	   // mask
@@ -356,8 +352,7 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 
 // clang-format off
 #define DEFINE_FB_CM(a,b,c,d,e) \
-extern template void FrameBuffer<kilipili::Graphics::CharMap<a,b,c,d,e>>:: \
-	render_scanline(VideoPlane*,uint32*,cuptr,int)noexcept;
+extern template void FrameBuffer<CharMap<a,b,c,d,e>>::render_scanline(VideoPlane*,uint32*,cuptr,int)noexcept;
 
 DEFINE_FB_CM(0, 0, 1, 1, 1) // up to 1280x768, monochrome + bold + underline + graphics
 
@@ -380,13 +375,13 @@ DEFINE_FB_CM(2, 2, 1, 1, 1) // up to 800x600 + bold + underline + graphics
 // _______________________________________
 // use DEFINE_FB_CM(..) if you need other variants:
 
-#define DEFINE_FB_CM(a,b,c,d,e,SECTION) namespace kilipili::Video{ \
-template void __section(SECTION ".FB_CM") FrameBuffer<kilipili::Graphics::CharMap<a,b,c,d,e>>:: \
+#define DEFINE_FB_CM(a,b,c,d,e,SECTION) namespace kilipili{ \
+template void __section(SECTION ".FB_CM") FrameBuffer<CharMap<a,b,c,d,e>>:: \
 	render_scanline(VideoPlane*,uint32*,cuptr,int)noexcept; }
 // clang-format on
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

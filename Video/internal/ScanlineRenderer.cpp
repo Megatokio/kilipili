@@ -39,10 +39,8 @@
 
 // ============================================================================================
 
-namespace kilipili::Video
+namespace kilipili
 {
-
-using namespace Graphics;
 
 static constexpr uint ss_color	   = msbit(sizeof(Color));
 static constexpr uint ss_twocolors = ss_color + 1;
@@ -664,7 +662,7 @@ void SECTION ScanlineRenderer<Pixmap_a2w8>(uint32* _dest, uint width, const uint
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

@@ -11,7 +11,7 @@
 #include <common/cdefs.h>
 #include <string.h>
 
-namespace kilipili::Audio
+namespace kilipili
 {
 
 // actual HW sample frequency used by AudioController:
@@ -499,7 +499,7 @@ uint PipedAdapter<nc, size>::getAudio(AudioSample<nc>* buffer, uint num_frames) 
 }
 
 
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 
 /*

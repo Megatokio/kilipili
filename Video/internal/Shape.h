@@ -40,7 +40,6 @@
 
 namespace kilipili::Video
 {
-using Color = Graphics::Color;
 
 /* ——————————————————————————————————————————————————————————————————————————
 	reference-counted array of pixels with intermixed commands.

@@ -22,7 +22,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "extern/stb/stb_image_write.h"
 
-namespace kilipili::Audio
+namespace kilipili
 {
 float hw_sample_frequency; // normally in AudioController.cpp
 }
@@ -43,9 +43,6 @@ static cstr		   outdir	  = nullptr; // will be set to indir if not set
 static bool		   verbose	  = false;
 static bool		   recursive  = true;
 static Array<cstr> rsrc_files;
-
-using namespace Audio;
-using namespace Devices;
 
 enum FType : uint8 { UNSET, COPY, STSOUND_WAV, WAV, YMM, IMG, SKIP, HAM_IMG };
 struct Info

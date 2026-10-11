@@ -7,10 +7,8 @@
 #include "common/cdefs.h"
 #include "common/memory.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
-using namespace Graphics;
-
 
 FrameBufferCharMapBase::FrameBufferCharMapBase(
 	CharMapBase* charmap, scanline_render_fu* fu, uint32* fg, uint32* bg) noexcept :
@@ -117,7 +115,7 @@ define(XRAM ".FB_CM9") FrameBuffer<CharMap<2, 2, 1, 1, 1>>::render_scanline(Vide
 define(XRAM ".FB_CM10") FrameBuffer<CharMap<3, 2, 1, 1, 1>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

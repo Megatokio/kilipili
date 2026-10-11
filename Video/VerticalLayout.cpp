@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <hardware/gpio.h>
 
-namespace kilipili ::Video
+namespace kilipili
 {
 
 constexpr int stopper = 8000;
@@ -81,7 +81,7 @@ template class VerticalLayout<2>;
 template class VerticalLayout<3>;
 template class VerticalLayout<4>;
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 /*
 

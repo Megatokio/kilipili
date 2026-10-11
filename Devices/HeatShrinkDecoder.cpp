@@ -29,7 +29,7 @@
 #define MIN_LOOKAHEAD_BITS 3
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 bool isHeatShrinkEncoded(File* file)
@@ -50,7 +50,7 @@ bool isHeatShrinkEncoded(File* file)
 }
 
 HeatShrinkDecoder::HeatShrinkDecoder(FilePtr file, bool read_magic) : //
-	File(Flags::readable),
+	File(FSFlags::readable),
 	file(file)
 {
 	assert(file != nullptr);
@@ -62,7 +62,7 @@ HeatShrinkDecoder::HeatShrinkDecoder(FilePtr file, bool read_magic) : //
 }
 
 HeatShrinkDecoder::HeatShrinkDecoder(FilePtr file, uint32 usize, uint32 csize) :
-	File(Flags::readable),
+	File(FSFlags::readable),
 	file(file),
 	csize(csize),
 	usize(usize)
@@ -423,7 +423,7 @@ auto HeatShrinkDecoder::decoder_finish() -> HSD_finish_res
 }
 
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 
 /*

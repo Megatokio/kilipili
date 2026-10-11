@@ -12,7 +12,7 @@
 #include <hardware/pio.h>
 
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 // these functions are only implemented if SDCARD_SPI is #defined in the boards.h file
@@ -22,4 +22,4 @@ extern void sdcard_spi_write_blocking(const uint8* data, size_t cnt) noexcept;
 extern void sdcard_spi_write_read_blocking(const uint8* src, uint8* dest, size_t cnt) noexcept;
 extern void sdcard_spi_init() noexcept;
 
-} // namespace kilipili::Devices
+} // namespace kilipili

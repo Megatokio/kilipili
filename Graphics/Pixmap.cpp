@@ -5,7 +5,7 @@
 #include "Pixmap.h"
 
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 template<ColorMode CM>
@@ -200,4 +200,4 @@ template class Pixmap<colormode_i8>;
 template class Pixmap<colormode_rgb>;
 
 
-} // namespace kilipili::Graphics
+} // namespace kilipili

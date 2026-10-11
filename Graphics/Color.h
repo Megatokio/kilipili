@@ -8,7 +8,7 @@
 #include "tempmem.h"
 #include <cstdio>
 
-namespace kilipili::Graphics
+namespace kilipili
 {
 
 /*
@@ -347,12 +347,12 @@ constexpr Color light_cyan	  = Color::fromRGB8(0x55, 0xFF, 0xFF);
 constexpr Color light_yellow  = Color::fromRGB8(0xFF, 0xFF, 0x55);
 } // namespace vga
 
-} // namespace kilipili::Graphics
+} // namespace kilipili
 
 
-inline cstr tostr(kilipili::Graphics::Color c)
+inline cstr tostr(kilipili::Color c)
 {
-	using namespace kilipili::Graphics;
+	using namespace kilipili;
 	char bu[20];
 
 #if (ORDER_GREY)

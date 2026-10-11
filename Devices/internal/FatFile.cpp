@@ -8,7 +8,7 @@
 #include "common/cstrings.h"
 #include "common/trace.h"
 
-namespace kilipili::Devices
+namespace kilipili
 {
 
 uint8 fatFS_mode_for_File_mode(FileOpenMode m)
@@ -180,7 +180,7 @@ FatFile::~FatFile() noexcept
 	}
 }
 
-} // namespace kilipili::Devices
+} // namespace kilipili
 
 /*
 
