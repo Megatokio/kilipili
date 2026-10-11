@@ -2,7 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Audio.h"
+#include "AudioController.h"
 #include "common/system_clock.h"
 #include "common/timing.h"
 #include "i2s_audio.pio.h"

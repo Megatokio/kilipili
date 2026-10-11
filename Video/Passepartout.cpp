@@ -4,7 +4,7 @@
 
 #include "Passepartout.h"
 #include "Graphics/Color.h"
-#include "Video.h"
+#include "VideoController.h"
 
 namespace kilipili ::Video
 {

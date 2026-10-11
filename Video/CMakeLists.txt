@@ -50,8 +50,8 @@ add_library(kilipili_video STATIC
 	MousePointer.cpp
 	VideoPlane.h    	
 	VideoPlane.cpp
-	Video.h	
-	Video.cpp
+	VideoController.h	
+	VideoController.cpp
 	internal/ScanlineBuffer.h 	
 	internal/ScanlineBuffer.cpp
 	internal/VideoBackend.h  	

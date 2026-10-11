@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Audio.h"
+#include "AudioController.h"
 #include "AudioPlayer.h"
 #include "Ay38912.h"
 

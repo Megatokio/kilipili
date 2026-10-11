@@ -2,7 +2,7 @@
 // BSD 2-clause license
 // https://spdx.org/licenses/BSD-2-Clause.html
 
-#include "Video.h"
+#include "VideoController.h"
 #include "VideoPlane.h"
 #include "common/LoadSensor.h"
 #include "common/cdefs.h"

@@ -36,8 +36,8 @@ add_library(kilipili_audio STATIC
 	audio_options.h
 	AudioSample.h
 	AudioSource.h 
-	Audio.h 
-	Audio.cpp
+	AudioController.h 
+	AudioController.cpp
 	i2s_audio.pio
 	pwm_audio.pio
 	sid_audio.pio

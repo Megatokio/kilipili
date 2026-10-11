@@ -3,12 +3,12 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Color.h"
-#include "Pixmap_wAttr.h"
-#include "RCPtr.h"
-#include "Video.h"
-#include "cdefs.h"
-#include "geometry.h"
+#include "Graphics/Color.h"
+#include "Graphics/Pixmap_wAttr.h"
+#include "Video/VideoController.h"
+#include "common/RCPtr.h"
+#include "common/cdefs.h"
+#include "common/geometry.h"
 
 
 /* —————————————————————————————————————————————————————————

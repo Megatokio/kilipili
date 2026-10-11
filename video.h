@@ -2,7 +2,7 @@
 
 #pragma once
 #include "Video/VgaMode.h"
-#include "Video/Video.h"
+#include "Video/VideoController.h"
 #include "Video/VideoPlane.h"
 //
 #include "Video/FrameBuffer<CharMap>.h"
