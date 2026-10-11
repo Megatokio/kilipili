@@ -81,7 +81,6 @@ private:
 // deduction guides:
 
 Printer(Canvas*) -> Printer<Canvas>;
-//Printer(RCPtr<Canvas>) -> Printer<Canvas>;
 
 
 } // namespace kilipili::Graphics

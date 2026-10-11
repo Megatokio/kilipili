@@ -55,18 +55,16 @@ class CharMap;
 /*
 	The base class:
 */
-template<>
-class CharMap<>
+class CharMapBase
 {
 public:
-	~CharMap() noexcept { delete[] data; }
-	NO_COPY_MOVE(CharMap);
+	~CharMapBase() noexcept { delete[] data; }
+	NO_COPY_MOVE(CharMapBase);
 
 	void clear(char c = ' ', uint8 attr = 0) noexcept { clearRect(0, 0, rows, cols, c, attr); }
 	void clearRect(int row, int col, int rows, int cols, char = ' ', uint8 attr = 0) noexcept;
 	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept;
 
-	//void setAttr(uint8 a) noexcept { attr = a; }
 	void putChar(int row, int col, char, uint8 attr = 0) noexcept;
 	void putStr(int row, int col, cstr, uint8 attr = 0) noexcept;
 	char getChar(int row, int col) noexcept;
@@ -83,7 +81,7 @@ public:
 
 	uint8 rc = 0; // RCPtr<>
 
-	// for Printer<CharMap<>>:
+	// for Printer<CharMapBase>:
 	uint8 fg_bits;
 	uint8 bg_bits;
 	uint8 fg_mask;
@@ -95,7 +93,7 @@ public:
 	static constexpr uint8 inverted = 0;
 
 protected:
-	CharMap(int rows, int cols, uint8 fg_bits, uint8 bg_bits, uint8 bold, uint8 ul, uint8 gra) : //
+	CharMapBase(int rows, int cols, uint8 fg_bits, uint8 bg_bits, uint8 bold, uint8 ul, uint8 gra) : //
 		rows(rows),
 		cols(cols),
 		fg_bits(fg_bits),
@@ -119,7 +117,7 @@ private:
 	The concrete classes:
 */
 template<int _fg_bits, int _bg_bits, bool _bold, bool _underline, bool _graphics>
-class CharMap : public CharMap<>
+class CharMap : public CharMapBase
 {
 public:
 	static constexpr int   bg_bits	 = _bg_bits;
@@ -133,10 +131,10 @@ public:
 	static constexpr uchar graphics	 = _graphics << (fg_bits + bg_bits + _bold + _underline);
 
 	static_assert(fg_bits + bg_bits + _bold + _underline + _graphics <= 8);
-	static_assert(uint(fg_bits <= 8));
-	static_assert(uint(bg_bits <= 8));
+	static_assert(uint(fg_bits) <= 8);
+	static_assert(uint(bg_bits) <= 8);
 
-	CharMap(int rows, int cols) : CharMap<>(rows, cols, fg_bits, bg_bits, bold, underline, graphics) {}
+	CharMap(int rows, int cols) : CharMapBase(rows, cols, fg_bits, bg_bits, bold, underline, graphics) {}
 
 	static constexpr uint32 mul = sizeof(Color) == 1 ? 0x01010101 : sizeof(Color) == 2 ? 0x00010001 : 1;
 	void					set_fgcolor(int i, Color c) noexcept { fgcolors[i & ((1 << fg_bits) - 1)] = c * mul; }

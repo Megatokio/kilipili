@@ -57,7 +57,7 @@ public:
 private:
 	static void do_vblank(VideoPlane*) noexcept;
 	static void do_render(VideoPlane*, int row, int width, uint32* buffer) noexcept;
-	void		render_scanline(uint32* z, cuptr p, int cols) noexcept;
+	//void		render_scanline(uint32* z, cuptr p, int cols) noexcept; // V4
 };
 
 
@@ -104,6 +104,93 @@ void FrameBuffer<SimpleCharMap, Flag>::do_vblank(VideoPlane* vp) noexcept
 	}
 }
 
+template<typename Flag>
+void FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int width, uint32* buffer) noexcept
+{
+	auto* me = static_cast<FrameBuffer<SimpleCharMap, Flag>*>(vp);
+
+	static_assert(char_width == 8);
+	assert_lt(y, me->charmap->rows * me->font->char_height);
+	assert_le(width, me->charmap->cols * 8);
+	assert(width % 8 == 0);
+
+	while (me->last_y < y)
+	{
+		me->last_y++;
+		if (++me->raster_line >= me->font->char_height)
+		{
+			me->raster_line = 0;
+			me->row_ptr += me->charmap->cols;
+		}
+	}
+
+	int		cols = width >> 3; // if char_width = 8
+	cuptr	font = me->font->data + me->raster_line * me->font->row_offset - me->font->first_glyph;
+	uint32* z	 = buffer;
+
+	for (cuptr p = me->row_ptr, bu_end = p + cols; p < bu_end;)
+	{
+		uint8 byte = font[*p];
+		cuptr end  = bu_end;
+
+		if unlikely (me->cursor_ptr >= p && me->cursor_ptr < end)
+		{
+			if (p == me->cursor_ptr) byte = uint8(~byte);
+			else end = me->cursor_ptr;
+		}
+
+		for (; p < end; byte = font[*++p])
+		{
+			if (byte)
+			{
+				if constexpr (small)
+				{
+					uint32* colors = reinterpret_cast<uint32*>(me->colorstrips[byte & 0x0f]);
+
+					*z++ = colors[0];
+					if (sizeof(Color) >= 2) *z++ = colors[1];
+					if (sizeof(Color) == 4) *z++ = colors[2];
+					if (sizeof(Color) == 4) *z++ = colors[3];
+
+					colors = reinterpret_cast<uint32*>(me->colorstrips[byte >> 4]);
+
+					*z++ = colors[0];
+					if (sizeof(Color) >= 2) *z++ = colors[1];
+					if (sizeof(Color) == 4) *z++ = colors[2];
+					if (sizeof(Color) == 4) *z++ = colors[3];
+				}
+				else // fast:
+				{
+					uint32* colors = reinterpret_cast<uint32*>(me->colorstrips[byte]);
+
+					*z++ = colors[0];
+					*z++ = colors[1];
+					if (sizeof(Color) >= 2) *z++ = colors[2];
+					if (sizeof(Color) >= 2) *z++ = colors[3];
+					if (sizeof(Color) == 4) *z++ = colors[4];
+					if (sizeof(Color) == 4) *z++ = colors[5];
+					if (sizeof(Color) == 4) *z++ = colors[6];
+					if (sizeof(Color) == 4) *z++ = colors[7];
+				}
+			}
+			else // byte = 0x00
+			{
+				uint32 bg = *reinterpret_cast<uint32*>(me->colorstrips[0]);
+
+				*z++ = bg;
+				*z++ = bg;
+				if (sizeof(Color) >= 2) *z++ = bg;
+				if (sizeof(Color) >= 2) *z++ = bg;
+				if (sizeof(Color) == 4) *z++ = bg;
+				if (sizeof(Color) == 4) *z++ = bg;
+				if (sizeof(Color) == 4) *z++ = bg;
+				if (sizeof(Color) == 4) *z++ = bg;
+			}
+		}
+	}
+}
+
+#if 0 // V4
 template<typename Flag>
 void FrameBuffer<SimpleCharMap, Flag>::render_scanline(uint32* z, cuptr q, int cols) noexcept
 {
@@ -206,6 +293,7 @@ void FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int widt
 		if (sizeof(Color) == 4) *z++ ^= xc;
 	}
 }
+#endif
 
 
 // _________________________________________________
@@ -217,19 +305,31 @@ extern template void FrameBuffer<SimpleCharMap, Fast>::do_vblank(VideoPlane*) no
 extern template void FrameBuffer<SimpleCharMap, Small>::do_render(VideoPlane*, int, int, uint32*) noexcept;
 extern template void FrameBuffer<SimpleCharMap, Small>::do_vblank(VideoPlane*) noexcept;
 
-extern template void FrameBuffer<SimpleCharMap, Small>::render_scanline(uint32* z, cuptr p, int cols) noexcept;
-extern template void FrameBuffer<SimpleCharMap, Fast>::render_scanline(uint32* z, cuptr p, int cols) noexcept;
-
 
 // _______________________________________
 // use DEFINE_FB_SCM(..) to place the callbacks into different sections:
 
 // clang-format off
 #define DEFINE_FB_SCM(SPEED,SECTION) namespace kilipili::Video{ using namespace kilipili::Graphics; \
-template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::render_scanline(uint32*,cuptr,int)noexcept;\
 template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::do_vblank(VideoPlane*)noexcept; \
 template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::do_render(VideoPlane*,int,int,uint32*)noexcept;}
 // clang-format on
+
+
+#if 0 // V4
+extern template void FrameBuffer<SimpleCharMap, Small>::render_scanline(uint32* z, cuptr p, int cols) noexcept;
+extern template void FrameBuffer<SimpleCharMap, Fast>::render_scanline(uint32* z, cuptr p, int cols) noexcept;
+  #define DEFINE_FB_SCM(SPEED, SECTION)                                                                              \
+	  namespace kilipili::Video                                                                                      \
+	  {                                                                                                              \
+	  using namespace kilipili::Graphics;                                                                            \
+	  template void __section(SECTION ".FB_SCM")                                                                     \
+		  FrameBuffer<SimpleCharMap, SPEED>::render_scanline(uint32*, cuptr, int) noexcept;                          \
+	  template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap, SPEED>::do_vblank(VideoPlane*) noexcept; \
+	  template void __section(SECTION ".FB_SCM")                                                                     \
+		  FrameBuffer<SimpleCharMap, SPEED>::do_render(VideoPlane*, int, int, uint32*) noexcept;                     \
+	  }
+#endif
 
 
 } // namespace kilipili::Video

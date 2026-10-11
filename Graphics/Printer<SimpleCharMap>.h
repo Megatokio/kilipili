@@ -59,6 +59,6 @@ inline void Printer<SimpleCharMap>::setAttributes(uint add, uint remove) noexcep
 // deduction guides:
 
 Printer(SimpleCharMap*) -> Printer<SimpleCharMap>;
-//Printer(RCPtr<SimpleCharMap>) -> Printer<SimpleCharMap>;
+
 
 } // namespace kilipili::Graphics

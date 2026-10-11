@@ -22,12 +22,15 @@ using namespace Graphics;
 
 // clang-format off
 
+#if 0
 template void __section(XRAM ".FB_SCM1") FrameBuffer<SimpleCharMap, Fast>::render_scanline(uint32*,cuptr,int) noexcept;
-template void __section(RAM  ".FB_SCM1") FrameBuffer<SimpleCharMap, Fast>::do_render(VideoPlane*,int,int,uint32*) noexcept;
+template void __section(XRAM ".FB_SCM2") FrameBuffer<SimpleCharMap, Small>::render_scanline(uint32*,cuptr,int) noexcept;
+#endif
+
+template void __section(XRAM  ".FB_SCM1") FrameBuffer<SimpleCharMap, Fast>::do_render(VideoPlane*,int,int,uint32*) noexcept;
 template void __section(RAM  ".FB_SCM1") FrameBuffer<SimpleCharMap, Fast>::do_vblank(VideoPlane*) noexcept;
 
-template void __section(XRAM ".FB_SCM2") FrameBuffer<SimpleCharMap, Small>::render_scanline(uint32*,cuptr,int) noexcept;
-template void __section(RAM  ".FB_SCM2") FrameBuffer<SimpleCharMap, Small>::do_render(VideoPlane*,int,int,uint32*) noexcept;
+template void __section(XRAM  ".FB_SCM2") FrameBuffer<SimpleCharMap, Small>::do_render(VideoPlane*,int,int,uint32*) noexcept;
 template void __section(RAM  ".FB_SCM2") FrameBuffer<SimpleCharMap, Small>::do_vblank(VideoPlane*) noexcept;
 
 

@@ -12,10 +12,10 @@ namespace kilipili::Graphics
 {
 
 template<>
-class Printer<CharMap<>> final : public Printer<>
+class Printer<CharMapBase> final : public Printer<>
 {
 public:
-	Printer(CharMap<>*);
+	Printer(CharMapBase*);
 
 	void reset(bool cls = false) noexcept override;
 	cstr identify() override;
@@ -26,7 +26,7 @@ public:
 	void write(cptr text, int count) noexcept override;		 // any char, even chr(0)
 	void setAttributes(uint add, uint remove = 0xff) noexcept override;
 
-	RCPtr<CharMap<>> charmap;
+	RCPtr<CharMapBase> charmap;
 
 	// print attributes:
 	uint8 fg_bits	= charmap->fg_bits;
@@ -59,67 +59,11 @@ private:
 };
 
 
-//
-// *****************************************************************************
-//					I M P L E M E N T A T I O N S
-// *****************************************************************************
-//
-
-inline void Printer<CharMap<>>::set_fgcolor(int i) noexcept
-{
-	int fg_ss = bg_bits;
-	attributes &= ~fg_mask;
-	attributes |= (i << fg_ss) & fg_mask;
-}
-
-inline void Printer<CharMap<>>::set_bgcolor(int i) noexcept
-{
-	int bg_ss = 0;
-	attributes &= ~bg_mask;
-	attributes |= (i << bg_ss) & bg_mask;
-}
-
-inline void Printer<CharMap<>>::set_bold(bool f) noexcept
-{
-	if (f) attributes |= bold;
-	else attributes &= ~bold;
-}
-
-inline void Printer<CharMap<>>::set_underline(bool f) noexcept
-{
-	if (f) attributes |= underline;
-	else attributes &= ~underline;
-}
-
-inline void Printer<CharMap<>>::set_graphics(bool f) noexcept
-{
-	if (f) attributes |= graphics;
-	else attributes &= ~graphics;
-}
-
-inline void Printer<CharMap<>>::set_attr(int fg, int bg, bool bld, bool ul, bool gra) noexcept
-{
-	int fg_ss  = bg_bits;
-	int bg_ss  = 0;
-	attributes = ((fg << fg_ss) & fg_mask) | ((bg << bg_ss) & bg_mask);
-	if (bld) attributes |= bold;
-	if (ul) attributes |= underline;
-	if (gra) attributes |= graphics;
-}
-
-inline void Printer<CharMap<>>::setAttributes(uint add, uint remove) noexcept
-{
-	remove &= bold | underline | graphics;
-	add &= bold | underline | graphics;
-	attributes &= ~remove;
-	attributes |= add;
-}
-
 // _____________________________________________________________________
 // deduction guides:
 
-Printer(CharMap<>*) -> Printer<CharMap<>>;
-//Printer(RCPtr<CharMap<>>) -> Printer<CharMap<>>;
+Printer(CharMapBase*) -> Printer<CharMapBase>;
+
 
 } // namespace kilipili::Graphics
 
