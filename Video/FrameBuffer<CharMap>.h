@@ -50,7 +50,7 @@ class FrameBufferCharMapBase : public VideoPlane
 public:
 	NO_COPY_MOVE(FrameBufferCharMapBase);
 
-	using scanline_render_fu = void(VideoPlane* vp, uint32* z, cuptr q, int cols) noexcept;
+	using scanline_render_fu = void(VideoPlane* vp, uint32* z, const uint16* q, int cols) noexcept;
 
 	static constexpr int char_width = 8;
 
@@ -63,13 +63,13 @@ public:
 	uint32*				bgcolors		  = nullptr;
 
 	// set in do_vblank:
-	const uchar* cursor_ptr = nullptr; // set in vblank
-	uint32		 cursor_xor = 0;	   // xor_color for cursor blob
+	const uint16* cursor_ptr = nullptr; // set in vblank
+	uint32		  cursor_xor = 0;		// xor_color for cursor blob
 
 	// reset in do_vblank, updated in do_render:
-	const uchar* row_ptr	 = nullptr; // source row in charmap.data[]
-	int			 raster_line = 0;		// line within character
-	int			 last_y		 = 0;		// line within screen
+	const uint16* row_ptr	  = nullptr; // source row in charmap.data[]
+	int			  raster_line = 0;		 // line within character
+	int			  last_y	  = 0;		 // line within screen
 
 protected:
 	FrameBufferCharMapBase(CharMapBase*, scanline_render_fu*, uint32* fg, uint32* bg) noexcept;
@@ -87,15 +87,15 @@ template<class CharMap>
 class FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>> final : public FrameBufferCharMapBase
 {
 public:
-	static constexpr int   fg_bits	 = CharMap::fg_bits;
-	static constexpr int   bg_bits	 = CharMap::bg_bits;
-	static constexpr uint8 bold		 = CharMap::bold;	   // mask
-	static constexpr uint8 underline = CharMap::underline; // mask
-	static constexpr uint8 graphics	 = CharMap::graphics;  // mask
-	static constexpr int   fg_ss	 = CharMap::fg_ss;
-	static constexpr int   bg_ss	 = CharMap::bg_ss;
-	static constexpr uchar fg_mask	 = CharMap::fg_mask;
-	static constexpr uchar bg_mask	 = CharMap::bg_mask;
+	static constexpr int	fg_bits	  = CharMap::fg_bits;
+	static constexpr int	bg_bits	  = CharMap::bg_bits;
+	static constexpr uint16 bold	  = CharMap::bold << 8;		 // mask
+	static constexpr uint16 underline = CharMap::underline << 8; // mask
+	static constexpr uint16 graphics  = CharMap::graphics << 8;	 // mask
+	static constexpr int	fg_ss	  = CharMap::fg_ss;
+	static constexpr int	bg_ss	  = CharMap::bg_ss;
+	static constexpr uchar	fg_mask	  = CharMap::fg_mask;
+	static constexpr uchar	bg_mask	  = CharMap::bg_mask;
 
 	static_assert(fg_bits + bg_bits + !!bold + !!underline + !!graphics <= 8);
 	static_assert(uint(fg_bits) <= 8);
@@ -106,7 +106,7 @@ public:
 	NO_COPY_MOVE(FrameBuffer);
 
 private:
-	static void render_scanline(VideoPlane*, uint32* z, cuptr p, int cols) noexcept;
+	static void render_scanline(VideoPlane*, uint32* z, const uint16* p, int cols) noexcept;
 };
 
 
@@ -122,10 +122,9 @@ constexpr __section(".scratch_x.FB_CM_DATA2") uint32 mask4x2[4] = {0x00000000, 0
 
 template<class CharMap>
 void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>:: //
-	render_scanline(VideoPlane* vp, uint32* z, cuptr q, int cols) noexcept
+	render_scanline(VideoPlane* vp, uint32* z, const uint16* q, int cols) noexcept
 {
 	static_assert(char_width == 8);
-	//static constexpr int   char_width = 8;
 
 	auto* me = static_cast<FrameBuffer*>(vp);
 
@@ -133,58 +132,67 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>:: //
 	if constexpr (sizeof(Color) == 2) interp->setup(InterpMode::i2u32);
 	if constexpr (sizeof(Color) == 2) interp->set_color_base(mask4x2);
 
-	const uchar*  font = me->font1->data + me->raster_line * me->font1->row_offset - me->font1->first_glyph;
-	const uchar*  font2;	// only if graphics = true
-	const uint32* fgcolors; // only if fg_bits > 0
-	const uint32* bgcolors; // only if bg_bits > 0
-	uint32		  fgc;		// only if fg_bits = 0
-	uint32		  bgc;		// only if bg_bits = 0
-	uint8		  ul;		// only if underline = true
+	if constexpr (bg_bits) interp1->base[0] = uint32(me->bgcolors);
+	if constexpr (fg_bits) interp1->base[1] = uint32(me->fgcolors);
+
+	if constexpr (bg_bits) interp1->ctrl[0] = InterpConfig().set_mask(2, 2 + bg_bits - 1).set_shift(8 + bg_ss - 2);
+	if constexpr (fg_bits)
+		interp1->ctrl[1] = InterpConfig().set_mask(2, 2 + fg_bits - 1).set_shift(8 + fg_ss - 2).set_cross_input();
+
+	const uchar* font = me->font1->data + me->raster_line * me->font1->row_offset - me->font1->first_glyph;
+	const uchar* font2; // only if graphics = true
+	uint		 ul;	// only if underline = true
+	uint32		 bg;
+	uint32		 fg;
 
 	if constexpr (graphics) font2 = me->font2->data + me->raster_line * me->font2->row_offset - me->font2->first_glyph;
 	if constexpr (underline) ul = me->raster_line == 10 ? underline : 0; // if char_height = 12
-	if constexpr (fg_bits != 0) fgcolors = me->fgcolors;
-	if constexpr (bg_bits != 0) bgcolors = me->bgcolors;
-	if constexpr (fg_bits == 0) fgc = *me->fgcolors;
-	if constexpr (bg_bits == 0) bgc = *me->bgcolors;
+	if constexpr (fg_bits == 0) fg = me->fgcolors[0];
+	if constexpr (bg_bits == 0) bg = me->bgcolors[0];
 
-	for (cuptr end = q + 2 * cols; q < end;)
+	for (const uint16* end = q + cols; q < end;)
 	{
-		uchar  c	= *q++;
-		uint8  attr = *q++;
-		uint32 bg;
-		uint   byte;
+		uint attr = *q++;
+
+		if constexpr (fg_bits || bg_bits) interp1->set_accumulator(0, attr);
 
 		if (underline && (attr & ul))
 		{
-			bg = fg_bits ? fgcolors[(attr & fg_mask) >> fg_ss] : fgc;
-			goto space;
+			if constexpr (fg_bits) fg = *interp1->peek<uint32*>(1);
+
+			*z++ = fg;
+			*z++ = fg;
+			if constexpr (sizeof(Color) >= 2) *z++ = fg;
+			if constexpr (sizeof(Color) >= 2) *z++ = fg;
+			if constexpr (sizeof(Color) == 4) *z++ = fg;
+			if constexpr (sizeof(Color) == 4) *z++ = fg;
+			if constexpr (sizeof(Color) == 4) *z++ = fg;
+			if constexpr (sizeof(Color) == 4) *z++ = fg;
+			continue;
 		}
 
-		bg	 = bg_bits ? bgcolors[(attr & bg_mask) >> bg_ss] : bgc;
-		byte = ((attr & graphics) ? font2 : font)[c];
+		if constexpr (bg_bits) bg = *interp1->peek<uint32*>(0);
+
+		uint byte = ((attr & graphics) ? font2 : font)[uchar(attr)];
 
 		if (byte)
 		{
 			if (bold && (attr & bold)) byte |= byte << 1;
-			uint32 fg = fg_bits ? fgcolors[(attr & fg_mask) >> fg_ss] : fgc;
+
+			if constexpr (fg_bits) fg = *interp1->peek<uint32*>(1);
 
 			if constexpr (sizeof(Color) == 1)
 			{
-				fg = fg ^ bg;
-
-				*z++ = bg ^ (fg & mask16x1[byte & 0x0f]);
-				*z++ = bg ^ (fg & mask16x1[byte >> 4]);
+				*z++ = bg ^ ((fg ^ bg) & mask16x1[byte & 0x0f]);
+				*z++ = bg ^ ((fg ^ bg) & mask16x1[(byte >> 4) & 0x0f]);
 			}
 			else if constexpr (sizeof(Color) == 2)
 			{
-				fg = fg ^ bg;
-
 				interp->set_pixels(byte, 2);
-				*z++ = bg ^ (fg & *interp->next_color<uint32>());
-				*z++ = bg ^ (fg & *interp->next_color<uint32>());
-				*z++ = bg ^ (fg & *interp->next_color<uint32>());
-				*z++ = bg ^ (fg & *interp->next_color<uint32>());
+				*z++ = bg ^ ((fg ^ bg) & *interp->next_color<uint32>());
+				*z++ = bg ^ ((fg ^ bg) & *interp->next_color<uint32>());
+				*z++ = bg ^ ((fg ^ bg) & *interp->next_color<uint32>());
+				*z++ = bg ^ ((fg ^ bg) & *interp->next_color<uint32>());
 			}
 			else // Color = 4 bytes
 			{
@@ -200,7 +208,6 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>:: //
 		}
 		else // byte = 0x00
 		{
-		space:
 			*z++ = bg;
 			*z++ = bg;
 			if constexpr (sizeof(Color) >= 2) *z++ = bg;
@@ -212,134 +219,6 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>:: //
 		}
 	}
 }
-
-#if 0 // V3
-template<class CharMap>
-void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
-	VideoPlane* vp, int y, int width, uint32* buffer) noexcept
-{
-	auto* me = static_cast<FrameBuffer*>(vp);
-
-	static_assert(char_width == 8);
-	assert_lt(y, me->charmap->rows * me->font1->char_height);
-	assert_le(width, me->charmap->cols * char_width);
-	assert_eq(width % char_width, 0);
-
-	while (me->last_y < y)
-	{
-		me->last_y++;
-		if (++me->raster_line >= me->font1->char_height)
-		{
-			me->raster_line = 0;
-			me->row_ptr += me->charmap->cols * 2;
-		}
-	}
-
-	constexpr InterpMode ip		= InterpMode::i2u32;
-	Interp* const		 interp = &interp0[ipi<ip>];
-	if constexpr (sizeof(Color) == 2) interp->setup(ip);
-	if constexpr (sizeof(Color) == 2) interp->set_color_base(mask4x2);
-
-	int			 cols = width >> (3 - 1); // if char_width = 8
-	const uchar* font = me->font1->data + me->raster_line * me->font1->row_offset - me->font1->first_glyph;
-
-	const uchar*  font2;	// only if graphics = true
-	const uint32* fgcolors; // only if fg_bits > 0
-	const uint32* bgcolors; // only if bg_bits > 0
-	uint32		  fgc;		// only if fg_bits = 0
-	uint32		  bgc;		// only if bg_bits = 0
-	uint8		  ul;		// only if underline = true
-
-	if constexpr (graphics) font2 = me->font2->data + me->raster_line * me->font2->row_offset - me->font2->first_glyph;
-	if constexpr (underline) ul = me->raster_line == 10 ? underline : 0; // if char_height = 12
-	if constexpr (fg_bits != 0) fgcolors = me->charmap->fgcolors;
-	if constexpr (bg_bits != 0) bgcolors = me->charmap->bgcolors;
-	if constexpr (fg_bits == 0) fgc = *me->charmap->fgcolors;
-	if constexpr (bg_bits == 0) bgc = *me->charmap->bgcolors;
-
-	for (cuptr p = me->row_ptr, bu_end = p + cols; p < bu_end;)
-	{
-		uchar c	   = p[0];
-		uint8 attr = p[1];
-		uint8 byte = (graphics && (attr & graphics) ? font2 : font)[c];
-
-		cuptr end = bu_end;
-		if unlikely (me->cursor_ptr >= p && me->cursor_ptr < end)
-		{
-			if (p == me->cursor_ptr) byte = uint8(~byte);
-			else end = me->cursor_ptr;
-		}
-
-		while (p < end)
-		{
-			uint32 bg;
-
-			if unlikely (underline && (attr & ul))
-			{
-				bg = fg_bits ? fgcolors[(attr & fg_mask) >> fg_ss] : fgc;
-				goto space;
-			}
-
-			bg = bg_bits ? bgcolors[(attr & bg_mask) >> bg_ss] : bgc;
-
-			if (byte)
-			{
-				if (bold && (attr & bold)) byte |= uint8(byte << 1);
-				uint32 fg = fg_bits ? fgcolors[(attr & fg_mask) >> fg_ss] : fgc;
-
-				if constexpr (sizeof(Color) == 1)
-				{
-					fg = fg ^ bg;
-
-					*buffer++ = bg ^ (fg & mask16x1[byte & 0x0f]);
-					*buffer++ = bg ^ (fg & mask16x1[byte >> 4]);
-				}
-				else if constexpr (sizeof(Color) == 2)
-				{
-					fg = fg ^ bg;
-
-					interp->set_pixels(byte, 2);
-					*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
-					*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
-					*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
-					*buffer++ = bg ^ (fg & *interp->next_color<uint32>());
-				}
-				else // Color = 4 bytes
-				{
-					*buffer++ = byte & 1 ? fg : bg;
-					*buffer++ = byte & 2 ? fg : bg;
-					*buffer++ = byte & 4 ? fg : bg;
-					*buffer++ = byte & 8 ? fg : bg;
-					*buffer++ = byte & 0x10 ? fg : bg;
-					*buffer++ = byte & 0x20 ? fg : bg;
-					*buffer++ = byte & 0x40 ? fg : bg;
-					*buffer++ = byte & 0x80 ? fg : bg;
-				}
-			}
-			else // byte = 0x00
-			{
-			space:
-				*buffer++ = bg;
-				*buffer++ = bg;
-
-				if constexpr (sizeof(Color) >= 2) *buffer++ = bg;
-				if constexpr (sizeof(Color) >= 2) *buffer++ = bg;
-
-				if constexpr (sizeof(Color) == 4) *buffer++ = bg;
-				if constexpr (sizeof(Color) == 4) *buffer++ = bg;
-				if constexpr (sizeof(Color) == 4) *buffer++ = bg;
-				if constexpr (sizeof(Color) == 4) *buffer++ = bg;
-			}
-
-			p += 2;
-			c	 = p[0];
-			attr = p[1];
-			byte = (graphics && (attr & graphics) ? font2 : font)[c];
-		}
-	}
-	if constexpr (sizeof(Color) == 2) cleanup_if_needed<ip>();
-}
-#endif
 
 
 // _______________________________________
@@ -349,7 +228,7 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>::do_render(
 
 // clang-format off
 #define DEFINE_FB_CM(a,b,c,d,e) \
-extern template void FrameBuffer<CharMap<a,b,c,d,e>>::render_scanline(VideoPlane*,uint32*,cuptr,int)noexcept;
+extern template void FrameBuffer<CharMap<a,b,c,d,e>>::render_scanline(VideoPlane*,uint32*,const uint16*,int)noexcept;
 
 DEFINE_FB_CM(0, 0, 1, 1, 1) // up to 1280x768, monochrome + bold + underline + graphics
 
@@ -374,7 +253,7 @@ DEFINE_FB_CM(2, 2, 1, 1, 1) // up to 800x600 + bold + underline + graphics
 
 #define DEFINE_FB_CM(a,b,c,d,e,SECTION) namespace kilipili{ \
 template void __section(SECTION ".FB_CM") FrameBuffer<CharMap<a,b,c,d,e>>:: \
-	render_scanline(VideoPlane*,uint32*,cuptr,int)noexcept; }
+	render_scanline(VideoPlane*,uint32*,const uint16*,int)noexcept; }
 // clang-format on
 
 

@@ -32,14 +32,9 @@ struct InterpConfig
 	}
 	constexpr inline InterpConfig set_shift(uint shift) noexcept
 	{
-		return (c & ~SIO_INTERP0_CTRL_LANE0_SHIFT_BITS) |
-			   ((shift << SIO_INTERP0_CTRL_LANE0_SHIFT_LSB) & SIO_INTERP0_CTRL_LANE0_SHIFT_BITS);
+		return c | ((shift << SIO_INTERP0_CTRL_LANE0_SHIFT_LSB) & SIO_INTERP0_CTRL_LANE0_SHIFT_BITS);
 	}
-	constexpr inline InterpConfig set_cross_input(bool cross_input = true) noexcept
-	{
-		return (c & ~SIO_INTERP0_CTRL_LANE0_CROSS_INPUT_BITS) |
-			   (cross_input ? SIO_INTERP0_CTRL_LANE0_CROSS_INPUT_BITS : 0);
-	}
+	constexpr inline InterpConfig set_cross_input() noexcept { return c | SIO_INTERP0_CTRL_LANE0_CROSS_INPUT_BITS; }
 };
 
 
@@ -50,7 +45,6 @@ struct Interp : public interp_hw_t
 	static constexpr uint lane1	   = 1;
 
 	enum Mode {
-		any = -1,
 		//     log2(element size)  + log2(array size)
 		i1	 = (1 * ss_color) * 16 + 1,
 		i2	 = (1 * ss_color) * 16 + 2,
@@ -64,7 +58,7 @@ struct Interp : public interp_hw_t
 
 	Interp() = delete;
 
-	__force_inline uint32 pop_lane_result(uint lane) noexcept { return pop[lane]; }
+	__force_inline uint32 pop_lane_result(uint lane) noexcept { return interp_hw_t::pop[lane]; }
 	__force_inline void	  set_accumulator(uint lane, uint32 value) noexcept { accum[lane] = value; }
 
 	__force_inline void setup(Mode mode) noexcept { setup(uint(mode) & 0x0f, uint(mode) >> 4); }
@@ -94,7 +88,20 @@ struct Interp : public interp_hw_t
 	template<typename T = Color>
 	const __force_inline T* next_color() noexcept
 	{
-		return reinterpret_cast<const T*>(pop[lane1]);
+		return reinterpret_cast<const T*>(interp_hw_t::pop[lane1]);
+	}
+
+	template<typename T>
+	const __force_inline T peek(int lane) noexcept
+	{
+		uint32 z = interp_hw_t::peek[lane];
+		return reinterpret_cast<T>(z);
+	}
+	template<typename T>
+	const __force_inline T pop(int lane) noexcept
+	{
+		uint32 z = interp_hw_t::pop[lane];
+		return reinterpret_cast<T>(z);
 	}
 };
 

@@ -40,14 +40,14 @@ void __section(RAM ".FB_CM") FrameBufferCharMapBase::do_vblank(VideoPlane* vp) n
 	me->last_y		= 0;
 	me->font1		= charmap->font1;
 	me->font2		= charmap->font2;
-	me->row_ptr		= cuptr(charmap->data);		  // source ptr
-	me->cursor_ptr	= cuptr(charmap->cursor_ptr); //
+	me->row_ptr		= charmap->data;	   // source ptr
+	me->cursor_ptr	= charmap->cursor_ptr; //
 
 	if (me->cursor_ptr)
 	{
 		int	   fg_ss   = charmap->bg_bits;
 		int	   bg_ss   = 0;
-		uint8  attr	   = me->cursor_ptr[1];
+		uint8  attr	   = me->cursor_ptr[0] >> 8;
 		uint32 fgc	   = me->fgcolors[(attr & charmap->fg_mask) >> fg_ss];
 		uint32 bgc	   = me->bgcolors[(attr & charmap->bg_mask) >> bg_ss];
 		me->cursor_xor = fgc ^ bgc;
@@ -71,7 +71,7 @@ void __section(RAM ".FB_CM") FrameBufferCharMapBase:: //
 		if (++me->raster_line >= me->font1->char_height)
 		{
 			me->raster_line = 0;
-			me->row_ptr += me->charmap->cols * 2;
+			me->row_ptr += me->charmap->cols;
 		}
 	}
 
@@ -79,9 +79,9 @@ void __section(RAM ".FB_CM") FrameBufferCharMapBase:: //
 
 	me->scanline_renderer(me, buffer, me->row_ptr, cols);
 
-	if unlikely (size_t(me->cursor_ptr - me->row_ptr) < unsigned(cols * 2))
+	if unlikely (size_t(me->cursor_ptr - me->row_ptr) < unsigned(cols))
 	{
-		uint32* z  = buffer + size_t(me->cursor_ptr - me->row_ptr) * (8 / 2 * sizeof(Color) / sizeof(uint32));
+		uint32* z  = buffer + size_t(me->cursor_ptr - me->row_ptr) * (8 * sizeof(Color) / sizeof(uint32));
 		uint32	xc = me->cursor_xor;
 
 		*z++ ^= xc;
@@ -103,16 +103,26 @@ void __section(RAM ".FB_CM") FrameBufferCharMapBase:: //
 
 #define define template void __section
 
-define(XRAM ".FB_CM1") FrameBuffer<CharMap<0, 0, 1, 1, 1>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
-define(XRAM ".FB_CM2") FrameBuffer<CharMap<4, 4, 0, 0, 0>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
-define(XRAM ".FB_CM3") FrameBuffer<CharMap<4, 3, 1, 0, 0>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
-define(XRAM ".FB_CM4") FrameBuffer<CharMap<4, 3, 0, 0, 1>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
-define(XRAM ".FB_CM5") FrameBuffer<CharMap<4, 2, 1, 1, 0>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
-define(XRAM ".FB_CM6") FrameBuffer<CharMap<4, 2, 1, 0, 1>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
-define(XRAM ".FB_CM7") FrameBuffer<CharMap<3, 3, 1, 1, 0>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
-define(XRAM ".FB_CM8") FrameBuffer<CharMap<3, 3, 1, 0, 1>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
-define(XRAM ".FB_CM9") FrameBuffer<CharMap<2, 2, 1, 1, 1>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
-define(XRAM ".FB_CM10") FrameBuffer<CharMap<3, 2, 1, 1, 1>>::render_scanline(VideoPlane*, uint32*, cuptr, int) noexcept;
+define(XRAM ".FB_CM1")
+	FrameBuffer<CharMap<0, 0, 1, 1, 1>>::render_scanline(VideoPlane*, uint32*, const uint16*, int) noexcept;
+define(XRAM ".FB_CM2")
+	FrameBuffer<CharMap<4, 4, 0, 0, 0>>::render_scanline(VideoPlane*, uint32*, const uint16*, int) noexcept;
+define(XRAM ".FB_CM3")
+	FrameBuffer<CharMap<4, 3, 1, 0, 0>>::render_scanline(VideoPlane*, uint32*, const uint16*, int) noexcept;
+define(XRAM ".FB_CM4")
+	FrameBuffer<CharMap<4, 3, 0, 0, 1>>::render_scanline(VideoPlane*, uint32*, const uint16*, int) noexcept;
+define(XRAM ".FB_CM5")
+	FrameBuffer<CharMap<4, 2, 1, 1, 0>>::render_scanline(VideoPlane*, uint32*, const uint16*, int) noexcept;
+define(XRAM ".FB_CM6")
+	FrameBuffer<CharMap<4, 2, 1, 0, 1>>::render_scanline(VideoPlane*, uint32*, const uint16*, int) noexcept;
+define(XRAM ".FB_CM7")
+	FrameBuffer<CharMap<3, 3, 1, 1, 0>>::render_scanline(VideoPlane*, uint32*, const uint16*, int) noexcept;
+define(XRAM ".FB_CM8")
+	FrameBuffer<CharMap<3, 3, 1, 0, 1>>::render_scanline(VideoPlane*, uint32*, const uint16*, int) noexcept;
+define(XRAM ".FB_CM9")
+	FrameBuffer<CharMap<2, 2, 1, 1, 1>>::render_scanline(VideoPlane*, uint32*, const uint16*, int) noexcept;
+define(XRAM ".FB_CM10")
+	FrameBuffer<CharMap<3, 2, 1, 1, 1>>::render_scanline(VideoPlane*, uint32*, const uint16*, int) noexcept;
 
 
 } // namespace kilipili
