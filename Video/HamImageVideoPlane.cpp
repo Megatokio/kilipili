@@ -51,9 +51,8 @@ void __section(XRAM ".ham") HamImageVideoPlane::do_render( //
 	const uint8* px = me->pixels;
 	me->pixels		= px + me->row_offset;
 
-	constexpr InterpMode ip_mode = InterpMode::i8;
-	setup_if_needed<ip_mode>();
-	Interp* interp = &interp0[ipi<ip_mode>];
+	Interp* interp = interp0;
+	interp->setup(InterpMode::i8);
 	interp->set_color_base(me->colormap->colors);
 
 	const Color*  first_rel_color = &me->colormap->colors[me->first_rel_code];
@@ -84,7 +83,6 @@ void __section(XRAM ".ham") HamImageVideoPlane::do_render( //
 	}
 
 	me->first_color = *first_pixel;
-	cleanup_if_needed<ip_mode>();
 }
 
 

@@ -64,9 +64,6 @@ extern uint32 time_cc_32() noexcept; // equivalent to time_us_32() but for cpu c
 		Upper limit for the system clock set by start_video_backend()
 	- VIDEO_MAX_SCANLINE_BUFFERS
 		Max. size of the rolling scanline buffer. See ScanlineBuffer.h
-	- VIDEO_INTERP0_MODE
-	- VIDEO_INTERP1_MODE
-		See ScanlineRenderer.h
 
 	General capabilities and drawbacks:
 	  - The supply of pixel data is not part of the backend. The backend displays pixels from a 

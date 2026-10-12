@@ -11,7 +11,6 @@
 #include "common/tempmem.h"
 #include "common/timing.h"
 #include "common/trace.h"
-#include "internal/Interp.h"
 #include "internal/ScanlineBuffer.h"
 #include "internal/VideoBackend.h"
 #include <cstdio>
@@ -173,8 +172,6 @@ static void __noreturn core1_runner() noexcept
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
 	trace(__func__);
-
-	initializeInterpolators();
 
 	try
 	{

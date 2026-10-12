@@ -9,56 +9,11 @@
 #include <hardware/interp.h>
 
 
-#ifndef VIDEO_INTERP0_MODE
-  #define VIDEO_INTERP0_MODE any
-#endif
-
-#ifndef VIDEO_INTERP1_MODE
-  #define VIDEO_INTERP1_MODE a1w8
-#endif
-
-
 namespace kilipili
 {
 
-/*	Interpolator setup for the ScanlineRenderers:
-
-	Tweakable parts:
-
-	VIDEO_INTERP0_MODE: configure pixel size for interp0: -1=any, 0…3 -> 1,2,4,8 bit, 5=a1w8 (default)
-	VIDEO_INTERP1_MODE: configure pixel size for interp1: -1=any (default), 0…3 -> 1,2,4,8 bit, 5=a1w8
-	  -	these options define the default setting for interp0 and interp1 on core1.
-	  - an interpolator may be set for a specific color mode or for use by any color mode.
-	  - if an interpolator is set for a specific color mode then it is setup at startup by the VideoController.
-	  - otherwise the ScanlineRenderer must set it up at the start of each scanline.
-	  - if it uses an interpolator which is reserved for another color mode (because no interpolator is set to 'any')
-		then the ScanlineRenderer must also restore it to the reserved mode at the end of the scanline.
-
-
-	Interpolator settings needed for ScanlineRenderers for various color modes:
-	(may change. please check source)
-
-		i1:   a1w1 a1w2 a1w4 a1w8 
-		i2:   a2w1 a2w2 a2w4 a2w8
-		i4:   i4
-		i8:   i8 ham
-		a1w8: a1w8
-		none: i1 i2 rgb
-
-
-	Own scanline render functions using an Interpolator:
-
-	If an application defines a new scanline render function which uses an interpolator, it must take care
-	to avoid conflicts with the existing ScanlineRenderers it uses:
-	  - either fully setup the interpolator at the start of each scanline and restore it at the end
-		to the extend needed (whether it is set to 'any' or a specific mode, see helper templates below)
-	  -	or reserve interp1 (not interp0) for your renderer exclusively with VIDEO_INTERP1_MODE=99 or similar.
+/*	Interpolator setup for the ScanlineRenderers
 */
-
-
-// one-time initialization:
-// called by VideoController
-extern void initializeInterpolators() noexcept;
 
 
 struct InterpConfig
@@ -124,6 +79,7 @@ struct Interp : public interp_hw_t
 		//		Color = table[byte & mask];
 		//		byte >>= shift;
 
+		base[lane0] = 0;							   // add nothing
 		ctrl[lane0] = InterpConfig()				   //
 						  .set_shift(bpi);			   // shift right by 1 .. 8 bit
 		ctrl[lane1] = InterpConfig()				   //
@@ -153,33 +109,7 @@ static_assert(SIO_INTERP1_ACCUM0_OFFSET - SIO_INTERP0_ACCUM0_OFFSET == sizeof(In
 #undef interp_hw_array
 #define interp_hw_array reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET)
 
-
-using InterpMode				 = Interp::Mode;
-constexpr InterpMode ip0_mode	 = InterpMode::VIDEO_INTERP0_MODE;
-constexpr InterpMode ip1_mode	 = InterpMode::VIDEO_INTERP1_MODE;
-constexpr InterpMode ip_modes[2] = {ip0_mode, ip1_mode};
-
-
-template<InterpMode mode>
-constexpr int ipi = ip1_mode == mode || (ip0_mode != mode && ip1_mode == InterpMode::any);
-
-template<InterpMode mode>
-constexpr bool need_setup = (ip_modes[ipi<mode>]) != mode;
-
-template<InterpMode mode>
-constexpr bool need_cleanup = need_setup<mode> && ip_modes[ipi<mode>] != InterpMode::any;
-
-template<InterpMode mode>
-static __force_inline void setup_if_needed() noexcept
-{
-	if constexpr (need_setup<mode>) interp0[ipi<mode>].setup(mode);
-}
-
-template<InterpMode mode>
-static __force_inline void cleanup_if_needed() noexcept
-{
-	if constexpr (need_cleanup<mode>) interp0[ipi<mode>].setup(ip_modes[ipi<mode>]);
-}
+using InterpMode = Interp::Mode;
 
 
 } // namespace kilipili

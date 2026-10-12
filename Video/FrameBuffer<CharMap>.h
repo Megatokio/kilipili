@@ -129,9 +129,8 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>:: //
 
 	auto* me = static_cast<FrameBuffer*>(vp);
 
-	constexpr InterpMode ip		= InterpMode::i2u32;
-	Interp* const		 interp = &interp0[ipi<ip>];
-	if constexpr (sizeof(Color) == 2) interp->setup(ip);
+	Interp* const interp = interp0;
+	if constexpr (sizeof(Color) == 2) interp->setup(InterpMode::i2u32);
 	if constexpr (sizeof(Color) == 2) interp->set_color_base(mask4x2);
 
 	const uchar*  font = me->font1->data + me->raster_line * me->font1->row_offset - me->font1->first_glyph;
@@ -212,8 +211,6 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>:: //
 			if constexpr (sizeof(Color) == 4) *z++ = bg;
 		}
 	}
-
-	if constexpr (sizeof(Color) == 2) cleanup_if_needed<ip>();
 }
 
 #if 0 // V3

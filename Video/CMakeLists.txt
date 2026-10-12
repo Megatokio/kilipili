@@ -9,13 +9,9 @@ option(VIDEO_SUPPORT_400x300_A1W8 "support int16 bitmap width in a1w8 renderer. 
 
 set(VIDEO_MAX_SYSCLOCK_MHz "290" CACHE STRING "maximum system clock set by VideoBackend.start()")
 set(VIDEO_MAX_SCANLINE_BUFFERS "16" CACHE STRING "max. number of prepared scanlines (2^N)")
-set(VIDEO_INTERP0_MODE "a1w8" CACHE STRING "configure interp0: any, i1, i2, i4, i8, a1w8 (default): colormode")
-set(VIDEO_INTERP1_MODE "any"  CACHE STRING "configure interp1: any (default), i1, i2, i4, i8, a1w8: colormode")
 set(VIDEO_SCANLINE_RENDERER_SECTION "XRAM" CACHE STRING "section for predefined scanline renderers: RAM or XRAM")
 
 set_property(CACHE VIDEO_MAX_SCANLINE_BUFFERS PROPERTY STRINGS "2" "4" "8" "16" "32")
-set_property(CACHE VIDEO_INTERP0_MODE PROPERTY STRINGS "any" "i1" "i2" "i4" "i8" "a1w8")
-set_property(CACHE VIDEO_INTERP1_MODE PROPERTY STRINGS "any" "i1" "i2" "i4" "i8" "a1w8")
 set_property(CACHE VIDEO_SCANLINE_RENDERER_SECTION PROPERTY STRINGS "RAM" "XRAM")
 
 
@@ -37,7 +33,6 @@ add_library(kilipili_video STATIC
 	internal/Shape.h
 	internal/Frames.h
 	internal/Interp.h  
-	internal/Interp.cpp  
 	internal/scanline.pio
 	internal/timing.pio
 	AnimatedSprite.h
@@ -87,8 +82,6 @@ target_compile_definitions(kilipili_video PUBLIC
 	VIDEO_SUPPORT_400x300_A1W8=${VIDEO_SUPPORT_400x300_A1W8}
 	VIDEO_MAX_SYSCLOCK_MHz=${VIDEO_MAX_SYSCLOCK_MHz}
 	VIDEO_MAX_SCANLINE_BUFFERS=${VIDEO_MAX_SCANLINE_BUFFERS}
-	VIDEO_INTERP0_MODE=${VIDEO_INTERP0_MODE}
-	VIDEO_INTERP1_MODE=${VIDEO_INTERP1_MODE}
 	VIDEO_SCANLINE_RENDERER_SECTION=${VIDEO_SCANLINE_RENDERER_SECTION}
 )
 
