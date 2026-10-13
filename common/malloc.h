@@ -15,6 +15,7 @@ extern void* malloc(size_t size);
 extern void* calloc(size_t count, size_t size);
 extern void* realloc(void* mem, size_t size);
 extern void	 free(void* mem);
+extern bool	 mresize(void* mem, size_t size);
 
 using dump_heap_print_fu = void(void* data, uint32* addr, int sz, int free0_used1_invalid2);
 

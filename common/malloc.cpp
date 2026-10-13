@@ -293,6 +293,35 @@ void* realloc(void* mem, size_t size)
 		return nullptr;
 	}
 
+	bool success = mresize(mem, size);
+	if (success) return mem;
+
+	// can't grow in place, must reallocate:
+
+	void* z = malloc(size);
+	if (z)
+	{
+		uint32* p		 = reinterpret_cast<uint32*>(mem) - 1;
+		uint32	old_size = *p & size_mask;
+		memcpy(z, mem, (old_size - 1) << 2);
+		free(mem);
+	}
+	return z;
+}
+
+bool mresize(void* mem, size_t size)
+{
+	// mresize() is similar to realloc(), but does not reallocate the memory if it can't grow in place.
+	// use mresize() if contents can't be default-copied or if pointers to this memory can't be updated.
+	//
+	// note: grow nullptr always fails: => use alloc() or realloc()
+	//       shrink to size = 0:		=> better use free() or realloc()
+	//
+	// return true = success: the memory has been resized as requested.
+	// return false = failed: nullptr or there is not enough free space behind this block for the new size.
+
+	if (mem == nullptr) return size == 0; // ok if req. size == 0
+
 	size	  = (size + 7) >> 2;
 	uint32* p = reinterpret_cast<uint32*>(mem) - 1;
 	assert(is_valid_used(p));
@@ -307,8 +336,8 @@ void* realloc(void* mem, size_t size)
 		*p = (old_size - size) | flag_free;
 
 		malloc_unlock(_);
-		xlogline("%u:realloc 0x%8x: %u -> %u\n", get_core_num(), size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
-		return mem;
+		xlogline("%u:mresize 0x%8x: %u -> %u\n", get_core_num(), size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
+		return true;
 	}
 
 	else if (size > old_size) // growed
@@ -323,27 +352,21 @@ void* realloc(void* mem, size_t size)
 			if (avail > size) *p = (avail - size) | flag_free;
 
 			malloc_unlock(_);
-			xlogline("%u:realloc 0x%8x: %u -> %u\n", get_core_num(), size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
-			return mem;
+			xlogline("%u:mresize 0x%8x: %u -> %u\n", get_core_num(), size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
+			return true;
 		}
 
 		// can't grow in place, must relocate:
 		xlogline(
-			"%u:realloc 0x%8x: %u -> %u: reallocate\n", get_core_num(), size_t(mem), //
+			"%u:mresize 0x%8x: %u -> %u failed, must reallocate\n", get_core_num(), size_t(mem), //
 			(old_size - 1) << 2, (size - 1) << 2);
-		void* z = malloc((size - 1) << 2);
-		if (z)
-		{
-			memcpy(z, mem, (old_size - 1) << 2);
-			free(mem);
-		}
-		return z;
+		return false;
 	}
 
 	else // new_size == old_size
 	{
-		xlogline("%u:realloc 0x%8x: %u -> %u\n", get_core_num(), size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
-		return mem;
+		xlogline("%u:mresize 0x%8x: %u -> %u\n", get_core_num(), size_t(mem), (old_size - 1) << 2, (size - 1) << 2);
+		return true;
 	}
 }
 
