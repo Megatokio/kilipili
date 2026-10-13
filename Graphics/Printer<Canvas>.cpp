@@ -35,14 +35,7 @@ Printer<Canvas>::Printer(Canvas* pixmap, const Font* font1, const Font* font2) n
 	Printer<>(pixmap->height / font1->char_height, pixmap->width / font1->char_width),
 	pixmap(pixmap),
 	font1(font1),
-	font2(font2),
-	colormode(pixmap->colormode),
-	attrheight(pixmap->attrheight),
-	colordepth(get_colordepth(colormode)),	// 0 .. 4  log2 of bits per color in attributes[]
-	attrmode(get_attrmode(colormode)),		// -1 .. 1 log2 of bits per color in pixmap[]
-	attrwidth(get_attrwidth(colormode)),	// 0 .. 3  log2 of width of tiles
-	bits_per_color(uint8(1 << colordepth)), // bits per color in pixmap[] or attributes[]
-	bits_per_pixel(is_attribute_mode(colormode) ? uint8(1 << attrmode) : bits_per_color) // bpp in pixmap[]
+	font2(font2)
 {
 	assert(font1->fixed_width);
 	assert(font2->fixed_width);
@@ -53,10 +46,10 @@ Printer<Canvas>::Printer(Canvas* pixmap, const Font* font1, const Font* font2) n
 	assert(font1->char_width == font2->char_width);
 	assert(font1->char_height == font2->char_height);
 
-	if (attrmode != attrmode_none)
+	if (pixmap->attrmode() != attrmode_none)
 	{
-		assert(font1->char_height % attrheight == 0);
-		assert((font1->char_width & ((1 << attrwidth) - 1)) == 0);
+		assert(font1->char_height % pixmap->attrheight == 0);
+		assert((font1->char_width & ((1 << pixmap->attrwidth()) - 1)) == 0);
 	}
 
 	cursor_visible = false;
@@ -81,6 +74,11 @@ cstr Printer<Canvas>::identify()
 {
 	// size=400*300, text=50*25, char=8*12, colors=i8
 	// size=400*300, text=50*25, char=8*12, colors=rgb, attr=8*12
+
+	uint colordepth = get_colordepth(pixmap->colormode);
+	uint attrmode	= pixmap->attrmode();
+	uint attrwidth	= pixmap->attrwidth();
+	uint attrheight = pixmap->attrheight;
 
 	cstr colors = colordepth == colordepth_rgb ? "rgb" : tostr(colordepth);
 	cstr attr	= attrmode == attrmode_none ? "" : usingstr(", attr=%u*%u", 1u << attrwidth, attrheight);

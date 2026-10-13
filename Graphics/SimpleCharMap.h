@@ -58,8 +58,8 @@ public:
 
 	// attributes:
 	// should be updated if another font is set:
-	uint8 bold		= 0x80;
-	uint8 inverted	= 0;
+	uint8 bold		= 0;
+	uint8 inverted	= 0x80;
 	uint8 underline = 0;
 	uint8 graphics	= 0;
 };

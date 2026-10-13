@@ -17,34 +17,23 @@ class Printer<CharMapBase> final : public Printer<>
 public:
 	Printer(CharMapBase*);
 
-	void reset(bool cls = false) noexcept override;
-	cstr identify() override;
-	void clearRect(int row, int col, int rows, int cols) noexcept override;
-	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
-	void printChar(char c, int count = 1) noexcept override; // no ctl
-	void print(cstr text) noexcept override;				 // supports \n and \t
-	void write(cptr text, int count) noexcept override;		 // any char, even chr(0)
-	void setAttributes(uint add, uint remove = 0xff) noexcept override;
+	void  reset(bool cls = false) noexcept override;
+	cstr  identify() override;
+	void  clearRect(int row, int col, int rows, int cols) noexcept override;
+	void  copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
+	void  printChar(char c, int count = 1) noexcept override; // no ctl
+	void  print(cstr text) noexcept override;				  // supports \n and \t
+	void  write(cptr text, int count) noexcept override;	  // any char, even chr(0)
+	void  setAttributes(uint add, uint remove = 0xff) noexcept override;
+	uint8 getAttributes() const noexcept override;
 
 	RCPtr<CharMapBase> charmap;
 
 	// print attributes:
-	uint8 fg_bits	= charmap->fg_bits;
-	uint8 bg_bits	= charmap->bg_bits;
-	uint8 fg_mask	= charmap->fg_mask;
-	uint8 bg_mask	= charmap->bg_mask;
-	uint8 bold		= charmap->bold;	  // mask
-	uint8 underline = charmap->underline; // mask
-	uint8 graphics	= charmap->graphics;  // mask
-	char  _padding	= 0;
-	enum Attributes : uint8 {
-		normal		  = 0,
-		inverted	  = 0, // CharMap::inverted
-		italic		  = 0,
-		transparent	  = 0,
-		double_width  = 0,
-		double_height = 0,
-	};
+	uint8 fg_bits = charmap->fg_bits;
+	uint8 bg_bits = charmap->bg_bits;
+	uint8 fg_mask = charmap->fg_mask;
+	uint8 bg_mask = charmap->bg_mask;
 
 	void set_fgcolor(int i) noexcept;
 	void set_bgcolor(int i) noexcept;

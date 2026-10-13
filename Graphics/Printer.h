@@ -35,9 +35,23 @@ public:
 	void printf(cstr fmt, ...) noexcept __printflike(2, 3);		// supports \n, \r and \t
 	void printf(cstr fmt, va_list) noexcept __printflike(2, 0); // supports \n, \r and \t
 
-	virtual void setAttributes(uint add, uint remove = 0xff) noexcept = 0;
-	void		 addAttributes(uint a) noexcept { setAttributes(a, 0); }
-	void		 removeAttributes(uint a = 0xff) noexcept { setAttributes(0, a); }
+	// print attributes: (values 1:1 for Printer<Canvas>)
+	enum Attributes : uint8 {
+		normal		  = 0x00,
+		bold		  = 0x01,
+		underline	  = 0x02,
+		inverted	  = 0x04,
+		italic		  = 0x08,
+		transparent	  = 0x10,
+		double_width  = 0x20,
+		double_height = 0x40,
+		graphics	  = 0x80
+	};
+
+	virtual void  setAttributes(uint add, uint remove = 0xff) noexcept = 0;
+	void		  addAttributes(uint a) noexcept { setAttributes(a, 0); }
+	void		  removeAttributes(uint a = 0xff) noexcept { setAttributes(0, a); }
+	virtual uint8 getAttributes() const noexcept = 0;
 
 	void showCursor(bool on = true) noexcept;
 	void hideCursor() noexcept;
@@ -91,10 +105,11 @@ public:
 	int	  row = 0, col = 0;
 	int	  scroll_count = 0;
 	uint8 dx = 1, dy = 1;		  // 1 or 2, if double width & double height
-	uint8 attributes	 = 0;	  //
 	bool  cursor_visible = false; // currently visible?
 
 protected:
+	uint8 attributes = 0;
+
 	Printer(int rows, int cols) noexcept;
 	virtual void show_cursor(bool f) noexcept {}
 	void		 validate_hpos(bool col80ok) noexcept;

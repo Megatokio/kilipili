@@ -19,13 +19,10 @@ void Printer<CharMapBase>::reset(bool cls) noexcept
 {
 	// does not reset the colors or font
 
-	fg_bits	  = charmap->fg_bits;
-	bg_bits	  = charmap->bg_bits;
-	fg_mask	  = charmap->fg_mask;
-	bg_mask	  = charmap->bg_mask;
-	bold	  = charmap->bold;
-	underline = charmap->underline;
-	graphics  = charmap->graphics;
+	fg_bits = charmap->fg_bits;
+	bg_bits = charmap->bg_bits;
+	fg_mask = charmap->fg_mask;
+	bg_mask = charmap->bg_mask;
 
 	Printer<>::reset();
 	if (cls) charmap->clear();
@@ -47,20 +44,20 @@ void Printer<CharMapBase>::set_bgcolor(int i) noexcept
 
 void Printer<CharMapBase>::set_bold(bool f) noexcept
 {
-	if (f) attributes |= bold;
-	else attributes &= ~bold;
+	if (f) attributes |= charmap->bold;
+	else attributes &= ~charmap->bold;
 }
 
 void Printer<CharMapBase>::set_underline(bool f) noexcept
 {
-	if (f) attributes |= underline;
-	else attributes &= ~underline;
+	if (f) attributes |= charmap->underline;
+	else attributes &= ~charmap->underline;
 }
 
 void Printer<CharMapBase>::set_graphics(bool f) noexcept
 {
-	if (f) attributes |= graphics;
-	else attributes &= ~graphics;
+	if (f) attributes |= charmap->graphics;
+	else attributes &= ~charmap->graphics;
 }
 
 void Printer<CharMapBase>::set_attr(int fg, int bg, bool bld, bool ul, bool gra) noexcept
@@ -68,17 +65,29 @@ void Printer<CharMapBase>::set_attr(int fg, int bg, bool bld, bool ul, bool gra)
 	int fg_ss  = bg_bits;
 	int bg_ss  = 0;
 	attributes = ((fg << fg_ss) & fg_mask) | ((bg << bg_ss) & bg_mask);
-	if (bld) attributes |= bold;
-	if (ul) attributes |= underline;
-	if (gra) attributes |= graphics;
+	if (bld) attributes |= charmap->bold;
+	if (ul) attributes |= charmap->underline;
+	if (gra) attributes |= charmap->graphics;
 }
 
 void Printer<CharMapBase>::setAttributes(uint add, uint remove) noexcept
 {
-	remove &= bold | underline | graphics;
-	add &= bold | underline | graphics;
-	attributes &= ~remove;
-	attributes |= add;
+	if (remove & bold) attributes &= ~charmap->bold;
+	if (remove & underline) attributes &= ~charmap->underline;
+	if (remove & graphics) attributes &= ~charmap->graphics;
+
+	if (add & bold) attributes |= charmap->bold;
+	if (add & underline) attributes |= charmap->underline;
+	if (add & graphics) attributes |= charmap->graphics;
+}
+
+uint8 Printer<CharMapBase>::getAttributes() const noexcept
+{
+	uint8 attr = 0;
+	if (attributes & charmap->bold) attr = bold;
+	if (attributes & charmap->underline) attr |= underline;
+	if (attributes & charmap->graphics) attr |= graphics;
+	return attr;
 }
 
 cstr attr_str(bool b, bool u, bool g)

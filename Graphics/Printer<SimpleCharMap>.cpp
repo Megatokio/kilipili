@@ -118,6 +118,30 @@ void Printer<SimpleCharMap>::show_cursor(bool f) noexcept
 }
 
 
+void Printer<SimpleCharMap>::setAttributes(uint add, uint remove) noexcept
+{
+	if (remove & bold) attributes &= ~charmap->bold;
+	if (remove & inverted) attributes &= ~charmap->inverted;
+	if (remove & underline) attributes &= ~charmap->underline;
+	if (remove & graphics) attributes &= ~charmap->graphics;
+
+	if (add & bold) attributes |= charmap->bold;
+	if (add & inverted) attributes |= charmap->inverted;
+	if (add & underline) attributes |= charmap->underline;
+	if (add & graphics) attributes |= charmap->graphics;
+}
+
+uint8 Printer<SimpleCharMap>::getAttributes() const noexcept
+{
+	uint8 attr = 0;
+	if (attributes & charmap->bold) attr = bold;
+	if (attributes & charmap->inverted) attr |= inverted;
+	if (attributes & charmap->underline) attr |= underline;
+	if (attributes & charmap->graphics) attr |= graphics;
+	return attr;
+}
+
+
 } // namespace kilipili
 
 

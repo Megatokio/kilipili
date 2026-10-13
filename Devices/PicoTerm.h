@@ -3,9 +3,11 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Devices/SerialDevice.h"
 #include "Graphics/Canvas.h"
-#include "Graphics/Printer<Canvas>.h"
+#include "Graphics/CharMap.h"
+#include "Graphics/Printer.h"
+#include "Graphics/SimpleCharMap.h"
+#include "SerialDevice.h"
 
 namespace kilipili
 {
@@ -13,8 +15,7 @@ namespace kilipili
 class PicoTerm : public SerialDevice
 {
 public:
-	using super	  = SerialDevice;
-	using TextVDU = Printer<Canvas>;
+	using super = SerialDevice;
 
 	// Control Characters:
 	enum : uchar {
@@ -39,15 +40,17 @@ public:
 		ESC					   = 27,
 	};
 
-	RCPtr<TextVDU> text;
+	RCPtr<Printer<>> printer;
 
 	// write() state machine:
 	uint8  repeat_cnt;
 	bool   auto_crlf = true;
 	uint16 sm_state	 = 0;
 
-	PicoTerm(CanvasPtr);
-	PicoTerm(RCPtr<TextVDU>) noexcept;
+	PicoTerm(RCPtr<Canvas>);
+	PicoTerm(RCPtr<SimpleCharMap>);
+	PicoTerm(RCPtr<CharMapBase>);
+	PicoTerm(RCPtr<Printer<>>) noexcept;
 
 	/* SerialDevice Interface:
 	*/
@@ -60,7 +63,7 @@ public:
 
 	void reset() noexcept;
 	using SerialDevice::printf;
-	char* identify();
+	cstr identify();
 
 protected:
 	// these will stall because USB isn't polled:
