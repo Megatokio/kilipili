@@ -162,7 +162,7 @@ void __attribute__((noreturn)) SDCard::throwDeviceNotResponding()
 void __attribute__((noreturn)) SDCard::throwWriteDataErrorToken(uint8 n)
 {
 	trace(__func__);
-	debugstr("SDCard::throwWriteDataErrorToken 0x%02x\n", n);
+	xdebugstr("SDCard::throwWriteDataErrorToken 0x%02x\n", n);
 
 	if (n == 0xff) throwDeviceNotResponding();
 	deselect();
@@ -175,7 +175,7 @@ void __attribute__((noreturn)) SDCard::throwWriteDataErrorToken(uint8 n)
 void __attribute__((noreturn)) SDCard::throwReadDataErrorToken(uint8 n)
 {
 	trace(__func__);
-	debugstr("SDCard::throwReadDataErrorToken 0x%02x\n", n);
+	xdebugstr("SDCard::throwReadDataErrorToken 0x%02x\n", n);
 
 	if (n == 0xff) throwDeviceNotResponding();
 	deselect();
@@ -190,7 +190,7 @@ void __attribute__((noreturn)) SDCard::throwReadDataErrorToken(uint8 n)
 void __attribute__((noreturn)) SDCard::throwR1ResponseError(uint8 r1)
 {
 	trace(__func__);
-	debugstr("SDCard::throwR1ResponseError 0x%02x\n", r1);
+	xdebugstr("SDCard::throwR1ResponseError 0x%02x\n", r1);
 
 	if (r1 == 0xff) throwDeviceNotResponding();
 	deselect();
@@ -264,7 +264,7 @@ uint16 SDCard::read_status(bool keep_selected) noexcept // not used
 	// => i think the card must respond immediately, no 0xff fill byte allowed.
 
 	trace(__func__);
-	debugstr("SDCard::%s\n", __func__);
+	xdebugstr("SDCard::%s\n", __func__);
 
 	constexpr uint8 cmd13[6] {0x40 | 13, 0, 0, 0, 0, 0x0D};
 	select();
@@ -317,8 +317,8 @@ a:
 x:
 	if ((r1 & r1_mask) == CommandCrcError && retry--) goto a;
 
-	if (arg) debugstr("SDCard::send_cmd(%scmd %u, 0x%08x)\n", is_acmd ? "a" : "", cmd, arg);
-	else debugstr("SDCard::send_cmd(%scmd %u)\n", is_acmd ? "a" : "", cmd);
+	if (arg) xdebugstr("SDCard::send_cmd(%scmd %u, 0x%08x)\n", is_acmd ? "a" : "", cmd, arg);
+	else xdebugstr("SDCard::send_cmd(%scmd %u)\n", is_acmd ? "a" : "", cmd);
 	throwR1ResponseError(r1);
 }
 
@@ -335,7 +335,7 @@ void SDCard::initialize_card_and_wait_ready() throws // part of connect()
 	// R3 response of ACMD41 continuously to let host know SDUC card cannot use SPI mode.
 
 	trace(__func__);
-	debugstr("SDCard::%s\n", __func__);
+	xdebugstr("SDCard::%s\n", __func__);
 
 	for (CC end = now() + 5 * 1000000; now() < end;)
 	{
@@ -359,7 +359,7 @@ void SDCard::read_ocr() throws // part of connect()
 	// if CCS bit in OCR == 0: => SD v1 or v2+ with byte addresses
 
 	trace(__func__);
-	debugstr("SDCard::%s\n", __func__);
+	xdebugstr("SDCard::%s\n", __func__);
 
 	uint8 bu[4];
 	send_cmd(58, 0, no_deselect);
@@ -374,7 +374,7 @@ void SDCard::read_scr() // part of connect()
 	// the only interesting data in here is the value of erased bits
 
 	trace(__func__);
-	debugstr("SDCard::%s\n", __func__);
+	xdebugstr("SDCard::%s\n", __func__);
 
 	send_acmd(51, 0, no_deselect);
 	uint8 bu[10];
@@ -393,7 +393,7 @@ void SDCard::read_card_info(uint8 cmd) throws // part of connect()
 	// The CSD and CID are sent to the host as 16 byte data block.
 
 	trace(__func__);
-	debugstr("SDCard::%s\n", __func__);
+	xdebugstr("SDCard::%s\n", __func__);
 
 	assert(cmd == 9 || cmd == 10);
 
@@ -424,7 +424,7 @@ void SDCard::read_card_info(uint8 cmd) throws // part of connect()
 void SDCard::connect() throws
 {
 	trace("SDCard::connect");
-	debugstr("%s\n", "SDCard::connect");
+	xdebugstr("%s\n", "SDCard::connect");
 
 	// attach to a card
 	// connect() may take several seconds if called directly after inserting the card
@@ -568,7 +568,7 @@ void SDCard::set_blocklen(uint blen) throws
 	// CMD16
 
 	trace("SDCard::set_blocklen");
-	debugstr("%s\n", "SDCard::set_blocklen");
+	xdebugstr("%s\n", "SDCard::set_blocklen");
 
 	send_cmd(16, blen);
 }
@@ -792,7 +792,7 @@ void SDCard::writeSectors(LBA blkidx, const void* data, SIZE blkcnt) throws
 uint32 SDCard::ioctl(IoCtl ctl, void* arg1, void* arg2) throws
 {
 	trace("SDCard::ioctl");
-	debugstr("SDCard::ioctl(%u)\n", uint(ctl.cmd));
+	xdebugstr("SDCard::ioctl(%u)\n", uint(ctl.cmd));
 
 	switch (ctl.cmd)
 	{
