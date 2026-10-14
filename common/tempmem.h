@@ -38,14 +38,14 @@ namespace kilipili
 
 extern char emptystr[]; // non-const version of ""
 
-extern str	newstr(uint n);			  // allocate memory with new[]
-extern str	newcopy(cstr);			  // allocate memory with new[] and copy string
-extern str	tempstr(uint len);		  // allocate tempmem: 0-terminated, not cleared
-extern str	dupstr(cstr);			  // allocate tempmem and copy string
-extern ptr	tempmem(uint size);		  // allocate tempmem: aligned, not cleared
-extern void purge_tempmem() noexcept; // purge tempmem up to the last save position
-extern str	xdupstr(cstr);			  // purge_tempmem (!) and copy string before current save position
-
+extern str	newstr(uint n);							   // allocate memory with new[]
+extern str	newcopy(cstr);							   // allocate memory with new[] and copy string
+extern str	tempstr(uint len);						   // allocate tempmem: 0-terminated, not cleared
+extern str	dupstr(cstr);							   // allocate tempmem and copy string
+extern ptr	tempmem(uint size);						   // allocate tempmem: aligned, not cleared
+extern void purge_tempmem() noexcept;				   // purge tempmem up to the last save position
+extern str xdupstr(cstr, bool before_save_pos = true); // purge_tempmem (!) and copy string before current save position
+extern bool resize_tempstr(str s, uint new_len) noexcept; // try to resize a string in-place
 
 /*	save and restore the current allocation position of the tempmem pool.
 	Use this inside or before calling a function which may allocate some temp strings
