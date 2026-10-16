@@ -144,8 +144,11 @@ public:
 
 	RCPtr& operator=(T* q) noexcept
 	{
-		retain_release(q, p);
-		p = q;
+		if (q != p)
+		{
+			retain_release(q, p);
+			p = q;
+		}
 		return *this;
 	}
 	RCPtr& operator=(std::nullptr_t) noexcept
