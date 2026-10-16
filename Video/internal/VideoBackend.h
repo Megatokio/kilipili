@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "VgaMode.h"
-#include "cdefs.h"
+#include "Video/VgaMode.h"
+#include "common/cdefs.h"
 
 namespace kilipili
 {

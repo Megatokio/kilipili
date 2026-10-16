@@ -308,9 +308,7 @@ static void __section(RAM ".vc") video_runner(int row0, uint32 cc_at_line_start)
 			for (uint i = 0; i < num_planes; i++)
 			{
 				VideoPlane* vp = planes[i];
-				//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
 				vp->vblank_fu(vp);
-				//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
 			}
 
 			// the pixel dma starts reading the first pixels of a scanline
@@ -328,9 +326,7 @@ static void __section(RAM ".vc") video_runner(int row0, uint32 cc_at_line_start)
 			for (uint i = 0; i < num_planes; i++)
 			{
 				VideoPlane* vp = planes[i];
-				//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
 				vp->render_fu(vp, 0 /*row*/, vga_mode.width, scanline_buffer[row0]);
-				//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
 			}
 
 			cc_at_line_start -= uint(row) * cc_per_scanline;
@@ -354,9 +350,7 @@ static void __section(RAM ".vc") video_runner(int row0, uint32 cc_at_line_start)
 		for (uint i = 0; i < num_planes; i++)
 		{
 			VideoPlane* vp = planes[i];
-			//gpio_set_mask(1 << PICO_DEFAULT_LED_PIN);
 			vp->render_fu(vp, row, vga_mode.width, scanline);
-			//gpio_clr_mask(1 << PICO_DEFAULT_LED_PIN);
 		}
 	}
 }
