@@ -451,6 +451,7 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 
 	print(oldtext);
 
+	// prepare for use of xdupstr():
 	TempMemSave _;
 
 	for (;;)
@@ -492,10 +493,10 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 				case 'B': c = KEY_ARROW_DOWN; break;  // ESC[B
 				case 'C': c = KEY_ARROW_RIGHT; break; // ESC[C
 				case 'D': c = KEY_ARROW_LEFT; break;  // ESC[D
-				default: printf("{ESC,0x%02x}", uint(c)); continue;
+				default: debugstr("{ESC,0x%02x}", uint(c)); continue;
 				}
 				break;
-			default: printf("{0x%02x}", uint(c)); continue;
+			default: debugstr("{0x%02x}", uint(c)); continue;
 			}
 		}
 
@@ -508,7 +509,7 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 
 		if (c >> 16) // with modifiers
 		{
-			printf("{%s+%s}", tostr(HIDKey(c & 0xff)), tostr(Modifiers(c >> 16), true));
+			debugstr("{%s+%s}", tostr(HIDKey(c & 0xff)), tostr(Modifiers(c >> 16), true));
 			continue;
 		}
 
@@ -532,7 +533,7 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 			break;
 		case KEY_ARROW_UP: epos = max(epos - cols, 0); break;
 		case KEY_ARROW_DOWN: epos = min(epos + cols, int(strlen(oldtext))); break;
-		default: printf("{%s}", tostr(HIDKey(c & 0xff)));
+		default: debugstr("{%s}", tostr(HIDKey(c & 0xff)));
 		}
 	}
 }

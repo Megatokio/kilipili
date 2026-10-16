@@ -19,15 +19,21 @@ public:
 
 	Printer(Canvas*, const Font* font1 = &latin1_12x8, const Font* font2 = &graphics_12x8) noexcept;
 
-	void  reset(bool cls = false) noexcept override;
-	void  printChar(char c, int count = 1) noexcept override; // no ctl
-	void  print(cstr text) noexcept override;				  // supports \n and \t
-	void  write(cptr text, int count) noexcept override;	  // any char, even chr(0)
-	void  clearRect(int row, int col, int rows, int cols) noexcept override;
-	void  copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
-	cstr  identify() override;
+	void reset(bool cls = false) noexcept override;
+	void printChar(char c, int count = 1) noexcept override; // no ctl
+	void print(cstr text) noexcept override;				 // supports \n and \t
+	void write(cptr text, int count) noexcept override;		 // any char, even chr(0)
+	void clearRect(int row, int col, int rows, int cols) noexcept override;
+	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
+	cstr identify() override;
+
+	// attribute changes apply to following printing:
 	void  setAttributes(uint add, uint remove = 0xff) noexcept override;
 	uint8 getAttributes() const noexcept override { return attributes; }
+
+	// font changes apply to following printing:
+	void		setFont(const Font*, bool gfx = 0) noexcept override;
+	const Font* getFont(bool gfx = 0) noexcept override;
 
 	RCPtr<Canvas>	  pixmap;
 	RCPtr<const Font> font1; // default: latin-1

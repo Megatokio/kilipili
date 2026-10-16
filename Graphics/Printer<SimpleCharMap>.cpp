@@ -141,6 +141,24 @@ uint8 Printer<SimpleCharMap>::getAttributes() const noexcept
 	return attr;
 }
 
+void Printer<SimpleCharMap>::setFont(const Font* font, bool gfx) noexcept
+{
+	// set a new font
+	// setting a gfx font is silently ignored
+
+	// caveat: if this SimpleCharMap is displayed,
+	// then FrameBuffer<SimpleCharMap>::do_vblank() regularly reads font1:
+	// => overwriting smart pointers accessed by others is not inherently safe!
+
+	if (gfx == 0) charmap->fonts[0] = font;
+}
+
+const Font* Printer<SimpleCharMap>::getFont(bool gfx) noexcept
+{
+	if (gfx == 0) return charmap->fonts[0];
+	else return nullptr;
+}
+
 
 } // namespace kilipili
 

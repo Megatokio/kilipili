@@ -4,16 +4,18 @@
 
 #include "Printer<CharMap>.h"
 #include "cstrings.h"
-
+#include "timing.h"
 
 namespace kilipili
 {
+
+#define font1 fonts[0]
+#define font2 fonts[1]
 
 Printer<CharMapBase>::Printer(CharMapBase* charmap) : //
 	Printer<>(charmap->rows, charmap->cols),
 	charmap(charmap)
 {}
-
 
 void Printer<CharMapBase>::reset(bool cls) noexcept
 {
@@ -89,6 +91,45 @@ uint8 Printer<CharMapBase>::getAttributes() const noexcept
 	if (attributes & charmap->graphics) attr |= graphics;
 	return attr;
 }
+
+void Printer<CharMapBase>::setFont(const Font* font, bool gfx) noexcept
+{
+	// set a new font, either font1 or font2 (gfx)
+
+	// caveat: if this CharMap is displayed,
+	// then FrameBuffer<CharMap>::do_vblank() regularly reads font1 and font2:
+	// => overwriting smart pointers accessed by others is not inherently safe!
+
+	int delta_fh = font->char_height - charmap->font1->char_height;
+
+	if (gfx)
+	{
+		if (delta_fh == 0) charmap->font2 = font;
+		// else: silently ignore font setting
+	}
+	else
+	{
+		if (delta_fh > 0) // font > font1
+		{
+			charmap->font2 = font;
+			// assert that do_vblank doesn't see new font1 if it didn't see new font2:
+			for (int n = 0 / 5; n; --n) __asm volatile("nop");
+		}
+		charmap->font1 = font;
+		if (delta_fh < 0) // font < font1
+		{
+			// assert that do_vblank doesn't see new font2 if it didn't see new font1:
+			for (int n = 200 / 5; n; --n) __asm volatile("nop");
+			charmap->font2 = font;
+		}
+	}
+}
+
+const Font* Printer<CharMapBase>::getFont(bool gfx) noexcept
+{
+	return charmap->fonts[gfx]; //
+}
+
 
 cstr attr_str(bool b, bool u, bool g)
 {

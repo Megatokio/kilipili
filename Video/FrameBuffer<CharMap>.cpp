@@ -14,8 +14,8 @@ FrameBufferCharMapBase::FrameBufferCharMapBase(
 	CharMapBase* charmap, scanline_render_fu* fu, uint32* fg, uint32* bg) noexcept :
 	VideoPlane(&do_vblank, &do_render),
 	charmap(charmap),
-	font1(charmap->font1),
-	font2(charmap->font2),
+	font1(charmap->fonts[0]),
+	font2(charmap->fonts[1]),
 	scanline_renderer(fu),
 	fgcolors(fg),
 	bgcolors(bg)
@@ -38,8 +38,8 @@ void __section(RAM ".FB_CM") FrameBufferCharMapBase::do_vblank(VideoPlane* vp) n
 
 	me->raster_line = 0;
 	me->last_y		= 0;
-	me->font1		= charmap->font1;
-	me->font2		= charmap->font2;
+	me->font1		= charmap->fonts[0];
+	me->font2		= charmap->fonts[1];
 	me->row_ptr		= charmap->data;	   // source ptr
 	me->cursor_ptr	= charmap->cursor_ptr; //
 

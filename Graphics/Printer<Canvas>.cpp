@@ -46,6 +46,8 @@ Printer<Canvas>::Printer(Canvas* pixmap, const Font* font1, const Font* font2) n
 	assert(font1->char_width == font2->char_width);
 	assert(font1->char_height == font2->char_height);
 
+	assert(uint(font1->char_height) <= sizeof(CharMatrix));
+
 	if (pixmap->attrmode() != attrmode_none)
 	{
 		assert(font1->char_height % pixmap->attrheight == 0);
@@ -76,7 +78,7 @@ cstr Printer<Canvas>::identify()
 	// size=400*300, text=50*25, char=8*12, colors=rgb, attr=8*12
 
 	uint colordepth = get_colordepth(pixmap->colormode);
-	uint attrmode	= pixmap->attrmode();
+	int	 attrmode	= pixmap->attrmode();
 	uint attrwidth	= pixmap->attrwidth();
 	uint attrheight = pixmap->attrheight;
 
@@ -136,6 +138,25 @@ void Printer<Canvas>::setAttributes(uint add, uint remove) noexcept
 	attributes = Attributes((attributes & ~remove) | add);
 	dx		   = attributes & double_width ? 2 : 1;
 	dy		   = attributes & double_height ? 2 : 1;
+}
+
+void Printer<Canvas>::setFont(const Font* font, bool gfx) noexcept
+{
+	assert(uint(font->char_height) <= sizeof(CharMatrix));
+
+	if (font->char_height != font2->char_height)
+	{
+		if (gfx) return;   // gfx=1: silently ignore setting
+		else font2 = font; // gfx=0: set the gfx font too
+	}
+
+	if (gfx) font2 = font;
+	else font1 = font;
+}
+
+const Font* Printer<Canvas>::getFont(bool gfx) noexcept
+{
+	return gfx == 0 ? font1 : font2; //
 }
 
 void Printer<Canvas>::applyAttributes(CharMatrix bmp) noexcept
@@ -285,8 +306,6 @@ void Printer<Canvas>::printCharMatrix(CharMatrix charmatrix, int count) noexcept
 void Printer<Canvas>::printChar(char c, int count) noexcept
 {
 	CharMatrix charmatrix;
-	assert(uint(font1->char_height) <= sizeof(charmatrix));
-
 	getCharMatrix(charmatrix, c);
 	printCharMatrix(charmatrix, count);
 }
@@ -296,7 +315,6 @@ void Printer<Canvas>::write(cptr text, int count) noexcept
 	// any char, even chr(0)
 
 	CharMatrix charmatrix;
-	assert(uint(font1->char_height) <= sizeof(charmatrix));
 
 	for (int i = 0; i < count; i++)
 	{
@@ -311,7 +329,6 @@ void Printer<Canvas>::print(cstr s) noexcept
 	// control characters: only \t and \n.
 
 	CharMatrix charmatrix;
-	assert(uint(font1->char_height) <= sizeof(charmatrix));
 
 	while (char c = *s++)
 	{

@@ -46,8 +46,7 @@ public:
 	uint16 rc		= 0; // RCPtr<>
 	uint16 _padding = 0;
 
-	RCPtr<const Font>  font1 {&ascii_12x8_inverse};
-	static const Font* font2; // n.ex.: for similarity with CharMap
+	RCPtr<const Font> fonts[1] {&ascii_12x8_inverse}; // should be copied into RAM
 
 	uchar* data		  = nullptr;
 	uchar* cursor_ptr = nullptr;

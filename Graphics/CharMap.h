@@ -71,8 +71,7 @@ public:
 	int		rows;
 	int		cols;
 
-	RCPtr<const Font> font1 {&latin1_12x8};	  // should be copied into ram
-	RCPtr<const Font> font2 {&graphics_12x8}; // only used if graphics = true
+	RCPtr<const Font> fonts[2] {&latin1_12x8, &graphics_12x8}; // should be copied into ram!
 
 	uint8 rc = 0; // RCPtr<>
 

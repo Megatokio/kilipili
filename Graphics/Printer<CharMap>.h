@@ -17,15 +17,21 @@ class Printer<CharMapBase> final : public Printer<>
 public:
 	Printer(CharMapBase*);
 
-	void  reset(bool cls = false) noexcept override;
-	cstr  identify() override;
-	void  clearRect(int row, int col, int rows, int cols) noexcept override;
-	void  copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
-	void  printChar(char c, int count = 1) noexcept override; // no ctl
-	void  print(cstr text) noexcept override;				  // supports \n and \t
-	void  write(cptr text, int count) noexcept override;	  // any char, even chr(0)
+	void reset(bool cls = false) noexcept override;
+	cstr identify() override;
+	void clearRect(int row, int col, int rows, int cols) noexcept override;
+	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
+	void printChar(char c, int count = 1) noexcept override; // no ctl
+	void print(cstr text) noexcept override;				 // supports \n and \t
+	void write(cptr text, int count) noexcept override;		 // any char, even chr(0)
+
+	// attribute changes apply to following printing:
 	void  setAttributes(uint add, uint remove = 0xff) noexcept override;
 	uint8 getAttributes() const noexcept override;
+
+	// font changes apply immediately to the whole CharMap:
+	void		setFont(const Font*, bool gfx = 0) noexcept override;
+	const Font* getFont(bool gfx = 0) noexcept override;
 
 	RCPtr<CharMapBase> charmap;
 

@@ -67,7 +67,7 @@ private:
 template<typename Flag>
 FrameBuffer<SimpleCharMap, Flag>::FrameBuffer(SimpleCharMap* charmap) noexcept :
 	charmap(charmap),
-	font(charmap->font1),
+	font(charmap->fonts[0]),
 	VideoPlane(&do_vblank, &do_render)
 {
 	assert(font->char_width == 8);
@@ -87,7 +87,7 @@ void FrameBuffer<SimpleCharMap, Flag>::do_vblank(VideoPlane* vp) noexcept
 	me->raster_line = 0;
 	me->last_y		= 0;
 	me->cursor_ptr	= charmap->cursor_ptr;
-	me->font		= charmap->font1;
+	me->font		= charmap->fonts[0];
 
 	if (charmap->bgcolor != me->colorstrips[0][0] || charmap->fgcolor != me->colorstrips[NELEM(colorstrips) - 1][0])
 	{

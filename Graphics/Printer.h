@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "Font.h"
 #include "common/RCPtr.h"
 #include "common/no_copy_move.h"
 #include "common/standard_types.h"
@@ -52,6 +53,9 @@ public:
 	void		  addAttributes(uint a) noexcept { setAttributes(a, 0); }
 	void		  removeAttributes(uint a = 0xff) noexcept { setAttributes(0, a); }
 	virtual uint8 getAttributes() const noexcept = 0;
+
+	virtual void		setFont(const Font*, bool gfx = 0) noexcept = 0;
+	virtual const Font* getFont(bool gfx = 0) noexcept				= 0;
 
 	void showCursor(bool on = true) noexcept;
 	void hideCursor() noexcept;
