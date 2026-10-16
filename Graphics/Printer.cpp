@@ -451,7 +451,6 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 
 	print(oldtext);
 
-	// TODO: this is not yet perfect, because while editing tempmem piles up:
 	TempMemSave _;
 
 	for (;;)
@@ -465,6 +464,7 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 			if (is_printable(char(c)))
 			{
 				oldtext = catstr(leftstr(oldtext, epos), charstr(char(c)), oldtext + epos);
+				oldtext = xdupstr(oldtext, false); // purge_tempmem & reallocate oldtext
 				print(oldtext + epos++);
 				continue;
 			}
@@ -522,6 +522,7 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 		case KEY_DELETE:
 			if (oldtext[epos] == 0) break;
 			oldtext = catstr(leftstr(oldtext, epos), oldtext + epos + 1);
+			oldtext = xdupstr(oldtext, false); // purge_tempmem & reallocate oldtext
 			print(oldtext + epos);
 			printChar(' ');
 			break;
