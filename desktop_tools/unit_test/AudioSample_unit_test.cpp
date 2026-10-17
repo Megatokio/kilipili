@@ -1,4 +1,4 @@
-// Copyright (c) 2024 - 2025 kio@little-bat.de
+// Copyright (c) 2024 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -10,31 +10,30 @@ namespace kilipili::Test
 {
 
 using namespace kilipili;
-using namespace kilipili::Audio;
 
 
 TEST_CASE("Audio::AudioSample ctor, conversion")
 {
 	Sample s = 123;
 	(void)s;
-	MonoSample						   s1;
-	MonoSample						   s2;
-	AudioSample<1, Sample>			   s3;
-	AudioSample<1, int>				   s4;
-	AudioSample<1, uint8>			   s5;
-	StereoSample					   s6;
-	StereoSample					   s7;
-	AudioSample<2, Sample>			   s9;
-	AudioSample<2, int>				   s8;
-	AudioSample<2, uint8>			   s10;
-	NoAudioSample					   s0;
-	AudioSample<2, kilipili::Audio::Sample> bu[33];
-	MonoSample						   m;
-	MonoSample						   m2;
-	AudioSample<1, kilipili::Audio::Sample> m3(3);
-	AudioSample<1, int>				   m4;
-	MonoSample						   m5(Sample(3));
-	AudioSample<1, Sample>			   m6(77);
+	MonoSample			   s1;
+	MonoSample			   s2;
+	AudioSample<1, Sample> s3;
+	AudioSample<1, int>	   s4;
+	AudioSample<1, uint8>  s5;
+	StereoSample		   s6;
+	StereoSample		   s7;
+	AudioSample<2, Sample> s9;
+	AudioSample<2, int>	   s8;
+	AudioSample<2, uint8>  s10;
+	NoAudioSample		   s0;
+	AudioSample<2, Sample> bu[33];
+	MonoSample			   m;
+	MonoSample			   m2;
+	AudioSample<1, Sample> m3(3);
+	AudioSample<1, int>	   m4;
+	MonoSample			   m5(Sample(3));
+	AudioSample<1, Sample> m6(77);
 
 	MonoSample m7(77);
 	static_assert(sizeof(m7) == sizeof(Sample));
@@ -198,11 +197,11 @@ TEST_CASE("Audio::MonoSample<int> arithmetics")
 	CHECK_EQ(MonoSample(-90000) >> 3, MonoSample(-90000 / 8));
 	CHECK_EQ(MonoSample(-900) >> 3, MonoSample((-900 - 7) / 8));
 
-	CHECK_EQ(Audio::MonoSample(MonoSample(777)).m, 777);
-	CHECK_EQ(Audio::MonoSample(MonoSample(-77)).m, -77);
+	CHECK_EQ(kilipili::MonoSample(MonoSample(777)).m, 777);
+	CHECK_EQ(kilipili::MonoSample(MonoSample(-77)).m, -77);
 
-	CHECK_EQ(MonoSample(Audio::MonoSample(777)).m, 777);
-	CHECK_EQ(MonoSample(Audio::MonoSample(-77)).m, -77);
+	CHECK_EQ(MonoSample(kilipili::MonoSample(777)).m, 777);
+	CHECK_EQ(MonoSample(kilipili::MonoSample(-77)).m, -77);
 }
 
 TEST_CASE("Audio::StereoSample<int> arithmetics")
@@ -225,11 +224,11 @@ TEST_CASE("Audio::StereoSample<int> arithmetics")
 	CHECK_EQ(StereoSample(-90000, 400) >> 3, StereoSample(-90000 / 8, 400 / 8));
 	CHECK_EQ(StereoSample(-900, -4000) >> 3, StereoSample((-900 - 7) / 8, -4000 / 8));
 
-	CHECK_EQ(Audio::StereoSample(StereoSample(777, 8)).l, 777);
-	CHECK_EQ(Audio::StereoSample(StereoSample(8, -77)).r, -77);
+	CHECK_EQ(kilipili::StereoSample(StereoSample(777, 8)).l, 777);
+	CHECK_EQ(kilipili::StereoSample(StereoSample(8, -77)).r, -77);
 
-	CHECK_EQ(StereoSample(Audio::StereoSample(777, 8)).l, 777);
-	CHECK_EQ(StereoSample(Audio::StereoSample(8, -77)).r, -77);
+	CHECK_EQ(StereoSample(kilipili::StereoSample(777, 8)).l, 777);
+	CHECK_EQ(StereoSample(kilipili::StereoSample(8, -77)).r, -77);
 }
 
 

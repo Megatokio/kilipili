@@ -5,7 +5,7 @@
 #include "MockPixmap.h"
 #include "common/cstrings.h"
 
-namespace kilipili::Graphics::Mock
+namespace kilipili::Mock
 {
 
 Pixmap::Pixmap(coord w, coord h, ColorMode CM, AttrHeight AH) : Canvas(w, h, CM, AH, false)
@@ -93,10 +93,10 @@ void Pixmap::copyRect(coord zx, coord zy, const Canvas&, coord qx, coord qy, coo
 	log.append(usingstr("%s(%i,%i,Canvas,%i,%i,%i,%i)", __func__, zx, zy, qx, qy, w, h));
 }
 
-void Pixmap::readBmp(coord x, coord y, uint8*, int row_offs, coord w, coord h, uint color, bool set) noexcept
-{
-	log.append(usingstr("%s(%i,%i,uint8*,%i,%i,%i,%u,%u)", __func__, row_offs, x, y, w, h, color, set));
-}
+//void Pixmap::readBmp(coord x, coord y, uint8*, int row_offs, coord w, coord h, uint color, bool set) noexcept
+//{
+//	log.append(usingstr("%s(%i,%i,uint8*,%i,%i,%i,%u,%u)", __func__, row_offs, x, y, w, h, color, set));
+//}
 
 void Pixmap::drawBmp(coord zx, coord zy, const uint8*, int ro, coord w, coord h, uint color, uint ink) noexcept
 {
@@ -109,4 +109,4 @@ void Pixmap::drawChar(coord zx, coord zy, const uint8*, coord h, uint color, uin
 }
 
 
-} // namespace kilipili::Graphics::Mock
+} // namespace kilipili::Mock

@@ -3,15 +3,15 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Graphics/Color.h"
+#include "Graphics/Pixmap_wAttr.h"
+#include "Graphics/Printer<Canvas>.h"
 #include "Mock/MockPixmap.h"
-#include "Pixmap_wAttr.h"
-#include "TextVDU.h"
 #include "doctest.h"
 
-using namespace kilipili::Graphics;
 using namespace kilipili;
 
-static_assert(TextVDU::CHAR_HEIGHT == 12);
+using TextVDU = Printer<Canvas>;
+//static_assert(TextVDU::CHAR_HEIGHT == 12);
 static_assert(TextVDU::CHAR_WIDTH == 8);
 
 // defined in main_unit_test.cpp:
@@ -29,10 +29,10 @@ extern doctest::String toString(ColorMode);
 namespace kilipili::Test
 {
 
-using Pixmap	 = kilipili::Graphics::Mock::Pixmap;
-using RealPixmap = kilipili::Graphics::Pixmap<colormode_a1w8>;
+using Pixmap	 = kilipili::Mock::Pixmap;
+using RealPixmap = kilipili::Pixmap<colormode_a1w8>;
 
-TEST_CASE("TextVDU: constructor")
+TEST_CASE("Printer<Canvas>: constructor")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8);
 	TextVDU		  tv(pm);
@@ -43,13 +43,13 @@ TEST_CASE("TextVDU: constructor")
 	CHECK_EQ(Color(tv.default_bgcolor).raw, Color::uRGB(-1)); // white
 	CHECK_EQ(Color(tv.default_fgcolor).raw, 0x0000u);		  // black
 	CHECK_EQ(tv.pixmap.ptr(), pm.ptr());
-	CHECK_EQ(tv.colormode, uint(colormode_a1w8));
-	CHECK_EQ(tv.attrheight, 12);
-	CHECK_EQ(tv.colordepth, msbit(sizeof(Color) * CHAR_BIT)); //log2(16)
-	CHECK_EQ(tv.attrmode, attrmode_1bpp);
-	CHECK_EQ(tv.attrwidth, 3);							   // log2(8)
-	CHECK_EQ(tv.bits_per_color, sizeof(Color) * CHAR_BIT); // 16
-	CHECK_EQ(tv.bits_per_pixel, 1);
+	CHECK_EQ(tv.pixmap->colormode, uint(colormode_a1w8));
+	CHECK_EQ(tv.pixmap->attrheight, 12);
+	CHECK_EQ(tv.pixmap->colordepth(), msbit(sizeof(Color) * CHAR_BIT)); //log2(16)
+	CHECK_EQ(tv.pixmap->attrmode(), attrmode_1bpp);
+	CHECK_EQ(tv.pixmap->attrwidth(), 3);							 // log2(8)
+	CHECK_EQ(tv.pixmap->bits_per_color(), sizeof(Color) * CHAR_BIT); // 16
+	CHECK_EQ(tv.pixmap->bits_per_pixel(), 1);
 	CHECK_EQ(tv.cols, 80 / 8);
 	CHECK_EQ(tv.rows, 60 / 12);
 	CHECK_EQ(tv.bgcolor, tv.default_bgcolor);
@@ -60,21 +60,21 @@ TEST_CASE("TextVDU: constructor")
 	CHECK_EQ(tv.col, 0);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 1);
-	CHECK_EQ(tv.attributes, 0);
-	CHECK_EQ(tv.cursorVisible, false);
+	CHECK_EQ(tv.getAttributes(), 0);
+	CHECK_EQ(tv.cursor_visible, false);
 }
 
-TEST_CASE("TextVDU: showCursor(), hideCursor()")
+TEST_CASE("Printer<Canvas>: showCursor(), hideCursor()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8);
 	TextVDU		  tv(pm);
 	{
 		tv.cls();
-		CHECK_EQ(tv.cursorVisible, false);
+		CHECK_EQ(tv.cursor_visible, false);
 		tv.showCursor(true);
-		CHECK_EQ(tv.cursorVisible, true);
+		CHECK_EQ(tv.cursor_visible, true);
 		tv.hideCursor();
-		CHECK_EQ(tv.cursorVisible, false);
+		CHECK_EQ(tv.cursor_visible, false);
 
 		Array<cstr> ref;
 		ref << "Pixmap(80,60,a1w8,12)";	  // ctor
@@ -96,12 +96,12 @@ TEST_CASE("TextVDU: showCursor(), hideCursor()")
 	}
 }
 
-TEST_CASE("TextVDU: reset()")
+TEST_CASE("Printer<Canvas>: reset()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8);
 	TextVDU		  tv(pm);
 
-	tv.setAttributes(tv.BOLD | tv.INVERTED | tv.DOUBLE_WIDTH | tv.DOUBLE_HEIGHT);
+	tv.setAttributes(tv.bold | tv.inverted | tv.double_width | tv.double_height);
 	tv.bgcolor = 1234;
 	tv.fgcolor = 2345;
 	tv.moveTo(5, 7);
@@ -117,11 +117,11 @@ TEST_CASE("TextVDU: reset()")
 	CHECK_EQ(tv.col, 0);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 1);
-	CHECK_EQ(tv.attributes, 0);
-	CHECK_EQ(tv.cursorVisible, false);
+	CHECK_EQ(tv.getAttributes(), 0);
+	CHECK_EQ(tv.cursor_visible, false);
 }
 
-TEST_CASE("TextVDU: cls()")
+TEST_CASE("Printer<Canvas>: cls()")
 {
 	RCPtr<RealPixmap> pm = new RealPixmap(80, 60, attrheight_12px);
 	TextVDU			  tv(pm);
@@ -143,21 +143,22 @@ TEST_CASE("TextVDU: cls()")
 	CHECK_EQ(color_ok, true);
 }
 
-TEST_CASE("TextVDU: identify()")
+TEST_CASE("Printer<Canvas>: identify()")
 {
 	RCPtr<RealPixmap> pm1 = new RealPixmap(800, 60, attrheight_12px);
 	RCPtr<RealPixmap> pm2 = new RealPixmap(800, 60, attrheight_12px);
 
 	TextVDU tv1(pm1);
+	//debugstr("%s\n", tv1.identify());
 	tv1.cls();
-	tv1.identify();
-	tv1.showCursor();
+	//tv1.printf("%s\n", tv1.identify());
+	//tv1.showCursor();
 
 	TextVDU tv2(pm2);
 	tv2.cls();
-	tv2.print("size=800*60, text=100*5, char=8*12, colors=rgb, attr=8*12");
-	tv2.newLine();
-	tv2.showCursor();
+	//tv2.print("size=800*60, text=100*5, char=8*12, colors=rgb, attr=8*12");
+	//tv2.newLine();
+	//tv2.showCursor();
 
 	CHECK_EQ(*pm1, *pm2);
 
@@ -167,12 +168,12 @@ TEST_CASE("TextVDU: identify()")
 	CHECK_EQ(pm1->height, 60);
 	CHECK_EQ(tv1.cols, 100);
 	CHECK_EQ(tv1.rows, 5);
-	CHECK_EQ(tv1.attrwidth, 3); // log2(8)
-	CHECK_EQ(tv1.attrheight, 12);
-	CHECK_EQ(tv1.colordepth, msbit(sizeof(Color) * CHAR_BIT)); // log2(16)
+	CHECK_EQ(tv1.pixmap->attrwidth(), 3); // log2(8)
+	CHECK_EQ(tv1.pixmap->attrheight, 12);
+	CHECK_EQ(tv1.pixmap->colordepth(), msbit(sizeof(Color) * CHAR_BIT)); // log2(16)
 }
 
-TEST_CASE("TextVDU: moveTo()")
+TEST_CASE("Printer<Canvas>: moveTo()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -239,7 +240,7 @@ TEST_CASE("TextVDU: moveTo()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: moveToCol()")
+TEST_CASE("Printer<Canvas>: moveToCol()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -297,7 +298,7 @@ TEST_CASE("TextVDU: moveToCol()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: moveToRow()")
+TEST_CASE("Printer<Canvas>: moveToRow()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -335,27 +336,27 @@ TEST_CASE("TextVDU: moveToRow()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: setCharAttributes()")
+TEST_CASE("Printer<Canvas>: setCharAttributes()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
 
-	CHECK_EQ(tv.attributes, 0);
+	CHECK_EQ(tv.getAttributes(), 0);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 1);
 
-	tv.setAttributes(tv.ITALIC);
-	CHECK_EQ(tv.attributes, tv.ITALIC);
+	tv.setAttributes(tv.italic);
+	CHECK_EQ(tv.getAttributes(), tv.italic);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 1);
 
-	tv.setAttributes(tv.BOLD, 0);
-	CHECK_EQ(tv.attributes, tv.ITALIC + tv.BOLD);
+	tv.setAttributes(tv.bold, 0);
+	CHECK_EQ(tv.getAttributes(), tv.italic + tv.bold);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 1);
 
-	tv.setAttributes(tv.INVERTED, tv.ITALIC);
-	CHECK_EQ(tv.attributes, tv.BOLD + tv.INVERTED);
+	tv.setAttributes(tv.inverted, tv.italic);
+	CHECK_EQ(tv.getAttributes(), tv.bold + tv.inverted);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 1);
 
@@ -365,32 +366,32 @@ TEST_CASE("TextVDU: setCharAttributes()")
 
 	tv.moveTo(0, 9);
 
-	tv.setAttributes(tv.DOUBLE_WIDTH);
-	CHECK_EQ(tv.attributes, tv.DOUBLE_WIDTH);
+	tv.setAttributes(tv.double_width);
+	CHECK_EQ(tv.getAttributes(), tv.double_width);
 	CHECK_EQ(tv.dx, 2);
 	CHECK_EQ(tv.dy, 1);
 	CHECK_EQ(tv.col, 9);
 	CHECK_EQ(tv.row, 0);
 	CHECK_EQ(pm->log, ref);
 
-	tv.setAttributes(tv.DOUBLE_HEIGHT, tv.DOUBLE_WIDTH);
-	CHECK_EQ(tv.attributes, tv.DOUBLE_HEIGHT);
+	tv.setAttributes(tv.double_height, tv.double_width);
+	CHECK_EQ(tv.getAttributes(), tv.double_height);
 	CHECK_EQ(tv.dx, 1);
 	CHECK_EQ(tv.dy, 2);
 	CHECK_EQ(tv.col, 9);
 	CHECK_EQ(tv.row, 0);
 	CHECK_EQ(pm->log, ref);
 
-	tv.setAttributes(tv.DOUBLE_HEIGHT + tv.DOUBLE_WIDTH);
-	CHECK_EQ(tv.attributes, tv.DOUBLE_HEIGHT + tv.DOUBLE_WIDTH);
+	tv.setAttributes(tv.double_height + tv.double_width);
+	CHECK_EQ(tv.getAttributes(), tv.double_height + tv.double_width);
 	CHECK_EQ(tv.dx, 2);
 	CHECK_EQ(tv.dy, 2);
 	CHECK_EQ(tv.col, 9);
 	CHECK_EQ(tv.row, 0);
 	CHECK_EQ(pm->log, ref);
 
-	tv.setAttributes(tv.TRANSPARENT, 0);
-	CHECK_EQ(tv.attributes, tv.DOUBLE_HEIGHT + tv.DOUBLE_WIDTH + tv.TRANSPARENT);
+	tv.setAttributes(tv.transparent, 0);
+	CHECK_EQ(tv.getAttributes(), tv.double_height + tv.double_width + tv.transparent);
 	CHECK_EQ(tv.dx, 2);
 	CHECK_EQ(tv.dy, 2);
 	CHECK_EQ(tv.col, 9);
@@ -408,35 +409,35 @@ TEST_CASE("TextVDU: setCharAttributes()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: addCharAttributes()")
+TEST_CASE("Printer<Canvas>: addCharAttributes()")
 {
 	// this calls setCharAttributes()
 
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
 
-	tv.setAttributes(tv.BOLD);
-	tv.addAttributes(tv.INVERTED);
-	CHECK_EQ(tv.attributes, tv.BOLD + tv.INVERTED);
+	tv.setAttributes(tv.bold);
+	tv.addAttributes(tv.inverted);
+	CHECK_EQ(tv.getAttributes(), tv.bold + tv.inverted);
 }
 
-TEST_CASE("TextVDU: removeCharAttributes()")
+TEST_CASE("Printer<Canvas>: removeCharAttributes()")
 {
 	// this calls setCharAttributes()
 
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
 
-	tv.setAttributes(tv.BOLD + tv.INVERTED);
-	tv.removeAttributes(tv.INVERTED);
-	CHECK_EQ(tv.attributes, tv.BOLD);
+	tv.setAttributes(tv.bold + tv.inverted);
+	tv.removeAttributes(tv.inverted);
+	CHECK_EQ(tv.getAttributes(), tv.bold);
 
 	tv.setAttributes(0xff);
 	tv.removeAttributes();
-	CHECK_EQ(tv.attributes, 0);
+	CHECK_EQ(tv.getAttributes(), 0);
 }
 
-TEST_CASE("TextVDU: limitCursorPosition()")
+TEST_CASE("Printer<Canvas>: limitCursorPosition()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -458,7 +459,7 @@ TEST_CASE("TextVDU: limitCursorPosition()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: validateCursorPosition()")
+TEST_CASE("Printer<Canvas>: validateCursorPosition()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -556,7 +557,7 @@ TEST_CASE("TextVDU: validateCursorPosition()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: cursorLeft()")
+TEST_CASE("Printer<Canvas>: cursorLeft()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -589,7 +590,7 @@ TEST_CASE("TextVDU: cursorLeft()")
 	CHECK_EQ(tv.scroll_count, -1);
 }
 
-TEST_CASE("TextVDU: cursorRight()")
+TEST_CASE("Printer<Canvas>: cursorRight()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -639,7 +640,7 @@ TEST_CASE("TextVDU: cursorRight()")
 	CHECK_EQ(tv.scroll_count, 1);
 }
 
-TEST_CASE("TextVDU: cursorUp()")
+TEST_CASE("Printer<Canvas>: cursorUp()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -687,7 +688,7 @@ TEST_CASE("TextVDU: cursorUp()")
 	CHECK_EQ(tv.scroll_count, -11);
 }
 
-TEST_CASE("TextVDU: cursorDown()")
+TEST_CASE("Printer<Canvas>: cursorDown()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -736,7 +737,7 @@ TEST_CASE("TextVDU: cursorDown()")
 	CHECK_EQ(tv.scroll_count, 2);
 }
 
-TEST_CASE("TextVDU: cursorTab()")
+TEST_CASE("Printer<Canvas>: cursorTab()")
 {
 	{
 		RCPtr<Pixmap> pm = new Pixmap(80 * 8, 40 * 12); // 80*40
@@ -838,7 +839,7 @@ TEST_CASE("TextVDU: cursorTab()")
 	}
 }
 
-TEST_CASE("TextVDU: cursorReturn()")
+TEST_CASE("Printer<Canvas>: cursorReturn()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -863,7 +864,7 @@ TEST_CASE("TextVDU: cursorReturn()")
 	CHECK_EQ(tv.scroll_count, 0);
 }
 
-TEST_CASE("TextVDU: newLine()")
+TEST_CASE("Printer<Canvas>: newLine()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -898,7 +899,7 @@ TEST_CASE("TextVDU: newLine()")
 	CHECK_EQ(tv.scroll_count, 1);
 }
 
-TEST_CASE("TextVDU: clearRect()")
+TEST_CASE("Printer<Canvas>: clearRect()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -930,7 +931,7 @@ TEST_CASE("TextVDU: clearRect()")
 	CHECK_EQ(tv.scroll_count, 0);
 }
 
-TEST_CASE("TextVDU: clearToStartOfLine()")
+TEST_CASE("Printer<Canvas>: clearToStartOfLine()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -981,7 +982,7 @@ TEST_CASE("TextVDU: clearToStartOfLine()")
 	CHECK_EQ(tv.scroll_count, 0);
 }
 
-TEST_CASE("TextVDU: clearToStartOfScreen()")
+TEST_CASE("Printer<Canvas>: clearToStartOfScreen()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1022,7 +1023,7 @@ TEST_CASE("TextVDU: clearToStartOfScreen()")
 	CHECK_EQ(tv.scroll_count, 0);
 }
 
-TEST_CASE("TextVDU: clearToEndOfLine()")
+TEST_CASE("Printer<Canvas>: clearToEndOfLine()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1054,7 +1055,7 @@ TEST_CASE("TextVDU: clearToEndOfLine()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: clearToEndOfScreen()") //
+TEST_CASE("Printer<Canvas>: clearToEndOfScreen()") //
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1090,7 +1091,7 @@ TEST_CASE("TextVDU: clearToEndOfScreen()") //
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: copyRect()")
+TEST_CASE("Printer<Canvas>: copyRect()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1121,7 +1122,7 @@ TEST_CASE("TextVDU: copyRect()")
 	CHECK_EQ(tv.scroll_count, 0);
 }
 
-TEST_CASE("TextVDU: scrollScreen()")
+TEST_CASE("Printer<Canvas>: scrollScreen()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1187,7 +1188,7 @@ TEST_CASE("TextVDU: scrollScreen()")
 	CHECK_EQ(tv.scroll_count, 0);
 }
 
-TEST_CASE("TextVDU: scrollScreenUp()")
+TEST_CASE("Printer<Canvas>: scrollScreenUp()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1207,7 +1208,7 @@ TEST_CASE("TextVDU: scrollScreenUp()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: scrollScreenDown()")
+TEST_CASE("Printer<Canvas>: scrollScreenDown()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1227,7 +1228,7 @@ TEST_CASE("TextVDU: scrollScreenDown()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: scrollScreenLeft()")
+TEST_CASE("Printer<Canvas>: scrollScreenLeft()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1247,7 +1248,7 @@ TEST_CASE("TextVDU: scrollScreenLeft()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: scrollScreenRight()")
+TEST_CASE("Printer<Canvas>: scrollScreenRight()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1267,7 +1268,7 @@ TEST_CASE("TextVDU: scrollScreenRight()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: scrollRect()")
+TEST_CASE("Printer<Canvas>: scrollRect()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1355,7 +1356,7 @@ TEST_CASE("TextVDU: scrollRect()")
 	CHECK_EQ(tv.scroll_count, 0);
 }
 
-TEST_CASE("TextVDU: scrollRectLeft()")
+TEST_CASE("Printer<Canvas>: scrollRectLeft()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1375,7 +1376,7 @@ TEST_CASE("TextVDU: scrollRectLeft()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: scrollRectRight()")
+TEST_CASE("Printer<Canvas>: scrollRectRight()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1395,7 +1396,7 @@ TEST_CASE("TextVDU: scrollRectRight()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: scrollRectUp()")
+TEST_CASE("Printer<Canvas>: scrollRectUp()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1415,7 +1416,7 @@ TEST_CASE("TextVDU: scrollRectUp()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: scrollRectDown()")
+TEST_CASE("Printer<Canvas>: scrollRectDown()")
 {
 	RCPtr<Pixmap> pm = new Pixmap(80, 60); // 10*5
 	TextVDU		  tv(pm);
@@ -1435,7 +1436,7 @@ TEST_CASE("TextVDU: scrollRectDown()")
 	CHECK_EQ(pm->log, ref);
 }
 
-TEST_CASE("TextVDU: insertChars()")
+TEST_CASE("Printer<Canvas>: insertChars()")
 {
 	// implemented as scrollRectRight()
 
@@ -1460,7 +1461,7 @@ TEST_CASE("TextVDU: insertChars()")
 	CHECK_EQ(tv.col, 5);
 }
 
-TEST_CASE("TextVDU: deleteChars()")
+TEST_CASE("Printer<Canvas>: deleteChars()")
 {
 	// implemented as scrollRectLeft()
 
@@ -1485,7 +1486,7 @@ TEST_CASE("TextVDU: deleteChars()")
 	CHECK_EQ(tv.col, 5);
 }
 
-TEST_CASE("TextVDU: insertRows()")
+TEST_CASE("Printer<Canvas>: insertRows()")
 {
 	// implemented as scrollRectUp()
 
@@ -1507,7 +1508,7 @@ TEST_CASE("TextVDU: insertRows()")
 	CHECK_EQ(tv.col, 5);
 }
 
-TEST_CASE("TextVDU: deleteRows()")
+TEST_CASE("Printer<Canvas>: deleteRows()")
 {
 	// implemented as scrollRectDown()
 
@@ -1529,7 +1530,7 @@ TEST_CASE("TextVDU: deleteRows()")
 	CHECK_EQ(tv.col, 5);
 }
 
-TEST_CASE("TextVDU: insertColumns()")
+TEST_CASE("Printer<Canvas>: insertColumns()")
 {
 	// implemented as scrollRectRight()
 
@@ -1551,7 +1552,7 @@ TEST_CASE("TextVDU: insertColumns()")
 	CHECK_EQ(tv.col, 5);
 }
 
-TEST_CASE("TextVDU: deleteColumns()")
+TEST_CASE("Printer<Canvas>: deleteColumns()")
 {
 	// implemented as scrollRectLeft()
 
@@ -1573,47 +1574,47 @@ TEST_CASE("TextVDU: deleteColumns()")
 	CHECK_EQ(tv.col, 5);
 }
 
-TEST_CASE("TextVDU: printCharMatrix()") //
+TEST_CASE("Printer<Canvas>: printCharMatrix()") //
 {
 	CHECK(1 == 1);
 }
 
-TEST_CASE("TextVDU: printChar()") //
+TEST_CASE("Printer<Canvas>: printChar()") //
 {
 	CHECK(1 == 1);
 }
 
-TEST_CASE("TextVDU: print()") //
+TEST_CASE("Printer<Canvas>: print()") //
 {
 	CHECK(1 == 1);
 }
 
-TEST_CASE("TextVDU: inputLine()") //
+TEST_CASE("Printer<Canvas>: inputLine()") //
 {
 	CHECK(1 == 1);
 }
 
-TEST_CASE("TextVDU: readBmp()") //
+TEST_CASE("Printer<Canvas>: readBmp()") //
 {
 	CHECK(1 == 1);
 }
 
-TEST_CASE("TextVDU: writeBmp()") //
+TEST_CASE("Printer<Canvas>: writeBmp()") //
 {
 	CHECK(1 == 1);
 }
 
-TEST_CASE("TextVDU: getCharMatrix()") //
+TEST_CASE("Printer<Canvas>: getCharMatrix()") //
 {
 	CHECK(1 == 1);
 }
 
-TEST_CASE("TextVDU: getGraphicsCharMatrix()") //
+TEST_CASE("Printer<Canvas>: getGraphicsCharMatrix()") //
 {
 	CHECK(1 == 1);
 }
 
-TEST_CASE("TextVDU: applyAttributes()") //
+TEST_CASE("Printer<Canvas>: applyAttributes()") //
 {
 	CHECK(1 == 1);
 }

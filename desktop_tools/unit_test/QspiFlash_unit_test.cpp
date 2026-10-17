@@ -18,8 +18,6 @@ extern doctest::String toString(Array<cstr>);
 
 namespace Test
 {
-using namespace kilipili::Devices;
-
 static constexpr int			 ssw   = 8; // or 9
 static constexpr int			 sse   = 12;
 static constexpr uint32			 wsize = 1 << ssw;

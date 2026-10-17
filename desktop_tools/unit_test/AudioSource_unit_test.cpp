@@ -9,7 +9,7 @@
 #include <cstdio>
 
 
-namespace kilipili::Audio
+namespace kilipili
 {
 float hw_sample_frequency = 44100; // normally in AudioController.cpp
 
@@ -24,14 +24,13 @@ doctest::String toString(AudioSample<2, SAMPLE> s)
 {
 	return usingstr("<%i,%i>", s.l, s.r);
 }
-} // namespace kilipili::Audio
+} // namespace kilipili
 
 
 namespace kilipili::Test
 {
 
 using namespace kilipili;
-using namespace kilipili::Audio;
 
 
 TEST_CASE("Audio::AudioSource ctor, instantiation")
@@ -163,11 +162,11 @@ TEST_CASE("Audio::JoinStereoAdapter")
 
 TEST_CASE_TEMPLATE("Audio::SetVolumeAdapter", AudioSample, MonoSample, StereoSample)
 {
-	constexpr uint				ch	   = NELEM(AudioSample::channels);
-	Audio::AudioSample<ch, int> v	   = AudioSample(-10, -99);
-	Audio::AudioSample<ch, int> d	   = AudioSample(1, 1);
-	RCPtr<NumberProvider<ch>>	source = new NumberProvider<ch>(v);
-	RCPtr<SetVolumeAdapter<ch>> sva	   = new SetVolumeAdapter<ch>(source, 0);
+	constexpr uint				   ch	  = NELEM(AudioSample::channels);
+	kilipili::AudioSample<ch, int> v	  = AudioSample(-10, -99);
+	kilipili::AudioSample<ch, int> d	  = AudioSample(1, 1);
+	RCPtr<NumberProvider<ch>>	   source = new NumberProvider<ch>(v);
+	RCPtr<SetVolumeAdapter<ch>>	   sva	  = new SetVolumeAdapter<ch>(source, 0);
 
 	constexpr uint busize = 128 + 10;
 	AudioSample	   bu[busize];
@@ -524,8 +523,8 @@ TEST_CASE("Audio::SampleRateAdapter<2>")
 TEST_CASE("Audio::HF_DC_Filter")
 {
 	// minimum test: instantiate
-	HF_DC_Filter<1> f1(new SineWaveSource<1>(100,1));
-	HF_DC_Filter<2> f2(new SineWaveSource<2>(100,1));
+	HF_DC_Filter<1> f1(new SineWaveSource<1>(100, 1));
+	HF_DC_Filter<2> f2(new SineWaveSource<2>(100, 1));
 }
 
 } // namespace kilipili::Test

@@ -58,13 +58,13 @@ add_executable(RsrcFileWriter
 	kilipili/extern/StSoundLibrary/YmUserInterface.cpp
 	kilipili/extern/StSoundLibrary/LZH/LZH.H
 	kilipili/extern/StSoundLibrary/LZH/LzhLib.cpp
-	rsrc_writer/ImageFileWriter.h 
+	rsrc_writer/ImageFileWriter.h
 	rsrc_writer/ImageFileWriter.cpp
 	rsrc_writer/exportStSoundWavFile.cpp
 	rsrc_writer/exportStSoundWavFile.h
 	rsrc_writer/RgbImageCompressor.cpp
 	rsrc_writer/RgbImageCompressor.h
-	rsrc_writer/YMMFileConverter.h 
+	rsrc_writer/YMMFileConverter.h
 	rsrc_writer/YMMFileConverter.cpp
 	)
 
@@ -79,7 +79,7 @@ target_include_directories(RsrcFileWriter PUBLIC
 
 # dependencies. this also adds the include paths:
 target_link_libraries(RsrcFileWriter PUBLIC
-	kilipili_common 
+	kilipili_common
 	kilipili_devices
 	z
 	)
@@ -91,7 +91,7 @@ add_executable(UnitTest
 	unit_test/Pixmap_unit_test.cpp
 	unit_test/Canvas_unit_test.cpp
 	unit_test/BitBlit_unit_test.cpp
-	unit_test/TextVDU_unit_test.cpp
+	unit_test/Printer<Canvas>_unit_test.cpp
 	unit_test/AudioSource_unit_test.cpp
 	unit_test/AudioSample_unit_test.cpp
 	unit_test/tempmem.test.cpp
@@ -101,6 +101,8 @@ add_executable(UnitTest
 	unit_test/Ay38912_unit_test.cpp
 	unit_test/QspiFlash_unit_test.cpp
 	unit_test/common_unit_test.cpp
+	kilipili/Devices/SerialDevice.h
+	kilipili/Devices/SerialDevice.cpp
 	kilipili/Devices/Flash.h
 	kilipili/Devices/Flash.cpp
 	kilipili/Devices/BlockDevice.cpp

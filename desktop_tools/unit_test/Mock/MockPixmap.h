@@ -6,7 +6,7 @@
 #include "Canvas.h"
 #include "common/Array.h"
 
-namespace kilipili::Graphics::Mock
+namespace kilipili::Mock
 {
 
 class Pixmap : public Canvas
@@ -27,11 +27,11 @@ public:
 	void	clear(uint color) noexcept override;
 	void	copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept override;
 	void	copyRect(coord zx, coord zy, const Canvas& src, coord qx, coord qy, coord w, coord h) noexcept override;
-	void readBmp(coord x, coord y, uint8* bmp, int row_offs, coord w, coord h, uint color, bool set) noexcept override;
+	//void readBmp(coord x, coord y, uint8* bmp, int row_offs, coord w, coord h, uint color, bool set) noexcept override;
 	void drawBmp(coord zx, coord zy, const uint8* bmp, int ro, coord w, coord h, uint c, uint i = 0) noexcept override;
 	void drawChar(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint = 0) noexcept override;
 
 	mutable Array<cstr> log; // tempstr
 };
 
-} // namespace kilipili::Graphics::Mock
+} // namespace kilipili::Mock

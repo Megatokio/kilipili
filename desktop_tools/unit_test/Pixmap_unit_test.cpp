@@ -7,7 +7,6 @@
 #include "doctest.h"
 #include <memory>
 
-using namespace kilipili::Graphics;
 using namespace kilipili;
 
 // clang-format off
