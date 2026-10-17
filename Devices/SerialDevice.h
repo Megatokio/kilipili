@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -6,6 +6,7 @@
 #include "devices_types.h"
 #include "little_big_endian.h"
 #include "no_copy_move.h"
+#include <stdarg.h>
 
 namespace kilipili
 {
@@ -18,9 +19,9 @@ constexpr uint gets_max_len = 512; // max string length handled by gets()
 class SerialDevice
 {
 public:
-	uint16 rc		 = 0;
-	char   last_char = 0; // used by gets()
-	FSFlags  flags;
+	uint16	rc		  = 0;
+	char	last_char = 0; // used by gets()
+	FSFlags flags;
 
 public:
 	SerialDevice(FSFlags flags) noexcept : flags(flags) {}
@@ -43,6 +44,7 @@ public:
 	virtual str	 gets(uint line_ends = (1 << 0) + (1 << 10) + (1 << 13));
 	virtual void putc(char);
 	virtual void puts(cstr);
+	virtual void printf(cstr, va_list) __printflike(2, 0);
 	virtual void printf(cstr fmt, ...) __printflike(2, 3);
 
 	void flushOut() { ioctl(IoCtl::FLUSH_OUT); }

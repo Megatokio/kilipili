@@ -85,28 +85,44 @@ void SerialDevice::puts(cstr s)
 	if (s) write(s, strlen(s)); //
 }
 
+void SerialDevice::printf(cstr fmt, va_list va)
+{
+	char bu[160];
+
+	va_list va2;
+	va_copy(va2, va);
+	int sz = vsnprintf(bu, sizeof(bu), fmt, va);
+	va_end(va2);
+
+	assert(sz >= 0);
+	uint size = uint(sz);
+
+	if (size < sizeof(bu))
+	{
+		write(bu, size); //
+	}
+	else
+	{
+		TempMemSave _;
+		try
+		{
+			ptr bp = tempstr(size);
+			vsnprintf(bp, size + 1, fmt, va);
+			write(bp, size);
+		}
+		catch (...)
+		{
+			puts("{out of memory}");
+		}
+	}
+}
+
 void SerialDevice::printf(cstr fmt, ...)
 {
-	char bu[100];
-
 	va_list va;
 	va_start(va, fmt);
-	int n = vsnprintf(bu, sizeof(bu), fmt, va);
+	SerialDevice::printf(fmt, va);
 	va_end(va);
-
-	assert(n >= 0);
-	SIZE size = uint(n);
-	if (size < 100) return (void)write(bu, size);
-
-	TempMemSave _;
-
-	ptr bp = tempstr(size);
-
-	va_start(va, fmt);
-	vsnprintf(bp, size + 1, fmt, va);
-	va_end(va);
-
-	write(bp, size);
 }
 
 
