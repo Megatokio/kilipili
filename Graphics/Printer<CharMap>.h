@@ -16,14 +16,24 @@ class Printer<CharMapBase> final : public Printer<>
 {
 public:
 	Printer(CharMapBase*);
+	virtual ~Printer() noexcept override = default;
 
+	// SerialDevice methods overrides:
+	// note: using a Printer as a SerialDevice is only a side quest.
+	//virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) override;
+	virtual SIZE write(const void* data, SIZE, bool partial = false) noexcept override; // any char, even chr(0)
+	virtual void putc(char) noexcept override;											// supports \n, \r and \t
+	virtual void puts(cstr) noexcept override;											// supports \n, \r and \t
+	//virtual void   printf(cstr fmt, ...) noexcept override __printflike(2, 3);		// supports \n, \r and \t
+	//virtual void   printf(cstr fmt, va_list) noexcept override __printflike(2, 0);	// supports \n, \r and \t
+
+	// the normal stuff:
 	void reset(bool cls = false) noexcept override;
 	cstr identify() override;
+	void cls() noexcept override;
 	void clearRect(int row, int col, int rows, int cols) noexcept override;
 	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
 	void printChar(char c, int count = 1) noexcept override; // no ctl
-	void print(cstr text) noexcept override;				 // supports \n and \t
-	void write(cptr text, int count) noexcept override;		 // any char, even chr(0)
 
 	// attribute changes apply to following printing:
 	void  setAttributes(uint add, uint remove = 0xff) noexcept override;

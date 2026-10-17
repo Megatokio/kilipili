@@ -3,8 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "Devices/SerialDevice.h"
 #include "Font.h"
-#include "common/RCPtr.h"
 #include "common/no_copy_move.h"
 #include "common/standard_types.h"
 #include <cstdarg>
@@ -14,27 +14,51 @@
 namespace kilipili
 {
 
+/*	template class Printer provides functions for printing on a Pixmap or CharMap.
+	class Printer<> is the base class for the concrete implementations for the 3 variants.
+
+	class Printer<> also implements the SerialDevice interface.
+
+	note:
+	The implementations override all SerialDevice virtual functions and never call through to them.
+	So it should not be neccessary to include kilipili_devices into your project, if you don't want to use them.
+	But c++ may decide it needs them for the SerialDevice vtable anyway.
+	Then it should be enough to add Devices/SerialDevice.cpp to your project.
+*/
+
 template<class = void>
 class Printer;
 
 template<>
-class Printer<> : public RCObject
+class Printer<> : public SerialDevice
 {
 	NO_COPY_MOVE(Printer);
 	Id("Printer");
 
 public:
+	// SerialDevice methods overrides:
+	// note: using a Printer as a SerialDevice is only a side quest.
+	virtual ~Printer() noexcept override = default;
+	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) override;
+	virtual SIZE   write(const void* data, SIZE, bool partial = false) noexcept override = 0; // any char, even chr(0)
+	virtual void   putc(char) noexcept override											 = 0; // supports \n, \r and \t
+	virtual void   puts(cstr) noexcept override											 = 0; // supports \n, \r and \t
+	virtual void   printf(cstr fmt, ...) noexcept override final __printflike(2, 3);		  // supports \n, \r and \t
+	virtual void   printf(cstr fmt, va_list) noexcept override final __printflike(2, 0);	  // supports \n, \r and \t
+	// override all virtual functions => we don't need to have Devices/SerialDevice.cpp:
+	__noreturn int	getc(uint timeout_us) override final { throw NOT_READABLE; }
+	__noreturn char getc() override final { throw NOT_READABLE; }
+	__noreturn str	gets(uint line_ends = 0x2401) override final { throw NOT_READABLE; }
+
+	// the normal stuff:
 	virtual void reset(bool cls = false) noexcept;
 	virtual cstr identify()																					 = 0;
+	virtual void cls() noexcept																				 = 0;
 	virtual void clearRect(int row, int col, int rows, int cols) noexcept									 = 0;
 	virtual void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept = 0;
 	virtual void printChar(char c, int count = 1) noexcept = 0; // no ctl
-	virtual void print(cstr text) noexcept;						// supports \n, \r and \t
-	virtual void write(cptr text, int count) noexcept;			// any char, even chr(0)
-
-	void printAt(int row, int col, cstr text) noexcept;			// supports \n, \r and \t
-	void printf(cstr fmt, ...) noexcept __printflike(2, 3);		// supports \n, \r and \t
-	void printf(cstr fmt, va_list) noexcept __printflike(2, 0); // supports \n, \r and \t
+	void		 print(cstr text) noexcept { puts(text); }		// supports \n, \r and \t
+	void		 printAt(int row, int col, cstr text) noexcept; // supports \n, \r and \t
 
 	// print attributes: (values 1:1 for Printer<Canvas>)
 	enum Attributes : uint8 {
@@ -77,7 +101,6 @@ public:
 	void cursorReturn() noexcept;
 	void newLine() noexcept;
 
-	void cls() noexcept { reset(true); }
 	void clearToStartOfLine(bool incl_cursorpos = 0) noexcept;
 	void clearToStartOfScreen(bool incl_cursorpos = 0) noexcept;
 	void clearToEndOfLine() noexcept;

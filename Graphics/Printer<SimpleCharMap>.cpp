@@ -18,8 +18,16 @@ void Printer<SimpleCharMap>::reset(bool cls) noexcept
 {
 	// does not reset the colors or font
 
-	super::reset();
+	Printer<>::reset();
 	if (cls) charmap->clear();
+}
+
+void Printer<SimpleCharMap>::cls() noexcept
+{
+	// CLS, HOME CURSOR, RESET ATTR
+
+	Printer<>::reset();
+	charmap->clear();
 }
 
 cstr Printer<SimpleCharMap>::identify()
@@ -47,58 +55,56 @@ void Printer<SimpleCharMap>::copyRect(int dest_row, int dest_col, int src_row, i
 
 void Printer<SimpleCharMap>::printChar(char c, int count) noexcept
 {
+	// any char, even char(0)
+
 	hide_cursor();
 
 	while (count--)
 	{
 		if unlikely (uint(col) >= uint(cols)) validate_hpos(false);
 		if unlikely (uint(row) >= uint(rows)) validate_vpos();
-		charmap->putChar(row, col, c, attributes);
+		charmap->putChar(row, col++, c, attributes);
 	}
 }
 
-void Printer<SimpleCharMap>::write(cptr text, int count) noexcept
+void Printer<SimpleCharMap>::putc(char c) noexcept
 {
-	// any char, even chr(0)
+	// SerialDevice:
+	// supports \n, \r and \t
 
-	hide_cursor();
-
-	for (int i = 0; i < count; i++)
+	if unlikely (uchar(c) < 32)
 	{
-		if unlikely (uint(col) >= uint(cols)) validate_hpos(false);
-		if unlikely (uint(row) >= uint(rows)) validate_vpos();
-		charmap->putChar(row, col++, text[i], attributes);
+		if (c == '\n') return newLine();
+		if (c == '\t') return cursorTab();
+		if (c == '\r') return cursorReturn();
 	}
+
+	Printer<SimpleCharMap>::printChar(c, 1);
 }
 
-void Printer<SimpleCharMap>::print(cstr s) noexcept
+SIZE Printer<SimpleCharMap>::write(const void* data, SIZE size, __unused bool partial) noexcept
 {
-	hide_cursor();
+	// SerialDevice:
+	// any char, even char(0)
+
+	cptr text = reinterpret_cast<cptr>(data);
+	for (uint i = 0; i < size; i++)
+	{
+		Printer<SimpleCharMap>::printChar(text[i], 1); // any char, even chr(0)
+	}
+
+	return size;
+}
+
+void Printer<SimpleCharMap>::puts(cstr s) noexcept
+{
+	// SerialDevice:
+	// print printable text string.
+	// supports \n, \r and \t
 
 	while (char c = *s++)
 	{
-		if unlikely (uchar(c) < 32)
-		{
-			if (c == '\n')
-			{
-				newLine();
-				continue;
-			}
-			if (c == '\t')
-			{
-				cursorTab();
-				continue;
-			}
-			if (c == '\r')
-			{
-				cursorReturn();
-				continue;
-			}
-		}
-
-		if unlikely (uint(col) >= uint(cols)) validate_hpos(false);
-		if unlikely (uint(row) >= uint(rows)) validate_vpos();
-		charmap->putChar(row, col, c, attributes);
+		Printer<SimpleCharMap>::putc(c); // supports \n, \r and \t
 	}
 }
 
@@ -116,7 +122,6 @@ void Printer<SimpleCharMap>::show_cursor(bool f) noexcept
 	}
 	else hide_cursor();
 }
-
 
 void Printer<SimpleCharMap>::setAttributes(uint add, uint remove) noexcept
 {

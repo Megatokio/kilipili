@@ -19,7 +19,7 @@ Printer<CharMapBase>::Printer(CharMapBase* charmap) : //
 
 void Printer<CharMapBase>::reset(bool cls) noexcept
 {
-	// does not reset the colors or font
+	// does not reset the color tables or font
 
 	fg_bits = charmap->fg_bits;
 	bg_bits = charmap->bg_bits;
@@ -28,6 +28,14 @@ void Printer<CharMapBase>::reset(bool cls) noexcept
 
 	Printer<>::reset();
 	if (cls) charmap->clear();
+}
+
+void Printer<CharMapBase>::cls() noexcept
+{
+	// CLS, HOME CURSOR, RESET ATTR
+
+	Printer<>::reset();
+	charmap->clear();
 }
 
 void Printer<CharMapBase>::set_fgcolor(int i) noexcept
@@ -167,53 +175,62 @@ void Printer<CharMapBase>::copyRect(int dest_row, int dest_col, int src_row, int
 
 void Printer<CharMapBase>::printChar(char c, int count) noexcept
 {
+	// any char, even char(0)
+
 	hide_cursor();
 
 	while (count--)
 	{
 		if unlikely (uint(col) >= uint(cols)) validate_hpos(false);
 		if unlikely (uint(row) >= uint(rows)) validate_vpos();
-		charmap->putChar(row, col, c, attributes);
+		charmap->putChar(row, col++, c, attributes);
 	}
 }
 
-void Printer<CharMapBase>::write(cptr text, int count) noexcept
+void Printer<CharMapBase>::putc(char c) noexcept
 {
-	// any char, even chr(0)
+	// SerialDevice:
+	// supports \n, \r and \t
 
-	hide_cursor();
-
-	for (int i = 0; i < count; i++)
+	if unlikely (uchar(c) < 32)
 	{
-		if unlikely (uint(col) >= uint(cols)) validate_hpos(false);
-		if unlikely (uint(row) >= uint(rows)) validate_vpos();
-		charmap->putChar(row, col++, text[i], attributes);
+		if (c == '\n') return newLine();
+		if (c == '\t') return cursorTab();
+		if (c == '\r') return cursorReturn();
 	}
+
+	Printer<CharMapBase>::printChar(c, 1);
 }
 
-void Printer<CharMapBase>::print(cstr s) noexcept
+SIZE Printer<CharMapBase>::write(const void* data, SIZE size, __unused bool partial) noexcept
 {
+	// SerialDevice:
+	// any char, even char(0)
+
+	cptr text = reinterpret_cast<cptr>(data);
+	for (uint i = 0; i < size; i++)
+	{
+		Printer<CharMapBase>::printChar(text[i], 1); // any char, even chr(0)
+	}
+
+	return size;
+}
+
+void Printer<CharMapBase>::puts(cstr s) noexcept
+{
+	// SerialDevice:
+	// print printable text string.
+	// supports \n, \r and \t
+	// most used function
+
 	hide_cursor();
 
 	while (char c = *s++)
 	{
 		if unlikely (uchar(c) < 32)
 		{
-			if (c == '\n')
-			{
-				newLine();
-				continue;
-			}
-			if (c == '\t')
-			{
-				cursorTab();
-				continue;
-			}
-			if (c == '\r')
-			{
-				cursorReturn();
-				continue;
-			}
+			putc(c);
+			continue;
 		}
 
 		if unlikely (uint(col) >= uint(cols)) validate_hpos(false);

@@ -3,10 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "PicoTerm.h"
-#include "Graphics/Printer<Canvas>.h"
-#include "Graphics/Printer<CharMap>.h"
-#include "Graphics/Printer<SimpleCharMap>.h"
-#include "USBHost/USBKeyboard.h"
+#include "common/basic_math.h"
 #include "common/cstrings.h"
 
 namespace kilipili
@@ -16,18 +13,6 @@ namespace kilipili
 //							F U N C T I O N S
 // =============================================================================
 
-
-PicoTerm::PicoTerm(RCPtr<SimpleCharMap> pixmap) : //
-	PicoTerm(new Printer(pixmap))
-{}
-
-PicoTerm::PicoTerm(RCPtr<CharMapBase> pixmap) : //
-	PicoTerm(new Printer(pixmap))
-{}
-
-PicoTerm::PicoTerm(CanvasPtr pixmap) : //
-	PicoTerm(new Printer(pixmap))
-{}
 
 PicoTerm::PicoTerm(RCPtr<Printer<>> text) noexcept : //
 	SerialDevice(writable),
@@ -110,6 +95,7 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 		case REPEAT_NEXT_CHAR: goto repeat_next_char;
 		case SCROLL_SCREEN:    goto scroll_screen;
 		case ESC:			   goto esc;
+		default:			   break;
 		}
 
 		if (c == 127)
@@ -145,6 +131,7 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 				case 'B': printer->cursorDown(min(printer->rows - 1 - printer->row, repeat_cnt)); continue;  // VT100
 				case 'C': printer->cursorRight(min(printer->cols - 1 - printer->col, repeat_cnt)); continue; // VT100
 				case 'D': printer->cursorLeft(min(printer->col, repeat_cnt)); continue;			  // VT100
+				default:  break;
 				}
 			}
 			puts("{ESC}");

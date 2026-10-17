@@ -53,9 +53,6 @@ Printer<Canvas>::Printer(Canvas* pixmap, const Font* font1, const Font* font2) n
 		assert(font1->char_height % pixmap->attrheight == 0);
 		assert((font1->char_width & ((1 << pixmap->attrwidth()) - 1)) == 0);
 	}
-
-	cursor_visible = false;
-	Printer::reset();
 }
 
 void Printer<Canvas>::reset(bool cls) noexcept
@@ -68,9 +65,16 @@ void Printer<Canvas>::reset(bool cls) noexcept
 	fg_ink	= 1;
 	bg_ink	= 0;
 
-	if (cls) pixmap->clear(bgcolor);
 	Printer<>::reset();
+	if (cls) pixmap->clear(bgcolor);
 }
+
+void Printer<Canvas>::cls() noexcept
+{
+	Printer<>::reset();
+	pixmap->clear(bgcolor);
+}
+
 
 cstr Printer<Canvas>::identify()
 {
@@ -305,57 +309,53 @@ void Printer<Canvas>::printCharMatrix(CharMatrix charmatrix, int count) noexcept
 
 void Printer<Canvas>::printChar(char c, int count) noexcept
 {
+	// any char, even char(0):
+
 	CharMatrix charmatrix;
 	getCharMatrix(charmatrix, c);
 	printCharMatrix(charmatrix, count);
 }
 
-void Printer<Canvas>::write(cptr text, int count) noexcept
+void Printer<Canvas>::putc(char c) noexcept
 {
-	// any char, even chr(0)
+	// SerialDevice:
+	// supports \n, \r and \t
 
-	CharMatrix charmatrix;
-
-	for (int i = 0; i < count; i++)
+	if unlikely (uchar(c) < 32)
 	{
-		getCharMatrix(charmatrix, text[i]);
-		printCharMatrix(charmatrix, 1);
+		if (c == '\n') return newLine();
+		if (c == '\t') return cursorTab();
+		if (c == '\r') return cursorReturn();
 	}
+
+	Printer<Canvas>::printChar(c, 1);
 }
 
-void Printer<Canvas>::print(cstr s) noexcept
+void Printer<Canvas>::puts(cstr s) noexcept
 {
+	// SerialDevice:
 	// print printable text string.
-	// control characters: only \t and \n.
-
-	CharMatrix charmatrix;
+	// supports \n, \r and \t
 
 	while (char c = *s++)
 	{
-		if unlikely (uchar(c) < 32)
-		{
-			if (c == '\n')
-			{
-				newLine();
-				continue;
-			}
-			if (c == '\t')
-			{
-				cursorTab();
-				continue;
-			}
-			if (c == '\r')
-			{
-				cursorReturn();
-				continue;
-			}
-		}
-
-		getCharMatrix(charmatrix, c);
-		printCharMatrix(charmatrix, 1);
+		Printer<Canvas>::putc(c); // supports \n, \r and \t
 	}
 }
 
+SIZE Printer<Canvas>::write(const void* data, SIZE size, __unused bool partial) noexcept
+{
+	// SerialDevice:
+	// any char, even char(0)
+
+	cptr text = reinterpret_cast<cptr>(data);
+	for (uint i = 0; i < size; i++)
+	{
+		Printer<Canvas>::printChar(text[i], 1); // any char, even chr(0)
+	}
+
+	return size;
+}
 
 } // namespace kilipili
 

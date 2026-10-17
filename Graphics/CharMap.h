@@ -76,13 +76,13 @@ public:
 	uint8 rc = 0; // RCPtr<>
 
 	// for Printer<CharMapBase>:
-	uint8 fg_bits;
-	uint8 bg_bits;
-	uint8 fg_mask;
-	uint8 bg_mask;
-	uint8 bold;
-	uint8 underline;
-	uint8 graphics;
+	const uint8 fg_bits;
+	const uint8 bg_bits;
+	const uint8 fg_mask;
+	const uint8 bg_mask;
+	const uint8 bold;
+	const uint8 underline;
+	const uint8 graphics;
 
 	static constexpr uint8 inverted = 0;
 

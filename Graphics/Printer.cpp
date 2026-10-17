@@ -14,15 +14,31 @@
 namespace kilipili
 {
 
-Printer<>::Printer(int rows, int cols) noexcept : rows(rows), cols(cols) {}
+Printer<>::Printer(int rows, int cols) noexcept : //
+	SerialDevice(FSFlags::writable),
+	rows(rows),
+	cols(cols)
+{}
 
-void Printer<>::reset(bool cls) noexcept
+void Printer<>::reset(__unused bool cls) noexcept
 {
 	hideCursor();
 	row = col	 = 0;
 	scroll_count = 0;
 	dx = dy	   = 1;
-	attributes = 0; // NORMAL;
+	attributes = 0; // NORMAL
+}
+
+uint32 Printer<>::ioctl(IoCtl cmd, void*, void*)
+{
+	// default implementation
+
+	switch (cmd.cmd)
+	{
+	case IoCtl::FLUSH_OUT: return 0;
+	case IoCtl::CTRL_RESET: reset(false); return 0;
+	default: throw INVALID_ARGUMENT;
+	}
 }
 
 void Printer<>::showCursor(bool on) noexcept
@@ -343,85 +359,85 @@ void Printer<>::scrollScreenRight(int cols) noexcept
 	if (cols > 0) scrollScreen(0, +cols);
 }
 
-void Printer<>::write(cptr text, int count) noexcept
-{
-	// any char, even chr(0)
-
-	for (int i = 0; i < count; i++) { printChar(text[i]); }
-}
-
-void Printer<>::print(cstr s) noexcept
-{
-	// print printable text string.
-	// control characters: only \t and \n.
-
-	while (char c = *s++)
-	{
-		if unlikely (uchar(c) < 32)
-		{
-			if (c == '\n')
-			{
-				newLine();
-				continue;
-			}
-			if (c == '\t')
-			{
-				cursorTab();
-				continue;
-			}
-			if (c == '\r')
-			{
-				cursorReturn();
-				continue;
-			}
-		}
-
-		printChar(c);
-	}
-}
-
-void Printer<>::printAt(int row, int col, cstr text) noexcept
-{
-	moveTo(row, col);
-	print(text);
-}
+//	SIZE Printer<>::write(const void* data, SIZE size, __unused bool partial) noexcept
+//	{
+//		// SerialDevice:
+//		// any char, even chr(0)
+//
+//		cptr text = reinterpret_cast<cptr>(data);
+//		for (uint i = 0; i < size; i++)
+//		{
+//			printChar(text[i]); // no ctl!
+//		}
+//		return size;
+//	}
+//
+//	void Printer<>::puts(cstr s) noexcept
+//	{
+//		// SerialDevice:
+//		// print printable text string.
+//		// supports \n, \r and \t
+//
+//		while (char c = *s++)
+//		{
+//			putc(c); // supports \n, \r and \t
+//		}
+//	}
 
 void Printer<>::printf(cstr fmt, va_list va) noexcept
 {
-	// note: caller must call va_start() before and va_end() afterwards.
+	// SerialDevice:
+	// supports \n, \r and \t
 
-	constexpr uint bsz = 200;
-	char		   bu[bsz];
+	char bu[160];
 
 	va_list va2;
 	va_copy(va2, va);
-	uint size = uint(vsnprintf(bu, sizeof(bu), fmt, va2));
+	int sz = vsnprintf(bu, sizeof(bu), fmt, va2);
 	va_end(va2);
 
-	if (size < bsz) return print(bu);			   // success
-	if (int(size) < 0) return print("{format?!}"); // format error
+	assert(sz >= 0);
+	uint size = uint(sz);
 
-	// very long text:
-
-	std::unique_ptr<char[]> bp {new (std::nothrow) char[size + 1]};
-	if (bp)
+	if (size < sizeof(bu))
 	{
-		vsnprintf(bp.get(), size + 1, fmt, va);
-		print(bp.get());
+		puts(bu); //
 	}
-	else // out of memory! print what we have:
+	else // text too long:
 	{
-		bu[bsz - 1] = 0;
-		print(bu);
+		TempMemSave _;
+
+		try
+		{
+			ptr bp = tempstr(size); // throws
+			vsnprintf(bp, size + 1, fmt, va);
+			puts(bp);
+		}
+		catch (...)
+		{
+			puts("{out of memory}");
+		}
 	}
 }
 
 void Printer<>::printf(cstr fmt, ...) noexcept
 {
+	// SerialDevice:
+	// supports \n, \r and \t
+
 	va_list va;
 	va_start(va, fmt);
-	printf(fmt, va);
+	Printer<>::printf(fmt, va);
 	va_end(va);
+}
+
+void Printer<>::printAt(int row, int col, cstr text) noexcept
+{
+	// print text string at row,col:
+	// supports \n, \r and \t
+
+	moveTo(row, col);
+	print(text);
 }
 
 str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
@@ -525,11 +541,11 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 			oldtext = catstr(leftstr(oldtext, epos), oldtext + epos + 1);
 			oldtext = xdupstr(oldtext, false); // purge_tempmem & reallocate oldtext
 			print(oldtext + epos);
-			printChar(' ');
+			putc(' ');
 			break;
 		case KEY_ARROW_LEFT: epos = max(epos - 1, 0); break;
 		case KEY_ARROW_RIGHT:
-			if (oldtext[epos] != 0) printChar(oldtext[epos++]);
+			if (oldtext[epos] != 0) putc(oldtext[epos++]);
 			break;
 		case KEY_ARROW_UP: epos = max(epos - cols, 0); break;
 		case KEY_ARROW_DOWN: epos = min(epos + cols, int(strlen(oldtext))); break;

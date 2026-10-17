@@ -1,18 +1,24 @@
-// Copyright (c) 2012 - 2025 kio@little-bat.de
+// Copyright (c) 2012 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Graphics/Canvas.h"
-#include "Graphics/CharMap.h"
 #include "Graphics/Printer.h"
-#include "Graphics/SimpleCharMap.h"
 #include "SerialDevice.h"
 
 namespace kilipili
 {
 
-class PicoTerm : public SerialDevice
+/*	class PicoTerm provides a SerialDevice with a simple terminal emulation for use with a Pixmap or CharMap.
+	It uses a Printer<> for the actual printing.
+
+	You should prefer printing to the Printer<> directly, as it already provides the SerialDevice interface,
+	and use the Printer<> member functions for cursor movement etc. as needed.
+
+	class PicoTerm is deprecated for new development.
+*/
+
+class __deprecated PicoTerm : public SerialDevice
 {
 public:
 	using super = SerialDevice;
@@ -47,19 +53,11 @@ public:
 	bool   auto_crlf = true;
 	uint16 sm_state	 = 0;
 
-	PicoTerm(RCPtr<Canvas>);
-	PicoTerm(RCPtr<SimpleCharMap>);
-	PicoTerm(RCPtr<CharMapBase>);
 	PicoTerm(RCPtr<Printer<>>) noexcept;
 
-	/* SerialDevice Interface:
-	*/
 	virtual uint32 ioctl(IoCtl cmd, void* arg1 = nullptr, void* arg2 = nullptr) override;
 	virtual SIZE   read(void*, SIZE, bool = false) override { throw NOT_READABLE; }
 	virtual SIZE   write(const void* data, SIZE, bool partial = false) override;
-	//virtual SIZE putc(char) override;
-	//virtual SIZE puts(cstr) override;
-	//virtual SIZE printf(cstr fmt, ...) override __printflike(2, 3);
 
 	void reset() noexcept;
 	using SerialDevice::printf;
@@ -69,9 +67,6 @@ protected:
 	// these will stall because USB isn't polled:
 	using super::getc;
 	using super::gets;
-	//virtual char getc() override;
-	//virtual str  gets() override;
-	//virtual int  getc(uint timeout) override;
 };
 
 
