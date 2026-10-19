@@ -5,10 +5,10 @@
 #include "ColorMap.h"
 #include <string.h>
 
-#if !defined GRAPHICS_SYSTEM_COLORMAP_IN_XRAM || GRAPHICS_SYSTEM_COLORMAP_IN_XRAM
-  #define CMRAM ".scratch_x" // core1 stack page
+#if defined GRAPHICS_SYSTEM_COLORMAP_SECTION
+  #define CMRAM GRAPHICS_SYSTEM_COLORMAP_SECTION
 #else
-  #define CMRAM ".time_critical" // standard RAM
+  #define CMRAM XRAM // core1 stack page
 #endif
 
 
@@ -20,7 +20,7 @@ namespace kilipili
 constexpr Color default_i1_colors[2] =
 {
 	bright_green,
-	Color::fromRGB8(15, 15, 15),
+	Color::fromGrey8(15),
 };
 
 constexpr Color default_i2_colors[4] =
@@ -29,44 +29,6 @@ constexpr Color default_i2_colors[4] =
 	dark_grey,
 	light_grey,
 	white,
-};
-
-constexpr Color default_i4_colors[16] =
-{
-// table[%rgbc] -> r(rrcc0)+g(ggcc0)+b(bbcc0)
-
-#define RGBC(R, G, B, C) Color::fromRGB4(R * 12 + C * 3, G * 12 + C * 3, B * 12 + C * 3)
-#define RGBx(R, G, B)	 RGBC(R, G, B, 0), RGBC(R, G, B, 1)
-#define RGxx(R, G)		 RGBx(R, G, 0), RGBx(R, G, 1)
-#define Rxxx(R)			 RGxx(R, 0), RGxx(R, 1)
-
-	Rxxx(0),
-	Rxxx(1)
-
-#undef Rxxx
-#undef RGxx
-#undef RGBx
-#undef RGBC
-};
-
-constexpr Color default_i8_colors[256] =
-{
-// table[%rrggbbcc] -> r(rrcc0)+g(ggcc0)+b(bbcc0)
-
-#define RGBC(R, G, B, C) Color::fromRGB4(R * 4 + C, G * 4 + C, B * 4 + C)
-#define RGBx(R, G, B) RGBC(R, G, B, 0), RGBC(R, G, B, 1), RGBC(R, G, B, 2), RGBC(R, G, B, 3)
-#define RGxx(R, G)	  RGBx(R, G, 0), RGBx(R, G, 1), RGBx(R, G, 2), RGBx(R, G, 3)
-#define Rxxx(R)		  RGxx(R, 0), RGxx(R, 1), RGxx(R, 2), RGxx(R, 3)
-
-	Rxxx(0),
-	Rxxx(1),
-	Rxxx(2),
-	Rxxx(3)
-
-#undef Rxxx
-#undef RGxx
-#undef RGBx
-#undef RGBC
 };
 
 constexpr Color zx_colors[16] =
@@ -158,51 +120,13 @@ constexpr Color vga8_colors[256] =
 #undef W
 };
 
-constexpr const Color* const default_colors[5]
-{
-	default_i1_colors,
-	default_i2_colors,
-	default_i4_colors,
-	default_i8_colors,
-	nullptr
-};
-
 // clang-format on
 
-void ColorMap<colordepth_1bpp>::reset(const Color* q) noexcept { memcpy(colors, q, sizeof(Color) * 2); }
-void ColorMap<colordepth_2bpp>::reset(const Color* q) noexcept { memcpy(colors, q, sizeof(Color) * 4); }
-void ColorMap<colordepth_4bpp>::reset(const Color* q) noexcept { memcpy(colors, q, sizeof(Color) * 16); }
-void ColorMap<colordepth_8bpp>::reset(const Color* q) noexcept { memcpy(colors, q, sizeof(Color) * 256); }
 
-ColorMap<colordepth_1bpp>::ColorMap(const Color* src) noexcept
-{
-	if (src) reset(src); //
-}
+// The system_colormap is intended to be used by the frame buffer.
+// rc = -1  => never deleted by RCPtr
+ColorMap<colormode_i8> __section(CMRAM ".cm_data") system_colormap(vga8_colors, -1);
 
-ColorMap<colordepth_2bpp>::ColorMap(const Color* src) noexcept : ColorMap<colordepth_1bpp>(nullptr)
-{
-	if (src) reset(src); //
-}
-
-ColorMap<colordepth_4bpp>::ColorMap(const Color* src) noexcept : ColorMap<colordepth_2bpp>(nullptr)
-{
-	if (src) reset(src); //
-}
-
-ColorMap<colordepth_8bpp>::ColorMap(const Color* src) noexcept : ColorMap<colordepth_4bpp>(nullptr)
-{
-	if (src) reset(src); //
-}
-
-
-// The system_colormap is intended to be used by the frame buffer:
-ColorMap<colordepth_8bpp> __section(CMRAM ".cm_data") system_colormap(vga8_colors);
-
-
-static struct OnInit
-{
-	OnInit() { system_colormap.rc = 1; } // must never be `delete`ed
-} _;
 
 } // namespace kilipili
 

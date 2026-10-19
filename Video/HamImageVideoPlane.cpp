@@ -9,7 +9,7 @@
 namespace kilipili
 {
 
-HamImageVideoPlane::HamImageVideoPlane(const Pixmap* pm, const ColorMap* cm, uint16 first_rel_code) :
+HamImageVideoPlane::HamImageVideoPlane(const Pixmap<CM>* pm, const ColorMap<CM>* cm, uint16 first_rel_code) :
 	VideoPlane(&do_vblank, &do_render),
 	pixmap(pm),
 	colormap(cm),
