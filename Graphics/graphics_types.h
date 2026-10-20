@@ -43,12 +43,12 @@ namespace kilipili
    num colors = 1<<(1<<CD)
 */
 enum ColorDepth : uint8 {
-	colordepth_1bpp	 = 0,									// 1 bit/pixel probably indexed color
-	colordepth_2bpp	 = 1,									// 2 bit/pixel probably indexed color
-	colordepth_4bpp	 = 2,									// 4 bit/pixel probably indexed color
-	colordepth_8bpp	 = 3,									// 8 bit/pixel probably indexed color
-	colordepth_16bpp = 4,									// 16 bit/pixel always true color
-	colordepth_rgb	 = msbit(VIDEO_COLOR_PIN_COUNT * 2 - 1) // colordepth_1bpp .. colordepth_16bpp
+	colordepth_1bpp	 = 0,							   // 1 bit/pixel probably indexed color
+	colordepth_2bpp	 = 1,							   // 2 bit/pixel probably indexed color
+	colordepth_4bpp	 = 2,							   // 4 bit/pixel probably indexed color
+	colordepth_8bpp	 = 3,							   // 8 bit/pixel probably indexed color
+	colordepth_16bpp = 4,							   // 16 bit/pixel always true color
+	colordepth_rgb	 = msbit(sizeof(Color) * CHAR_BIT) // colordepth_1bpp .. colordepth_16bpp
 };
 
 
@@ -143,10 +143,12 @@ constexpr AttrWidth get_attrwidth(ColorMode cm) noexcept
 
 constexpr ColorDepth get_colordepth(ColorMode cm) noexcept
 {
-	return cm < colormode_rgb		  ? ColorDepth(cm) :
-		   cm == colormode_rgb		  ? colordepth_rgb :
-		   VIDEO_COLOR_PIN_COUNT <= 4 ? colordepth_4bpp : // min. bits in attr
-										colordepth_rgb;
+	return cm < colormode_rgb ? ColorDepth(cm) : colordepth_rgb;
+
+	//	return cm < colormode_rgb		  ? ColorDepth(cm) :
+	//		   cm == colormode_rgb		  ? colordepth_rgb :
+	//		   VIDEO_COLOR_PIN_COUNT <= 4 ? colordepth_4bpp : // min. bits in attr
+	//										colordepth_rgb;
 }
 
 constexpr bool is_direct_color(ColorMode cm) noexcept { return cm <= colormode_rgb; }
