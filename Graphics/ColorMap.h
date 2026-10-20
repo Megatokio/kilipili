@@ -86,6 +86,7 @@ struct ColorMap<>
 	void   reset(const Color* cmap, uint count) noexcept;
 	Color& operator[](int i) noexcept;
 	Color  operator[](int i) const noexcept;
+	int	   bestMatch(Color, int count = 0) noexcept;
 
 	ColorMap& operator=(const ColorMap&) noexcept;
 

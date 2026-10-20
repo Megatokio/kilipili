@@ -127,6 +127,32 @@ constexpr Color vga8_colors[256] =
 // rc = -1  => never deleted by RCPtr
 ColorMap<colormode_i8> __section(CMRAM ".cm_data") system_colormap(vga8_colors, -1);
 
+int ColorMap<>::bestMatch(Color c, int count) noexcept
+{
+	if (count == 0) count = this->count;
+	assert(count > 0);
+
+	// first round tries exact match:
+
+	for (int i = 0; i < count; i++)
+		if (c == colors[i]) return i; // todo: multiple hits
+
+	// then erode away the lower bits:
+
+	constexpr int maxbits = max(Color::rbits, Color::gbits, Color::bbits) + Color::ibits;
+	static_assert(maxbits <= 8);
+
+	for (uint8 mask = uint8(0xff << (8 - maxbits));;)
+	{
+		mask &= mask << 1;
+		Color::uRGB rgbimask = Color::fromGrey8(mask);
+		Color::uRGB cc		 = c & rgbimask;
+
+		for (int i = 0; i < count; i++)
+			if (cc == (colors[i] & rgbimask)) return i; // todo: multiple hits
+	}
+}
+
 
 } // namespace kilipili
 
