@@ -73,7 +73,7 @@ FrameBuffer<SimpleCharMap, Flag>::FrameBuffer(SimpleCharMap* charmap) noexcept :
 	assert(font->char_width == 8);
 
 	// setup_colors in first vblank:
-	charmap->bgcolor = ~colorstrips[0][0];
+	charmap->bgcolor = Color(~colorstrips[0][0]);
 }
 
 template<typename Flag>

@@ -442,9 +442,9 @@ void Shape::create_shape(const Pixmap& pm, int transparent_pixel, const Color* c
 
 			while (x < pm.width)
 			{
-				Color pixel = pm.get_color(x, y);
+				int pixel = pm.get_color(x, y);
 				if unlikely (pixel == transparent_pixel) break;
-				*dp++ = clut ? clut[pixel] : pixel;
+				*dp++ = clut ? clut[pixel] : Color(pixel);
 				x++;
 			}
 			pfx->width = uint8(x - x0);

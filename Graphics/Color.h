@@ -70,8 +70,8 @@ struct Color
 
 	// low-level ctor, implicit casts:
 	constexpr Color() noexcept : raw(0) {}
-	constexpr Color(uint raw) noexcept : raw(uRGB(raw)) {} // raw value
-	constexpr Color(int raw) noexcept : raw(uRGB(raw)) {}  // raw value
+	explicit constexpr Color(uint raw) noexcept : raw(uRGB(raw)) {} // raw value
+	explicit constexpr Color(int raw) noexcept : raw(uRGB(raw)) {}	// raw value
 	constexpr operator uRGB() const noexcept { return raw; }
 
 	// high-level factory methods:
@@ -161,7 +161,7 @@ constexpr Color::uRGB Color::mkgrey(int n, int bits)
 
 constexpr Color Color::fromRGB8(int r, int g, int b) noexcept
 {
-	if constexpr (ORDER_GREY) { return Color(r * 85 + g * 107 + b * 64) >> (16 - ibits); }
+	if constexpr (ORDER_GREY) { return Color((r * 85 + g * 107 + b * 64) >> (16 - ibits)); }
 	if constexpr (ORDER_RGB) { return Color(mkred(r, 8) + mkgreen(g, 8) + mkblue(b, 8)); }
 	if constexpr (ORDER_RGBI)
 	{
@@ -178,7 +178,7 @@ constexpr Color Color::fromRGB8(int r, int g, int b) noexcept
 
 constexpr Color Color::fromRGB4(int r, int g, int b) noexcept
 {
-	if constexpr (ORDER_GREY) { return Color(r * 85 + g * 107 + b * 64) >> (12 - ibits); }
+	if constexpr (ORDER_GREY) { return Color((r * 85 + g * 107 + b * 64) >> (12 - ibits)); }
 	if constexpr (ORDER_RGB) { return Color(mkred(r, 4) + mkgreen(g, 4) + mkblue(b, 4)); }
 	if constexpr (ORDER_RGBI)
 	{
@@ -226,8 +226,7 @@ constexpr void Color::blend_with(const Color b) noexcept
 	if constexpr (ORDER_GREY) { raw = (raw + b.raw + 1) >> 1; }
 	else if constexpr (ORDER_RGB || ORDER_RGBI)
 	{
-		constexpr uint lsb = 1 << VIDEO_PIXEL_RSHIFT | 1 << VIDEO_PIXEL_GSHIFT | 1 << VIDEO_PIXEL_BSHIFT |
-							 (ORDER_RGBI << VIDEO_PIXEL_ISHIFT);
+		constexpr uint lsb	= (1 << rshift) | (1 << gshift) | (1 << bshift) | (ORDER_RGBI << ishift);
 		constexpr uint mask = total_colormask - lsb;
 
 		uRGB cy = (raw | b.raw) & lsb;

@@ -23,7 +23,7 @@ Color HamImageInfo::convert_abs_color(int qcolor)
 	int b = ((qcolor >> bshift) & bmask) << (Color::bshift + Color::bbits - bbits);
 	int i = ((qcolor >> ishift) & imask) << (Color::ishift + Color::ibits - ibits);
 
-	return r | g | b | i;
+	return Color(r | g | b | i);
 }
 
 Color HamImageInfo::convert_rel_color(int qcolor)

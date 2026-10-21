@@ -30,7 +30,7 @@ static constexpr uint8 transparent = 2;
 #define V(A)									 Y(A)
 #define W(A)									 X(A)
 
-static constexpr Color clut[4] = {white, black, 0, 0};
+static constexpr Color clut[4] = {white, black, Color(0), Color(0)};
 
 // clang-format off
 
