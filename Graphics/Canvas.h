@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "ColorMap.h"
 #include "RCPtr.h"
 #include "geometry.h"
 #include "graphics_types.h"
@@ -62,7 +63,9 @@ public:
 	AttrMode   attrmode() const noexcept { return get_attrmode(colormode); }	 // log2 of bits per color in pixmap[]
 	AttrWidth  attrwidth() const noexcept { return get_attrwidth(colormode); }	 // log2 of width of attribute cells
 	int		   bits_per_color() const noexcept { return 1 << colordepth(); }	 // bits per color in pixmap[] or attr[]
-	int bits_per_pixel() const noexcept { return is_attribute_mode(colormode) ? 1 << attrmode() : 1 << colordepth(); }
+	int		   bits_per_pixel() const noexcept { return is_attribute_mode() ? 1 << attrmode() : 1 << colordepth(); }
+	bool	   is_indexed_color() const noexcept { return kilipili::is_indexed_color(colormode); }
+	bool	   is_attribute_mode() const noexcept { return kilipili::is_attribute_mode(colormode); }
 
 	virtual ~Canvas() override = default;
 
@@ -88,6 +91,8 @@ public:
 	virtual uint get_pixel(coord x, coord y, uint* ink) const noexcept			= 0;
 	virtual uint get_color(coord x, coord y) const noexcept						= 0;
 	virtual uint get_ink(coord x, coord y) const noexcept						= 0;
+
+	virtual ColorMap<>* getColorMap() const noexcept { return nullptr; }
 
 	/* _______________________________________________________________________________________
 	   draw lines:

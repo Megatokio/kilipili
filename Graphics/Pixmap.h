@@ -56,8 +56,9 @@ public:
 	static constexpr bool flag_is_true_color   = CM == colormode_rgb;
 
 	Id("Pixmap ");
-	const int	 row_offset; // in pixmap[]
-	uint8* const pixmap;
+	const int		  row_offset; // in pixmap[]
+	uint8* const	  pixmap;
+	RCPtr<ColorMap<>> colormap; // if indexed color
 
 	static constexpr ColorDepth CD			   = get_colordepth(CM); // 0 .. 4  log2 of bits per color
 	static constexpr AttrMode	AM			   = attrmode_none;		 // 0 .. 2  log2 of bits per color (dummy)
@@ -79,6 +80,7 @@ public:
 	// allocating ctor:
 	Pixmap(const Size& size, AttrHeight = attrheight_none) throws;
 	Pixmap(coord w, coord h, AttrHeight = attrheight_none) throws;
+	Pixmap(coord w, coord h, ColorMap<>*) throws;
 
 	// not allocating: wrap existing pixels:
 	constexpr Pixmap(const Size& size, uint8* pixels, int row_offset) noexcept;
@@ -112,6 +114,8 @@ public:
 	virtual uint get_pixel(coord x, coord y, uint* ink) const noexcept override;
 	virtual uint get_color(coord x, coord y) const noexcept override;
 	virtual uint get_ink(coord x, coord y) const noexcept override;
+
+	virtual ColorMap<>* getColorMap() const noexcept override;
 
 	virtual void draw_hline_to(coord x, coord y, coord x2, uint color, uint ink = 1) noexcept override;
 	virtual void draw_vline_to(coord x, coord y, coord y2, uint color, uint ink = 1) noexcept override;
@@ -161,6 +165,17 @@ template<ColorMode CM>
 Pixmap<CM>* DirectColorPixmap::cloneWindow(coord x, coord y, coord w, coord h) throws
 {
 	return new Pixmap<CM>(*this, x, y, w, h);
+}
+
+template<ColorMode CM>
+DirectColorPixmap::Pixmap(coord w, coord h, ColorMap<>* colormap) throws :
+	Canvas(w, h, CM, attrheight_none, true /*allocated*/),
+	row_offset(calc_row_offset(w)),
+	pixmap(new uint8[uint(h * row_offset)]),
+	colormap(colormap)
+{
+	assert(colormap == nullptr || kilipili::is_indexed_color(CM));
+	assert(colormap == nullptr || colormap->count >= 1 << (1 << colordepth));
 }
 
 // allocating, throws. for use by subclass:
@@ -295,6 +310,12 @@ uint DirectColorPixmap::get_pixel(coord x, coord y, uint* ink) const noexcept
 {
 	// get color and ink
 	return *ink = get_ink(x, y);
+}
+
+template<ColorMode CM>
+ColorMap<>* DirectColorPixmap::getColorMap() const noexcept
+{
+	return colormap;
 }
 
 
