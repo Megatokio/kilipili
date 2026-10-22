@@ -52,8 +52,8 @@ public:
 	uchar* cursor_ptr = nullptr;
 	int	   rows;
 	int	   cols;
-	Color  fgcolor = black;
-	Color  bgcolor = white;
+	Color  fgcolor = bright_green;
+	Color  bgcolor = Color::fromGrey8(15);
 
 	// attributes:
 	// should be updated if another font is set:
