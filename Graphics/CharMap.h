@@ -4,6 +4,7 @@
 
 #pragma once
 #include "Color.h"
+#include "ColorMap.h"
 #include "Font.h"
 #include "RCPtr.h"
 #include "common/cdefs.h"
@@ -41,8 +42,8 @@ namespace kilipili
 	All others display only if they contain a fair amount of spaces. (not recommended to use.)
 */
 
-template<class CharMap, typename>
-class FrameBuffer;
+//template<class CharMap, typename>
+//class FrameBuffer;
 
 template<int fg_bits = -1, int bg_bits = 0, bool bold = true, bool underline = true, bool graphics = false>
 class CharMap;
@@ -73,6 +74,9 @@ public:
 
 	RCPtr<const Font> fonts[2] {&latin1_12x8, &graphics_12x8}; // should be copied into ram!
 
+	RCPtr<ColorMap> fgcolors;
+	RCPtr<ColorMap> bgcolors;
+
 	uint8 rc = 0; // RCPtr<>
 
 	// for Printer<CharMapBase>:
@@ -87,9 +91,12 @@ public:
 	static constexpr uint8 inverted = 0;
 
 protected:
-	CharMapBase(int rows, int cols, uint8 fg_bits, uint8 bg_bits, uint8 bold, uint8 ul, uint8 gra) : //
+	CharMapBase(
+		int rows, int cols, ColorMap* fg, ColorMap* bg, uint8 fg_bits, uint8 bg_bits, uint8 bold, uint8 ul, uint8 gra) :
 		rows(rows),
 		cols(cols),
+		fgcolors(fg),
+		bgcolors(bg),
 		fg_bits(fg_bits),
 		bg_bits(bg_bits),
 		fg_mask(uint8(((1 << fg_bits) - 1) << bg_bits)),
@@ -99,6 +106,11 @@ protected:
 		graphics(gra)
 	{
 		data = new uint16[uint(rows * cols)];
+		if (!fg) fgcolors = fg = new ColorMap(1 << fg_bits);
+		if (!bg) bgcolors = bg = (new ColorMap(1 << bg_bits))->reverse();
+		if (fgcolors[0] == bgcolors[0]) bgcolors->complement();
+		assert(fg->count >= 1 << fg_bits);
+		assert(bg->count >= 1 << bg_bits);
 		clear();
 	}
 
@@ -114,32 +126,24 @@ template<int _fg_bits, int _bg_bits, bool _bold, bool _underline, bool _graphics
 class CharMap : public CharMapBase
 {
 public:
-	static constexpr int   bg_bits	 = _bg_bits;
-	static constexpr int   fg_bits	 = _fg_bits;
-	static constexpr int   bg_ss	 = 0;
-	static constexpr int   fg_ss	 = bg_bits;
-	static constexpr uchar fg_mask	 = ((1 << fg_bits) - 1) << fg_ss;
-	static constexpr uchar bg_mask	 = ((1 << bg_bits) - 1) << bg_ss;
-	static constexpr uchar bold		 = _bold << (fg_bits + bg_bits);
-	static constexpr uchar underline = _underline << (fg_bits + bg_bits + _bold);
-	static constexpr uchar graphics	 = _graphics << (fg_bits + bg_bits + _bold + _underline);
+	static constexpr bool  isa_charmap = true;
+	static constexpr int   bg_bits	   = _bg_bits;
+	static constexpr int   fg_bits	   = _fg_bits;
+	static constexpr int   bg_ss	   = 0;
+	static constexpr int   fg_ss	   = bg_bits;
+	static constexpr uchar fg_mask	   = ((1 << fg_bits) - 1) << fg_ss;
+	static constexpr uchar bg_mask	   = ((1 << bg_bits) - 1) << bg_ss;
+	static constexpr uchar bold		   = _bold << (fg_bits + bg_bits);
+	static constexpr uchar underline   = _underline << (fg_bits + bg_bits + _bold);
+	static constexpr uchar graphics	   = _graphics << (fg_bits + bg_bits + _bold + _underline);
 
 	static_assert(fg_bits + bg_bits + _bold + _underline + _graphics <= 8);
 	static_assert(uint(fg_bits) <= 8);
 	static_assert(uint(bg_bits) <= 8);
 
-	CharMap(int rows, int cols) : CharMapBase(rows, cols, fg_bits, bg_bits, bold, underline, graphics) {}
-
-	static constexpr uint32 mul = sizeof(Color) == 1 ? 0x01010101 : sizeof(Color) == 2 ? 0x00010001 : 1;
-	void					set_fgcolor(int i, Color c) noexcept { fgcolors[i & ((1 << fg_bits) - 1)] = c * mul; }
-	void					set_bgcolor(int i, Color c) noexcept { bgcolors[i & ((1 << bg_bits) - 1)] = c * mul; }
-
-private:
-	// colors are stored as floodfilled uint32's, as needed by FrameBuffer<>:
-	uint32 fgcolors[1 << fg_bits] = {black * mul};
-	uint32 bgcolors[1 << bg_bits] = {white * mul};
-
-	friend class FrameBuffer<CharMap, void>;
+	CharMap(int rows, int cols, ColorMap* fg = nullptr, ColorMap* bg = nullptr) :
+		CharMapBase(rows, cols, fg, bg, fg_bits, bg_bits, bold, underline, graphics)
+	{}
 };
 
 

@@ -59,8 +59,6 @@ public:
 	RCPtr<const Font>	font1;
 	RCPtr<const Font>	font2;
 	scanline_render_fu* scanline_renderer = nullptr;
-	uint32*				fgcolors		  = nullptr;
-	uint32*				bgcolors		  = nullptr;
 
 	// set in do_vblank:
 	const uint16* cursor_ptr = nullptr; // set in vblank
@@ -72,7 +70,7 @@ public:
 	int			  last_y	  = 0;		 // line within screen
 
 protected:
-	FrameBufferCharMapBase(CharMapBase*, scanline_render_fu*, uint32* fg, uint32* bg) noexcept;
+	FrameBufferCharMapBase(CharMapBase*, scanline_render_fu*) noexcept;
 	static void do_vblank(VideoPlane*) noexcept;
 	static void do_render(VideoPlane*, int row, int width, uint32* buffer) noexcept;
 };
@@ -84,7 +82,7 @@ protected:
 	It provides function scanline_renderer for the actual rendering specific to CharMap<..>.
 */
 template<class CharMap>
-class FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>> final : public FrameBufferCharMapBase
+class FrameBuffer<CharMap, std::enable_if_t<CharMap::isa_charmap>> final : public FrameBufferCharMapBase
 {
 public:
 	static constexpr int	fg_bits	  = CharMap::fg_bits;
@@ -101,9 +99,12 @@ public:
 	static_assert(uint(fg_bits) <= 8);
 	static_assert(uint(bg_bits) <= 8);
 
-	FrameBuffer(CharMap* cm) noexcept : FrameBufferCharMapBase(cm, &render_scanline, cm->fgcolors, cm->bgcolors) {}
+	FrameBuffer(CharMap* cm) noexcept : FrameBufferCharMapBase(cm, &render_scanline) {}
 	virtual ~FrameBuffer() noexcept override = default;
 	NO_COPY_MOVE(FrameBuffer);
+
+	uint32 fgcolors[1 << fg_bits];
+	uint32 bgcolors[1 << bg_bits];
 
 private:
 	static void render_scanline(VideoPlane*, uint32* z, const uint16* p, int cols) noexcept;
@@ -121,7 +122,7 @@ constexpr __section(".scratch_x.FB_CM_DATA2") uint32 mask4x2[4] = {0x00000000, 0
 
 
 template<class CharMap>
-void FrameBuffer<CharMap, std::enable_if_t<CharMap::fg_bits >= 0>>:: //
+void FrameBuffer<CharMap, std::enable_if_t<CharMap::isa_charmap>>:: //
 	render_scanline(VideoPlane* vp, uint32* z, const uint16* q, int cols) noexcept
 {
 	static_assert(char_width == 8);
