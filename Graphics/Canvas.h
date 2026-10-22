@@ -92,7 +92,7 @@ public:
 	virtual uint get_color(coord x, coord y) const noexcept						= 0;
 	virtual uint get_ink(coord x, coord y) const noexcept						= 0;
 
-	virtual ColorMap<>* getColorMap() const noexcept { return nullptr; }
+	virtual ColorMap* getColorMap() const noexcept { return nullptr; }
 
 	/* _______________________________________________________________________________________
 	   draw lines:

@@ -9,7 +9,7 @@
 namespace kilipili
 {
 
-HamImageVideoPlane::HamImageVideoPlane(const Pixmap<CM>* pm, const ColorMap<CM>* cm, uint16 first_rel_code) :
+HamImageVideoPlane::HamImageVideoPlane(const Pixmap<CM>* pm, const ColorMap* cm, uint16 first_rel_code) :
 	VideoPlane(&do_vblank, &do_render),
 	pixmap(pm),
 	colormap(cm),
@@ -17,6 +17,7 @@ HamImageVideoPlane::HamImageVideoPlane(const Pixmap<CM>* pm, const ColorMap<CM>*
 	pixels(pm->pixmap),
 	first_rel_code(first_rel_code)
 {
+	assert(cm && cm->count >= 256);
 	if (row_offset & 1) throw "ham image: odd row offset not supported";
 	if (pm->width & 3) {} // then up to 3 rightmost pixel at the right border will never be set
 }

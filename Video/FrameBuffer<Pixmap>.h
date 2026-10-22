@@ -28,14 +28,13 @@ public:
 	int						row_offset;
 	uint8*					pixels; // next position
 
-	FrameBuffer(const Pixmap<CM>* px, const ColorMap<CM>* = nullptr) noexcept : //
+	FrameBuffer(const Pixmap<CM>* px, const ColorMap* = nullptr) noexcept : //
 		VideoPlane(&vblank, &render),
 		pixmap(px),
 		row_offset(pixmap->row_offset),
 		pixels(pixmap->pixmap)
 	{}
-	FrameBuffer(const Canvas* px, const ColorMap<CM>* = nullptr) noexcept :
-		FrameBuffer(static_cast<const Pixmap<CM>*>(px))
+	FrameBuffer(const Canvas* px, const ColorMap* = nullptr) noexcept : FrameBuffer(static_cast<const Pixmap<CM>*>(px))
 	{
 		assert(px->colormode == CM);
 	}
@@ -55,21 +54,23 @@ public:
 	static constexpr ColorMode CM = colormode_i1;
 
 	Id("FrameBuffer");
-	RCPtr<const Pixmap<CM>>	  pixmap;
-	RCPtr<const ColorMap<CM>> colormap;
-	ScanlineRenderer_i1		  scanline_renderer;
-	int						  row_offset;
-	uint8*					  pixels;
+	RCPtr<const Pixmap<CM>> pixmap;
+	RCPtr<const ColorMap>	colormap;
+	ScanlineRenderer_i1		scanline_renderer;
+	int						row_offset;
+	uint8*					pixels;
 
-	FrameBuffer(const Pixmap<CM>* px, const ColorMap<CM>* cm = nullptr) noexcept :
+	FrameBuffer(const Pixmap<CM>* px, const ColorMap* cm = nullptr) noexcept :
 		VideoPlane(&vblank, &render),
 		pixmap(px),
-		colormap(cm ? cm : &system_colormap.as<CM>()),
+		colormap(cm ? cm : &system_colormap),
 		scanline_renderer(colormap->colors),
 		row_offset(pixmap->row_offset),
 		pixels(pixmap->pixmap)
-	{}
-	FrameBuffer(const Canvas* px, const ColorMap<CM>* cmap = nullptr) noexcept :
+	{
+		assert(colormap->count >= 1 << (1 << CM));
+	}
+	FrameBuffer(const Canvas* px, const ColorMap* cmap = nullptr) noexcept :
 		FrameBuffer(static_cast<const Pixmap<CM>*>(px), cmap)
 	{
 		assert(px->colormode == CM);
@@ -90,21 +91,23 @@ public:
 	static constexpr ColorMode CM = colormode_i2;
 
 	Id("FrameBuffer");
-	RCPtr<const Pixmap<CM>>	  pixmap;
-	RCPtr<const ColorMap<CM>> colormap;
-	ScanlineRenderer_i2		  scanline_renderer;
-	int						  row_offset;
-	uint8*					  pixels;
+	RCPtr<const Pixmap<CM>> pixmap;
+	RCPtr<const ColorMap>	colormap;
+	ScanlineRenderer_i2		scanline_renderer;
+	int						row_offset;
+	uint8*					pixels;
 
-	FrameBuffer(const Pixmap<CM>* px, const ColorMap<CM>* cm = nullptr) noexcept :
+	FrameBuffer(const Pixmap<CM>* px, const ColorMap* cm = nullptr) noexcept :
 		VideoPlane(&vblank, &render),
 		pixmap(px),
-		colormap(cm ? cm : &system_colormap.as<CM>()),
+		colormap(cm ? cm : &system_colormap),
 		scanline_renderer(colormap->colors),
 		row_offset(pixmap->row_offset),
 		pixels(pixmap->pixmap)
-	{}
-	FrameBuffer(const Canvas* px, const ColorMap<CM>* cmap = nullptr) noexcept :
+	{
+		assert(colormap->count >= 1 << (1 << CM));
+	}
+	FrameBuffer(const Canvas* px, const ColorMap* cmap = nullptr) noexcept :
 		FrameBuffer(static_cast<const Pixmap<CM>*>(px), cmap)
 	{
 		assert(px->colormode == CM);
@@ -125,21 +128,23 @@ public:
 	static constexpr ColorMode CM = colormode_i4;
 
 	Id("FrameBuffer");
-	RCPtr<const Pixmap<CM>>	  pixmap;
-	RCPtr<const ColorMap<CM>> colormap;
-	ScanlineRenderer_i4		  scanline_renderer;
-	int						  row_offset;
-	uint8*					  pixels;
+	RCPtr<const Pixmap<CM>> pixmap;
+	RCPtr<const ColorMap>	colormap;
+	ScanlineRenderer_i4		scanline_renderer;
+	int						row_offset;
+	uint8*					pixels;
 
-	FrameBuffer(const Pixmap<CM>* px, const ColorMap<CM>* cm = nullptr) noexcept :
+	FrameBuffer(const Pixmap<CM>* px, const ColorMap* cm = nullptr) noexcept :
 		VideoPlane(&vblank, &render),
 		pixmap(px),
-		colormap(cm ? cm : &system_colormap.as<CM>()),
+		colormap(cm ? cm : &system_colormap),
 		scanline_renderer(colormap->colors),
 		row_offset(pixmap->row_offset),
 		pixels(pixmap->pixmap)
-	{}
-	FrameBuffer(const Canvas* px, const ColorMap<CM>* cmap = nullptr) noexcept :
+	{
+		assert(colormap->count >= 1 << (1 << CM));
+	}
+	FrameBuffer(const Canvas* px, const ColorMap* cmap = nullptr) noexcept :
 		FrameBuffer(static_cast<const Pixmap<CM>*>(px), cmap)
 	{
 		assert(px->colormode == CM);
@@ -160,21 +165,23 @@ public:
 	static constexpr ColorMode CM = colormode_i8;
 
 	Id("FrameBuffer");
-	RCPtr<const Pixmap<CM>>	  pixmap;
-	RCPtr<const ColorMap<CM>> colormap;
-	ScanlineRenderer_i8		  scanline_renderer;
-	int						  row_offset;
-	uint8*					  pixels;
+	RCPtr<const Pixmap<CM>> pixmap;
+	RCPtr<const ColorMap>	colormap;
+	ScanlineRenderer_i8		scanline_renderer;
+	int						row_offset;
+	uint8*					pixels;
 
-	FrameBuffer(const Pixmap<CM>* px, const ColorMap<CM>* cm = nullptr) noexcept :
+	FrameBuffer(const Pixmap<CM>* px, const ColorMap* cm = nullptr) noexcept :
 		VideoPlane(&vblank, &render),
 		pixmap(px),
 		colormap(cm ? cm : &system_colormap),
 		scanline_renderer(colormap->colors),
 		row_offset(pixmap->row_offset),
 		pixels(pixmap->pixmap)
-	{}
-	FrameBuffer(const Canvas* px, const ColorMap<CM>* cmap = nullptr) noexcept :
+	{
+		assert(colormap->count >= 1 << (1 << CM));
+	}
+	FrameBuffer(const Canvas* px, const ColorMap* cmap = nullptr) noexcept :
 		FrameBuffer(static_cast<const Pixmap<CM>*>(px), cmap)
 	{
 		assert(px->colormode == CM);
@@ -242,14 +249,14 @@ class FrameBuffer<Pixmap, std::enable_if_t<is_attribute_mode(Pixmap::colormode)>
 public:
 	RCPtr<const Pixmap> pixmap;
 
-	FrameBuffer(const Pixmap* px, const ColorMap<>* = nullptr) noexcept :
+	FrameBuffer(const Pixmap* px, const ColorMap* = nullptr) noexcept :
 		FrameBufferBase_wAttr(
 			px->pixmap, px->row_offset, px->attributes.pixmap, px->attributes.row_offset, px->attrheight,
 			&ScanlineRenderer<Pixmap>),
 		pixmap(px)
 	{}
 
-	FrameBuffer(const Canvas* px, const ColorMap<>* = nullptr) noexcept : FrameBuffer(static_cast<const Pixmap*>(px))
+	FrameBuffer(const Canvas* px, const ColorMap* = nullptr) noexcept : FrameBuffer(static_cast<const Pixmap*>(px))
 	{
 		assert(px->colormode == Pixmap::colormode);
 	}
@@ -278,10 +285,10 @@ extern template class FrameBuffer<Pixmap_a2w8>;
 //	deduction guides:
 
 template<ColorMode CM>
-FrameBuffer(Pixmap<CM>*, const ColorMap<CM>*) -> FrameBuffer<Pixmap<CM>>;
+FrameBuffer(Pixmap<CM>*, const ColorMap*) -> FrameBuffer<Pixmap<CM>>;
 
 template<ColorMode CM>
-FrameBuffer(RCPtr<Pixmap<CM>>, const ColorMap<CM>*) -> FrameBuffer<Pixmap<CM>>;
+FrameBuffer(RCPtr<Pixmap<CM>>, const ColorMap*) -> FrameBuffer<Pixmap<CM>>;
 
 } // namespace kilipili
 
