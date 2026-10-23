@@ -30,32 +30,38 @@ public:
 	//virtual void   printf(cstr fmt, va_list) noexcept override __printflike(2, 0);	// supports \n, \r and \t
 
 	// the normal stuff:
-	void reset(bool cls = false) noexcept override;
-	cstr identify() override;
-	void cls() noexcept override;
-	void clearRect(int row, int col, int rows, int cols) noexcept override;
-	void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
-	void printChar(char c, int count = 1) noexcept override; // no ctl
+	virtual void reset(bool cls = false) noexcept override;
+	virtual cstr identify() override;
+	virtual void cls() noexcept override;
+	virtual void clearRect(int row, int col, int rows, int cols) noexcept override;
+	virtual void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;
+	virtual void printChar(char c, int count = 1) noexcept override; // no ctl
 
 	// attribute changes apply to following printing:
-	void  setAttributes(uint add, uint remove = 0xff) noexcept override;
-	uint8 getAttributes() const noexcept override { return attributes; }
+	virtual void  setAttributes(uint add, uint remove = 0xff) noexcept override;
+	virtual uint8 getAttributes() const noexcept override { return attributes; }
 
 	// font changes apply to following printing:
-	void		setFont(const Font*, bool gfx = 0) noexcept override;
-	const Font* getFont(bool gfx = 0) noexcept override;
+	virtual void		setFont(const Font*, bool gfx = 0) noexcept override;
+	virtual const Font* getFont(bool gfx = 0) noexcept override;
 
-	RCPtr<Canvas>	  pixmap;
+	virtual void setPen(uint color, uint ink = 1) noexcept override;
+	virtual void setPaper(uint color, uint ink = 0) noexcept override;
+	virtual void setPen(Color, uint ink = 1) noexcept override;	  // color = true Color
+	virtual void setPaper(Color, uint ink = 0) noexcept override; // color = true Color
+
+	RCPtr<Canvas> pixmap;
+
+private:
 	RCPtr<const Font> font1; // default: latin-1
 	RCPtr<const Font> font2; // default: graphics font
 
-	uint default_bgcolor = 0x0000ffff; // white paper (note: ic1 has inverted default colormap)
-	uint default_fgcolor = 0;		   // black ink   (      => black paper & green ink)
-
-	uint bgcolor = default_bgcolor; // paper color
-	uint fgcolor = default_fgcolor; // text color
-	uint fg_ink	 = 1;				// for Pixmap_wAttr
-	uint bg_ink	 = 0;				// for Pixmap_wAttr
+	uint default_fgcolor = 0;				// black or index
+	uint default_bgcolor = 0xffffffff;		// white or index (surplus bits are chopped of)
+	uint fgcolor		 = default_fgcolor; // text color
+	uint bgcolor		 = default_bgcolor; // paper color
+	uint fg_ink			 = 1;				// for Pixmap_wAttr
+	uint bg_ink			 = 0;				// for Pixmap_wAttr
 
 	// cursor blob:
 	uint32 cursorXorColor = 0; // value used to xor the colors

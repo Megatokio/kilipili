@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "Color.h"
 #include "Devices/SerialDevice.h"
 #include "Font.h"
 #include "common/no_copy_move.h"
@@ -19,11 +20,24 @@ namespace kilipili
 
 	class Printer<> also implements the SerialDevice interface.
 
-	note:
+note:
 	The implementations override all SerialDevice virtual functions and never call through to them.
 	So it should not be neccessary to include kilipili_devices into your project, if you don't want to use them.
 	But c++ may decide it needs them for the SerialDevice vtable anyway.
 	Then it should be enough to add Devices/SerialDevice.cpp to your project.
+
+color info:
+	fgbits:		number of bits in foreground color map (pen)
+	bgbits:		number of bits in background color map (paper)
+	shared_cmaps: whether pen and paper share a common cmap
+	true_color:	whether setPen() / setPaper() use true Color or a color index
+
+					fgbits	bgbits	shared	rgb	
+	SimpleCharMap	0		0		no		no		setPen() / setPaper() does nothing
+	CharMap			0…4		0…4		no		no		indexed color
+	Pixmap_i1 … i8	1…8		1…8		yes		no		indexed color
+	Pixmap_wAttr	1…2		1…2		yes		yes		true color + ink
+	Pixmap_rgb		0		0		no		yes		true color
 */
 
 template<class = void>
@@ -81,6 +95,11 @@ public:
 	virtual void		setFont(const Font*, bool gfx = 0) noexcept = 0;
 	virtual const Font* getFont(bool gfx = 0) noexcept				= 0;
 
+	virtual void setPen(uint color, uint ink = 1) noexcept	 = 0; // color = true Color or color index
+	virtual void setPaper(uint color, uint ink = 0) noexcept = 0; // color = true Color or color index
+	virtual void setPen(Color, uint ink = 1) noexcept		 = 0; // color = true Color
+	virtual void setPaper(Color, uint ink = 0) noexcept		 = 0; // color = true Color
+
 	void showCursor(bool on = true) noexcept;
 	void hideCursor() noexcept;
 
@@ -128,6 +147,16 @@ public:
 	// Screen size: [characters]
 	const int rows, cols;
 
+	// color info:
+	const uint8 fgbits; // 0 … 8:  bits per color index (pen)
+	const uint8 bgbits; // 0 … 8:  bits per color index (paper)
+	enum AttrInfo : uint16 { w_cmap = 1, w_sep_cmap = 3, w_rgb = 4, w_attr = 12 };
+	AttrInfo attr_info;
+	bool	 is_true_color() const noexcept { return attr_info & w_rgb; }
+	bool	 is_indexed_color() const noexcept { return attr_info & w_cmap; }
+	bool	 has_separate_cmaps() const noexcept { return attr_info & (w_sep_cmap - w_cmap); }
+	bool	 is_attribute_mode() const noexcept { return attr_info & (w_attr - w_rgb); }
+
 	// current print position:
 	int	  row = 0, col = 0;
 	int	  scroll_count = 0;
@@ -137,7 +166,7 @@ public:
 protected:
 	uint8 attributes = 0;
 
-	Printer(int rows, int cols) noexcept;
+	Printer(int rows, int cols, int fgbits, int bgbits, AttrInfo) noexcept;
 	virtual void show_cursor(bool f) noexcept {}
 	void		 validate_hpos(bool col80ok) noexcept;
 	void		 validate_vpos() noexcept;

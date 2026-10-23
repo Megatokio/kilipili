@@ -8,16 +8,18 @@
 #include "common/trace.h"
 #include "cstrings.h"
 #include <cstdio>
-#include <memory>
 
 
 namespace kilipili
 {
 
-Printer<>::Printer(int rows, int cols) noexcept : //
+Printer<>::Printer(int rows, int cols, int fg, int bg, AttrInfo attr_info) noexcept : //
 	SerialDevice(FSFlags::writable),
 	rows(rows),
-	cols(cols)
+	cols(cols),
+	fgbits(uint8(fg)),
+	bgbits(uint8(bg)),
+	attr_info(attr_info)
 {}
 
 void Printer<>::reset(__unused bool cls) noexcept
@@ -358,31 +360,6 @@ void Printer<>::scrollScreenRight(int cols) noexcept
 {
 	if (cols > 0) scrollScreen(0, +cols);
 }
-
-//	SIZE Printer<>::write(const void* data, SIZE size, __unused bool partial) noexcept
-//	{
-//		// SerialDevice:
-//		// any char, even chr(0)
-//
-//		cptr text = reinterpret_cast<cptr>(data);
-//		for (uint i = 0; i < size; i++)
-//		{
-//			printChar(text[i]); // no ctl!
-//		}
-//		return size;
-//	}
-//
-//	void Printer<>::puts(cstr s) noexcept
-//	{
-//		// SerialDevice:
-//		// print printable text string.
-//		// supports \n, \r and \t
-//
-//		while (char c = *s++)
-//		{
-//			putc(c); // supports \n, \r and \t
-//		}
-//	}
 
 void Printer<>::printf(cstr fmt, va_list va) noexcept
 {

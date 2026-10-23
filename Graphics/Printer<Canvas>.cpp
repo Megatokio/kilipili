@@ -2,6 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
+#include "ColorMap.h"
 #include "Font.h"
 #include "Printer<Canvas>.h"
 #include "cstrings.h"
@@ -32,7 +33,14 @@ static constexpr const uint8 dblw[16] = {
 // =============================================================================
 
 Printer<Canvas>::Printer(Canvas* pixmap, const Font* font1, const Font* font2) noexcept :
-	Printer<>(pixmap->height / font1->char_height, pixmap->width / font1->char_width),
+	Printer<>(
+		pixmap->height / font1->char_height,  //
+		pixmap->width / font1->char_width,	  //
+		pixmap->bits_per_pixel(),			  // fgbits: cmap or attr bits 
+		pixmap->bits_per_pixel(),			  // bgbits: cmap or attr bits 
+		pixmap->is_indexed_color() ? w_cmap	: // indexed color?
+		pixmap->is_attribute_mode() ? w_attr: // true color attributes?
+							 		  w_rgb), // else true color
 	pixmap(pixmap),
 	font1(font1),
 	font2(font2)
@@ -48,7 +56,14 @@ Printer<Canvas>::Printer(Canvas* pixmap, const Font* font1, const Font* font2) n
 
 	assert(uint(font1->char_height) <= sizeof(CharMatrix));
 
-	if (pixmap->attrmode() != attrmode_none)
+	assert(is_attribute_mode() == pixmap->is_attribute_mode());
+	assert(is_indexed_color() == pixmap->is_indexed_color());
+	assert(is_true_color() != is_indexed_color());
+	assert(has_separate_cmaps() == false);
+	assert(fgbits == pixmap->bits_per_pixel());
+	assert(bgbits == fgbits);
+
+	if (pixmap->is_attribute_mode())
 	{
 		assert(font1->char_height % pixmap->attrheight == 0);
 		assert((font1->char_width & ((1 << pixmap->attrwidth()) - 1)) == 0);
@@ -161,6 +176,38 @@ void Printer<Canvas>::setFont(const Font* font, bool gfx) noexcept
 const Font* Printer<Canvas>::getFont(bool gfx) noexcept
 {
 	return gfx == 0 ? font1 : font2; //
+}
+
+void Printer<Canvas>::setPen(uint color, uint ink) noexcept
+{
+	fgcolor = color;
+	fg_ink	= ink & ((1 << fgbits) - 1);
+}
+
+void Printer<Canvas>::setPaper(uint color, uint ink) noexcept
+{
+	bgcolor = color;
+	bg_ink	= ink & ((1 << bgbits) - 1);
+}
+
+void Printer<Canvas>::setPen(Color color, uint ink) noexcept
+{
+	if (is_true_color()) return setPen(color.raw, ink);
+
+	assert(is_indexed_color());
+	ColorMap* cmap = pixmap->getColorMap();
+	if (!cmap) cmap = &system_colormap;
+	fgcolor = cmap->bestMatch(color, 1 << fgbits);
+}
+
+void Printer<Canvas>::setPaper(Color color, uint ink) noexcept
+{
+	if (is_true_color()) return setPaper(color.raw, ink);
+
+	assert(is_indexed_color());
+	ColorMap* cmap = pixmap->getColorMap();
+	if (!cmap) cmap = &system_colormap;
+	bgcolor = cmap->bestMatch(color, 1 << bgbits);
 }
 
 void Printer<Canvas>::applyAttributes(CharMatrix bmp) noexcept

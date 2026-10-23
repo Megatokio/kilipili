@@ -9,10 +9,9 @@ namespace kilipili
 {
 
 Printer<SimpleCharMap>::Printer(SimpleCharMap* cm) : //
-	Printer<>(cm->rows, cm->cols),
+	Printer<>(cm->rows, cm->cols, 0, 0, w_sep_cmap),
 	charmap(cm)
 {}
-
 
 void Printer<SimpleCharMap>::reset(bool cls) noexcept
 {

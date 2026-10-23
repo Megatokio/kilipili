@@ -4,7 +4,7 @@
 
 #include "Printer<CharMap>.h"
 #include "cstrings.h"
-#include "timing.h"
+
 
 namespace kilipili
 {
@@ -13,18 +13,21 @@ namespace kilipili
 #define font2 fonts[1]
 
 Printer<CharMapBase>::Printer(CharMapBase* charmap) : //
-	Printer<>(charmap->rows, charmap->cols),
+	Printer<>(charmap->rows, charmap->cols, charmap->fg_bits, charmap->bg_bits, w_sep_cmap),
 	charmap(charmap)
-{}
+{
+	assert(is_indexed_color());
+	assert(has_separate_cmaps());
+}
 
 void Printer<CharMapBase>::reset(bool cls) noexcept
 {
 	// does not reset the color tables or font
 
-	fg_bits = charmap->fg_bits;
-	bg_bits = charmap->bg_bits;
-	fg_mask = charmap->fg_mask;
-	bg_mask = charmap->bg_mask;
+	//fg_bits = charmap->fg_bits;
+	//bg_bits = charmap->bg_bits;
+	//fg_mask = charmap->fg_mask;
+	//bg_mask = charmap->bg_mask;
 
 	Printer<>::reset();
 	if (cls) charmap->clear();
@@ -38,16 +41,18 @@ void Printer<CharMapBase>::cls() noexcept
 	charmap->clear();
 }
 
-void Printer<CharMapBase>::set_fgcolor(int i) noexcept
+void Printer<CharMapBase>::set_fgcolor(uint i) noexcept
 {
-	int fg_ss = bg_bits;
+	int	 fg_ss	 = bgbits;
+	uint fg_mask = charmap->fg_mask;
 	attributes &= ~fg_mask;
 	attributes |= (i << fg_ss) & fg_mask;
 }
 
-void Printer<CharMapBase>::set_bgcolor(int i) noexcept
+void Printer<CharMapBase>::set_bgcolor(uint i) noexcept
 {
-	int bg_ss = 0;
+	int	 bg_ss	 = 0;
+	uint bg_mask = charmap->bg_mask;
 	attributes &= ~bg_mask;
 	attributes |= (i << bg_ss) & bg_mask;
 }
@@ -72,9 +77,11 @@ void Printer<CharMapBase>::set_graphics(bool f) noexcept
 
 void Printer<CharMapBase>::set_attr(int fg, int bg, bool bld, bool ul, bool gra) noexcept
 {
-	int fg_ss  = bg_bits;
-	int bg_ss  = 0;
-	attributes = ((fg << fg_ss) & fg_mask) | ((bg << bg_ss) & bg_mask);
+	int	  fg_ss	  = bgbits;
+	int	  bg_ss	  = 0;
+	uint8 fg_mask = charmap->fg_mask;
+	uint8 bg_mask = charmap->bg_mask;
+	attributes	  = ((fg << fg_ss) & fg_mask) | ((bg << bg_ss) & bg_mask);
 	if (bld) attributes |= charmap->bold;
 	if (ul) attributes |= charmap->underline;
 	if (gra) attributes |= charmap->graphics;
@@ -138,6 +145,17 @@ const Font* Printer<CharMapBase>::getFont(bool gfx) noexcept
 	return charmap->fonts[gfx]; //
 }
 
+void Printer<CharMapBase>::setPen(Color color, uint ink) noexcept
+{
+	assert(is_indexed_color());
+	set_fgcolor(charmap->fgcolors->bestMatch(color, 1 << fgbits));
+}
+
+void Printer<CharMapBase>::setPaper(Color color, uint ink) noexcept
+{
+	assert(is_indexed_color());
+	set_bgcolor(charmap->bgcolors->bestMatch(color, 1 << bgbits));
+}
 
 cstr attr_str(bool b, bool u, bool g)
 {
@@ -152,7 +170,7 @@ cstr Printer<CharMapBase>::identify()
 
 	return usingstr(
 		"CharMap %i*%i, attr=%s, colors=%i+%i", //
-		cols, rows, attr_str(bold, underline, graphics), 1 << fg_bits, 1 << bg_bits);
+		cols, rows, attr_str(bold, underline, graphics), 1 << fgbits, 1 << bgbits);
 }
 
 inline void Printer<CharMapBase>::hide_cursor() noexcept
