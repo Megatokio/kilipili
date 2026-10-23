@@ -28,10 +28,12 @@ public:
 	RCPtr<const Pixmap<CM>> pixmap;
 	RCPtr<const ColorMap>	colormap;
 
-	int			 row_offset;	 //
-	const uint8* pixels;		 // next position
-	uint16		 first_rel_code; //
-	Color		 first_color;	 // initial color at start of next row
+	int			 row_offset;	  //
+	const uint8* pixels;		  // next position
+	const Color* colors;		  //
+	const Color* first_rel_color; //
+	uint16		 first_rel_code;  //
+	Color		 first_color;	  // initial color at start of next row
 
 private:
 	static void do_render(VideoPlane*, int row, int width, uint32* fbu) noexcept;

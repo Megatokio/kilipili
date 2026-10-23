@@ -40,6 +40,8 @@ void __section(RAM ".ham") HamImageVideoPlane::do_vblank(VideoPlane* vp) noexcep
 	HamImageVideoPlane* me = static_cast<HamImageVideoPlane*>(vp);
 	me->pixels			   = me->pixmap->pixmap;
 	me->first_color		   = black;
+	me->colors			   = &me->colormap->colors[0];
+	me->first_rel_color	   = &me->colormap->colors[me->first_rel_code];
 }
 
 static __force_inline Color operator+(Color a, Color b) { return Color(a.raw + b.raw); }
@@ -54,9 +56,9 @@ void __section(XRAM ".ham") HamImageVideoPlane::do_render( //
 
 	Interp* interp = interp0;
 	interp->setup(InterpMode::i8);
-	interp->set_color_base(me->colormap->colors);
+	interp->set_color_base(me->colors);
 
-	const Color*  first_rel_color = &me->colormap->colors[me->first_rel_code];
+	const Color*  first_rel_color = me->first_rel_color;
 	Color		  current_color	  = me->first_color;
 	const uint16* pixels		  = reinterpret_cast<const uint16*>(px);
 	Color*		  dest			  = reinterpret_cast<Color*>(framebuffer);
