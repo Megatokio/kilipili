@@ -29,7 +29,7 @@ void Printer<SimpleCharMap>::cls() noexcept
 	charmap->clear();
 }
 
-cstr Printer<SimpleCharMap>::identify()
+cstr Printer<SimpleCharMap>::identification()
 {
 	return "simple charmap"; //
 }

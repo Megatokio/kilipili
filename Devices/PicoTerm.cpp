@@ -141,12 +141,12 @@ SIZE PicoTerm::write(const void* _data, SIZE count, bool /*partial*/)
 	// clang-format on
 }
 
-cstr PicoTerm::identify()
+cstr PicoTerm::identification()
 {
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=rgb
 	// PicoTerm gfx=400*300 txt=50*25 chr=8*12 cm=i8 attr=8*12
 
-	return usingstr("PicoTerm %s", printer->identify());
+	return usingstr("PicoTerm %s", printer->identification());
 }
 
 } // namespace kilipili

@@ -162,7 +162,7 @@ cstr attr_str(bool b, bool u, bool g)
 	return (b + u + g) ? catstr(b ? "bold" : "-", u ? ",underline" : "-", g ? ",graphics" : "-") : "none";
 }
 
-cstr Printer<CharMapBase>::identify()
+cstr Printer<CharMapBase>::identification()
 {
 	//          10        20        30        40        50
 	//  123456789012345678901234567890123456789012345678901234567890

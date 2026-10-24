@@ -31,7 +31,7 @@ public:
 
 	// the normal stuff:
 	virtual void reset(bool cls = false) noexcept override;
-	virtual cstr identify() override;
+	virtual cstr identification() override;
 	virtual void cls() noexcept override;
 	virtual void clearRect(int row, int col, int rows, int cols) noexcept override;
 	virtual void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept override;

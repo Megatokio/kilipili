@@ -91,7 +91,7 @@ void Printer<Canvas>::cls() noexcept
 }
 
 
-cstr Printer<Canvas>::identify()
+cstr Printer<Canvas>::identification()
 {
 	// size=400*300, text=50*25, char=8*12, colors=i8
 	// size=400*300, text=50*25, char=8*12, colors=rgb, attr=8*12

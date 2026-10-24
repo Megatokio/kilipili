@@ -61,7 +61,7 @@ public:
 
 	void reset() noexcept;
 	using SerialDevice::printf;
-	cstr identify();
+	cstr identification();
 
 protected:
 	// these will stall because USB isn't polled:

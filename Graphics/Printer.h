@@ -66,7 +66,7 @@ public:
 
 	// the normal stuff:
 	virtual void reset(bool cls = false) noexcept;
-	virtual cstr identify()																					 = 0;
+	virtual cstr identification()																			 = 0;
 	virtual void cls() noexcept																				 = 0;
 	virtual void clearRect(int row, int col, int rows, int cols) noexcept									 = 0;
 	virtual void copyRect(int dest_row, int dest_col, int src_row, int src_col, int rows, int cols) noexcept = 0;
