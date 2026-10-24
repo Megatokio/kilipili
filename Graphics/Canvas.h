@@ -261,7 +261,6 @@ inline void Canvas::fillCircle(const Rect& z, uint color, uint ink) noexcept
 	fillCircle(z.left(), z.top(), z.width(), z.height(), color, ink);
 }
 inline void Canvas::floodFill(const Point& p, uint color, uint ink) { floodFill(p.x, p.y, color, ink); }
-inline void Canvas::clear(uint color) noexcept { fillRect(0, 0, width, height, color, 0); }
 inline void Canvas::drawTriangle(const Point* p, uint c, uint i) noexcept { drawTriangle(p[0], p[1], p[2], c, i); }
 inline void Canvas::fillTriangle(const Point* p, uint c, uint i) noexcept { fillTriangle(p[0], p[1], p[2], c, i); }
 

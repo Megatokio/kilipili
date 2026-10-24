@@ -115,6 +115,11 @@ void Canvas::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint ink
 		while (y1 < y2) draw_hline_to(x1, y1++, x2, color, ink);
 }
 
+void Canvas::clear(uint color) noexcept
+{
+	fillRect(0, 0, width, height, color, 0); //
+}
+
 void Canvas::xorRect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
 {
 	// xor all colors in the rect area with the xorColor
