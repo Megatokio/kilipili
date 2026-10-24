@@ -289,7 +289,7 @@ inline void Canvas::copyRect(const Point& zpos, const Canvas& src, const Point& 
 
 inline void Canvas::readBmp(const Point& z, uint8* bmp, int row_offset, const Size& size, uint color, bool set) noexcept
 {
-	drawBmp(z.x, z.y, bmp, row_offset, size.width, size.height, color, set);
+	readBmp(z.x, z.y, bmp, row_offset, size.width, size.height, color, set);
 }
 inline void Canvas::drawBmp(const Point& z, const uint8* bmp, int roff, const Size& size, uint color, uint ink) noexcept
 {
