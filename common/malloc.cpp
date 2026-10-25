@@ -134,7 +134,7 @@ static inline uint32* skip_free(uint32* p)
 		while (p < heap_end && is_valid_free(p)) { p += *p; }
 
 		// note: in a race condition the used block at p could just been released by free().
-		if unlikely (p < heap_end && !is_valid_used(p) && !is_valid_free(p))
+		if unlikely (p < heap_end && !is_valid_used(p))
 		{
 			spin_unlock_unsafe(spin_lock_instance(MALLOC_SPINLOCK_NUMBER));
 			kilipili::panic("malloc:skip_free: !valid_used");
@@ -414,6 +414,7 @@ static void dump_memory(cptr p, int sz)
 
 void dump_heap()
 {
+	uint32	_ = malloc_lock();
 	uint32* p = heap_start;
 
 	while (p < heap_end)
@@ -440,6 +441,7 @@ void dump_heap()
 		}
 	}
 	if (p > heap_end) printf("error: last block extends beyond heap end\n");
+	malloc_unlock(_);
 }
 
 
