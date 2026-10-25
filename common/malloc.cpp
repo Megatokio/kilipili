@@ -414,6 +414,7 @@ static void dump_memory(cptr p, int sz)
 
 void dump_heap()
 {
+	uint32	_ = malloc_lock();
 	uint32* p = heap_start;
 
 	while (p < heap_end)
@@ -440,6 +441,7 @@ void dump_heap()
 		}
 	}
 	if (p > heap_end) printf("error: last block extends beyond heap end\n");
+	malloc_unlock(_);
 }
 
 
