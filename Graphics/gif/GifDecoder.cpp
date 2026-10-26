@@ -175,8 +175,8 @@ static uchar* stbi__process_gif_raster(_Context* s, _Gif* g)
 	for (init_code = 0; init_code < clear; init_code++)
 	{
 		g->codes[init_code].prefix = -1;
-		g->codes[init_code].first  = (uchar)init_code;
-		g->codes[init_code].suffix = (uchar)init_code;
+		g->codes[init_code].first  = uchar(init_code);
+		g->codes[init_code].suffix = uchar(init_code);
 	}
 
 	// support no starting clear code
@@ -194,7 +194,7 @@ static uchar* stbi__process_gif_raster(_Context* s, _Gif* g)
 				if (len == 0) return g->out;
 			}
 			--len;
-			bits |= (int32)_get_u8(s) << valid_bits;
+			bits |= int32(_get_u8(s)) << valid_bits;
 			valid_bits += 8;
 		}
 		else
@@ -231,7 +231,7 @@ static uchar* stbi__process_gif_raster(_Context* s, _Gif* g)
 				}
 				else if (code == avail) throw "Corrupt GIF: illegal code in raster";
 
-				stbi__out_gif_code(g, (uint16)code);
+				stbi__out_gif_code(g, uint16(code));
 
 				if ((avail & codemask) == 0 && avail <= 0x0FFF)
 				{
@@ -545,10 +545,10 @@ GifDecoder::GifDecoder(FilePtr file) : file(file)
 	isa_gif_file = true;
 
 	debugstr("GifDecoder: width,height = %ux%u\n", image_width, image_height);
-	debugstr("GifDecoder: total colors = %u\n", 1 << total_color_bits);
-	if (flags & 0x80) debugstr("GifDecoder: global colors = %u\n", 1 << global_cmap_bits);
+	debugstr("GifDecoder: total colors = %i\n", 1 << total_color_bits);
+	if (flags & 0x80) debugstr("GifDecoder: global colors = %i\n", 1 << global_cmap_bits);
 	else debugstr("GifDecoder: no global color map\n");
-	if (aspect) debugstr("GifDecoder: aspect ratio = %u/64\n", aspect + 15);
+	if (aspect) debugstr("GifDecoder: aspect ratio = %i/64\n", aspect + 15);
 }
 
 GifDecoder::~GifDecoder()
@@ -729,7 +729,12 @@ int GifDecoder::decode_frame(Canvas& pm, int x0, int y0)
 		y += y0;
 		if (uint(y) >= uint(pm.height)) return;
 		x += x0;
-		if (x < 0) { pixels -= x, w += x, x = 0; }
+		if (x < 0)
+		{
+			pixels -= x;
+			w += x;
+			x = 0;
+		}
 		if (x + w > pm.width) w = pm.width - x;
 		if (w <= 0) return;
 
@@ -754,7 +759,12 @@ int GifDecoder::decode_frame(Canvas& dest, Color* cmap_out, int x0, int y0)
 		y += y0;
 		if (uint(y) >= uint(dest.height)) return;
 		x += x0;
-		if (x < 0) { pixels -= x, w += x, x = 0; }
+		if (x < 0)
+		{
+			pixels -= x;
+			w += x;
+			x = 0;
+		}
 		if (x + w > dest.width) w = dest.width - x;
 		if (w <= 0) return;
 
@@ -767,7 +777,7 @@ int GifDecoder::decode_frame(Canvas& dest, Color* cmap_out, int x0, int y0)
 	};
 
 	int rval = decode_frame(fu);
-	if (cmap_out) memcpy(cmap_out, global_cmap, sizeof(Color) << min(dest.bits_per_color(), total_color_bits));
+	if (cmap_out) memcpy(cmap_out, global_cmap, sizeof(Color) << min(dest.bits_per_pixel, total_color_bits));
 	return rval;
 }
 
@@ -781,7 +791,12 @@ int GifDecoder::decode_frame(Canvas& pm, Color* colormap, int* transp_color, int
 		y += y0;
 		if (uint(y) >= uint(pm.height)) return;
 		x += x0;
-		if (x < 0) { pixels -= x, w += x, x = 0; }
+		if (x < 0)
+		{
+			pixels -= x;
+			w += x;
+			x = 0;
+		}
 		if (x + w > pm.width) w = pm.width - x;
 		if (w <= 0) return;
 
@@ -796,7 +811,7 @@ int GifDecoder::decode_frame(Canvas& pm, Color* colormap, int* transp_color, int
 	};
 
 	int rval = decode_frame(fu);
-	if (colormap) memcpy(colormap, global_cmap, sizeof(Color) << min(pm.bits_per_color(), total_color_bits));
+	if (colormap) memcpy(colormap, global_cmap, sizeof(Color) << min(pm.bits_per_pixel, total_color_bits));
 	return rval;
 }
 
