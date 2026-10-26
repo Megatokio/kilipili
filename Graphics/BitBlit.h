@@ -375,10 +375,10 @@ constexpr uint32 flood_filled_color<colordepth_16bpp>(uint color) noexcept
 {
 	return uint16(color) * 0x00010001u;
 }
-template<ColorMode CM>
-constexpr uint32 flood_filled_color(uint color) noexcept
+template<>
+constexpr uint32 flood_filled_color<colordepth_32bpp>(uint color) noexcept
 {
-	return flood_filled_color<get_colordepth(CM)>(color);
+	return color;
 }
 } // namespace kilipili
 
@@ -588,7 +588,16 @@ void attr_clear_rect(uint8* row, int row_offset, int x1, int width, int height, 
 {
 	constexpr int colors_per_attr = 1 << (1 << AM);
 
-	if constexpr (CD == colordepth_16bpp)
+	if constexpr (CD == colordepth_32bpp)
+	{
+		uint32* p = reinterpret_cast<uint32*>(row) + x1;
+		while (--height >= 0)
+		{
+			for (int i = 0; i < width; i += colors_per_attr) { p[i] = uint32(color); }
+			p += row_offset >> 1;
+		}
+	}
+	else if constexpr (CD == colordepth_16bpp)
 	{
 		uint16* p = reinterpret_cast<uint16*>(row) + x1;
 		while (--height >= 0)
