@@ -62,8 +62,6 @@ system_colormap:
 
 // ------------------- the system Color table -----------------------
 
-extern class ColorMap system_colormap;
-
 // some prepared color tables in ROM to initialize or reset a ColorMap.
 // these are the default colors if you don't supply your own table:
 
@@ -76,46 +74,71 @@ extern const Color vga8_colors[256];	 // vga4 + RGB[6,6,6] + greyscale
 
 // ---------------------- class ColorMap --------------------------
 
-class ColorMap
+template<int bits = 0>
+class ColorMap;
+
+using ColorMap_i1 = ColorMap<1>;
+using ColorMap_i2 = ColorMap<2>;
+using ColorMap_i4 = ColorMap<4>;
+using ColorMap_i8 = ColorMap<8>;
+
+
+template<>
+class ColorMap<0>
 {
 	NO_COPY_MOVE(ColorMap);
 
 public:
-	ColorMap(Color* dest, const Color* src, int count, int rc = 0);
-	explicit ColorMap(int count) : ColorMap(nullptr, nullptr, count) {}
-	ColorMap(const Color* colors, int count) : ColorMap(nullptr, colors, count) {}
-	~ColorMap() noexcept;
+	explicit ColorMap(const Color* src = nullptr) noexcept : ColorMap(src, 0) {}
 
-	void reset(const Color* colors = nullptr, int count = 0) noexcept;
+	void reset(const Color* src = nullptr, int count = 0) noexcept;
 	void reset(const ColorMap* q) noexcept { reset(q->colors, q->count); }
 
 	Color& operator[](int i) noexcept;
 	Color  operator[](int i) const noexcept;
 
-	uint16	  bestMatch(Color, int count = 0) noexcept;
-	ColorMap* reverse() noexcept;
-	ColorMap* complement() noexcept;
-	ColorMap* roll(int dist) noexcept; // dist>0 => up
-	ColorMap* shuffle() noexcept;
-	ColorMap* lighter() noexcept;
-	ColorMap* darker() noexcept;
+	uint16 bestMatch(Color, int count = 0) noexcept;
+	void   reverse() noexcept;
+	void   complement() noexcept;
+	void   roll(int dist) noexcept; // dist>0 => up
+	void   shuffle() noexcept;
+	void   lighter() noexcept;
+	void   darker() noexcept;
 
 	Id("ColorMap");
-	mutable int16 rc;
+	mutable int16 rc = 0;
 	const uint16  count;
-	Color* const  colors;
+	Color		  colors[1];
+
+protected:
+	ColorMap(const Color* src, int bits) noexcept;
+};
+
+
+// ---------------------------------------------------------------------------
+// ColorMap<1> to ColorMap<8>:
+
+template<int bits>
+class ColorMap : public ColorMap<bits - 1>
+{
+public:
+	ColorMap(const Color* q = nullptr) noexcept : ColorMap<bits - 1>(q, bits) {}
+
+protected:
+	ColorMap(const Color* q, int nbits) noexcept : ColorMap<bits - 1>(q, nbits) {}
+	Color::uRGB more_colors[(1 << bits) - (1 << (bits - 1))];
 };
 
 
 // ---------------------------------------------------------------------------
 // inline definitions:
 
-inline Color& ColorMap::operator[](int i) noexcept
+inline Color& ColorMap<0>::operator[](int i) noexcept
 {
 	assert(i < count);
 	return colors[i];
 }
-inline Color ColorMap::operator[](int i) const noexcept
+inline Color ColorMap<0>::operator[](int i) const noexcept
 {
 	assert(i < count);
 	return colors[i];

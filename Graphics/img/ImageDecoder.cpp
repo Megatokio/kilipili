@@ -61,7 +61,7 @@ static void store_scanline_cmap(Canvas& pm, int x, int y, int w, uint8* pixels, 
 
 	if (pm.colormode == colormode_i8 && !has_transparency)
 	{
-		Pixmap<colormode_i8> row(w, 1, pixels, 0);
+		Pixmap_i8 row(w, 1, pixels, 0);
 		pm.copyRect(x, y, row);
 	}
 	else
@@ -78,11 +78,11 @@ static void store_scanline_cmap(Canvas& pm, int x, int y, int w, uint8* pixels, 
 static void store_scanline_hw_color(Canvas& pm, int x, int y, int w, uint8* pixels, bool has_transparency) noexcept
 {
 	// the pixmap must be direct color with pixels the same size as Color.
-	assert(pm.colormode == colormode_rgb);
+	assert(pm.is_colormode_rgb);
 
 	if (!has_transparency)
 	{
-		Pixmap<colormode_rgb> row(w, 1, pixels, 0);
+		Pixmap_rgb row(w, 1, pixels, 0);
 		pm.copyRect(x, y, row);
 	}
 	else
@@ -100,7 +100,7 @@ static void store_scanline_hw_color(Canvas& pm, int x, int y, int w, uint8* pixe
 static void store_scanline_rgb(Canvas& pm, int x, int y, int w, uint8* pixels, bool has_transparency) noexcept
 {
 	// the pixmap must be direct color with pixels the same size as Color.
-	assert(pm.colormode == colormode_rgb);
+	assert(pm.is_colormode_rgb);
 
 	for (int i = 0; i < w; i++)
 	{
@@ -115,7 +115,7 @@ static void store_scanline_rgb(Canvas& pm, int x, int y, int w, uint8* pixels, b
 static void store_scanline_grey(Canvas& pm, int x, int y, int w, uint8* pixels, bool has_transparency) noexcept
 {
 	// the pixmap must be direct color with pixels the same size as Color.
-	assert(pm.colormode == colormode_rgb);
+	assert(pm.is_colormode_rgb);
 
 	for (int i = 0; i < w; i++)
 	{
@@ -129,7 +129,12 @@ int ImageDecoder::decode_image(Canvas& pm, store_scanline_internal& store, int x
 {
 	int	   w	  = image_width;
 	uint8* pixels = scanlinebuffer;
-	if (x0 < 0) { pixels -= x0 * pixelsize, w += x0, x0 = 0; }
+	if (x0 < 0)
+	{
+		pixels -= x0 * pixelsize;
+		w += x0;
+		x0 = 0;
+	}
 	if (x0 + w > pm.width) w = pm.width - x0;
 	if (w <= 0) return 0;
 
@@ -149,13 +154,13 @@ void ImageDecoder::decodeImage(Canvas& pm, int x0, int y0)
 
 	if (has_cmap)
 	{
-		assert(is_indexed_color(pm.colormode)); // else TODO
+		assert(pm.is_indexed_color); // else TODO
 		assert(pixelsize == 1);
 		decode_image(pm, store_scanline_cmap, x0, y0);
 	}
 	else
 	{
-		assert(pm.colormode == colormode_rgb); // else TODO
+		assert(pm.is_colormode_rgb); // else TODO
 
 		if (colormodel == hw_color)
 		{

@@ -34,13 +34,17 @@ namespace kilipili
 class Canvas;
 using CanvasPtr = RCPtr<Canvas>;
 
+struct PmInfo
+{
+	uint8 ss_bpp, ic, ss_aw = 0, ah = 0;
+};
 
 class Canvas : public RCObject
 {
 	NO_COPY_MOVE(Canvas);
 
 protected:
-	constexpr Canvas(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept;
+	constexpr Canvas(coord w, coord h, const PmInfo& pxinfo, bool allocated) noexcept;
 
 public:
 	Id("Canvas ");
@@ -54,18 +58,17 @@ public:
 		};
 	};
 
-	const ColorMode	 colormode;
-	const AttrHeight attrheight;
-	const bool		 allocated; // whether pixmap[] was allocated and will be deleted in dtor
-	char			 padding = 0;
-
-	ColorDepth colordepth() const noexcept { return get_colordepth(colormode); } // log2 of bits per color in attr[]
-	AttrMode   attrmode() const noexcept { return get_attrmode(colormode); }	 // log2 of bits per color in pixmap[]
-	AttrWidth  attrwidth() const noexcept { return get_attrwidth(colormode); }	 // log2 of width of attribute cells
-	int		   bits_per_color() const noexcept { return 1 << colordepth(); }	 // bits per color in pixmap[] or attr[]
-	int		   bits_per_pixel() const noexcept { return is_attribute_mode() ? 1 << attrmode() : 1 << colordepth(); }
-	bool	   is_indexed_color() const noexcept { return kilipili::is_indexed_color(colormode); }
-	bool	   is_attribute_mode() const noexcept { return kilipili::is_attribute_mode(colormode); }
+	const uint8		ss_bpp;			  // log2
+	const uint8		ss_aw;			  // log2
+	const uint8		attrwidth;		  // attribute cell width or 0
+	const uint8		attrheight;		  // attribute cell height or 0
+	const uint8		bits_per_pixel;	  // in pixmap[]
+	const bool		is_indexed_color; //
+	const bool		is_attr_mode	 : 1;
+	const bool		is_colormode_rgb : 1;
+	const bool		is_allocated	 : 1;
+	const bool		_padding		 : 5 = 0;
+	const ColorMode colormode;
 
 	virtual ~Canvas() override = default;
 
@@ -79,7 +82,7 @@ public:
 	   create shared, dependent instance of the entire pixmap or a window:
 		x and w must result in multiples of full byte, e.g. for bitmaps 8*N.
 	*/
-	virtual Canvas* cloneWindow(coord x, coord y, coord w, coord h) throws = 0;
+	virtual Canvas* createWindow(coord x, coord y, coord w, coord h) throws = 0;
 
 	/* _______________________________________________________________________________________
 	   set and get single pixels:
@@ -92,7 +95,7 @@ public:
 	virtual uint get_color(coord x, coord y) const noexcept						= 0;
 	virtual uint get_ink(coord x, coord y) const noexcept						= 0;
 
-	virtual ColorMap* getColorMap() const noexcept { return nullptr; }
+	virtual ColorMap<>* getColorMap() const noexcept { return nullptr; }
 
 	/* _______________________________________________________________________________________
 	   draw lines:
@@ -206,12 +209,19 @@ private:
 // ###################################################################################
 
 
-constexpr Canvas::Canvas(coord w, coord h, ColorMode CM, AttrHeight AH, bool allocated) noexcept :
+constexpr Canvas::Canvas(coord w, coord h, const PmInfo& info, bool allocated) noexcept :
 	width(w),
 	height(h),
-	colormode(CM),
-	attrheight(AH),
-	allocated(allocated)
+	ss_bpp(info.ss_bpp),
+	ss_aw(info.ss_aw),
+	attrwidth(info.ah ? uint8(1 << ss_aw) : 0),
+	attrheight(info.ah),
+	bits_per_pixel(uint8(1 << ss_bpp)),
+	is_indexed_color(info.ic),
+	is_attr_mode(attrheight != 0),
+	is_colormode_rgb(!is_indexed_color && attrheight == 0 && ss_bpp == color_ss),
+	is_allocated(allocated),
+	colormode(is_colormode_rgb ? colormode_rgb : ColorMode(is_attr_mode ? colormode_a1w1 + ss_bpp * 4 + ss_aw : ss_bpp))
 {}
 
 inline void Canvas::setPixel(coord x, coord y, uint color, uint ink) noexcept

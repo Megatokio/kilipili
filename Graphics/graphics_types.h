@@ -48,16 +48,16 @@ enum ColorDepth : uint8 {
 	colordepth_4bpp	 = 2,							   // 4 bit/pixel probably indexed color
 	colordepth_8bpp	 = 3,							   // 8 bit/pixel probably indexed color
 	colordepth_16bpp = 4,							   // 16 bit/pixel always true color
-	colordepth_rgb	 = msbit(sizeof(Color) * CHAR_BIT) // colordepth_1bpp .. colordepth_16bpp
+	colordepth_32bpp = 5,							   // 32 bit/pixel always true color
+	colordepth_rgb	 = msbit(sizeof(Color) * CHAR_BIT) // colordepth_1bpp .. colordepth_32bpp
 };
 
 
 /* color attribute mode:
 */
-enum AttrMode : int8 {
-	attrmode_none = -1, // no attributes: direct colors
-	attrmode_1bpp = 0,	// 1 bit / pixel => 2 colors / attribute
-	attrmode_2bpp = 1,	// 2 bit / pixel => 4 colors / attribute
+enum AttrMode : uint8 {
+	attrmode_1bpp = 0, // 1 bit / pixel => 2 colors / attribute
+	attrmode_2bpp = 1, // 2 bit / pixel => 4 colors / attribute
 };
 
 
@@ -96,92 +96,38 @@ enum AttrHeight : uint8 {
 };
 
 
-/* supported combinations of ColorDepth, AttrMode and AttrWidth:
+/*
+	enumeration of supported combinations of ColorDepth, AttrMode and AttrWidth:
 */
 enum ColorMode : uint8 {
-	// direct color modes store the color for each pixel:
-	// this may be an indexed color thou.
+	// direct color modes store the color (or color index) in each pixel:
 	colormode_i1,
 	colormode_i2,
 	colormode_i4,
 	colormode_i8,
-	colormode_rgb, // 1..16 bit true color
+	colormode_rgb, // 1..32 bit true color
 
-	// color attributes assign colors to a rectangular cell of pixels.
-	// color attributes are used to disguise the fact that we don't have enough memory
-	// to store an individual color for each pixel.
-	// then the pixels are still high-res but the color isn't.
-	// the pixels can be 1 bit or 2 bit per pixel, allowing 2 or 4 colors per attribute cell.
-
-	// attribute mode wth 1 bit per pixel to provide 2 colors per attribute cell:
-	// attribute width 1..4 pixel may be used for proportional text and horizontal scrolling.
-	colormode_a1w1, // 1 bit/pixel, 1 pixel/attr, 4..16 bit true color. very cpu intensive! deprecated!
-	colormode_a1w2, // 1 bit/pixel, 2 pixel/attr, 4..16 bit true color. very cpu intensive!
-	colormode_a1w4, // 1 bit/pixel, 4 pixel/attr, 4..16 bit true color. very cpu intensive!
-	colormode_a1w8, // 1 bit/pixel, 8 pixel/attr, 4..16 bit true color. THIS IS THE RECOMMENDED ATTRIBUTE MODE!
-
-	// attribute mode wth 2 bit per pixel to provide 4 colors per attribute cell:
-	colormode_a2w1, // 2 bit/pixel, 1 pixel/attr, 4..16 bit true color. very cpu intensive!
-	colormode_a2w2, // 2 bit/pixel, 2 pixel/attr, 4..16 bit true color. very cpu intensive!
-	colormode_a2w4, // 2 bit/pixel, 4 pixel/attr, 4..16 bit true color. very cpu intensive!
-	colormode_a2w8, // 2 bit/pixel, 8 pixel/attr, 4..16 bit true color. very cpu intensive!
+	// attribute modes:
+	// see class Pixmap_wAttr for description.
+	colormode_a1w1,
+	colormode_a1w2,
+	colormode_a1w4,
+	colormode_a1w8,
+	colormode_a2w1,
+	colormode_a2w2,
+	colormode_a2w4,
+	colormode_a2w8,
 };
 
-constexpr uint		num_colormodes	   = colormode_a2w8 + 1;
-constexpr ColorMode colormode_a1w8_rgb = colormode_a1w8; // old name
+constexpr uint num_colormodes = colormode_a2w8 + 1;
 
-
-constexpr AttrMode get_attrmode(ColorMode cm) noexcept
-{
-	return cm <= colormode_rgb ? attrmode_none : cm <= colormode_a1w8 ? attrmode_1bpp : attrmode_2bpp;
-}
-
-constexpr AttrWidth get_attrwidth(ColorMode cm) noexcept
-{
-	return cm <= colormode_rgb ? attrwidth_none : AttrWidth((cm - colormode_a1w1) & 3);
-}
-
-constexpr ColorDepth get_colordepth(ColorMode cm) noexcept
-{
-	return cm < colormode_rgb ? ColorDepth(cm) : colordepth_rgb;
-
-	//	return cm < colormode_rgb		  ? ColorDepth(cm) :
-	//		   cm == colormode_rgb		  ? colordepth_rgb :
-	//		   VIDEO_COLOR_PIN_COUNT <= 4 ? colordepth_4bpp : // min. bits in attr
-	//										colordepth_rgb;
-}
-
-constexpr bool is_direct_color(ColorMode cm) noexcept { return cm <= colormode_rgb; }
-constexpr bool is_attribute_mode(ColorMode cm) noexcept { return cm > colormode_rgb; }
-constexpr bool is_true_color(ColorMode cm) noexcept { return cm >= colormode_rgb; }
-constexpr bool is_indexed_color(ColorMode cm) noexcept { return cm < colormode_rgb; }
-
-
-static_assert(get_attrmode(colormode_i4) == attrmode_none);
-static_assert(get_attrmode(colormode_a1w1) == attrmode_1bpp);
-static_assert(get_attrmode(colormode_a2w4) == attrmode_2bpp);
-static_assert(get_attrmode(colormode_a1w8) == attrmode_1bpp);
-
-static_assert(get_attrwidth(colormode_i4) == attrwidth_none);
-static_assert(get_attrwidth(colormode_rgb) == attrwidth_none);
-static_assert(get_attrwidth(colormode_a1w1) == attrwidth_1px);
-static_assert(get_attrwidth(colormode_a1w4) == attrwidth_4px);
-static_assert(get_attrwidth(colormode_a2w4) == attrwidth_4px);
-static_assert(get_attrwidth(colormode_a2w8) == attrwidth_8px);
-
-static_assert(get_colordepth(colormode_i1) == colordepth_1bpp);
-static_assert(get_colordepth(colormode_i8) == colordepth_8bpp);
-static_assert(get_colordepth(colormode_rgb) == colordepth_rgb);
-static_assert(get_colordepth(colormode_a1w1) == VIDEO_COLOR_PIN_COUNT < 4 ? colordepth_4bpp : colordepth_rgb);
-static_assert(get_colordepth(colormode_a2w4) == VIDEO_COLOR_PIN_COUNT < 4 ? colordepth_4bpp : colordepth_rgb);
-static_assert(get_colordepth(colormode_a1w8) == VIDEO_COLOR_PIN_COUNT < 4 ? colordepth_4bpp : colordepth_rgb);
 
 } // namespace kilipili
 
 
 inline cstr tostr(kilipili::ColorDepth cd)
 {
-	static constexpr char id[][4] = {"i1", "i2", "i4", "i8", "i16"};
+	static constexpr char id[][4] = {"i1", "i2", "i4", "i8", "i16", "i32"};
 	return id[cd];
 }
 

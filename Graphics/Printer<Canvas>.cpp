@@ -34,13 +34,13 @@ static constexpr const uint8 dblw[16] = {
 
 Printer<Canvas>::Printer(Canvas* pixmap, const Font* font1, const Font* font2) noexcept :
 	Printer<>(
-		pixmap->height / font1->char_height,  //
-		pixmap->width / font1->char_width,	  //
-		pixmap->bits_per_pixel(),			  // fgbits: cmap or attr bits 
-		pixmap->bits_per_pixel(),			  // bgbits: cmap or attr bits 
-		pixmap->is_indexed_color() ? w_cmap	: // indexed color?
-		pixmap->is_attribute_mode() ? w_attr: // true color attributes?
-							 		  w_rgb), // else true color
+		pixmap->height / font1->char_height, //
+		pixmap->width / font1->char_width,	 //
+		pixmap->bits_per_pixel,			     // fgbits: cmap or attr bits 
+		pixmap->bits_per_pixel,			     // bgbits: cmap or attr bits 
+		pixmap->is_indexed_color ? w_cmap :  // indexed color?
+		pixmap->is_attr_mode     ? w_attr :  // true color attributes?
+								   w_rgb),   // else true color
 	pixmap(pixmap),
 	font1(font1),
 	font2(font2)
@@ -56,17 +56,17 @@ Printer<Canvas>::Printer(Canvas* pixmap, const Font* font1, const Font* font2) n
 
 	assert(uint(font1->char_height) <= sizeof(CharMatrix));
 
-	assert(is_attribute_mode() == pixmap->is_attribute_mode());
-	assert(is_indexed_color() == pixmap->is_indexed_color());
+	assert(is_attribute_mode() == pixmap->is_attr_mode);
+	assert(is_indexed_color() == pixmap->is_indexed_color);
 	assert(is_true_color() != is_indexed_color());
 	assert(has_separate_cmaps() == false);
-	assert(fgbits == pixmap->bits_per_pixel());
+	assert(fgbits == pixmap->bits_per_pixel);
 	assert(bgbits == fgbits);
 
-	if (pixmap->is_attribute_mode())
+	if (pixmap->is_attr_mode)
 	{
 		assert(font1->char_height % pixmap->attrheight == 0);
-		assert((font1->char_width & ((1 << pixmap->attrwidth()) - 1)) == 0);
+		assert((font1->char_width & (pixmap->attrwidth - 1)) == 0);
 	}
 }
 
@@ -96,17 +96,16 @@ cstr Printer<Canvas>::identification()
 	// size=400*300, text=50*25, char=8*12, colors=i8
 	// size=400*300, text=50*25, char=8*12, colors=rgb, attr=8*12
 
-	uint colordepth = get_colordepth(pixmap->colormode);
-	int	 attrmode	= pixmap->attrmode();
-	uint attrwidth	= pixmap->attrwidth();
-	uint attrheight = pixmap->attrheight;
+	static constexpr char id[][4] = {"i1", "i2", "i4", "i8"};
 
-	cstr colors = colordepth == colordepth_rgb ? "rgb" : tostr(colordepth);
-	cstr attr	= attrmode == attrmode_none ? "" : usingstr(", attr=%u*%u", 1u << attrwidth, attrheight);
+	int	 attrwidth	= pixmap->attrwidth;
+	int	 attrheight = pixmap->attrheight;
+	cstr colors		= pixmap->is_colormode_rgb ? "rgb" : id[pixmap->ss_bpp];
+	cstr attrstr	= pixmap->is_attr_mode ? usingstr(", attr=%i*%i", attrwidth, attrheight) : "";
 
 	return usingstr(
 		"size=%i*%i, text=%i*%i, char=%i*%i, colors=%s%s", //
-		pixmap->width, pixmap->height, cols, rows, font1->char_width, font1->char_height, colors, attr);
+		pixmap->width, pixmap->height, cols, rows, font1->char_width, font1->char_height, colors, attrstr);
 }
 
 void Printer<Canvas>::show_cursor(bool show) noexcept
@@ -195,8 +194,8 @@ void Printer<Canvas>::setPen(Color color, uint ink) noexcept
 	if (is_true_color()) return setPen(color.raw, ink);
 
 	assert(is_indexed_color());
-	ColorMap* cmap = pixmap->getColorMap();
-	if (!cmap) cmap = &system_colormap;
+	ColorMap<>* cmap = pixmap->getColorMap();
+	assert(cmap); //if (!cmap) cmap = &system_colormap;
 	fgcolor = cmap->bestMatch(color, 1 << fgbits);
 }
 
@@ -205,8 +204,8 @@ void Printer<Canvas>::setPaper(Color color, uint ink) noexcept
 	if (is_true_color()) return setPaper(color.raw, ink);
 
 	assert(is_indexed_color());
-	ColorMap* cmap = pixmap->getColorMap();
-	if (!cmap) cmap = &system_colormap;
+	ColorMap<>* cmap = pixmap->getColorMap();
+	assert(cmap); //if (!cmap) cmap = &system_colormap;
 	bgcolor = cmap->bestMatch(color, 1 << bgbits);
 }
 

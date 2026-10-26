@@ -18,25 +18,22 @@ namespace kilipili
 	Explicit specialization for true color mode without attributes:
 */
 template<>
-class FrameBuffer<Pixmap<ColorMode::colormode_rgb>> final : public VideoPlane
+class FrameBuffer<Pixmap_rgb> final : public VideoPlane
 {
 public:
-	static const ColorMode CM = colormode_rgb;
-
-	Id("FrameBuffer");
-	RCPtr<const Pixmap<CM>> pixmap;
+	RCPtr<const Pixmap_rgb> pixmap;
 	int						row_offset;
 	uint8*					pixels; // next position
 
-	FrameBuffer(const Pixmap<CM>* px, const ColorMap* = nullptr) noexcept : //
+	FrameBuffer(const Pixmap_rgb* px) noexcept : //
 		VideoPlane(&vblank, &render),
 		pixmap(px),
 		row_offset(pixmap->row_offset),
 		pixels(pixmap->pixmap)
 	{}
-	FrameBuffer(const Canvas* px, const ColorMap* = nullptr) noexcept : FrameBuffer(static_cast<const Pixmap<CM>*>(px))
+	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap_rgb*>(px))
 	{
-		assert(px->colormode == CM);
+		assert(px->is_colormode_rgb);
 	}
 
 	static void render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
@@ -48,32 +45,28 @@ public:
 	Explicit specialization for 1-bit indexed color mode:
 */
 template<>
-class FrameBuffer<Pixmap<colormode_i1>> final : public VideoPlane
+class FrameBuffer<Pixmap_i1> final : public VideoPlane
 {
 public:
-	static constexpr ColorMode CM = colormode_i1;
+	RCPtr<const Pixmap_i1>	 pixmap;
+	RCPtr<const ColorMap_i1> colormap;
+	ScanlineRenderer_i1		 scanline_renderer;
+	int						 row_offset;
+	uint8*					 pixels;
 
-	Id("FrameBuffer");
-	RCPtr<const Pixmap<CM>> pixmap;
-	RCPtr<const ColorMap>	colormap;
-	ScanlineRenderer_i1		scanline_renderer;
-	int						row_offset;
-	uint8*					pixels;
-
-	FrameBuffer(const Pixmap<CM>* px, const ColorMap* cm = nullptr) noexcept :
+	FrameBuffer(const Pixmap_i1* px) noexcept :
 		VideoPlane(&vblank, &render),
 		pixmap(px),
-		colormap(cm ? cm : &system_colormap),
+		colormap(px->colormap),
 		scanline_renderer(colormap->colors),
-		row_offset(pixmap->row_offset),
-		pixels(pixmap->pixmap)
+		row_offset(px->row_offset),
+		pixels(px->pixmap)
 	{
-		assert(colormap->count >= 1 << (1 << CM));
+		assert(colormap);
 	}
-	FrameBuffer(const Canvas* px, const ColorMap* cmap = nullptr) noexcept :
-		FrameBuffer(static_cast<const Pixmap<CM>*>(px), cmap)
+	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap_i1*>(px))
 	{
-		assert(px->colormode == CM);
+		assert(px->colormode == colormode_i1);
 	}
 
 	static void render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
@@ -85,32 +78,28 @@ public:
 	Explicit specialization for 2-bit indexed color mode:
 */
 template<>
-class FrameBuffer<Pixmap<colormode_i2>> final : public VideoPlane
+class FrameBuffer<Pixmap_i2> final : public VideoPlane
 {
 public:
-	static constexpr ColorMode CM = colormode_i2;
+	RCPtr<const Pixmap_i2>	 pixmap;
+	RCPtr<const ColorMap_i2> colormap;
+	ScanlineRenderer_i2		 scanline_renderer;
+	int						 row_offset;
+	uint8*					 pixels;
 
-	Id("FrameBuffer");
-	RCPtr<const Pixmap<CM>> pixmap;
-	RCPtr<const ColorMap>	colormap;
-	ScanlineRenderer_i2		scanline_renderer;
-	int						row_offset;
-	uint8*					pixels;
-
-	FrameBuffer(const Pixmap<CM>* px, const ColorMap* cm = nullptr) noexcept :
+	FrameBuffer(const Pixmap_i2* px) noexcept :
 		VideoPlane(&vblank, &render),
 		pixmap(px),
-		colormap(cm ? cm : &system_colormap),
+		colormap(px->colormap),
 		scanline_renderer(colormap->colors),
-		row_offset(pixmap->row_offset),
-		pixels(pixmap->pixmap)
+		row_offset(px->row_offset),
+		pixels(px->pixmap)
 	{
-		assert(colormap->count >= 1 << (1 << CM));
+		assert(colormap);
 	}
-	FrameBuffer(const Canvas* px, const ColorMap* cmap = nullptr) noexcept :
-		FrameBuffer(static_cast<const Pixmap<CM>*>(px), cmap)
+	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap_i2*>(px))
 	{
-		assert(px->colormode == CM);
+		assert(px->colormode == colormode_i2);
 	}
 
 	static void render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
@@ -122,32 +111,28 @@ public:
 	Explicit specialization for 4-bit indexed color mode:
 */
 template<>
-class FrameBuffer<Pixmap<colormode_i4>> final : public VideoPlane
+class FrameBuffer<Pixmap_i4> final : public VideoPlane
 {
 public:
-	static constexpr ColorMode CM = colormode_i4;
+	RCPtr<const Pixmap_i4>	 pixmap;
+	RCPtr<const ColorMap_i4> colormap;
+	ScanlineRenderer_i4		 scanline_renderer;
+	int						 row_offset;
+	uint8*					 pixels;
 
-	Id("FrameBuffer");
-	RCPtr<const Pixmap<CM>> pixmap;
-	RCPtr<const ColorMap>	colormap;
-	ScanlineRenderer_i4		scanline_renderer;
-	int						row_offset;
-	uint8*					pixels;
-
-	FrameBuffer(const Pixmap<CM>* px, const ColorMap* cm = nullptr) noexcept :
+	FrameBuffer(const Pixmap_i4* px) noexcept :
 		VideoPlane(&vblank, &render),
 		pixmap(px),
-		colormap(cm ? cm : &system_colormap),
+		colormap(px->colormap),
 		scanline_renderer(colormap->colors),
-		row_offset(pixmap->row_offset),
-		pixels(pixmap->pixmap)
+		row_offset(px->row_offset),
+		pixels(px->pixmap)
 	{
-		assert(colormap->count >= 1 << (1 << CM));
+		assert(colormap);
 	}
-	FrameBuffer(const Canvas* px, const ColorMap* cmap = nullptr) noexcept :
-		FrameBuffer(static_cast<const Pixmap<CM>*>(px), cmap)
+	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap_i4*>(px))
 	{
-		assert(px->colormode == CM);
+		assert(px->colormode == colormode_i4);
 	}
 
 	static void render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
@@ -159,32 +144,28 @@ public:
 	Explicit specialization for 8-bit indexed color mode:
 */
 template<>
-class FrameBuffer<Pixmap<colormode_i8>> final : public VideoPlane
+class FrameBuffer<Pixmap_i8> final : public VideoPlane
 {
 public:
-	static constexpr ColorMode CM = colormode_i8;
+	RCPtr<const Pixmap_i8>	 pixmap;
+	RCPtr<const ColorMap_i8> colormap;
+	ScanlineRenderer_i8		 scanline_renderer;
+	int						 row_offset;
+	uint8*					 pixels;
 
-	Id("FrameBuffer");
-	RCPtr<const Pixmap<CM>> pixmap;
-	RCPtr<const ColorMap>	colormap;
-	ScanlineRenderer_i8		scanline_renderer;
-	int						row_offset;
-	uint8*					pixels;
-
-	FrameBuffer(const Pixmap<CM>* px, const ColorMap* cm = nullptr) noexcept :
+	FrameBuffer(const Pixmap_i8* px) noexcept :
 		VideoPlane(&vblank, &render),
 		pixmap(px),
-		colormap(cm ? cm : &system_colormap),
+		colormap(px->colormap),
 		scanline_renderer(colormap->colors),
-		row_offset(pixmap->row_offset),
-		pixels(pixmap->pixmap)
+		row_offset(px->row_offset),
+		pixels(px->pixmap)
 	{
-		assert(colormap->count >= 1 << (1 << CM));
+		assert(colormap);
 	}
-	FrameBuffer(const Canvas* px, const ColorMap* cmap = nullptr) noexcept :
-		FrameBuffer(static_cast<const Pixmap<CM>*>(px), cmap)
+	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap_i8*>(px))
 	{
-		assert(px->colormode == CM);
+		assert(px->colormode == colormode_i8);
 	}
 
 	static void render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
@@ -218,7 +199,6 @@ protected:
 	{}
 
 private:
-	Id("FrameBuffer");
 	const uint8*	  pixmap;
 	const uint8*	  pixels;
 	uint			  row_offset;
@@ -235,60 +215,38 @@ private:
 };
 
 
-static_assert(is_attribute_mode(ColorMode::colormode_a1w1));
-static_assert(Pixmap<ColorMode::colormode_a1w1>::colormode);
-static_assert(Pixmap_rgb::colormode == colormode_rgb);
-
-
 /*	_____________________________________________________________________________________
 	Partial specialization for color modes with true color attributes.
 */
 template<class Pixmap>
-class FrameBuffer<Pixmap, std::enable_if_t<is_attribute_mode(Pixmap::colormode)>> final : public FrameBufferBase_wAttr
+class FrameBuffer<Pixmap, std::enable_if_t<Pixmap::isa_Pixmap_wAttr>> final : public FrameBufferBase_wAttr
 {
 public:
 	RCPtr<const Pixmap> pixmap;
 
-	FrameBuffer(const Pixmap* px, const ColorMap* = nullptr) noexcept :
+	FrameBuffer(const Pixmap* px) noexcept :
 		FrameBufferBase_wAttr(
 			px->pixmap, px->row_offset, px->attributes.pixmap, px->attributes.row_offset, px->attrheight,
 			&ScanlineRenderer<Pixmap>),
 		pixmap(px)
 	{}
 
-	FrameBuffer(const Canvas* px, const ColorMap* = nullptr) noexcept : FrameBuffer(static_cast<const Pixmap*>(px))
+	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap*>(px))
 	{
-		assert(px->colormode == Pixmap::colormode);
+		assert(px->colormode == Pixmap::colormode); // must be same type
 	}
 };
 
 
 //	_____________________________________________________________________________________
-//  declare implementation in another file:
+//  implementation are in the .cpp file:
 
 extern template class FrameBuffer<Pixmap_i1>;
 extern template class FrameBuffer<Pixmap_i2>;
 extern template class FrameBuffer<Pixmap_i4>;
 extern template class FrameBuffer<Pixmap_i8>;
 extern template class FrameBuffer<Pixmap_rgb>;
-extern template class FrameBuffer<Pixmap_a1w1>;
-extern template class FrameBuffer<Pixmap_a1w2>;
-extern template class FrameBuffer<Pixmap_a1w4>;
-extern template class FrameBuffer<Pixmap_a1w8>;
-extern template class FrameBuffer<Pixmap_a2w1>;
-extern template class FrameBuffer<Pixmap_a2w2>;
-extern template class FrameBuffer<Pixmap_a2w4>;
-extern template class FrameBuffer<Pixmap_a2w8>;
 
-
-//	_____________________________________________________________________________________
-//	deduction guides:
-
-template<ColorMode CM>
-FrameBuffer(Pixmap<CM>*, const ColorMap*) -> FrameBuffer<Pixmap<CM>>;
-
-template<ColorMode CM>
-FrameBuffer(RCPtr<Pixmap<CM>>, const ColorMap*) -> FrameBuffer<Pixmap<CM>>;
 
 } // namespace kilipili
 

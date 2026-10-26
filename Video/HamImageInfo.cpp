@@ -62,9 +62,9 @@ HamImageInfo::HamImageInfo(File* file)
 	static_assert(little_endian);
 	file->read(this, 4 + 4 + 2 + 2 + 8 * 1 + 2 + 2);
 
-	if (magic != rgb8_magic) throw "no rgb8 file";
-	if (memcmp(rgbstr, "rgb", 4) != 0) throw "rgb8 file corrupted";
-	if (num_abs_codes + num_rel_codes > 256) throw "rgb8 file corrupted";
+	if (magic != rgb8_magic) throw "no ham image file";
+	if (memcmp(rgbstr, "rgb", 4) != 0) throw "ham image file corrupted";
+	if (num_abs_codes + num_rel_codes > 256) throw "ham image file corrupted";
 
 	int rmask = ((1 << rbits) - 1) << rshift;
 	int gmask = ((1 << gbits) - 1) << gshift;
@@ -81,15 +81,16 @@ HamImageInfo::HamImageInfo(File* file)
 		return;
 	}
 
-	if ((rmask & gmask) || ((rmask | gmask) & bmask) || ((rmask | gmask | bmask) & imask)) throw "rgb8 file corrupted";
+	if ((rmask & gmask) || ((rmask | gmask) & bmask) || ((rmask | gmask | bmask) & imask))
+		throw "ham image file corrupted";
 	if (rbits + rshift > 16 || gbits + gshift > 16 || bbits + bshift > 16 || ibits + ishift > 16)
-		throw "rgb8 file corrupted";
+		throw "ham image file corrupted";
 
 	// due to the way rel_colors are added we cannot ignore lost low bits.
 	// the image still can be displayed if it is decoded into a true color pixmap, but not in real-time.
-	if (ibits && Color::rbits != rbits) throw "rgb8 image has incompatible color model";
+	if (ibits && Color::rbits != rbits) throw "ham image has incompatible color model";
 	if (Color::ibits != ibits || Color::rbits < rbits || Color::gbits < gbits || Color::bbits < bbits)
-		throw "rgb8 image has incompatible color model";
+		throw "ham image has incompatible color model";
 
 	// each color component is not larger than our Color component, so we can convert the cmap[]:
 	// read cmap and rearrange the color components, possibly padding low bits:

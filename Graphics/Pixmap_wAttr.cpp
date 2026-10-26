@@ -1,4 +1,4 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -9,8 +9,8 @@ namespace kilipili
 {
 
 
-template<ColorMode CM>
-void AttrModePixmap::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
 {
 	coord x2 = min(x1 + w, width);
 	coord y2 = min(y1 + h, height);
@@ -26,15 +26,15 @@ void AttrModePixmap::fillRect(coord x1, coord y1, coord w, coord h, uint color, 
 	}
 }
 
-template<ColorMode CM>
-void AttrModePixmap::clear(uint color) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::clear(uint color) noexcept
 {
 	// clear pixmap to:     all inks = 0
 	// clear attributes to: all colors = color
 	// if this is a window into another Pixmap and if width or height is not a multiple of the attribute cell size
 	// then this bleeds the color to full attribute cells.
 
-	coord w = calc_ax(width - 1) + colors_per_attr;
+	coord w = calc_ax(width - 1) + (1 << bpp); // colors_per_attr;
 	coord h = calc_ay(height - 1) + 1;
 
 	assert(w <= attributes.width);
@@ -44,8 +44,8 @@ void AttrModePixmap::clear(uint color) noexcept
 	super::fill_rect(0, 0, width, height, 0); // all pixels: ink := 0
 }
 
-template<ColorMode CM>
-void AttrModePixmap::xorRect(coord x1, coord y1, coord w, coord h, uint color) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::xorRect(coord x1, coord y1, coord w, coord h, uint color) noexcept
 {
 	coord x2 = min(x1 + w, width);
 	coord y2 = min(y1 + h, height);
@@ -57,8 +57,9 @@ void AttrModePixmap::xorRect(coord x1, coord y1, coord w, coord h, uint color) n
 	if (w > 0 && h > 0) attr_xor_rect(x1, y1, w, h, color);
 }
 
-template<ColorMode CM>
-void AttrModePixmap::copyRect(coord zx, coord zy, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::copyRect(
+	coord zx, coord zy, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept
 {
 	// copy a rectangular area from another pixmap of the same ColorDepth.
 
@@ -100,7 +101,7 @@ void AttrModePixmap::copyRect(coord zx, coord zy, const Pixmap& q, coord qx, coo
 		assert(((qx << AM) & 7) == 0); // x must be a multiple of full bytes in pixmap[]
 
 		super::copy_rect(zx, zy, q.as_super(), qx, qy, w, h);
-		w  = calc_ax(zx + w - 1) + colors_per_attr;
+		w  = calc_ax(zx + w - 1) + (1 << bpp); // colors_per_attr;
 		h  = calc_ay(zy + h - 1) + 1;
 		zx = calc_ax(zx);
 		zy = calc_ay(zy);
@@ -112,45 +113,48 @@ void AttrModePixmap::copyRect(coord zx, coord zy, const Pixmap& q, coord qx, coo
 	}
 }
 
-template<ColorMode CM>
-void AttrModePixmap::copyRect(coord zx, coord zy, const Pixmap& q) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::copyRect(coord zx, coord zy, const Pixmap& q) noexcept
 {
 	copyRect(zx, zy, q, 0, 0, q.width, q.height);
 }
 
-template<ColorMode CM>
-void AttrModePixmap::copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
 {
 	copyRect(zx, zy, *this, qx, qy, w, h);
 }
 
-template<ColorMode CM>
-void AttrModePixmap::copyRect(coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::copyRect(
+	coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept
 {
-	assert(CM == q.colormode); // must be same type
+	assert(q.colormode == colormode);	// must be same type
+	assert(q.attrheight == attrheight); //
+
 	copyRect(zx, zy, static_cast<const Pixmap&>(q), qx, qy, w, h);
 }
 
-template<ColorMode CM>
-void AttrModePixmap::copyRect(const Point& z, const Pixmap& q) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::copyRect(const Point& z, const Pixmap& q) noexcept
 {
 	copyRect(z.x, z.y, q, 0, 0, q.width, q.height);
 }
 
-template<ColorMode CM>
-void AttrModePixmap::copyRect(const Point& zp, const Pixmap& pm, const Point& qp, const Size& size) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::copyRect(const Point& zp, const Pixmap& pm, const Point& qp, const Size& size) noexcept
 {
 	copyRect(zp.x, zp.y, pm, qp.x, qp.y, size.width, size.height);
 }
 
-template<ColorMode CM>
-void AttrModePixmap::copyRect(const Point& zp, const Pixmap& pm, const Rect& qr) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::copyRect(const Point& zp, const Pixmap& pm, const Rect& qr) noexcept
 {
 	copyRect(zp.x, zp.y, pm, qr.left(), qr.top(), qr.width(), qr.height());
 }
 
-template<ColorMode CM>
-void AttrModePixmap::drawBmp(
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::drawBmp(
 	coord zx, coord zy, const uint8* bmp, int bmp_row_offset, int w, int h, uint color, uint ink) noexcept
 {
 	// draw bitmap into Canvas
@@ -178,14 +182,14 @@ void AttrModePixmap::drawBmp(
 	}
 }
 
-template<ColorMode CM>
-void AttrModePixmap::drawBmp(coord zx, coord zy, const Bitmap& bmp, uint color, uint ink) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::drawBmp(coord zx, coord zy, const Bitmap& bmp, uint color, uint ink) noexcept
 {
 	drawBmp(zx, zy, bmp.pixmap, bmp.row_offset, bmp.width, bmp.height, color, ink);
 }
 
-template<ColorMode CM>
-void AttrModePixmap::drawChar(coord zx, coord zy, const uint8* bmp, int h, uint color, uint ink) noexcept
+template<int bpp, int aw>
+void Pixmap<bpp, aw, false>::drawChar(coord zx, coord zy, const uint8* bmp, int h, uint color, uint ink) noexcept
 {
 	// optimized version of drawBmp:
 	//   row_offset = 1
@@ -213,14 +217,14 @@ void AttrModePixmap::drawChar(coord zx, coord zy, const uint8* bmp, int h, uint 
 // instantiate everything.
 // the linker will know what we need:
 
-template class Pixmap<colormode_a1w1>;
-template class Pixmap<colormode_a1w2>;
-template class Pixmap<colormode_a1w4>;
-template class Pixmap<colormode_a1w8>;
-template class Pixmap<colormode_a2w1>;
-template class Pixmap<colormode_a2w2>;
-template class Pixmap<colormode_a2w4>;
-template class Pixmap<colormode_a2w8>;
+template class Pixmap<1, 1, false>;
+template class Pixmap<1, 2, false>;
+template class Pixmap<1, 4, false>;
+template class Pixmap<1, 8, false>;
+template class Pixmap<2, 1, false>;
+template class Pixmap<2, 2, false>;
+template class Pixmap<2, 4, false>;
+template class Pixmap<2, 8, false>;
 
 
 } // namespace kilipili

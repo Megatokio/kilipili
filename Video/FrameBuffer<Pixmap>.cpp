@@ -151,21 +151,13 @@ void RENDER FrameBufferBase_wAttr::render(VideoPlane* vp, int __unused row, int 
 
 
 // =========================================================================
-// define them all, the linker will know what we need:
+// define all, the linker will know what we need:
 
 template class FrameBuffer<Pixmap_i1>;
 template class FrameBuffer<Pixmap_i2>;
 template class FrameBuffer<Pixmap_i4>;
 template class FrameBuffer<Pixmap_i8>;
 template class FrameBuffer<Pixmap_rgb>;
-template class FrameBuffer<Pixmap_a1w1>;
-template class FrameBuffer<Pixmap_a1w2>;
-template class FrameBuffer<Pixmap_a1w4>;
-template class FrameBuffer<Pixmap_a1w8>;
-template class FrameBuffer<Pixmap_a2w1>;
-template class FrameBuffer<Pixmap_a2w2>;
-template class FrameBuffer<Pixmap_a2w4>;
-template class FrameBuffer<Pixmap_a2w8>;
 
 } // namespace kilipili
 
