@@ -1,4 +1,4 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -28,63 +28,49 @@ namespace kilipili
 		The `pixel value` goes into the pixels[] while the `color` goes into the attributes[].
 	  - compatibility methods without `color` which draw into the pixmap[] only.
 */
-template<ColorMode CM, typename = void>
+template<int bpp, int aw, bool ic>
 class Pixmap;
 
 // handy names:
-using Bitmap	 = Pixmap<colormode_i1>;
-using Pixmap_i1	 = Pixmap<colormode_i1>;
-using Pixmap_i2	 = Pixmap<colormode_i2>;
-using Pixmap_i4	 = Pixmap<colormode_i4>;
-using Pixmap_i8	 = Pixmap<colormode_i8>;
-using Pixmap_rgb = Pixmap<colormode_rgb>;
-
-
-// how ugly can it be?
-#define DirectColorPixmap Pixmap<CM, typename std::enable_if_t<is_direct_color(CM)>>
+using Bitmap	 = Pixmap<1, 0, true>;
+using Pixmap_i1	 = Pixmap<1, 0, true>;
+using Pixmap_i2	 = Pixmap<2, 0, true>;
+using Pixmap_i4	 = Pixmap<4, 0, true>;
+using Pixmap_i8	 = Pixmap<8, 0, true>;
+using Pixmap_rgb = Pixmap<color_bits, 0, false>;
 
 
 /***************************************************************************
 				Template for the direct color Pixmaps
 ************************************************************************** */
 
-template<ColorMode CM>
-class DirectColorPixmap : public Canvas
+template<int bpp, bool ic>
+class Pixmap<bpp, 0, ic> : public Canvas
 {
+	static_assert(8 % bpp == 0 || bpp == color_bits);
+
 public:
-	static constexpr bool flag_is_direct_color = true;
-	static constexpr bool flag_is_true_color   = CM == colormode_rgb;
+	static constexpr ColorDepth CD				 = ColorDepth(msbit(bpp)); // 0 .. 5  log2 of bits per pixel
+	static constexpr bool		is_attr_mode	 = false;
+	static constexpr bool		is_indexed_color = ic;
+	static constexpr bool		is_colormode_rgb = ic == false && bpp == color_bits;
+	static constexpr ColorMode	colormode		 = is_colormode_rgb ? colormode_rgb : ColorMode(CD);
 
-	Id("Pixmap ");
-	const int		row_offset; // in pixmap[]
-	uint8* const	pixmap;
-	RCPtr<ColorMap> colormap; // if indexed color
+	const int			 row_offset; // in pixmap[]
+	uint8* const		 pixmap;	 //
+	RCPtr<ColorMap<bpp>> colormap;	 // if indexed color
 
-	static constexpr ColorDepth CD			   = get_colordepth(CM); // 0 .. 4  log2 of bits per color
-	static constexpr AttrMode	AM			   = attrmode_none;		 // 0 .. 2  log2 of bits per color (dummy)
-	static constexpr AttrWidth	AW			   = attrwidth_none;	 // 0 .. 3  log2 of width of tiles (dummy)
-	static constexpr int		bits_per_color = 1 << CD; // bits per color in pixmap[] (wAttr: in attributes[])
-	static constexpr int		bits_per_pixel = 1 << CD; // bits per pixel in pixmap[]
-
-	static constexpr ColorDepth colordepth = CD;
-
-	// for compatibility with Pixmap_wAttr:
-	static constexpr ColorMode	colormode  = CM;
-	static constexpr AttrMode	attrmode   = attrmode_none;
-	static constexpr AttrWidth	attrwidth  = attrwidth_none;
-	static constexpr AttrHeight attrheight = attrheight_none;
 
 	// helper: calculate (minimum) sizes for the pixels pixmap:
 	static constexpr int calc_row_offset(int w) noexcept { return ((w << CD) + 7) >> 3; }
 
 	// allocating ctor:
-	Pixmap(const Size& size, AttrHeight = attrheight_none) throws;
-	Pixmap(coord w, coord h, AttrHeight = attrheight_none) throws;
-	Pixmap(coord w, coord h, ColorMap*) throws;
+	Pixmap(const Size& size, ColorMap<bpp>* = nullptr) throws;
+	Pixmap(coord w, coord h, ColorMap<bpp>* = nullptr) throws;
 
 	// not allocating: wrap existing pixels:
-	constexpr Pixmap(const Size& size, uint8* pixels, int row_offset) noexcept;
-	constexpr Pixmap(coord w, coord h, uint8* pixels, int row_offset) noexcept;
+	constexpr Pixmap(const Size& size, uint8* pixels, int row_offset, ColorMap<bpp>* = nullptr) noexcept;
+	constexpr Pixmap(coord w, coord h, uint8* pixels, int row_offset, ColorMap<bpp>* = nullptr) noexcept;
 
 	// window into other pixmap:
 	Pixmap(Pixmap& q, const Rect& r) noexcept;
@@ -94,11 +80,11 @@ public:
 	// create Bitmap from Pixmap
 	//   set = true:  bits in Bitmap are set  if pixel matches (foreground) color
 	//   set = false: bits in Bitmap are null if pixel matches (background) color
-	template<ColorMode QCM>
-	Pixmap(typename std::enable_if_t<CM == colormode_i1, const Pixmap<QCM>>& q, uint color, bool set) noexcept;
+	template<int a, bool b>
+	Pixmap(typename std::enable_if_t<bpp == 1, const Pixmap<a, 0, b>>& q, uint color, bool set) noexcept;
 
 	// window into this pixmap:
-	virtual Pixmap<CM>* cloneWindow(coord x, coord y, coord w, coord h) throws override;
+	virtual Pixmap* createWindow(coord x, coord y, coord w, coord h) throws override;
 
 	virtual ~Pixmap() noexcept override;
 
@@ -115,7 +101,7 @@ public:
 	virtual uint get_color(coord x, coord y) const noexcept override;
 	virtual uint get_ink(coord x, coord y) const noexcept override;
 
-	virtual ColorMap* getColorMap() const noexcept override;
+	virtual ColorMap<bpp>* getColorMap() const noexcept override;
 
 	virtual void draw_hline_to(coord x, coord y, coord x2, uint color, uint ink = 1) noexcept override;
 	virtual void draw_vline_to(coord x, coord y, coord y2, uint color, uint ink = 1) noexcept override;
@@ -148,8 +134,8 @@ public:
 	void copyRect(const Point& z, const Pixmap& src, const Point& q, const Size&) noexcept;
 
 protected:
-	constexpr Pixmap(coord w, coord h, ColorMode, AttrHeight) throws;
-	constexpr Pixmap(coord w, coord h, ColorMode, AttrHeight, uint8* pixels, int row_offset) noexcept;
+	constexpr Pixmap(coord w, coord h, const PmInfo&, ColorMap<bpp>* = nullptr) throws;
+	constexpr Pixmap(coord w, coord h, const PmInfo&, uint8* pixels, int row_offset, ColorMap<bpp>* = nullptr) noexcept;
 };
 
 
@@ -159,110 +145,101 @@ protected:
 
 
 // __________________________________________________________________
-// IMPLEMENTATIONS: ctor, dtor
+// IMPLEMENTATIONS: dedicated ctor, dtor
+// also for use by subclass
+// these don't copy the colormap!
 
-template<ColorMode CM>
-Pixmap<CM>* DirectColorPixmap::cloneWindow(coord x, coord y, coord w, coord h) throws
-{
-	return new Pixmap<CM>(*this, x, y, w, h);
-}
-
-template<ColorMode CM>
-DirectColorPixmap::Pixmap(coord w, coord h, ColorMap* colormap) throws :
-	Canvas(w, h, CM, attrheight_none, true /*allocated*/),
+// allocating:
+template<int bpp, bool ic>
+constexpr Pixmap<bpp, 0, ic>::Pixmap(coord w, coord h, const PmInfo& pminfo, ColorMap<bpp>* cmap) throws :
+	Canvas(w, h, pminfo, true),
 	row_offset(calc_row_offset(w)),
 	pixmap(new uint8[uint(h * row_offset)]),
-	colormap(colormap)
-{
-	assert(colormap == nullptr || kilipili::is_indexed_color(CM));
-	assert(colormap == nullptr || colormap->count >= 1 << (1 << colordepth));
-}
-
-// allocating, throws. for use by subclass:
-template<ColorMode CM>
-constexpr DirectColorPixmap::Pixmap(coord w, coord h, ColorMode cm, AttrHeight ah) throws :
-	Canvas(w, h, cm, ah, true /*allocated*/),
-	row_offset(calc_row_offset(w)),
-	pixmap(new uint8[uint(h * row_offset)])
+	colormap(cmap)
 {}
 
-template<ColorMode CM>
-DirectColorPixmap::Pixmap(coord w, coord h, AttrHeight) throws : Pixmap(w, h, CM, attrheight_none)
-{
-	// argument attrheight is only for signature compatibility with Pixmap_wAttr version
-}
+// not allocating: wrap existing pixels.
+template<int bpp, bool ic>
+constexpr Pixmap<bpp, 0, ic>::Pixmap(
+	coord w, coord h, const PmInfo& pminfo, uint8* pixels, int row_offs, ColorMap<bpp>* cmap) noexcept :
+	Canvas(w, h, pminfo, false),
+	row_offset(row_offs),
+	pixmap(pixels),
+	colormap(cmap)
+{}
 
-template<ColorMode CM>
-DirectColorPixmap::Pixmap(const Size& sz, AttrHeight) throws : Pixmap(sz.width, sz.height, CM, attrheight_none)
+template<int bpp, bool ic>
+Pixmap<bpp, 0, ic>::~Pixmap() noexcept
 {
-	// argument attrheight is only for signature compatibility with Pixmap_wAttr version
+	if (is_allocated) delete[] pixmap;
 }
 
 
-// not allocating: wrap existing pixels. for use by subclass:
-template<ColorMode CM>
-constexpr DirectColorPixmap::Pixmap(
-	coord w, coord h, ColorMode cm, AttrHeight ah, uint8* pixels, int row_offset) noexcept :
-	Canvas(w, h, cm, ah, false /*not allocated*/),
-	row_offset(row_offset),
-	pixmap(pixels)
+// __________________________________________________________________
+// IMPLEMENTATIONS: other ctor
+
+template<int bpp, bool ic>
+Pixmap<bpp, 0,ic>::Pixmap(coord w, coord h, ColorMap<bpp>* cmap) throws : // allocating
+	Pixmap(w, h, PmInfo{msbit(bpp),ic}, cmap)
 {}
 
-template<ColorMode CM>
-constexpr DirectColorPixmap::Pixmap(coord w, coord h, uint8* pixels, int row_offset) noexcept :
-	Pixmap(w, h, CM, attrheight_none, pixels, row_offset)
+template<int bpp, bool ic>
+Pixmap<bpp, 0,ic>::Pixmap(const Size& sz, ColorMap<bpp>* cmap) throws : // allocating
+	Pixmap(sz.width, sz.height, PmInfo{msbit(bpp),ic}, cmap)
 {}
 
-template<ColorMode CM>
-constexpr DirectColorPixmap::Pixmap(const Size& sz, uint8* pixels, int row_offset) noexcept :
-	Pixmap(sz.width, sz.height, CM, attrheight_none, pixels, row_offset)
+template<int bpp, bool ic> // not allocating
+constexpr Pixmap<bpp, 0, ic>::Pixmap(coord w, coord h, uint8* pixels, int row_offset, ColorMap<bpp>* cmap) noexcept :
+	Pixmap(w, h, PmInfo {msbit(bpp), ic}, pixels, row_offset, cmap)
 {}
 
-// window into other pixmap:
-template<ColorMode CM>
-DirectColorPixmap::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
-	Canvas(w, h, q.Canvas::colormode, q.Canvas::attrheight, false /*not allocated*/),
-	row_offset(q.row_offset),
-	pixmap(q.pixmap + y * q.row_offset + ((x << CD) >> 3))
+template<int bpp, bool ic> // not allocating
+constexpr Pixmap<bpp, 0, ic>::Pixmap(const Size& sz, uint8* pixels, int row_offset, ColorMap<bpp>* cmap) noexcept :
+	Pixmap(sz.width, sz.height, PmInfo {msbit(bpp), ic}, pixels, row_offset, cmap)
+{}
+
+template<int bpp, bool ic>
+Pixmap<bpp, 0, ic>::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept : // window into other pixmap
+	Pixmap(
+		w, h, PmInfo(q.ss_bpp, q.ss_aw, q.attrheight, q.is_indexed_color),
+		q.pixmap + y * q.row_offset + ((x << CD) >> 3), q.row_offset, q.colormap)
 {
 	assert(x >= 0 && w >= 0 && x + w <= q.width);
 	assert(y >= 0 && h >= 0 && y + h <= q.height);
 	assert((x << CD) % 8 == 0);
 }
 
-template<ColorMode CM>
-DirectColorPixmap::Pixmap(Pixmap& q, const Rect& r) noexcept : //
+template<int bpp, bool ic>
+Pixmap<bpp, 0, ic>::Pixmap(Pixmap& q, const Rect& r) noexcept : // window into other pixmap
 	Pixmap(q, r.left(), r.top(), r.width(), r.height())
 {}
 
-template<ColorMode CM>
-DirectColorPixmap::Pixmap(Pixmap& q, const Point& p, const Size& size) noexcept :
+template<int bpp, bool ic>
+Pixmap<bpp, 0, ic>::Pixmap(Pixmap& q, const Point& p, const Size& size) noexcept : // window into other pixmap
 	Pixmap(q, p.x, p.y, size.width, size.height)
 {}
 
-// create Bitmap from Pixmap:
-template<ColorMode CM>
-template<ColorMode QCM>
-DirectColorPixmap::Pixmap(
-	typename std::enable_if_t<CM == colormode_i1, const Pixmap<QCM>>& q, uint color, bool set) noexcept :
-	Pixmap(q.width, q.height)
+template<int bpp, bool ic>
+Pixmap<bpp, 0, ic>* Pixmap<bpp, 0, ic>::createWindow(coord x, coord y, coord w, coord h) // window into this pixmap
 {
-	bitblit::copy_rect_as_bitmap<ColorDepth(QCM)>(
-		pixmap, row_offset, q.pixmap, q.row_offset, q.width, q.height, color, set);
+	return new Pixmap(*this, x, y, w, h);
 }
 
-template<ColorMode CM>
-DirectColorPixmap::~Pixmap() noexcept
+template<int bpp, bool ic> // create Bitmap from Pixmap:
+template<int a, bool b>
+Pixmap<bpp, 0, ic>::Pixmap(typename std::enable_if_t<bpp == 1, const Pixmap<a, 0, b>>& q, uint color, bool set) noexcept
+	:
+	Pixmap(q.width, q.height, nullptr /*no colormap*/)
 {
-	if (allocated) delete[] pixmap;
+	bitblit::copy_rect_as_bitmap<q.CD>(pixmap, row_offset, q.pixmap, q.row_offset, q.width, q.height, color, set);
 }
 
 
 // __________________________________________________________________
 // IMPLEMENTATIONS: operator ==
 
-template<ColorMode CM>
-bool DirectColorPixmap::operator==(const Pixmap& other) const noexcept
+template<int bpp, bool ic>
+bool Pixmap<bpp, 0, ic>::operator==(const Pixmap& other) const noexcept
 {
 	assert(size == other.size);
 
@@ -270,7 +247,7 @@ bool DirectColorPixmap::operator==(const Pixmap& other) const noexcept
 	const uint8* z = other.pixmap;
 	for (int y = 0; y < height; y++)
 	{
-		if (bitblit::compare_row<colordepth>(q, z, width) != 0) return false;
+		if (bitblit::compare_row<CD>(q, z, width) != 0) return false;
 		q += row_offset;
 		z += other.row_offset;
 	}
@@ -279,41 +256,41 @@ bool DirectColorPixmap::operator==(const Pixmap& other) const noexcept
 
 
 // __________________________________________________________________
-// IMPLEMENTATIONS: set pixel, get pixel
+// IMPLEMENTATIONS: set pixel, get pixel, getColorMap:
 
-template<ColorMode CM>
-void DirectColorPixmap::set_pixel(coord x, coord y, uint color, uint /*ink*/) noexcept
+template<int bpp, bool ic>
+void Pixmap<bpp, 0, ic>::set_pixel(coord x, coord y, uint color, uint /*ink*/) noexcept
 {
 	// set pixels[] and attributes[]
 	//set_ink(x, y, color);
 	assert(is_inside(x, y));
-	bitblit::set_pixel<colordepth>(pixmap + y * row_offset, x, color);
+	bitblit::set_pixel<CD>(pixmap + y * row_offset, x, color);
 }
 
-template<ColorMode CM>
-uint DirectColorPixmap::get_ink(coord x, coord y) const noexcept
+template<int bpp, bool ic>
+uint Pixmap<bpp, 0, ic>::get_ink(coord x, coord y) const noexcept
 {
 	// get value from pixels[]
 	assert(is_inside(x, y));
-	return bitblit::get_pixel<colordepth>(pixmap + y * row_offset, x);
+	return bitblit::get_pixel<CD>(pixmap + y * row_offset, x);
 }
 
-template<ColorMode CM>
-uint DirectColorPixmap::get_color(coord x, coord y) const noexcept
+template<int bpp, bool ic>
+uint Pixmap<bpp, 0, ic>::get_color(coord x, coord y) const noexcept
 {
 	// get value from attributes[]
 	return get_ink(x, y);
 }
 
-template<ColorMode CM>
-uint DirectColorPixmap::get_pixel(coord x, coord y, uint* ink) const noexcept
+template<int bpp, bool ic>
+uint Pixmap<bpp, 0, ic>::get_pixel(coord x, coord y, uint* ink) const noexcept
 {
 	// get color and ink
 	return *ink = get_ink(x, y);
 }
 
-template<ColorMode CM>
-ColorMap* DirectColorPixmap::getColorMap() const noexcept
+template<int bpp, bool ic>
+ColorMap<bpp>* Pixmap<bpp, 0, ic>::getColorMap() const noexcept
 {
 	return colormap;
 }
@@ -322,32 +299,32 @@ ColorMap* DirectColorPixmap::getColorMap() const noexcept
 // __________________________________________________________________
 // IMPLEMENTATIONS: lines, rects, bmps & chars
 
-template<ColorMode CM>
-void DirectColorPixmap::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint /*ink*/) noexcept
+template<int bpp, bool ic>
+void Pixmap<bpp, 0, ic>::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint /*ink*/) noexcept
 {
 	if (x1 < x2)
 	{
 		assert(is_inside(x1, y1));
 		assert(x2 <= width);
 
-		bitblit::draw_hline<colordepth>(pixmap + y1 * row_offset, x1, x2 - x1, color);
+		bitblit::draw_hline<CD>(pixmap + y1 * row_offset, x1, x2 - x1, color);
 	}
 }
 
-template<ColorMode CM>
-void DirectColorPixmap::draw_vline_to(coord x1, coord y1, coord y2, uint color, uint) noexcept
+template<int bpp, bool ic>
+void Pixmap<bpp, 0, ic>::draw_vline_to(coord x1, coord y1, coord y2, uint color, uint /*ink*/) noexcept
 {
 	if (y1 < y2)
 	{
 		assert(is_inside(x1, y1));
 		assert(y2 <= height);
 
-		bitblit::draw_vline<colordepth>(pixmap + y1 * row_offset, row_offset, x1, y2 - y1, color);
+		bitblit::draw_vline<CD>(pixmap + y1 * row_offset, row_offset, x1, y2 - y1, color);
 	}
 }
 
-template<ColorMode CM>
-void DirectColorPixmap::fill_rect(coord x1, coord y1, coord w, coord h, uint color, uint /*ink*/) noexcept
+template<int bpp, bool ic>
+void Pixmap<bpp, 0, ic>::fill_rect(coord x1, coord y1, coord w, coord h, uint color, uint /*ink*/) noexcept
 {
 	if (w > 0 && h > 0)
 	{
@@ -355,11 +332,11 @@ void DirectColorPixmap::fill_rect(coord x1, coord y1, coord w, coord h, uint col
 		assert(is_inside(x1 + w - 1, y1 + h - 1));
 	}
 
-	bitblit::clear_rect<colordepth>(pixmap + y1 * row_offset, row_offset, x1, w, h, color);
+	bitblit::clear_rect<CD>(pixmap + y1 * row_offset, row_offset, x1, w, h, color);
 }
 
-template<ColorMode CM>
-void DirectColorPixmap::xor_rect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
+template<int bpp, bool ic>
+void Pixmap<bpp, 0, ic>::xor_rect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
 {
 	if (w > 0 && h > 0)
 	{
@@ -367,11 +344,11 @@ void DirectColorPixmap::xor_rect(coord x1, coord y1, coord w, coord h, uint xor_
 		assert(is_inside(x1 + w - 1, y1 + h - 1));
 	}
 
-	bitblit::xor_rect<colordepth>(pixmap + y1 * row_offset, row_offset, x1, w, h, xor_color);
+	bitblit::xor_rect<CD>(pixmap + y1 * row_offset, row_offset, x1, w, h, xor_color);
 }
 
-template<ColorMode CM>
-void DirectColorPixmap::copy_rect(coord zx, coord zy, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept
+template<int bpp, bool ic>
+void Pixmap<bpp, 0, ic>::copy_rect(coord zx, coord zy, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept
 {
 	// copy the pixels from a rectangular area within the same pixmap.
 	// overlapping areas are handled safely.
@@ -383,15 +360,15 @@ void DirectColorPixmap::copy_rect(coord zx, coord zy, const Pixmap& q, coord qx,
 		assert(q.is_inside(qx, qy));
 		assert(q.is_inside(qx + w - 1, qy + h - 1));
 
-		bitblit::copy_rect<colordepth>(
+		bitblit::copy_rect<CD>(
 			pixmap + zy * row_offset, row_offset, zx,		//
 			q.pixmap + qy * q.row_offset, q.row_offset, qx, //
 			w, h);
 	}
 }
 
-template<ColorMode CM>
-void DirectColorPixmap::draw_bmp(
+template<int bpp, bool ic>
+void Pixmap<bpp, 0, ic>::draw_bmp(
 	coord zx, coord zy, const uint8* bmp, int bmp_row_offs, coord w, coord h, uint color, uint /*ink*/) noexcept
 {
 	if (w > 0 && h > 0)
@@ -399,7 +376,7 @@ void DirectColorPixmap::draw_bmp(
 		assert(is_inside(zx, zy));
 		assert(is_inside(zx + w - 1, zy + h - 1));
 
-		bitblit::draw_bitmap<colordepth>(
+		bitblit::draw_bitmap<CD>(
 			pixmap + zy * row_offset, // start of the first row in destination Pixmap
 			row_offset,				  // row offset in destination Pixmap measured in bytes
 			zx,						  // x offset from zp in pixels
@@ -411,8 +388,8 @@ void DirectColorPixmap::draw_bmp(
 	}
 }
 
-template<ColorMode CM>
-void DirectColorPixmap::draw_char(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint /*ink*/) noexcept
+template<int bpp, bool ic>
+void Pixmap<bpp, 0, ic>::draw_char(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint /*ink*/) noexcept
 {
 	if (h > 0)
 	{
@@ -420,16 +397,16 @@ void DirectColorPixmap::draw_char(coord zx, coord zy, const uint8* bmp, coord h,
 		assert(is_inside(zx + 8 - 1, zy + h - 1));
 		assert((zx & 7) == 0);
 
-		bitblit::draw_char<colordepth>(pixmap + zy * row_offset, row_offset, zx, bmp, h, color);
+		bitblit::draw_char<CD>(pixmap + zy * row_offset, row_offset, zx, bmp, h, color);
 	}
 }
 
 
-extern template class Pixmap<colormode_i1>;
-extern template class Pixmap<colormode_i2>;
-extern template class Pixmap<colormode_i4>;
-extern template class Pixmap<colormode_i8>;
-extern template class Pixmap<colormode_rgb>;
+extern template class Pixmap<1, 0, true>;
+extern template class Pixmap<2, 0, true>;
+extern template class Pixmap<4, 0, true>;
+extern template class Pixmap<8, 0, true>;
+extern template class Pixmap<color_bits, 0, false>;
 
 } // namespace kilipili
 

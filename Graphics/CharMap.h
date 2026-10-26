@@ -74,8 +74,8 @@ public:
 
 	RCPtr<const Font> fonts[2] {&latin1_12x8, &graphics_12x8}; // should be copied into ram!
 
-	RCPtr<ColorMap> fgcolors;
-	RCPtr<ColorMap> bgcolors;
+	RCPtr<ColorMap<>> fgcolors;
+	RCPtr<ColorMap<>> bgcolors;
 
 	uint8 rc = 0; // RCPtr<>
 
@@ -92,7 +92,8 @@ public:
 
 protected:
 	CharMapBase(
-		int rows, int cols, ColorMap* fg, ColorMap* bg, uint8 fg_bits, uint8 bg_bits, uint8 bold, uint8 ul, uint8 gra) :
+		int rows, int cols, ColorMap<>* fg, ColorMap<>* bg, //
+		uint8 fg_bits, uint8 bg_bits, uint8 bold, uint8 ul, uint8 gra) :
 		rows(rows),
 		cols(cols),
 		fgcolors(fg),
@@ -106,11 +107,8 @@ protected:
 		graphics(gra)
 	{
 		data = new uint16[uint(rows * cols)];
-		if (!fg) fgcolors = fg = new ColorMap(1 << fg_bits);
-		if (!bg) bgcolors = bg = (new ColorMap(1 << bg_bits))->reverse();
-		if (fgcolors[0] == bgcolors[0]) bgcolors->complement();
-		assert(fg->count >= 1 << fg_bits);
-		assert(bg->count >= 1 << bg_bits);
+		assert(fg);
+		assert(bg);
 		clear();
 	}
 
@@ -141,9 +139,14 @@ public:
 	static_assert(uint(fg_bits) <= 8);
 	static_assert(uint(bg_bits) <= 8);
 
-	CharMap(int rows, int cols, ColorMap* fg = nullptr, ColorMap* bg = nullptr) :
-		CharMapBase(rows, cols, fg, bg, fg_bits, bg_bits, bold, underline, graphics)
-	{}
+	CharMap(int rows, int cols, ColorMap<fg_bits>* fg = nullptr, ColorMap<bg_bits>* bg = nullptr) :
+		CharMapBase(
+			rows, cols, fg ? fg : new ColorMap<fg_bits>, bg ? bg : new ColorMap<bg_bits>, //
+			fg_bits, bg_bits, bold, underline, graphics)
+	{
+		if (!bg) bgcolors->reverse();
+		if (fgcolors[0] == bgcolors[0]) bgcolors->complement();
+	}
 };
 
 

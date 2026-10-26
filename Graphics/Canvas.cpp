@@ -771,7 +771,7 @@ void Canvas::floodFill(coord x, coord y, uint color, uint ink)
 	// set_pixel()? get_ink()?
 
 	if (!is_inside(x, y)) return;
-	if (is_direct_color(colormode)) ink = color;
+	if (!is_attr_mode) ink = color;
 	if (getInk(x, y) == ink) return;
 
 

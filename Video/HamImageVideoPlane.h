@@ -19,14 +19,12 @@ namespace kilipili
 class HamImageVideoPlane final : public VideoPlane
 {
 public:
-	static constexpr ColorMode CM = colormode_i8;
-
-	HamImageVideoPlane(const Pixmap<CM>*, const ColorMap*, uint16 first_rel_code);
+	HamImageVideoPlane(const Pixmap_i8*, uint16 first_rel_code);
 
 	void setupNextImage(int row_offset, uint16 first_rel_code);
 
-	RCPtr<const Pixmap<CM>> pixmap;
-	RCPtr<const ColorMap>	colormap;
+	RCPtr<const Pixmap_i8>	 pixmap;
+	RCPtr<const ColorMap_i8> colormap;
 
 	int			 row_offset;	  //
 	const uint8* pixels;		  // next position

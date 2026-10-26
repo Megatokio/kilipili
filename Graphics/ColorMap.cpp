@@ -4,14 +4,7 @@
 
 #include "ColorMap.h"
 #include "common/basic_math.h"
-#include "common/cdefs.h"
 #include <utility>
-
-#if defined GRAPHICS_SYSTEM_COLORMAP_SECTION
-  #define CMRAM GRAPHICS_SYSTEM_COLORMAP_SECTION
-#else
-  #define CMRAM XRAM // core1 stack page
-#endif
 
 
 namespace kilipili
@@ -127,10 +120,10 @@ constexpr Color vga8_colors[256] =
 
 static const Color* default_cmap(int count) noexcept
 {
-	static_assert(msbit(1) == 0);
-	static_assert(msbit(15) == 3);
-	static constexpr const Color* c4[4] = {default_i1_colors, default_i1_colors, default_i2_colors, zx_colors};
+	assert(count >= 1);
+
 	if (count > 8) return vga8_colors;
+	constexpr const Color* c4[4] = {default_i1_colors, default_i1_colors, default_i2_colors, zx_colors};
 	return c4[msbit(uint8(2 * count - 1))];
 }
 
@@ -143,36 +136,28 @@ static void copy_up(Color* z, const Color* q, int cnt) noexcept
 	for (int i = cnt; --i >= 0;) z[i] = q[i];
 }
 
-void ColorMap::reset(const Color* cmap, int count) noexcept
+void ColorMap<0>::reset(const Color* src, int count) noexcept
 {
 	assert(count >= 0);
+
 	if (count == 0) count = this->count;
 	else count = min(count, this->count);
-	if (cmap == nullptr) cmap = default_cmap(count);
-	copy(this->colors, cmap, count);
+
+	if (src == nullptr) src = default_cmap(count);
+	copy(this->colors, src, count);
 }
 
-ColorMap::ColorMap(Color* dest, const Color* src, int count, int rc) : //
-	rc(int16(rc)),
-	count(uint16(count)),
-	colors(dest)
+ColorMap<0>::ColorMap(const Color* src, int bits) noexcept : //
+	count(uint16(1 << bits))
 {
-	assert(rc == 0 || rc == -1);
-	assert(rc == 0 || dest != nullptr);
+	assert(bits >= 0 && bits <= 8);
 	assert(count > 0 && count <= 256);
 
-	if (dest == nullptr) const_cast<Color*&>(colors) = new Color[uint(count)];
 	if (src == nullptr) src = default_cmap(count);
-	copy(colors, src, count);
+	copy(this->colors, src, count);
 }
 
-ColorMap::~ColorMap() noexcept
-{
-	assert(rc == 0 || rc == -1);
-	if (rc == 0) delete[] colors;
-}
-
-uint16 ColorMap::bestMatch(Color c, int count) noexcept
+uint16 ColorMap<0>::bestMatch(Color c, int count) noexcept
 {
 	if (count == 0) count = this->count;
 
@@ -197,37 +182,32 @@ uint16 ColorMap::bestMatch(Color c, int count) noexcept
 	}
 }
 
-ColorMap* ColorMap::reverse() noexcept
+void ColorMap<0>::reverse() noexcept
 {
 	for (int i = 0; i < count / 2; i++) std::swap(colors[i], colors[count - 1 - i]);
-	return this;
 }
 
-ColorMap* ColorMap::complement() noexcept
+void ColorMap<0>::complement() noexcept
 {
 	for (int i = 0; i < count; i++) colors[i].raw ^= Color::total_colormask;
-	return this;
 }
 
-ColorMap* ColorMap::lighter() noexcept
+void ColorMap<0>::lighter() noexcept
 {
 	for (int i = 0; i < count; i++) colors[i].blend_with(white);
-	return this;
 }
 
-ColorMap* ColorMap::darker() noexcept
+void ColorMap<0>::darker() noexcept
 {
 	for (int i = 0; i < count; i++) colors[i].blend_with(black);
-	return this;
 }
 
-ColorMap* ColorMap::shuffle() noexcept
+void ColorMap<0>::shuffle() noexcept
 {
 	for (int i = 0; i < count; i++) { std::swap(colors[i], colors[uint(random()) % count]); }
-	return this;
 }
 
-ColorMap* ColorMap::roll(int dist) noexcept
+void ColorMap<0>::roll(int dist) noexcept
 {
 	assert(dist <= count && dist >= -count);
 
@@ -252,17 +232,7 @@ ColorMap* ColorMap::roll(int dist) noexcept
 		copy_up(colors + dist, colors, cnt);
 		copy(colors, z, dist);
 	}
-
-	return this;
 }
-
-
-// ---------------------------------------------------------------------------
-// The system_colormap is intended to be used by the frame buffer.
-
-static __section(CMRAM ".cm_data") Color system_cmap[256];
-
-ColorMap system_colormap {system_cmap, vga8_colors, 256, -1};
 
 
 } // namespace kilipili

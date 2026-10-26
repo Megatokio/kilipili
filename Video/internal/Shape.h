@@ -388,9 +388,9 @@ void Shape::create_shape(const Pixmap& pm, int transparent_pixel, const Color* c
 
 	assert(pm.width <= 255);
 	assert(pm.height <= 255);
-	//assert(!clut == is_true_color(pm.colormode));
-	assert(clut != nullptr || is_true_color(pm.colormode));
-	if (is_true_color(pm.colormode)) clut = nullptr;
+	assert(pm.is_attr_mode == false);
+	assert(clut != nullptr || pm.is_colormode_rgb);
+	if (pm.is_colormode_rgb) clut = nullptr;
 
 	static constexpr int pixels_per_cmd = sizeof(PFX) / sizeof(Color);
 
@@ -469,9 +469,9 @@ Shape::Shape(const Pixmap& pm, int transparent_pixel, const Dist& hotspot, const
 {
 	assert(pm.width <= 255);
 	assert(pm.height <= 255);
-	//assert(!clut == is_true_color(pm.colormode));
-	assert(clut != nullptr || is_true_color(pm.colormode));
-	if (is_true_color(pm.colormode)) clut = nullptr;
+	assert(pm.is_attr_mode == false);
+	assert(clut != nullptr || pm.is_colormode_rgb);
+	if (pm.is_colormode_rgb) clut = nullptr;
 
 	_width = uint8(pm.width);
 	_hot_x = int8(hotspot.dx);

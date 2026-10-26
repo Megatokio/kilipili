@@ -34,7 +34,7 @@ static constexpr Color clut[4] = {white, black, Color(0), Color(0)};
 
 // clang-format off
 
-__unused static Pixmap<colormode_i2>* pointer_m(Dist* hotspot)
+__unused static Pixmap_i2* pointer_m(Dist* hotspot)
 {
 	static constexpr uint8 bitmap_pointerM[] =
 	{
@@ -57,10 +57,10 @@ __unused static Pixmap<colormode_i2>* pointer_m(Dist* hotspot)
 		W(_ _ _ _ _ _ b b _ _ _ _ 0),
 	}; 
 	*hotspot = Dist {1,2};
-	return new Pixmap<colormode_i2> {11, 17, const_cast<uint8*>(bitmap_pointerM), 3};
+	return new Pixmap_i2 {11, 17, const_cast<uint8*>(bitmap_pointerM), 3};
 }
 
-__unused static Pixmap<colormode_i2>* pointer_l(Dist* hotspot)
+__unused static Pixmap_i2* pointer_l(Dist* hotspot)
 {
 	static constexpr uint8 bitmap_pointerL[] =
 	{
@@ -84,10 +84,10 @@ __unused static Pixmap<colormode_i2>* pointer_l(Dist* hotspot)
 		W(_ _ _ _ _ _ _ b b _ _ _ 0),
 	};
 	*hotspot = Dist(1,1);
-	return new Pixmap<colormode_i2> {12, 18, const_cast<uint8*>(bitmap_pointerL), 3};
+	return new Pixmap_i2 {12, 18, const_cast<uint8*>(bitmap_pointerL), 3};
 }
 
-__unused Pixmap<colormode_i2>* crosshair (Dist* hotspot)
+__unused Pixmap_i2* crosshair (Dist* hotspot)
 {
 	static constexpr uint8 bitmap_crosshair[] =
 	{
@@ -104,10 +104,10 @@ __unused Pixmap<colormode_i2>* crosshair (Dist* hotspot)
 		W(_ _ _ _ b F b _ _ _ _ _ 0),
 	};
 	*hotspot = Dist(5,5);
-	return new Pixmap<colormode_i2> {11, 11, const_cast<uint8*>(bitmap_crosshair), 3};
+	return new Pixmap_i2 {11, 11, const_cast<uint8*>(bitmap_crosshair), 3};
 }
 
-__unused Pixmap<colormode_i2> *ibeam(Dist* hotspot)
+__unused Pixmap_i2 *ibeam(Dist* hotspot)
 {
 	static constexpr uint8 bitmap_ibeam[] =
 	{
@@ -125,10 +125,10 @@ __unused Pixmap<colormode_i2> *ibeam(Dist* hotspot)
 		V(b b b _ b b b _ 0),
 	};
 	*hotspot = Dist {3,9};
-	return new Pixmap<colormode_i2>  {7, 12, const_cast<uint8*>(bitmap_ibeam), 2};
+	return new Pixmap_i2  {7, 12, const_cast<uint8*>(bitmap_ibeam), 2};
 }
 
-static Pixmap<colormode_i2> *busy(uint i,Dist* hotspot)
+static Pixmap_i2 *busy(uint i,Dist* hotspot)
 {
 	static constexpr uint8 bitmap_busy1[] =
 	{
@@ -188,7 +188,7 @@ static Pixmap<colormode_i2> *busy(uint i,Dist* hotspot)
 	};
 	*hotspot = Dist(5,5);
 	static constexpr const uint8* bitmap_busy[4] = {bitmap_busy1, bitmap_busy2, bitmap_busy3, bitmap_busy4};
-	return new Pixmap<colormode_i2> {11, 11, const_cast<uint8*>(bitmap_busy[i]), 3};
+	return new Pixmap_i2 {11, 11, const_cast<uint8*>(bitmap_busy[i]), 3};
 };
 
 // clang-format on
@@ -209,8 +209,8 @@ Shape shape_for_id(MousePointerID id)
 {
 	// helper to create a Shape for a MouseShapeID
 
-	Dist				  hotspot;
-	Pixmap<colormode_i2>* pixmap;
+	Dist	   hotspot;
+	Pixmap_i2* pixmap;
 
 	switch (uint(id))
 	{
@@ -235,9 +235,9 @@ MousePointer<Sprite>::MousePointer(MousePointerID id) : //
 			Shape shapes[4];
 			for (uint i = 0; i < 4; i++)
 			{
-				Dist						hotspot;
-				RCPtr<Pixmap<colormode_i2>> pixmap = busy(i, &hotspot);
-				shapes[i]						   = Shape(*pixmap, transparent, hotspot, clut);
+				Dist			 hotspot;
+				RCPtr<Pixmap_i2> pixmap = busy(i, &hotspot);
+				shapes[i]				= Shape(*pixmap, transparent, hotspot, clut);
 			}
 			replace(shapes, 6, 4);
 		}

@@ -4,6 +4,7 @@
 
 #pragma once
 #include "color_options.h"
+#include "common/basic_math.h"
 #include "standard_types.h"
 #include "tempmem.h"
 #include <cstdio>
@@ -113,6 +114,14 @@ struct Color
 };
 
 static_assert(sizeof(Color) == sizeof(Color::uRGB));
+
+static constexpr int bpb = CHAR_BIT;		// bits per byte
+static constexpr int b2b = msbit(CHAR_BIT); // bit to byte shift
+static_assert(bpb == 1 << b2b);
+
+static constexpr int color_bytes = sizeof(Color);
+static constexpr int color_bits	 = color_bytes << b2b;
+static constexpr int color_ss	 = msbit(color_bits);
 
 
 // =========================== Implementations ================================
