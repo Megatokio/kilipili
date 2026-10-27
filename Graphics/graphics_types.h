@@ -43,13 +43,13 @@ namespace kilipili
    num colors = 1<<(1<<CD)
 */
 enum ColorDepth : uint8 {
-	colordepth_1bpp	 = 0,							   // 1 bit/pixel probably indexed color
-	colordepth_2bpp	 = 1,							   // 2 bit/pixel probably indexed color
-	colordepth_4bpp	 = 2,							   // 4 bit/pixel probably indexed color
-	colordepth_8bpp	 = 3,							   // 8 bit/pixel probably indexed color
-	colordepth_16bpp = 4,							   // 16 bit/pixel always true color
-	colordepth_32bpp = 5,							   // 32 bit/pixel always true color
-	colordepth_rgb	 = msbit(sizeof(Color) * CHAR_BIT) // colordepth_1bpp .. colordepth_32bpp
+	colordepth_1bpp	 = 0,		// 1 bit/pixel probably indexed color
+	colordepth_2bpp	 = 1,		// 2 bit/pixel probably indexed color
+	colordepth_4bpp	 = 2,		// 4 bit/pixel probably indexed color
+	colordepth_8bpp	 = 3,		// 8 bit/pixel probably indexed color
+	colordepth_16bpp = 4,		// 16 bit/pixel always true color
+	colordepth_32bpp = 5,		// 32 bit/pixel always true color
+	colordepth_rgb	 = color_ss // colordepth_1bpp .. colordepth_32bpp
 };
 
 

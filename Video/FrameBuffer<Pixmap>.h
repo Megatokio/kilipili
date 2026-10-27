@@ -15,7 +15,7 @@ namespace kilipili
 
 
 /*	_____________________________________________________________________________________
-	Explicit specialization for true color mode without attributes:
+	FrameBuffer<> for true color mode without attributes:
 */
 template<>
 class FrameBuffer<Pixmap_rgb> final : public VideoPlane
@@ -25,13 +25,11 @@ public:
 	int						row_offset;
 	uint8*					pixels; // next position
 
-	FrameBuffer(const Pixmap_rgb* px) noexcept : //
+	FrameBuffer(const Pixmap_rgb* px) noexcept :
 		VideoPlane(&vblank, &render),
 		pixmap(px),
 		row_offset(pixmap->row_offset),
 		pixels(pixmap->pixmap)
-	{}
-	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap_rgb*>(px))
 	{
 		assert(px->is_colormode_rgb);
 	}
@@ -42,7 +40,7 @@ public:
 
 
 /*	_____________________________________________________________________________________
-	Explicit specialization for 1-bit indexed color mode:
+	FrameBuffer<> for 1-bit indexed color mode:
 */
 template<>
 class FrameBuffer<Pixmap_i1> final : public VideoPlane
@@ -62,11 +60,8 @@ public:
 		row_offset(px->row_offset),
 		pixels(px->pixmap)
 	{
-		assert(colormap);
-	}
-	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap_i1*>(px))
-	{
 		assert(px->colormode == colormode_i1);
+		assert(colormap);
 	}
 
 	static void render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
@@ -75,7 +70,7 @@ public:
 
 
 /*	_____________________________________________________________________________________
-	Explicit specialization for 2-bit indexed color mode:
+	FrameBuffer<> for 2-bit indexed color mode:
 */
 template<>
 class FrameBuffer<Pixmap_i2> final : public VideoPlane
@@ -95,11 +90,8 @@ public:
 		row_offset(px->row_offset),
 		pixels(px->pixmap)
 	{
-		assert(colormap);
-	}
-	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap_i2*>(px))
-	{
 		assert(px->colormode == colormode_i2);
+		assert(colormap);
 	}
 
 	static void render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
@@ -108,7 +100,7 @@ public:
 
 
 /*	_____________________________________________________________________________________
-	Explicit specialization for 4-bit indexed color mode:
+	FrameBuffer<> for 4-bit indexed color mode:
 */
 template<>
 class FrameBuffer<Pixmap_i4> final : public VideoPlane
@@ -129,9 +121,6 @@ public:
 		pixels(px->pixmap)
 	{
 		assert(colormap);
-	}
-	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap_i4*>(px))
-	{
 		assert(px->colormode == colormode_i4);
 	}
 
@@ -141,7 +130,7 @@ public:
 
 
 /*	_____________________________________________________________________________________
-	Explicit specialization for 8-bit indexed color mode:
+	FrameBuffer<> for 8-bit indexed color mode:
 */
 template<>
 class FrameBuffer<Pixmap_i8> final : public VideoPlane
@@ -161,11 +150,8 @@ public:
 		row_offset(px->row_offset),
 		pixels(px->pixmap)
 	{
-		assert(colormap);
-	}
-	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap_i8*>(px))
-	{
 		assert(px->colormode == colormode_i8);
+		assert(colormap);
 	}
 
 	static void render(VideoPlane*, int row, int width, uint32* scanline) noexcept;
@@ -174,7 +160,7 @@ public:
 
 
 /*	_____________________________________________________________________________________
-	Base class for color modes with true color attributes.
+	Base class for FrameBuffers for Pixmaps with true color attributes:
 */
 class FrameBufferBase_wAttr : public VideoPlane
 {
@@ -216,7 +202,7 @@ private:
 
 
 /*	_____________________________________________________________________________________
-	Partial specialization for color modes with true color attributes.
+	FrameBuffer<> for Pixmaps with true color attributes:
 */
 template<class Pixmap>
 class FrameBuffer<Pixmap, std::enable_if_t<Pixmap::isa_Pixmap_wAttr>> final : public FrameBufferBase_wAttr
@@ -229,11 +215,8 @@ public:
 			px->pixmap, px->row_offset, px->attributes.pixmap, px->attributes.row_offset, px->attrheight,
 			&ScanlineRenderer<Pixmap>),
 		pixmap(px)
-	{}
-
-	FrameBuffer(const Canvas* px) noexcept : FrameBuffer(static_cast<const Pixmap*>(px))
 	{
-		assert(px->colormode == Pixmap::colormode); // must be same type
+		assert(px->colormode == Pixmap::colormode);
 	}
 };
 

@@ -10,22 +10,29 @@
 namespace kilipili
 {
 
-/*	template class FrameBuffer<SimpleCharMap> is the bare minimum character-based FrameBuffer:
+/*
+	template class FrameBuffer<SimpleCharMap> is the bare minimum character-based FrameBuffer:
 	It supports only one foreground and one background color. No attributes!
 	Characters are expected to be 8 pixels wide.
 
 	Font and Colors are taken from the CharMap and updated every frame.
 	The FrameBuffer provides a hardware cursor (inverted character).
 
-	The class contains precalculated strips of all 4 or 8 pixel combinations:
-	Flag = Small: strips of 4 pixels x 16 versions  = 64 Colors  
-	Flag = Fast:  strips of 8 pixels x 256 versions = 2k Colors (2 or 4 kB!)
+	The class contains precalculated stripes of all 4 or 8 pixel combinations:
+	Flag = Small: stripes of 4 pixels x 16 versions  = 64 Colors  
+	Flag = Fast:  stripes of 8 pixels x 256 versions = 2k Colors (2 or 4 kB!)
 
 	Inverted colors or bold characters can be achieved by modified character codes 128++.
 	--> latin1_256x12  
 	--> ascii_256x12_inverse
 	--> ascii_256x12_bold
+
+	CPU usage for near worst case:
+	Average CPU usage including vblank, so add 10% for proper display!
+	- 800x600, Fast:  114 MHz
+	- 800x600, Small: 134 MHz
 */
+
 using Fast	= int;
 using Small = void; // => this is the default
 
@@ -187,111 +194,6 @@ void FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int widt
 	}
 }
 
-#if 0 // V4
-template<typename Flag>
-void FrameBuffer<SimpleCharMap, Flag>::render_scanline(uint32* z, cuptr q, int cols) noexcept
-{
-	cuptr glyphs = font->data + raster_line * font->row_offset - font->first_glyph;
-
-	for (cuptr end = q + cols; q < end;)
-	{
-		uint8 byte = glyphs[*q++];
-
-		if (byte)
-		{
-			if constexpr (small)
-			{
-				uint32* colors = reinterpret_cast<uint32*>(colorstrips[byte & 0x0f]);
-
-				*z++ = colors[0];
-				if (sizeof(Color) >= 2) *z++ = colors[1];
-				if (sizeof(Color) == 4) *z++ = colors[2];
-				if (sizeof(Color) == 4) *z++ = colors[3];
-
-				colors = reinterpret_cast<uint32*>(colorstrips[byte >> 4]);
-
-				*z++ = colors[0];
-				if (sizeof(Color) >= 2) *z++ = colors[1];
-				if (sizeof(Color) == 4) *z++ = colors[2];
-				if (sizeof(Color) == 4) *z++ = colors[3];
-			}
-			else // fast:
-			{
-				uint32* colors = reinterpret_cast<uint32*>(colorstrips[byte]);
-
-				*z++ = colors[0];
-				*z++ = colors[1];
-				if (sizeof(Color) >= 2) *z++ = colors[2];
-				if (sizeof(Color) >= 2) *z++ = colors[3];
-				if (sizeof(Color) == 4) *z++ = colors[4];
-				if (sizeof(Color) == 4) *z++ = colors[5];
-				if (sizeof(Color) == 4) *z++ = colors[6];
-				if (sizeof(Color) == 4) *z++ = colors[7];
-			}
-		}
-		else // byte = 0x00
-		{
-			uint32 bg = *reinterpret_cast<uint32*>(colorstrips[0]);
-
-			*z++ = bg;
-			*z++ = bg;
-			if (sizeof(Color) >= 2) *z++ = bg;
-			if (sizeof(Color) >= 2) *z++ = bg;
-			if (sizeof(Color) == 4) *z++ = bg;
-			if (sizeof(Color) == 4) *z++ = bg;
-			if (sizeof(Color) == 4) *z++ = bg;
-			if (sizeof(Color) == 4) *z++ = bg;
-		}
-	}
-}
-
-template<typename Flag>
-void FrameBuffer<SimpleCharMap, Flag>::do_render(VideoPlane* vp, int y, int width, uint32* buffer) noexcept
-{
-	auto* me = static_cast<FrameBuffer<SimpleCharMap, Flag>*>(vp);
-
-	static_assert(char_width == 8);
-	assert_lt(y, me->charmap->rows * me->font->char_height);
-	assert_le(width, me->charmap->cols * 8);
-	assert(width % 8 == 0);
-
-	while (me->last_y < y)
-	{
-		me->last_y++;
-		if (++me->raster_line >= me->font->char_height)
-		{
-			me->raster_line = 0;
-			me->row_ptr += me->charmap->cols;
-		}
-	}
-
-	int cols = width >> 3; // if char_width = 8
-
-	me->render_scanline(buffer, me->row_ptr, cols);
-
-	if unlikely (unsigned(me->cursor_ptr - me->row_ptr) < unsigned(cols))
-	{
-		uint32* z = buffer + (me->cursor_ptr - me->row_ptr) * (8 * sizeof(Color) / sizeof(uint32));
-
-		uint32 xc =
-			reinterpret_cast<uint32*>(me->colorstrips[0])[0] ^ reinterpret_cast<uint32*>(me->colorstrips[15])[0];
-
-		//uint32 xc = me->charmap->bgcolor ^ me->charmap->fgcolor;
-		//if (sizeof(Color) <= 2) xc |= xc << 16;
-		//if (sizeof(Color) == 1) xc |= xc << 8;
-
-		*z++ ^= xc;
-		*z++ ^= xc;
-		if (sizeof(Color) >= 2) *z++ ^= xc;
-		if (sizeof(Color) >= 2) *z++ ^= xc;
-		if (sizeof(Color) == 4) *z++ ^= xc;
-		if (sizeof(Color) == 4) *z++ ^= xc;
-		if (sizeof(Color) == 4) *z++ ^= xc;
-		if (sizeof(Color) == 4) *z++ ^= xc;
-	}
-}
-#endif
-
 
 // _________________________________________________
 // the scanline renderers are placed in XRAM but you can provide your own instantiation to override this:
@@ -311,21 +213,6 @@ extern template void FrameBuffer<SimpleCharMap, Small>::do_vblank(VideoPlane*) n
 template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::do_vblank(VideoPlane*)noexcept; \
 template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap,SPEED>::do_render(VideoPlane*,int,int,uint32*)noexcept;}
 // clang-format on
-
-
-#if 0 // V4
-extern template void FrameBuffer<SimpleCharMap, Small>::render_scanline(uint32* z, cuptr p, int cols) noexcept;
-extern template void FrameBuffer<SimpleCharMap, Fast>::render_scanline(uint32* z, cuptr p, int cols) noexcept;
-  #define DEFINE_FB_SCM(SPEED, SECTION)                                                                              \
-	  namespace kilipili::Video                                                                                      \
-	  {                                                                                                              \
-	  template void __section(SECTION ".FB_SCM")                                                                     \
-		  FrameBuffer<SimpleCharMap, SPEED>::render_scanline(uint32*, cuptr, int) noexcept;                          \
-	  template void __section(SECTION ".FB_SCM") FrameBuffer<SimpleCharMap, SPEED>::do_vblank(VideoPlane*) noexcept; \
-	  template void __section(SECTION ".FB_SCM")                                                                     \
-		  FrameBuffer<SimpleCharMap, SPEED>::do_render(VideoPlane*, int, int, uint32*) noexcept;                     \
-	  }
-#endif
 
 
 } // namespace kilipili

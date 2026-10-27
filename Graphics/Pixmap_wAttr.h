@@ -17,16 +17,16 @@ namespace kilipili
 
 // attribute mode with 1 bit per pixel to provide 2 colors per attribute cell:
 // attribute width 1..4 pixel may be used for proportional text and horizontal scrolling.
-using Pixmap_a1w1 = Pixmap<1, 1, 0>; // 1 bit/pixel, 1 pixel/attr, true color attribute. very cpu intensive! deprecated
-using Pixmap_a1w2 = Pixmap<1, 2, 0>; // 1 bit/pixel, 2 pixel/attr, true color attribute. very cpu intensive!
-using Pixmap_a1w4 = Pixmap<1, 4, 0>; // 1 bit/pixel, 4 pixel/attr, true color attribute. very cpu intensive!
-using Pixmap_a1w8 = Pixmap<1, 8, 0>; // 1 bit/pixel, 8 pixel/attr, true color attribute. THIS IS THE RECOMMENDED MODE!
+using Pixmap_a1w1 = Pixmap<1, 1, 1>; // 1 bit/pixel, 1 pixel/attr, true color attribute. very cpu intensive! deprecated
+using Pixmap_a1w2 = Pixmap<1, 1, 2>; // 1 bit/pixel, 2 pixel/attr, true color attribute. very cpu intensive!
+using Pixmap_a1w4 = Pixmap<1, 1, 4>; // 1 bit/pixel, 4 pixel/attr, true color attribute. very cpu intensive!
+using Pixmap_a1w8 = Pixmap<1, 1, 8>; // 1 bit/pixel, 8 pixel/attr, true color attribute. THIS IS THE RECOMMENDED MODE!
 
 // attribute mode with 2 bit per pixel to provide 4 colors per attribute cell:
-using Pixmap_a2w1 = Pixmap<2, 1, 0>; // 2 bit/pixel, 1 pixel/attr, true color attribute. very cpu intensive! deprecated
-using Pixmap_a2w2 = Pixmap<2, 2, 0>; // 2 bit/pixel, 2 pixel/attr, true color attribute. very cpu intensive!
-using Pixmap_a2w4 = Pixmap<2, 4, 0>; // 2 bit/pixel, 4 pixel/attr, true color attribute. very cpu intensive!
-using Pixmap_a2w8 = Pixmap<2, 8, 0>; // 2 bit/pixel, 8 pixel/attr, true color attribute. very cpu intensive!
+using Pixmap_a2w1 = Pixmap<1, 2, 1>; // 2 bit/pixel, 1 pixel/attr, true color attribute. very cpu intensive! deprecated
+using Pixmap_a2w2 = Pixmap<1, 2, 2>; // 2 bit/pixel, 2 pixel/attr, true color attribute. very cpu intensive!
+using Pixmap_a2w4 = Pixmap<1, 2, 4>; // 2 bit/pixel, 4 pixel/attr, true color attribute. very cpu intensive!
+using Pixmap_a2w8 = Pixmap<1, 2, 8>; // 2 bit/pixel, 8 pixel/attr, true color attribute. very cpu intensive!
 
 
 /***************************************************************************
@@ -34,32 +34,30 @@ using Pixmap_a2w8 = Pixmap<2, 8, 0>; // 2 bit/pixel, 8 pixel/attr, true color at
 ************************************************************************** */
 
 template<int bpp, int aw>
-class Pixmap<bpp, aw, false> final : public Pixmap<bpp, 0, true>
+class Pixmap<1, bpp, aw> final : public Pixmap<0, bpp, true>
 {
 	static_assert(bpp == 1 || bpp == 2);
 	static_assert(aw == 1 || aw == 2 || aw == 4 || aw == 8);
 
 public:
-	static constexpr bool isa_Pixmap_wAttr = true; // --> FrameBuffer
-	static constexpr bool is_attr_mode	   = true;
-	static constexpr bool is_indexed_color = false;
-	static constexpr bool is_colormode_rgb = false;
-
 	static constexpr AttrMode	AM = AttrMode(msbit(bpp)); // 0 .. 1  log2 of bits per pixel in pixmap[]
 	static constexpr AttrWidth	AW = AttrWidth(msbit(aw)); // 0 .. 3  log2 of width of color cells
 	static constexpr ColorDepth CD = ColorDepth(color_ss); // 0 .. 5  log2 of bits per color in attributes[]
 
-	static constexpr int bits_per_pixel = bpp; // 1 .. 2  bits per pixel in pixmap[]
-	//static constexpr int bits_per_color = color_bits; // 1 .. 32 bits per color in attributes[]
-	//static constexpr int colors_per_attr = 1 << bpp;  // 2 .. 4
-	static constexpr ColorMode colormode = ColorMode(colormode_a1w1 + AM * 4 + AW);
+	static constexpr bool		isa_Pixmap_wAttr = true; // --> FrameBuffer
+	static constexpr bool		is_attr_mode	 = true;
+	static constexpr bool		is_indexed_color = false;
+	static constexpr bool		is_colormode_rgb = false;
+	static constexpr int		bits_per_pixel	 = bpp;					 // 1 .. 2  bits per pixel in pixmap[]
+	static constexpr ColorDepth colordepth		 = ColorDepth(color_ss); // 0 .. 5  log2 of bits per color
+	static constexpr ColorMode	colormode		 = ColorMode(colormode_a1w1 + AM * 4 + AW);
 
-
-	using super = Pixmap<bpp, 0, true>;
 	using Canvas::attrheight;
 	using Canvas::height;
+	using Canvas::is_inside;
 	using Canvas::size;
 	using Canvas::width;
+	using super = Pixmap<0, bpp, true>;
 	using super::pixmap;
 	using super::row_offset; // in pixels[]
 
@@ -67,17 +65,6 @@ public:
 	const super& as_super() const { return *this; }
 
 	Pixmap_rgb attributes; // pixmap with color attributes
-
-
-	// helper: calculate (minimum) sizes for the pixels and attributes pixmap:
-	static constexpr int calc_row_offset(int w) noexcept { return super::calc_row_offset(w); } // min.
-	static constexpr int calc_attr_width(int w) noexcept { return (w + (1 << AW) - 1) >> AW << bpp; }
-	static constexpr int calc_attr_row_offset(int w) noexcept { return calc_attr_width(w) << CD >> 3; } // min.
-	static constexpr int calc_attr_height(int h, int ah) noexcept { return (h + ah - 1) / ah; }
-
-	// helper: get attribute x/y for pixel x/y
-	static constexpr int calc_ax(int x) noexcept { return x >> AW << bpp; } // attributes[x] for ink = 0
-	int					 calc_ay(int y) const noexcept { return y / attrheight; }
 
 
 	// allocating ctor:
@@ -99,17 +86,6 @@ public:
 	virtual ~Pixmap() noexcept override = default;
 
 	bool operator==(const Pixmap& other) const noexcept;
-
-	// helper:
-	using Canvas::is_inside;
-	uint attr_get_color(coord x, coord y, uint ink) const noexcept;
-	void attr_set_color(coord x, coord y, uint color, uint ink) noexcept;
-	void attr_draw_hline(coord x, coord y, coord x2, uint color, uint ink) noexcept;
-	void attr_draw_vline(coord x, coord y, coord y2, uint color, uint ink) noexcept;
-	void attr_fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept;
-	void attr_xor_rect(coord x, coord y, coord w, coord h, uint color) noexcept;
-	void attr_copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept;
-
 
 	// _______________________________________________________________________________________
 	// overrides for Canvas virtual drawing methods:
@@ -136,11 +112,11 @@ public:
 	void fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink = 1) noexcept;
 	void xor_rect(coord x, coord y, coord w, coord h, uint xor_color) noexcept;
 	void copy_rect(coord x, coord y, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept;
-	void draw_bmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint c, uint = 1) noexcept;
+	void draw_bmp(coord x, coord y, const uint8*, int ro, coord w, coord h, uint color, uint = 1) noexcept;
 	void draw_char(coord x, coord y, const uint8* bmp, coord h, uint color, uint ink = 1) noexcept;
 
 	using super::drawBmp;
-	void drawBmp(coord x, coord y, const Bitmap&, uint c, uint = 1) noexcept;
+	void drawBmp(coord x, coord y, const Bitmap&, uint color, uint ink = 1) noexcept;
 
 	using super::copyRect;
 	void copyRect(coord x, coord y, const Pixmap& src, coord qx, coord qy, coord w, coord h) noexcept;
@@ -148,6 +124,27 @@ public:
 	void copyRect(const Point& z, const Pixmap& src) noexcept;
 	void copyRect(const Point& z, const Pixmap& src, const Rect& q) noexcept;
 	void copyRect(const Point& z, const Pixmap& src, const Point& q, const Size&) noexcept;
+
+private:
+	// _______________________________________________________________________________________
+	// helper:
+	// calculate (minimum) sizes for the pixels and attributes pixmap:
+	static constexpr int calc_row_offset(int w) noexcept { return super::calc_row_offset(w); } // min.
+	static constexpr int calc_attr_width(int w) noexcept { return (w + (1 << AW) - 1) >> AW << bpp; }
+	static constexpr int calc_attr_row_offset(int w) noexcept { return calc_attr_width(w) << CD >> 3; } // min.
+	static constexpr int calc_attr_height(int h, int ah) noexcept { return (h + ah - 1) / ah; }
+
+	// get attribute x/y for pixel x/y
+	static constexpr int calc_ax(int x) noexcept { return x >> AW << bpp; } // attributes[x] for ink = 0
+	int					 calc_ay(int y) const noexcept { return y / attrheight; }
+
+	uint attr_get_color(coord x, coord y, uint ink) const noexcept;
+	void attr_set_color(coord x, coord y, uint color, uint ink) noexcept;
+	void attr_draw_hline(coord x, coord y, coord x2, uint color, uint ink) noexcept;
+	void attr_draw_vline(coord x, coord y, coord y2, uint color, uint ink) noexcept;
+	void attr_fill_rect(coord x, coord y, coord w, coord h, uint color, uint ink) noexcept;
+	void attr_xor_rect(coord x, coord y, coord w, coord h, uint color) noexcept;
+	void attr_copy_rect(coord x, coord y, coord qx, coord qy, coord w, coord h) noexcept;
 };
 
 
@@ -160,7 +157,7 @@ public:
 // IMPLEMENTATIONS: dedicated ctor, dtor
 
 template<int bpp, int aw>
-Pixmap<bpp, aw,false>::Pixmap(coord w, coord h, AttrHeight ah) throws : // allocating
+Pixmap<1, bpp, aw>::Pixmap(coord w, coord h, AttrHeight ah) throws : // allocating
 	super(w, h, PmInfo{msbit(bpp),0,msbit(aw),ah}),
 	attributes(calc_attr_width(w), calc_attr_height(h, ah))
 {
@@ -169,7 +166,7 @@ Pixmap<bpp, aw,false>::Pixmap(coord w, coord h, AttrHeight ah) throws : // alloc
 }
 
 template<int bpp, int aw> // not allocating: wrap existing pixels.
-Pixmap<bpp, aw, false>::Pixmap(
+Pixmap<1, bpp, aw>::Pixmap(
 	coord w, coord h, uint8* pixels, int row_offs, uint8* attr, int attr_row_offs, AttrHeight ah) noexcept :
 	super(w, h, PmInfo {msbit(bpp), 0, msbit(aw), ah}, pixels, row_offs),
 	attributes(calc_attr_width(w), calc_attr_height(h, ah), attr, attr_row_offs)
@@ -183,38 +180,38 @@ Pixmap<bpp, aw, false>::Pixmap(
 // IMPLEMENTATIONS: other ctor
 
 template<int bpp, int aw>
-Pixmap<bpp, aw,false>::Pixmap(const Size& size, AttrHeight ah) throws :// allocating
+Pixmap<1, bpp, aw>::Pixmap(const Size& size, AttrHeight ah) throws :// allocating
 	Pixmap(size.width, size.height, ah)
 {}
 
 template<int bpp, int aw> // not allocating: wrap existing pixels
-Pixmap<bpp, aw, false>::Pixmap(
+Pixmap<1, bpp, aw>::Pixmap(
 	const Size& size, uint8* pixels, int row_offs, uint8* attr, int attr_row_offs, AttrHeight ah) noexcept :
 	Pixmap(size.width, size.height, pixels, row_offs, attr, attr_row_offs, ah)
 {}
 
 template<int bpp, int aw> // not allocating: window into another pixmap
-Pixmap<bpp, aw, false>::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
+Pixmap<1, bpp, aw>::Pixmap(Pixmap& q, coord x, coord y, coord w, coord h) noexcept :
 	super(q, x, y, w, h),
 	attributes(q.attributes, calc_ax(x), calc_ay(y), calc_attr_width(w), calc_attr_height(h, q.attrheight))
 {
 	assert(Canvas::is_attr_mode); // super mustn't clobber this
-	assert(x % (1 << aw) == 0);	  // x must be a multiple of the attribute cell width
+	assert(x % aw == 0);		  // x must be a multiple of the attribute cell width
 	assert(y % attrheight == 0);  // y must be a multiple of the attribute cell height
-	assert(((x << aw) & 7) == 0); // x must be a multiple of full bytes in pixmap[]  ((tested in super too))
+	assert(((x * aw) & 7) == 0);  // x must be a multiple of full bytes in pixmap[]  ((tested in super too))
 }
 
 template<int bpp, int aw> // not allocating: window into another pixmap.
-Pixmap<bpp, aw, false>::Pixmap(Pixmap& q, const Rect& r) noexcept : Pixmap(q, r.left(), r.top(), r.width(), r.height())
+Pixmap<1, bpp, aw>::Pixmap(Pixmap& q, const Rect& r) noexcept : Pixmap(q, r.left(), r.top(), r.width(), r.height())
 {}
 
 template<int bpp, int aw> // not allocating: window into another pixmap.
-Pixmap<bpp, aw, false>::Pixmap(Pixmap& q, const Point& p, const Size& size) noexcept :
+Pixmap<1, bpp, aw>::Pixmap(Pixmap& q, const Point& p, const Size& size) noexcept :
 	Pixmap(q, p.x, p.y, size.width, size.height)
 {}
 
 template<int bpp, int aw>
-Pixmap<bpp, aw, false>* Pixmap<bpp, aw, false>::createWindow(coord x, coord y, coord w, coord h)
+Pixmap<1, bpp, aw>* Pixmap<1, bpp, aw>::createWindow(coord x, coord y, coord w, coord h)
 {
 	return new Pixmap(*this, x, y, w, h);
 }
@@ -224,11 +221,11 @@ Pixmap<bpp, aw, false>* Pixmap<bpp, aw, false>::createWindow(coord x, coord y, c
 // IMPLEMENTATIONS: helpers
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::attr_set_color(coord x, coord y, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::attr_set_color(coord x, coord y, uint color, uint ink) noexcept
 {
 	// set color in attributes[]
 
-	assert((ink & ~pixelmask<super::CD>) == 0);
+	assert((ink & ~pixelmask<super::colordepth>) == 0);
 
 	x = calc_ax(x);
 	y = calc_ay(y);
@@ -236,11 +233,11 @@ void Pixmap<bpp, aw, false>::attr_set_color(coord x, coord y, uint color, uint i
 }
 
 template<int bpp, int aw>
-uint Pixmap<bpp, aw, false>::attr_get_color(coord x, coord y, uint ink) const noexcept
+uint Pixmap<1, bpp, aw>::attr_get_color(coord x, coord y, uint ink) const noexcept
 {
 	// get color from attributes[]
 
-	assert((ink & ~pixelmask<super::CD>) == 0);
+	assert((ink & ~pixelmask<super::colordepth>) == 0);
 
 	x = calc_ax(x);
 	y = calc_ay(y);
@@ -248,9 +245,9 @@ uint Pixmap<bpp, aw, false>::attr_get_color(coord x, coord y, uint ink) const no
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::attr_draw_hline(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::attr_draw_hline(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
 {
-	assert((ink & ~pixelmask<super::CD>) == 0);
+	assert((ink & ~pixelmask<super::colordepth>) == 0);
 
 	x1 = calc_ax(x1);
 	x2 = calc_ax(x2 - 1) + 1;
@@ -260,9 +257,9 @@ void Pixmap<bpp, aw, false>::attr_draw_hline(coord x1, coord y1, coord x2, uint 
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::attr_draw_vline(coord x1, coord y1, coord y2, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::attr_draw_vline(coord x1, coord y1, coord y2, uint color, uint ink) noexcept
 {
-	assert((ink & ~pixelmask<super::CD>) == 0);
+	assert((ink & ~pixelmask<super::colordepth>) == 0);
 
 	x1 = calc_ax(x1);
 	y1 = calc_ay(y1);
@@ -272,9 +269,9 @@ void Pixmap<bpp, aw, false>::attr_draw_vline(coord x1, coord y1, coord y2, uint 
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::attr_fill_rect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::attr_fill_rect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
 {
-	assert((ink & ~pixelmask<super::CD>) == 0);
+	assert((ink & ~pixelmask<super::colordepth>) == 0);
 
 	int x2 = calc_ax(x1 + w - 1); // inner bounds
 	int y2 = calc_ay(y1 + h - 1);
@@ -295,7 +292,7 @@ void Pixmap<bpp, aw, false>::attr_fill_rect(coord x1, coord y1, coord w, coord h
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::attr_xor_rect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
+void Pixmap<1, bpp, aw>::attr_xor_rect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
 {
 	int x2 = calc_ax(x1 + w - 1); // inner bounds
 	int y2 = calc_ay(y1 + h - 1);
@@ -310,7 +307,7 @@ void Pixmap<bpp, aw, false>::attr_xor_rect(coord x1, coord y1, coord w, coord h,
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::attr_copy_rect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
+void Pixmap<1, bpp, aw>::attr_copy_rect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
 {
 	TODO(); // TODO unused untested remove
 
@@ -333,7 +330,7 @@ void Pixmap<bpp, aw, false>::attr_copy_rect(coord zx, coord zy, coord qx, coord 
 // IMPLEMENTATIONS: operator ==
 
 template<int bpp, int aw>
-bool Pixmap<bpp, aw, false>::operator==(const Pixmap& other) const noexcept
+bool Pixmap<1, bpp, aw>::operator==(const Pixmap& other) const noexcept
 {
 	assert(size == other.size);
 	assert(attrheight == other.attrheight);
@@ -347,14 +344,14 @@ bool Pixmap<bpp, aw, false>::operator==(const Pixmap& other) const noexcept
 // IMPLEMENTATIONS: set pixel, get pixel
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::set_pixel(coord x, coord y, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::set_pixel(coord x, coord y, uint color, uint ink) noexcept
 {
 	attr_set_color(x, y, color, ink);
 	super::set_pixel(x, y, ink);
 }
 
 template<int bpp, int aw>
-uint Pixmap<bpp, aw, false>::get_ink(coord x, coord y) const noexcept
+uint Pixmap<1, bpp, aw>::get_ink(coord x, coord y) const noexcept
 {
 	// get ink from pixels[]
 	// same as in Pixmap.getInk()
@@ -362,7 +359,7 @@ uint Pixmap<bpp, aw, false>::get_ink(coord x, coord y) const noexcept
 }
 
 template<int bpp, int aw>
-uint Pixmap<bpp, aw, false>::get_color(coord x, coord y) const noexcept
+uint Pixmap<1, bpp, aw>::get_color(coord x, coord y) const noexcept
 {
 	// get color from attributes[]
 	uint ink = super::get_ink(x, y);
@@ -370,7 +367,7 @@ uint Pixmap<bpp, aw, false>::get_color(coord x, coord y) const noexcept
 }
 
 template<int bpp, int aw>
-uint Pixmap<bpp, aw, false>::get_pixel(coord x, coord y, uint* ink) const noexcept
+uint Pixmap<1, bpp, aw>::get_pixel(coord x, coord y, uint* ink) const noexcept
 {
 	// get color and ink
 	return attr_get_color(x, y, *ink = super::get_ink(x, y));
@@ -381,7 +378,7 @@ uint Pixmap<bpp, aw, false>::get_pixel(coord x, coord y, uint* ink) const noexce
 // IMPLEMENTATIONS: draw line, fill rect
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::draw_hline_to(coord x1, coord y1, coord x2, uint color, uint ink) noexcept
 {
 	if (x1 < x2)
 	{
@@ -394,7 +391,7 @@ void Pixmap<bpp, aw, false>::draw_hline_to(coord x1, coord y1, coord x2, uint co
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::draw_vline_to(coord x1, coord y1, coord y2, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::draw_vline_to(coord x1, coord y1, coord y2, uint color, uint ink) noexcept
 {
 	if (y1 < y2)
 	{
@@ -407,7 +404,7 @@ void Pixmap<bpp, aw, false>::draw_vline_to(coord x1, coord y1, coord y2, uint co
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::fill_rect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::fill_rect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
 {
 	if (w > 0 && h > 0)
 	{
@@ -420,7 +417,7 @@ void Pixmap<bpp, aw, false>::fill_rect(coord x1, coord y1, coord w, coord h, uin
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::xor_rect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
+void Pixmap<1, bpp, aw>::xor_rect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
 {
 	if (w > 0 && h > 0)
 	{
@@ -432,8 +429,7 @@ void Pixmap<bpp, aw, false>::xor_rect(coord x1, coord y1, coord w, coord h, uint
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::copy_rect(
-	coord zx, coord zy, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept
+void Pixmap<1, bpp, aw>::copy_rect(coord zx, coord zy, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept
 {
 	// copy the pixels from a rectangular area within the same pixmap.
 	// overlapping areas are handled safely.
@@ -465,7 +461,7 @@ void Pixmap<bpp, aw, false>::copy_rect(
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::draw_bmp(
+void Pixmap<1, bpp, aw>::draw_bmp(
 	coord zx, coord zy, const uint8* bmp, int bmp_row_offs, coord w, coord h, uint color, uint ink) noexcept
 {
 	if (w > 0 && h > 0)
@@ -479,7 +475,7 @@ void Pixmap<bpp, aw, false>::draw_bmp(
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::draw_char(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::draw_char(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint ink) noexcept
 {
 	// optimized version of drawBmp:
 	//   row_offset = 1
@@ -498,14 +494,14 @@ void Pixmap<bpp, aw, false>::draw_char(coord zx, coord zy, const uint8* bmp, coo
 }
 
 
-extern template class Pixmap<1, 1, false>;
-extern template class Pixmap<1, 2, false>;
-extern template class Pixmap<1, 4, false>;
-extern template class Pixmap<1, 8, false>;
-extern template class Pixmap<2, 1, false>;
-extern template class Pixmap<2, 2, false>;
-extern template class Pixmap<2, 4, false>;
-extern template class Pixmap<2, 8, false>;
+extern template class Pixmap<1, 1, 1>;
+extern template class Pixmap<1, 1, 2>;
+extern template class Pixmap<1, 1, 4>;
+extern template class Pixmap<1, 1, 8>;
+extern template class Pixmap<1, 2, 1>;
+extern template class Pixmap<1, 2, 2>;
+extern template class Pixmap<1, 2, 4>;
+extern template class Pixmap<1, 2, 8>;
 
 
 } // namespace kilipili

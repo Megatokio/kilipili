@@ -11,19 +11,15 @@ namespace kilipili
 {
 
 /*
-	class ColorMap provides a colormap for indexed color modes.
+	template class ColorMap<bits> provides a colormap for indexed color modes.
+	The ColorMap is sized to contain 2^bits Colors.
+	Legal values are from 0 to 8 resulting in a ColorMap with 1 to 256 Colors.
 
-ColorMap(int count):
-ColorMap(const Color* src, int count):
+ColorMap<bits>():
+ColorMap<bits>(const Color* src):
 	The default constructor for each table size initializes the ColorMap with the respective default colors.
 	These are black & white, 4 grey scales, vga4 colors and vga8 colors for the respective modes.
 	the ctor can also copy data from a supplied Color array `src`.
-
-ColorMap(Color* dest, const Color* src, int count, int rc = 0):
-	the ctor can also use a supplied array `dest` as it's colors[] array. If this array is not allocated but static,
-	then you should set the refcnt `rc` to -1 to disable reference counting in RCPtrs.
-	then the ColorMap will not be deleted by RCPtrs and the supplied array will not be deleted when finally
-	at some point the ColorTable is destroyed. That's to say, memory management is then completely up to you.
 
 reset():
 reset(Color*):
@@ -50,13 +46,6 @@ darker():
 
 RCPtr<ColorMap>:
 	ColorMaps should be passed around and stored in RCPtrs while in use by some object.
-
-system_colormap:
-	The `system_colormap` is intended for use with the primary FrameBuffer.
-	It is a ColorMap[256] and can be used for any color depth, to show any .gif or a .ham image.
-	The system_colormap is writable and can be modified by the program.
-	The system_colormap is normally allocated in XRAM (core1 stack area),
-	but you can #define GRAPHICS_SYSTEM_COLORMAP_SECTION to put it in any other section. (RAM, presumably.)
 */
 
 
@@ -106,9 +95,9 @@ public:
 	void   darker() noexcept;
 
 	Id("ColorMap");
-	mutable int16 rc = 0;
-	const uint16  count;
-	Color		  colors[1];
+	mutable uint16 rc = 0;
+	const uint16   count;
+	Color		   colors[1];
 
 protected:
 	ColorMap(const Color* src, int bits) noexcept;
@@ -135,12 +124,12 @@ protected:
 
 inline Color& ColorMap<0>::operator[](int i) noexcept
 {
-	assert(i < count);
+	assert_lt(i, count);
 	return colors[i];
 }
 inline Color ColorMap<0>::operator[](int i) const noexcept
 {
-	assert(i < count);
+	assert_lt(i, count);
 	return colors[i];
 }
 

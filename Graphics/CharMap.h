@@ -3,7 +3,6 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Color.h"
 #include "ColorMap.h"
 #include "Font.h"
 #include "RCPtr.h"
@@ -40,16 +39,29 @@ namespace kilipili
 	All modes display properly up to 800x600.
 	In 1024x768 @ 260MHz only CharMap<0,0,0,0,0> and CharMap<0,0,0,1,0> display properly.
 	All others display only if they contain a fair amount of spaces. (not recommended to use.)
+
+	CPU usage for display, near worst case, release build:
+	Average CPU usage including vblank, so add 10% for proper display!
+	- 800x600 <3,2,0,0,0>	161 MHz
+	- 800x600 <2,1,1,0,0>	171 MHz
+	- 800x600 <3,2,0,1,1>	192 MHz
+	- 800x600 <3,3,1,1,0>	181 MHz
+	- 800x600 <3,2,1,1,1>	213 MHz
+	Monochrome variants:
+	- 800x600 <0,0,0,0,0>	129 MHz
+	- 800x600 <0,0,1,0,0>	156 MHz
+	- 800x600 <0,0,0,1,0>	148 MHz
+	- 800x600 <0,0,0,0,1>	166 MHz
+	- 800x600 <0,0,1,1,0>	177 MHz
+	- 800x600 <0,0,1,1,1>	202 MHz
 */
 
-//template<class CharMap, typename>
-//class FrameBuffer;
 
 template<int fg_bits = -1, int bg_bits = 0, bool bold = true, bool underline = true, bool graphics = false>
 class CharMap;
 
 /*
-	The base class:
+	The common base class:
 */
 class CharMapBase
 {
@@ -124,7 +136,7 @@ template<int _fg_bits, int _bg_bits, bool _bold, bool _underline, bool _graphics
 class CharMap : public CharMapBase
 {
 public:
-	static constexpr bool  isa_charmap = true;
+	static constexpr bool  isa_CharMap = true;
 	static constexpr int   bg_bits	   = _bg_bits;
 	static constexpr int   fg_bits	   = _fg_bits;
 	static constexpr int   bg_ss	   = 0;

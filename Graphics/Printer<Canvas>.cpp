@@ -100,7 +100,7 @@ cstr Printer<Canvas>::identification()
 
 	int	 attrwidth	= pixmap->attrwidth;
 	int	 attrheight = pixmap->attrheight;
-	cstr colors		= pixmap->is_colormode_rgb ? "rgb" : id[pixmap->ss_bpp];
+	cstr colors		= pixmap->is_indexed_color ? id[pixmap->ss_bpp] : "rgb";
 	cstr attrstr	= pixmap->is_attr_mode ? usingstr(", attr=%i*%i", attrwidth, attrheight) : "";
 
 	return usingstr(

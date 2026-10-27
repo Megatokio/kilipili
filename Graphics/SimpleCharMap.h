@@ -24,6 +24,11 @@ namespace kilipili
 
 	Printing to a SimpleCharMap can be done using `Printer<SimpleCharMap>`.
 	.font, .fgcolor and .bgcolor are provided for FrameBuffer<SimpleCharMap>.
+
+	CPU usage for display, near worst case, release build:
+	Average CPU usage including vblank, so add 10% for proper display!
+	- 800x600, Fast:  114 MHz
+	- 800x600, Small: 134 MHz
 */
 
 class SimpleCharMap

@@ -8,8 +8,8 @@
 namespace kilipili
 {
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint /*ink*/) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint /*ink*/) noexcept
 {
 	coord x2 = min(x1 + w, width);
 	coord y2 = min(y1 + h, height);
@@ -19,8 +19,8 @@ void Pixmap<bpp, 0, ic>::fillRect(coord x1, coord y1, coord w, coord h, uint col
 	fill_rect(x1, y1, x2 - x1, y2 - y1, color);
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::xorRect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::xorRect(coord x1, coord y1, coord w, coord h, uint xor_color) noexcept
 {
 	coord x2 = min(x1 + w, width);
 	coord y2 = min(y1 + h, height);
@@ -30,8 +30,8 @@ void Pixmap<bpp, 0, ic>::xorRect(coord x1, coord y1, coord w, coord h, uint xor_
 	xor_rect(x1, y1, x2 - x1, y2 - y1, xor_color);
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::copyRect(coord zx, coord zy, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::copyRect(coord zx, coord zy, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept
 {
 	if (unlikely(qx < 0))
 	{
@@ -61,14 +61,14 @@ void Pixmap<bpp, 0, ic>::copyRect(coord zx, coord zy, const Pixmap& q, coord qx,
 	h = min(h, height - zy, q.height - qy);
 
 	if (w > 0 && h > 0)
-		bitblit::copy_rect<CD>(
+		bitblit::copy_rect<colordepth>(
 			pixmap + zy * row_offset, row_offset, zx,		//
 			q.pixmap + qy * q.row_offset, q.row_offset, qx, //
 			w, h);
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::copyRect(coord zx, coord zy, const Pixmap& q) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::copyRect(coord zx, coord zy, const Pixmap& q) noexcept
 {
 	coord qx = 0;
 	coord qy = 0;
@@ -91,45 +91,45 @@ void Pixmap<bpp, 0, ic>::copyRect(coord zx, coord zy, const Pixmap& q) noexcept
 	h = min(h, height - zy);
 
 	if (w > 0 && h > 0)
-		bitblit::copy_rect<CD>(
+		bitblit::copy_rect<colordepth>(
 			pixmap + zy * row_offset, row_offset, zx,		//
 			q.pixmap + qy * q.row_offset, q.row_offset, qx, //
 			w, h);
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
 {
 	copyRect(zx, zy, *this, qx, qy, w, h);
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::copyRect(coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::copyRect(coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept
 {
 	assert(bpp == q.ss_bpp); // must be same type
 	copyRect(zx, zy, static_cast<const Pixmap&>(q), qx, qy, w, h);
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::copyRect(const Point& z, const Pixmap& q) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::copyRect(const Point& z, const Pixmap& q) noexcept
 {
 	copyRect(z.x, z.y, q, 0, 0, q.width, q.height);
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::copyRect(const Point& zp, const Pixmap& pm, const Point& qp, const Size& size) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::copyRect(const Point& zp, const Pixmap& pm, const Point& qp, const Size& size) noexcept
 {
 	copyRect(zp.x, zp.y, pm, qp.x, qp.y, size.width, size.height);
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::copyRect(const Point& zp, const Pixmap& pm, const Rect& qr) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::copyRect(const Point& zp, const Pixmap& pm, const Rect& qr) noexcept
 {
 	copyRect(zp.x, zp.y, pm, qr.left(), qr.top(), qr.width(), qr.height());
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::drawBmp(
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::drawBmp(
 	coord zx, coord zy, const uint8* bmp, int bmp_row_offset, int w, int h, uint color, uint /*ink*/) noexcept
 {
 	// draw bitmap into Canvas
@@ -151,7 +151,7 @@ void Pixmap<bpp, 0, ic>::drawBmp(
 	h = min(h, height - zy);
 
 	if (w > 0 && h > 0)
-		bitblit::draw_bitmap<CD>(
+		bitblit::draw_bitmap<colordepth>(
 			pixmap + zy * row_offset, // start of the first row in destination Pixmap
 			row_offset,				  // row offset in destination Pixmap measured in bytes
 			zx,						  // x offset from zp in pixels
@@ -162,14 +162,14 @@ void Pixmap<bpp, 0, ic>::drawBmp(
 			color);					  // color for drawing the bitmap
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::drawBmp(coord zx, coord zy, const Bitmap& bmp, uint color, uint /*ink*/) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::drawBmp(coord zx, coord zy, const Bitmap& bmp, uint color, uint /*ink*/) noexcept
 {
 	drawBmp(zx, zy, bmp.pixmap, bmp.row_offset, bmp.width, bmp.height, color);
 }
 
-template<int bpp, bool ic>
-void Pixmap<bpp, 0, ic>::drawChar(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint /*ink*/) noexcept
+template<int bpp, int ic>
+void Pixmap<0, bpp, ic>::drawChar(coord zx, coord zy, const uint8* bmp, coord h, uint color, uint /*ink*/) noexcept
 {
 	// optimized version of drawBmp:
 	//   row_offset = 1
@@ -186,18 +186,18 @@ void Pixmap<bpp, 0, ic>::drawChar(coord zx, coord zy, const uint8* bmp, coord h,
 	}
 	h = min(h, height - zy);
 
-	if (h > 0) bitblit::draw_char<CD>(pixmap + zy * row_offset, row_offset, zx, bmp, h, color);
+	if (h > 0) bitblit::draw_char<colordepth>(pixmap + zy * row_offset, row_offset, zx, bmp, h, color);
 }
 
 
 // instantiate everything.
 // the linker will know what we need:
 
-template class Pixmap<1, 0, true>;
-template class Pixmap<2, 0, true>;
-template class Pixmap<4, 0, true>;
-template class Pixmap<8, 0, true>;
-template class Pixmap<color_bits, 0, false>;
+template class Pixmap<0, 1, true>;
+template class Pixmap<0, 2, true>;
+template class Pixmap<0, 4, true>;
+template class Pixmap<0, 8, true>;
+template class Pixmap<0, color_bits, false>;
 
 
 } // namespace kilipili

@@ -82,7 +82,7 @@ protected:
 	It provides function scanline_renderer for the actual rendering specific to CharMap<..>.
 */
 template<class CharMap>
-class FrameBuffer<CharMap, std::enable_if_t<CharMap::isa_charmap>> final : public FrameBufferCharMapBase
+class FrameBuffer<CharMap, std::enable_if_t<CharMap::isa_CharMap>> final : public FrameBufferCharMapBase
 {
 public:
 	static constexpr int	fg_bits	  = CharMap::fg_bits;
@@ -122,7 +122,7 @@ constexpr __section(".scratch_x.FB_CM_DATA2") uint32 mask4x2[4] = {0x00000000, 0
 
 
 template<class CharMap>
-void FrameBuffer<CharMap, std::enable_if_t<CharMap::isa_charmap>>:: //
+void FrameBuffer<CharMap, std::enable_if_t<CharMap::isa_CharMap>>:: //
 	render_scanline(VideoPlane* vp, uint32* z, const uint16* q, int cols) noexcept
 {
 	static_assert(char_width == 8);

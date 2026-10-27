@@ -58,17 +58,18 @@ public:
 		};
 	};
 
-	const uint8		ss_bpp;			  // log2
-	const uint8		ss_aw;			  // log2
-	const uint8		attrwidth;		  // attribute cell width or 0
-	const uint8		attrheight;		  // attribute cell height or 0
-	const uint8		bits_per_pixel;	  // in pixmap[]
-	const bool		is_indexed_color; //
-	const bool		is_attr_mode	 : 1;
-	const bool		is_colormode_rgb : 1;
-	const bool		is_allocated	 : 1;
-	const bool		_padding		 : 5 = 0;
-	const ColorMode colormode;
+	const uint8		 ss_bpp;			   // log2
+	const uint8		 ss_aw;				   // log2
+	const uint8		 attrwidth;			   // attribute cell width or 0
+	const uint8		 attrheight;		   // attribute cell height or 0
+	const uint8		 bits_per_pixel;	   // in pixmap[]
+	const bool		 is_indexed_color : 1; //
+	const bool		 is_attr_mode	  : 1; //
+	const bool		 is_colormode_rgb : 1; //
+	const bool		 is_allocated	  : 1; //
+	const bool		 _padding		  : 4 = 0;
+	const ColorDepth colordepth; // log2: bits/pixel or bits/Color: 0…5
+	const ColorMode	 colormode;
 
 	virtual ~Canvas() override = default;
 
@@ -219,8 +220,9 @@ constexpr Canvas::Canvas(coord w, coord h, const PmInfo& info, bool allocated) n
 	bits_per_pixel(uint8(1 << ss_bpp)),
 	is_indexed_color(info.ic),
 	is_attr_mode(attrheight != 0),
-	is_colormode_rgb(!is_indexed_color && attrheight == 0 && ss_bpp == color_ss),
+	is_colormode_rgb(!is_attr_mode && !is_indexed_color && ss_bpp == color_ss),
 	is_allocated(allocated),
+	colordepth(ColorDepth(is_attr_mode ? color_ss : ss_bpp)),
 	colormode(is_colormode_rgb ? colormode_rgb : ColorMode(is_attr_mode ? colormode_a1w1 + ss_bpp * 4 + ss_aw : ss_bpp))
 {}
 

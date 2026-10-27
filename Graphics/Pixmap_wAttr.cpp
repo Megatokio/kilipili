@@ -10,7 +10,7 @@ namespace kilipili
 
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::fillRect(coord x1, coord y1, coord w, coord h, uint color, uint ink) noexcept
 {
 	coord x2 = min(x1 + w, width);
 	coord y2 = min(y1 + h, height);
@@ -27,7 +27,7 @@ void Pixmap<bpp, aw, false>::fillRect(coord x1, coord y1, coord w, coord h, uint
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::clear(uint color) noexcept
+void Pixmap<1, bpp, aw>::clear(uint color) noexcept
 {
 	// clear pixmap to:     all inks = 0
 	// clear attributes to: all colors = color
@@ -45,7 +45,7 @@ void Pixmap<bpp, aw, false>::clear(uint color) noexcept
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::xorRect(coord x1, coord y1, coord w, coord h, uint color) noexcept
+void Pixmap<1, bpp, aw>::xorRect(coord x1, coord y1, coord w, coord h, uint color) noexcept
 {
 	coord x2 = min(x1 + w, width);
 	coord y2 = min(y1 + h, height);
@@ -58,8 +58,7 @@ void Pixmap<bpp, aw, false>::xorRect(coord x1, coord y1, coord w, coord h, uint 
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::copyRect(
-	coord zx, coord zy, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept
+void Pixmap<1, bpp, aw>::copyRect(coord zx, coord zy, const Pixmap& q, coord qx, coord qy, coord w, coord h) noexcept
 {
 	// copy a rectangular area from another pixmap of the same ColorDepth.
 
@@ -114,20 +113,19 @@ void Pixmap<bpp, aw, false>::copyRect(
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::copyRect(coord zx, coord zy, const Pixmap& q) noexcept
+void Pixmap<1, bpp, aw>::copyRect(coord zx, coord zy, const Pixmap& q) noexcept
 {
 	copyRect(zx, zy, q, 0, 0, q.width, q.height);
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
+void Pixmap<1, bpp, aw>::copyRect(coord zx, coord zy, coord qx, coord qy, coord w, coord h) noexcept
 {
 	copyRect(zx, zy, *this, qx, qy, w, h);
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::copyRect(
-	coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept
+void Pixmap<1, bpp, aw>::copyRect(coord zx, coord zy, const Canvas& q, coord qx, coord qy, coord w, coord h) noexcept
 {
 	assert(q.colormode == colormode);	// must be same type
 	assert(q.attrheight == attrheight); //
@@ -136,25 +134,25 @@ void Pixmap<bpp, aw, false>::copyRect(
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::copyRect(const Point& z, const Pixmap& q) noexcept
+void Pixmap<1, bpp, aw>::copyRect(const Point& z, const Pixmap& q) noexcept
 {
 	copyRect(z.x, z.y, q, 0, 0, q.width, q.height);
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::copyRect(const Point& zp, const Pixmap& pm, const Point& qp, const Size& size) noexcept
+void Pixmap<1, bpp, aw>::copyRect(const Point& zp, const Pixmap& pm, const Point& qp, const Size& size) noexcept
 {
 	copyRect(zp.x, zp.y, pm, qp.x, qp.y, size.width, size.height);
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::copyRect(const Point& zp, const Pixmap& pm, const Rect& qr) noexcept
+void Pixmap<1, bpp, aw>::copyRect(const Point& zp, const Pixmap& pm, const Rect& qr) noexcept
 {
 	copyRect(zp.x, zp.y, pm, qr.left(), qr.top(), qr.width(), qr.height());
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::drawBmp(
+void Pixmap<1, bpp, aw>::drawBmp(
 	coord zx, coord zy, const uint8* bmp, int bmp_row_offset, int w, int h, uint color, uint ink) noexcept
 {
 	// draw bitmap into Canvas
@@ -183,13 +181,13 @@ void Pixmap<bpp, aw, false>::drawBmp(
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::drawBmp(coord zx, coord zy, const Bitmap& bmp, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::drawBmp(coord zx, coord zy, const Bitmap& bmp, uint color, uint ink) noexcept
 {
 	drawBmp(zx, zy, bmp.pixmap, bmp.row_offset, bmp.width, bmp.height, color, ink);
 }
 
 template<int bpp, int aw>
-void Pixmap<bpp, aw, false>::drawChar(coord zx, coord zy, const uint8* bmp, int h, uint color, uint ink) noexcept
+void Pixmap<1, bpp, aw>::drawChar(coord zx, coord zy, const uint8* bmp, int h, uint color, uint ink) noexcept
 {
 	// optimized version of drawBmp:
 	//   row_offset = 1
@@ -217,14 +215,14 @@ void Pixmap<bpp, aw, false>::drawChar(coord zx, coord zy, const uint8* bmp, int 
 // instantiate everything.
 // the linker will know what we need:
 
-template class Pixmap<1, 1, false>;
-template class Pixmap<1, 2, false>;
-template class Pixmap<1, 4, false>;
-template class Pixmap<1, 8, false>;
-template class Pixmap<2, 1, false>;
-template class Pixmap<2, 2, false>;
-template class Pixmap<2, 4, false>;
-template class Pixmap<2, 8, false>;
+template class Pixmap<1, 1, 1>;
+template class Pixmap<1, 1, 2>;
+template class Pixmap<1, 1, 4>;
+template class Pixmap<1, 1, 8>;
+template class Pixmap<1, 2, 1>;
+template class Pixmap<1, 2, 2>;
+template class Pixmap<1, 2, 4>;
+template class Pixmap<1, 2, 8>;
 
 
 } // namespace kilipili
