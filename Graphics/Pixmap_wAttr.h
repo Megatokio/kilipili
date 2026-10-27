@@ -125,7 +125,7 @@ public:
 	void copyRect(const Point& z, const Pixmap& src, const Rect& q) noexcept;
 	void copyRect(const Point& z, const Pixmap& src, const Point& q, const Size&) noexcept;
 
-private:
+	//TODO private:
 	// _______________________________________________________________________________________
 	// helper:
 	// calculate (minimum) sizes for the pixels and attributes pixmap:

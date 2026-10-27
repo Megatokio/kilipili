@@ -9,18 +9,41 @@
 
 using namespace kilipili;
 
+template<class T>
+class Pixmap2 : public T
+{
+public:
+	static constexpr int bpp = T::bits_per_pixel;
+
+	// define ctors which take a AttrHeight nevertheless:
+	Pixmap2(const Size& size, AttrHeight ah) : T(size, nullptr) {}
+	Pixmap2(coord w, coord h, AttrHeight ah) : T(w, h, nullptr) {}
+
+	Pixmap2(const Size& size, ColorMap<bpp>* cm = nullptr) throws : T(size, cm) {}
+	Pixmap2(coord w, coord h, ColorMap<bpp>* cm = nullptr) throws : T(w, h, cm) {}
+
+	Pixmap2(const Size& size, uint8* pixels, int ro, ColorMap<bpp>* cm = nullptr) noexcept : T(size, pixels, ro, cm) {}
+	Pixmap2(coord w, coord h, uint8* pixels, int ro, ColorMap<bpp>* cm = nullptr) noexcept : T(w, h, pixels, ro, cm) {}
+
+	// window into other pixmap:
+	Pixmap2(T& q, const Rect& r) noexcept : T(q, r) {}
+	Pixmap2(T& q, const Point& p, const Size& size) noexcept : T(q, p, size) {}
+	Pixmap2(T& q, coord x, coord y, coord w, coord h) noexcept : T(q, x, y, w, h) {}
+};
+
+
 // clang-format off
-#define ALL_PIXMAPS Bitmap, Pixmap_i2, Pixmap_i4, Pixmap_i8, Pixmap_rgb
+#define ALL_PIXMAPS Pixmap2<Bitmap>, Pixmap2<Pixmap_i2>, Pixmap2<Pixmap_i4>, Pixmap2<Pixmap_i8>, Pixmap2<Pixmap_rgb>
 #define ALL_PIXMAPa1\
-	Pixmap<colormode_a1w1>, \
-	Pixmap<colormode_a1w2>, \
-	Pixmap<colormode_a1w4>, \
-	Pixmap<colormode_a1w8> 
+	Pixmap_a1w1, \
+	Pixmap_a1w2, \
+	Pixmap_a1w4, \
+	Pixmap_a1w8 
 #define ALL_PIXMAPa2\
-	Pixmap<colormode_a2w1>, \
-	Pixmap<colormode_a2w2>, \
-	Pixmap<colormode_a2w4>, \
-	Pixmap<colormode_a2w8>
+	Pixmap_a2w1, \
+	Pixmap_a2w2, \
+	Pixmap_a2w4, \
+	Pixmap_a2w8
 // clang-format on
 
 
@@ -66,13 +89,12 @@ bool is_clear(const PM& pm, uint color)
 
 TEST_CASE_TEMPLATE("Pixmap(Size) constructor", T, ALL_PIXMAPS)
 {
-	constexpr ColorDepth CD				= T::CD;
-	static constexpr int bits_per_pixel = 1 << CD;
+	static constexpr int bits_per_pixel = T::bits_per_pixel;
 
 	for (int width = 80; width <= 81; width++)
 		for (int height = 40; height <= 41; height++)
 		{
-			T		pm(Size(width, height), attrheight_12px);
+			T		pm(Size(width, height));
 			Canvas& canvas = pm;
 
 			CHECK_EQ(T::calc_row_offset(width), (width * bits_per_pixel + 7) / 8);
@@ -80,7 +102,7 @@ TEST_CASE_TEMPLATE("Pixmap(Size) constructor", T, ALL_PIXMAPS)
 			CHECK_EQ(canvas.size, Size(width, height));
 			CHECK_EQ(canvas.colormode, T::colormode);
 			CHECK_EQ(canvas.attrheight, attrheight_none);
-			CHECK_EQ(canvas.allocated, true);
+			CHECK_EQ(canvas.is_allocated, true);
 
 			CHECK_EQ(pm.row_offset, T::calc_row_offset(width));
 			CHECK_NE(pm.pixmap, nullptr);
@@ -98,11 +120,6 @@ TEST_CASE_TEMPLATE("Pixmap_wAttr(Size) constructor", T, ALL_PIXMAPa1, ALL_PIXMAP
 	static constexpr int colors_per_attr = 1 << bits_per_pixel; // 2 .. 4
 	static constexpr int pixel_per_attr	 = 1 << AW;
 
-	static_assert(CD == get_colordepth(CM));
-	static_assert(AM == get_attrmode(CM));
-	static_assert(AW == get_attrwidth(CM));
-	//static_assert(CM == calc_colormode(AM, AW, CD));
-
 	for (int width = 80; width <= 81; width++)
 		for (int height = 40; height <= 41; height++)
 		{
@@ -112,7 +129,7 @@ TEST_CASE_TEMPLATE("Pixmap_wAttr(Size) constructor", T, ALL_PIXMAPa1, ALL_PIXMAP
 			CHECK_EQ(canvas->size, Size(width, height));
 			CHECK_EQ(canvas->colormode, CM);
 			CHECK_EQ(canvas->attrheight, attrheight_12px);
-			CHECK_EQ(canvas->allocated, true);
+			CHECK_EQ(canvas->is_allocated, true);
 
 			CHECK_EQ(pm.row_offset, (width * bits_per_pixel + 7) / 8);
 			CHECK_NE(pm.pixmap, nullptr);
@@ -127,7 +144,7 @@ TEST_CASE_TEMPLATE("Pixmap_wAttr(Size) constructor", T, ALL_PIXMAPa1, ALL_PIXMAP
 			CHECK_EQ(pm.attributes.height, T::calc_attr_height(height, pm.attrheight));
 			//CHECK_EQ(pm.attributes.colormode, calc_colormode(attrmode_none, attrwidth_none, CD));
 			CHECK_EQ(pm.attributes.attrheight, attrheight_none);
-			CHECK_EQ(pm.attributes.allocated, true);
+			CHECK_EQ(pm.attributes.is_allocated, true);
 			CHECK_EQ(pm.attributes.row_offset, T::calc_attr_row_offset(width));
 			CHECK_NE(pm.attributes.pixmap, nullptr);
 		}
@@ -146,7 +163,7 @@ TEST_CASE_TEMPLATE("Pixmap(Size,pixels[]) constructor", T, ALL_PIXMAPS)
 			CHECK_EQ(canvas.size, Size(width, height));
 			CHECK_EQ(canvas.colormode, T::colormode);
 			CHECK_EQ(canvas.attrheight, attrheight_none);
-			CHECK_EQ(canvas.allocated, false);
+			CHECK_EQ(canvas.is_allocated, false);
 
 			CHECK_EQ(pm.row_offset, row_offset);
 			CHECK_EQ(pm.pixmap, pixels.get());
@@ -169,7 +186,7 @@ TEST_CASE_TEMPLATE("Pixmap(Size,pixels[],attr[]) constructor", T, ALL_PIXMAPa1, 
 			CHECK_EQ(canvas.size, Size(width, height));
 			CHECK_EQ(canvas.colormode, T::colormode);
 			CHECK_EQ(canvas.attrheight, attrheight);
-			CHECK_EQ(canvas.allocated, false);
+			CHECK_EQ(canvas.is_allocated, false);
 
 			CHECK_EQ(pm.row_offset, row_offset);
 			CHECK_EQ(pm.pixmap, pixels.get());
@@ -220,7 +237,7 @@ TEST_CASE_TEMPLATE("Pixmap(Pixmap,Rect) constructor", T, ALL_PIXMAPa1, ALL_PIXMA
 		CHECK_EQ(pm2.height, h);
 		CHECK_EQ(pm2.colormode, pm1.colormode);
 		CHECK_EQ(pm2.attrheight, pm1.attrheight);
-		CHECK_EQ(pm2.allocated, false);
+		CHECK_EQ(pm2.is_allocated, false);
 		CHECK_EQ(pm2.pixmap, pm1.pixmap + y0 * pm1.row_offset + (x0 / 8 * BPP));
 		CHECK_EQ(pm2.row_offset, pm1.row_offset);
 		CHECK_EQ(pm2.Canvas::colormode, pm1.colormode);
@@ -284,7 +301,7 @@ TEST_CASE_TEMPLATE("Pixmap::operator==() attribute modes", T, ALL_PIXMAPa1, ALL_
 	T pm2 {pm1, x0, y0, width, height}; // window in pm1
 	T pm3 {width, height, ah};
 
-	uint num_inks = T::colors_per_attr;
+	uint num_inks = 1 << T::bits_per_pixel; // T::colors_per_attr;
 
 	for (uint ink = 0; ink < num_inks; ink++)
 	{
@@ -336,7 +353,7 @@ TEST_CASE_TEMPLATE("Pixmap::set_pixel(), get_pixel()", T, ALL_PIXMAPa1, ALL_PIXM
 	constexpr int width = 200, height = 100;
 	T			  pm {width, height, attrheight_8px};
 	pm.clear(0);
-	constexpr uint ink1	  = T::colors_per_attr - 1;
+	constexpr uint ink1	  = (1 << T::bits_per_pixel) - 1; // T::colors_per_attr - 1;
 	constexpr uint color1 = 15;
 	uint		   ink	  = 999;
 

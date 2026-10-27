@@ -52,7 +52,7 @@ public:
 
 	RCPtr<Canvas> pixmap;
 
-private:
+	//TODO private:
 	RCPtr<const Font> font1; // default: latin-1
 	RCPtr<const Font> font2; // default: graphics font
 

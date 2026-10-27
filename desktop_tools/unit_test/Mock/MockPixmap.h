@@ -1,4 +1,4 @@
-// Copyright (c) 2024 - 2025 kio@little-bat.de
+// Copyright (c) 2024 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -12,10 +12,12 @@ namespace kilipili::Mock
 class Pixmap : public Canvas
 {
 public:
-	Pixmap(coord w, coord h, ColorMode CM = colormode_a1w8_rgb, AttrHeight AH = attrheight_12px);
+	static constexpr PmInfo a1w8 {0, false, 3, 12}; // colormode_a1w8 with attrheight_12px
+
+	Pixmap(coord w, coord h, PmInfo = a1w8);
 	~Pixmap() override = default;
 
-	Canvas* cloneWindow(coord x, coord y, coord w, coord h) throws override;
+	Canvas* createWindow(coord x, coord y, coord w, coord h) throws override;
 	void	set_pixel(coord x, coord y, uint color, uint ink = 0) noexcept override;
 	uint	get_pixel(coord x, coord y, uint* ink) const noexcept override;
 	uint	get_color(coord x, coord y) const noexcept override;

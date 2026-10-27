@@ -30,13 +30,14 @@ namespace kilipili::Test
 {
 
 using Pixmap	 = kilipili::Mock::Pixmap;
-using RealPixmap = kilipili::Pixmap<colormode_a1w8>;
+using RealPixmap = kilipili::Pixmap_a1w8;
+
 
 TEST_CASE("Printer<Canvas>: constructor")
 {
-	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8);
-	TextVDU		  tv(pm);
-	Array<cstr>	  ref;
+	RCPtr		pm = new Pixmap(80, 60);
+	TextVDU		tv(pm);
+	Array<cstr> ref;
 	ref << "Pixmap(80,60,a1w8,12)";
 	CHECK_EQ(pm->log, ref);
 
@@ -45,11 +46,11 @@ TEST_CASE("Printer<Canvas>: constructor")
 	CHECK_EQ(tv.pixmap.ptr(), pm.ptr());
 	CHECK_EQ(tv.pixmap->colormode, uint(colormode_a1w8));
 	CHECK_EQ(tv.pixmap->attrheight, 12);
-	CHECK_EQ(tv.pixmap->colordepth(), msbit(sizeof(Color) * CHAR_BIT)); //log2(16)
-	CHECK_EQ(tv.pixmap->attrmode(), attrmode_1bpp);
-	CHECK_EQ(tv.pixmap->attrwidth(), 3);							 // log2(8)
-	CHECK_EQ(tv.pixmap->bits_per_color(), sizeof(Color) * CHAR_BIT); // 16
-	CHECK_EQ(tv.pixmap->bits_per_pixel(), 1);
+	CHECK_EQ(tv.pixmap->attrwidth, 8);
+	//CHECK_EQ(tv.pixmap->colordepth(), msbit(sizeof(Color) * CHAR_BIT)); //log2(16)
+	//CHECK_EQ(tv.pixmap->attrmode(), attrmode_1bpp);
+	//CHECK_EQ(tv.pixmap->bits_per_color(), sizeof(Color) * CHAR_BIT); // 16
+	CHECK_EQ(tv.pixmap->bits_per_pixel, 1);
 	CHECK_EQ(tv.cols, 80 / 8);
 	CHECK_EQ(tv.rows, 60 / 12);
 	CHECK_EQ(tv.bgcolor, tv.default_bgcolor);
@@ -66,8 +67,8 @@ TEST_CASE("Printer<Canvas>: constructor")
 
 TEST_CASE("Printer<Canvas>: showCursor(), hideCursor()")
 {
-	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8);
-	TextVDU		  tv(pm);
+	RCPtr	pm = new Pixmap(80, 60);
+	TextVDU tv(pm);
 	{
 		tv.cls();
 		CHECK_EQ(tv.cursor_visible, false);
@@ -93,13 +94,14 @@ TEST_CASE("Printer<Canvas>: showCursor(), hideCursor()")
 		ref << "xorRect(0,0,8,12,65535)";	// show cursor
 		ref << "xorRect(0,0,8,12,65535)";	// hide cursor before moveTo()
 		ref << "xorRect(32,36,8,12,65535)"; // show cursor
+		CHECK_EQ(pm->log, ref);				// TODO: CHECK_EQ was missing?
 	}
 }
 
 TEST_CASE("Printer<Canvas>: reset()")
 {
-	RCPtr<Pixmap> pm = new Pixmap(80, 60, colormode_a1w8);
-	TextVDU		  tv(pm);
+	RCPtr	pm = new Pixmap(80, 60);
+	TextVDU tv(pm);
 
 	tv.setAttributes(tv.bold | tv.inverted | tv.double_width | tv.double_height);
 	tv.bgcolor = 1234;
@@ -168,9 +170,10 @@ TEST_CASE("Printer<Canvas>: identify()")
 	CHECK_EQ(pm1->height, 60);
 	CHECK_EQ(tv1.cols, 100);
 	CHECK_EQ(tv1.rows, 5);
-	CHECK_EQ(tv1.pixmap->attrwidth(), 3); // log2(8)
+	CHECK_EQ(tv1.pixmap->attrwidth, 8);
 	CHECK_EQ(tv1.pixmap->attrheight, 12);
-	CHECK_EQ(tv1.pixmap->colordepth(), msbit(sizeof(Color) * CHAR_BIT)); // log2(16)
+	CHECK_EQ(tv1.pixmap->bits_per_pixel, 1);
+	//CHECK_EQ(tv1.pixmap->colordepth(), msbit(sizeof(Color) * CHAR_BIT)); // log2(16)
 }
 
 TEST_CASE("Printer<Canvas>: moveTo()")

@@ -68,6 +68,7 @@ static void store(ptr& p, uint8 n)
 template<uint width, uint height=1>
 struct Buffer
 {
+	alignas(4) // else clang puts it on non-aligned address
 	uchar px[width * height];
 
 	Buffer(const uint16* compressed_source)
@@ -336,7 +337,8 @@ TEST_CASE("BitBlit: clear_rect_of_bits (was: clear_rect_of_bytes)")
 
 		for(int bg=0; bg<=255; bg+=255)
 		{
-			uint fg = 0x23456789;
+			//uint fg = 0x23456789;
+			uint fg = 0x0f070301;
 			for(int x=0;x<=4;x+=4)
 			{
 				memset(pixmap.px, bg, width*height);
