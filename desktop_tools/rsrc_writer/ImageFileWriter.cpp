@@ -98,7 +98,11 @@ void ImageFileWriter::scan_img_data()
 			{
 				uint c = cmap[i];
 				uint d = brightness(c);
-				if (d < dist) transp_index = i, dist = d;
+				if (d < dist)
+				{
+					transp_index = i;
+					dist		 = d;
+				}
 			}
 			std::swap(cmap[transp_index], cmap[0]);
 		}
@@ -153,7 +157,7 @@ uint32 ImageFileWriter::exportImgFile(cstr fpath, uint8 w, uint8 l)
 uint32 ImageFileWriter::exportRsrcFile(cstr hdr_fpath, cstr rsrc_fpath, uint8 w, uint8 l)
 {
 	// create header file with array data for a compressed resource file
-	// for an IMG image file in flash resource file system.
+	// for an IMG image file in resource file system.
 
 	if (w == 0) w = 12;
 	if (l == 0) l = 8;
@@ -192,15 +196,15 @@ void ImageFileWriter::store_cmap_color(File* file, uint32 c)
 //	return c;
 //}
 
-static constexpr bool			has_free_bits() noexcept { return Color::total_colorbits < sizeof(Color) * 8; }
-static constexpr __unused Color non_zero_black() noexcept { return ~Color::total_colormask; } // if free bits available
+static constexpr bool			has_free_bits() noexcept { return Color(Color::total_colorbits < sizeof(Color) * 8); }
+static constexpr Color			non_zero_black = Color(~Color::total_colormask); // if free bits available
 static constexpr __unused Color closest_to_black() noexcept
 {
 	static_assert(Color::gbits >= Color::rbits && Color::rbits >= Color::bbits);
-	if constexpr (Color::ibits) return 1 << Color::ishift;				   // have common low bits => lowest ibit
-	if constexpr (Color::bbits == Color::gbits) return 1 << Color::bshift; // all same size => lowest blue bit
-	if constexpr (Color::rbits == Color::gbits) return 1 << Color::rshift; // red == green => lowest red bit
-	else return 1 << Color::gshift;										   // green is largest => lowest green bit
+	if constexpr (Color::ibits) return Color(1 << Color::ishift);				  // have common low bits => lowest ibit
+	if constexpr (Color::bbits == Color::gbits) return Color(1 << Color::bshift); // all same size => lowest blue bit
+	if constexpr (Color::rbits == Color::gbits) return Color(1 << Color::rshift); // red == green => lowest red bit
+	else return Color(1 << Color::gshift); // green is largest => lowest green bit
 }
 
 
@@ -246,7 +250,7 @@ void ImageFileWriter::store_pixel(File* file, uint8* p)
 			{
 				Color c = Color::fromRGB8(r, g, b);
 				if (c.raw != 0 || !has_transparency) store(file, c);
-				else if constexpr (has_free_bits()) store(file, non_zero_black());
+				else if constexpr (has_free_bits()) store(file, non_zero_black);
 				else store(file, closest_to_black());
 			}
 		}

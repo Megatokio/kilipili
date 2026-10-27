@@ -1204,7 +1204,7 @@ RgbImage::RgbImage(EncodedImage* encoded_image)
 		{
 			uint8 i = *q++;
 			int	  c = ctab[i].raw;
-			current = i < num_abs_codes ? c : current.raw + c;
+			current = i < num_abs_codes ? Color(c) : Color(current.raw + c);
 			*z++	= current.red();
 			*z++	= current.green();
 			*z++	= current.blue();
