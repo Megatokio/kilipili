@@ -10,35 +10,37 @@ Very coarsely it provides:
 - a cooperative Dispatcher
 - misc. FileSystems: SDCard, Flash FS, preferences, resource FS (compiled into the program)
 - Video output: a multitude of hardware configurations, video formats and options
-- Audio output: 3 hardware options (I2S, PWM and SigmaDelta), real-time capable, AY and MP3 player
+- Audio output: 3 hardware options, real-time capable, AY and MP3 player
 - USB input: Keyboard and Mouse
-- Graphics: TextVDU and drawing primitives
+- Graphics: Printer and drawing primitives
 - debugging support
 
 
 ## Other Highlights
-- Display true color images up to 600x400 pixels with a *HoldAndModifyVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter in *desktop_tools/*.
+- display true color images up to 600x400 pixels with a *HoldAndModifyVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter in *desktop_tools/*.
 - write to internal flash without disrupting video output. 
 - Mp3Decoder and an asynchronous Mp3Player using libmad
 
 
 ## Latest Additions
 - AY-3-8912 sound chip emulation and *.ym* audio file playback. See Wiki page about *.ymm* files.
-- Graphics primitives: fill triangle, fill polygon, draw Bezier curve
+- graphics primitives: fill triangle, fill polygon, draw Bezier curve
 - Mp3Decoder and an asynchronous Mp3Player 
 - support SDCard with any arbitrary pin assignment, e.g. supports the vgaboard
+- character-based FrameBuffers
 
 
 ## Video 
-The video engine provides many video modes with indexed or true color up to highest resolution by use of color attributes. It provides sprites and a mouse pointer.
+The video engine provides many pixel-based video modes with indexed or true color up to highest resolution by use of color attributes as well as character-based modes. It provides sprites and a mouse pointer.
 
-- `[done]` Screen resolution 160\*120 up to **1280\*768** with **16 bit true color** attributes.  
+- `[done]` pixel-based screen resolution 160\*120 up to **1280\*768** with **true color** attributes.  
 - `[done]` Low RAM usage by use of attributes. =\> colorful display in high resolutions.  
-  e.g. **1024 x 768** with 8 x 12 pixel **true color** attributes uses **only 132 kB of Ram**, leaving over 100 kB to the application.
+  e.g. **1024 x 768** with 8 x 12 pixel **true color** attributes uses **only 132 kB of Ram** (with 16 bit hardware Color), leaving over 100 kB to the application.
+- `[done]` a simple monochrome character mode and character modes with per-character attributes configurable by template parameters.
 - `[done]` Mouse pointer. 
 - `[done]` Switch between different video mode and screen resolutions at run-time.
 - `[done]` video output not affected by flash-lockout while writing to the internal flash. 
-- `[done]` Display true color images up to 600x400 pixels with a *HamImageVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter, built by desktop_tools/CMakeLists.txt. See Wiki page.
+- `[done]` Display true color images up to 600x400 pixels with a *HamImageVideoPlane* on a RP2040 with 256 kByte RAM. The *ham* images can be created using the RsrcFileWriter, built by *desktop_tools/CMakeLists.txt.* See Wiki page.
 - `[test]` Sprites.
 - `[test]` Tiled background.
 
@@ -46,33 +48,29 @@ The video engine provides many video modes with indexed or true color up to high
 ## USB Host
 The USB host mode currently supports keyboards and pointer devices (aka 'Mouse'). 
 
-- `[done]` USB keyboard support. 
-- `[done]` English and German key translation tables
-- `[done]` USB mouse support
+- `[done]` **USB keyboard** support. 
+- `[done]` English and German **key translation tables**
+- `[done]` **USB mouse** support
 - `[todo]` more key translation tables
 
 
 ## Graphics
-The Graphics engine supports pixmaps with many modes which are supported by the video engine. It provides a collection of drawing primitives.
+The Graphics engine supports _Pixmaps_ with many modes which are supported by the video engine. It provides a collection of drawing primitives. class _Printer_ can print to _CharMaps_ and _Pixmaps_.
 
-- `[done]` **Direct pixel color modes**: 1, 2, 4, 8 and 16 bpp.  
-  16 bpp is normally true color while i1 .. i8 are normally indexed color.
-- `[done]` **Attribute modes**: The image is composed from a 1 bpp or 2 bpp pixmap and low resolution true color attribute cells.  
+- `[done]` **Direct pixel color modes**: 1, 2, 4, 8 indexed color and true color rgb.  
+- `[done]` **Attribute modes**: The image is composed from a 1 bpp or 2 bpp Pixmap and low resolution true color attribute cells.  
   The attributes cells normally match the character cell size which is normally 8 x 12 pixels.  
   By using templates all graphics functions are supported in all modes.  
-- `[done]` Graphics primitives, e.g.: line, circle, polyline, bezier, filled circle, triangle, polygon, flood fill, draw bmp
-- `[done]` Text output
+- `[done]` **Graphics primitives**, e.g.: line, circle, polyline, bezier, filled circle, triangle, polygon, flood fill, draw bmp.
+- `[done]` **Text output** via class Printer.
 
 
 ## Audio
-The audio sub system supports I2S, PWM and SigmaDelta audio with 1 or 2 channels.  
-A SampleRateAdapter if your audio source can't match the hardware sample rate directly.  
-A MakeMonoAdapter and a MakeStereoAdapter if your audio source has a different number of channels than the hardware.  
-The latency of the audio system is very low, approx. 5ms with default settings and can be configured down to 1ms.  
-Audio adapters add no latency. (the SampleRateAdapter may add up to 2 samples latency.)  
-The memory footprint is very low: default 2kB static memory for PWM stereo, 1kB for I2S or mono, can be configured down to 64 frames (à 4 or 8 bytes).  
-The adapters allocate no static memory but a small buffer on the stack if needed (64 frames à 4 or 8 bytes). This should be considered for the overall stack usage, especially when audio is filled up using a timer interrupt.  
-The `fillBuffer()` function can be called on timer interrupt or manually, e.g. in the applications event loop.
+The audio sub system supports _I2S_, _PWM_ and _SigmaDelta_ audio with 1 or 2 channels.  
+The _latency_ of the audio system is very low, approx. 5ms with default settings and can be configured down to 1ms.  
+Various AudioAdapters are provided, e.g. a _SampleRateAdapter_ if your audio source can't match the hardware sample rate directly or _MakeMonoAdapter_ and _MakeStereoAdapter_ to convert between Mono and Stereo. Audio adapters add no latency.  
+The _memory footprint_ is very low: default 2kB static memory for PWM stereo, 1kB for I2S or mono, can be configured down to 64 frames (à 4 or 8 bytes).  
+The _fillAudioBuffer()_ function can be called on timer interrupt or directly in the applications event loop.  
 The audio interface automatically adjusts to a changed system clock when switching video modes.  
 - `[done]` PWM mono and stereo output
 - `[done]` I2S stereo output
@@ -86,9 +84,8 @@ The audio interface automatically adjusts to a changed system clock when switchi
 
 
 ## Files and Devices
-Lib kilipili provides a compressed resource file system with files linked into the binary and written to the program flash. This can be compiled using the RsrcFileWriter in the desktop_tools/ directory. See below. The RsrcFileWriter creates a file `rsrc.cpp` which must be linked into the program. See Wiki page.  
-The SDcard Interface accesses the SD card using the SPI interface.  
-
+Lib _kilipili_ provides a compressed resource file system with files linked into the binary and written to the program flash. This can be compiled using the _RsrcFileWriter_ in 'desktop_tools/'. See below. The RsrcFileWriter creates a file `rsrc.cpp` which must be linked into the program. See Wiki page.  
+The SDcard Interface accesses the SD card using the SPI interface or, if needed, using a PIO emulation.
 - `[done]` Preferences at the end of program flash
 - `[done]` Compressed resource file system linked into the binary
 - `[done]` Flash file system
@@ -99,16 +96,16 @@ The SDcard Interface accesses the SD card using the SPI interface.
 
 
 ## Other
-- `[done]` Dispatcher: manages a list of scheduled one-time or repeated events. You can convert interrupts, e.g. timer interrupts into events for the dispatcher to execute them synchronously with much less hazzle to synchronize access to global data. The YMMusicPlayer and Mp3Player can be run on dispatcher callbacks.
-- `[done]` **malloc** replacement which doesn't fail to return available memory. It also provides many additional tools for support debugging.
-- `[done]` cpu load sensor
+- `[done]` **Dispatcher**: manages a list of scheduled one-time or repeated events. You can convert interrupts, e.g. timer interrupts into events for the dispatcher to execute them synchronously with much less hazzle to synchronize access to global data. The YMMusicPlayer and Mp3Player can be run on dispatcher callbacks.
+- `[done]` **malloc** replacement which doesn't fail to return available memory. It also provides many additional tools for support debugging, e.g. hexdump the heap.
+- `[done]` cpu **load sensor**
 
 
 ## Desktop Tools
-There are some tools for the desktop (not run on the Pico) which are built by the *CMakeLists.txt* in directory *desktop_tools/*. If you want to convert images to native color depth of your board then make sure to add -DPICO_BOARD=your_board to the cmake command line.  
+There are some tools for the desktop (not run on the Pico) which are built by the *CMakeLists.txt* in directory *desktop_tools/*. If you want to convert images to native color depth of your board then make sure to add `-DPICO_BOARD=your_board` to the cmake command line (or set via cmake variable).  
 The following utilities are built by *desktop_tools/CmakeLists.txt*:
-- `[done]` UnitTest
-- `[done]` RsrcFileWriter: read and convert a directory for use with the resource file system or to write to an SDCard. See Wiki page.
+- `[done]` **UnitTest**
+- `[done]` **RsrcFileWriter**: read and convert a directory for use with the resource file system or to write to an SDCard. See Wiki page.
 
 
 ## Resources & restrictions
@@ -125,42 +122,44 @@ The following utilities are built by *desktop_tools/CmakeLists.txt*:
 *Full working example without the cmake stuff.*
 
 ```cpp
-// VGA Video 800 x 600 pixel
-// with 8x12 pixel true color attributes (this is the character size used in TextVDU)
-
 #include <kilipili.h>
-#include <pico/stdlib.h>
 #include <stdio.h>
+
+// VGA Video 800 x 600 pixel
+// with 8x12 pixel true color attributes (the size of characters)
 
 int main()
 {
 	using namespace kilipili;
-	using namespace kilipili::USB;
-	using namespace kilipili::Video;
-	using namespace kilipili::Graphics;
 
 	stdio_init_all();
 	printf("Hello world\n"); // print to stdio
-	initUSBHost();
+	USB::initUSBHost();
 
-	auto* pixmap	  = new Pixmap<colormode_a1w8_rgb>(800, 600, attrheight_12px);
-	auto* framebuffer = new FrameBuffer(pixmap, nullptr);
+	RCPtr pixmap	  = new Pixmap_a1w8(800, 600);
+	RCPtr framebuffer = new FrameBuffer(pixmap);
+	RCPtr printer	  = new Printer(pixmap);
+
 	addVideoPlane(framebuffer);
 	startVideo(vga_mode_800x600_60);
 
-	TextVDU* textvdu = new TextVDU(pixmap);
-	textvdu->cls();
-	textvdu->printf("Hello world ... %s mode\n", debug ? "DEBUG" : "RELEASE"); // print on video screen
-	textvdu->identify();													   // print on video screen
-	pixmap->drawRect(100, 50, 400, 300, red, 1);							   // draw on video screen
+	printer->cls();
+	printer->printf("Hello world ... %s mode\n", debug ? "DEBUG" : "RELEASE"); // print on video screen
+	printer->printf("%s\n", printer->identification());                        // print on video screen
+	pixmap->drawRect(100, 50, 400, 300, red);                                  // draw on video screen
 
 	Dispatcher::addHandler(&blinkOnboardLed);
-	Dispatcher::addHandler(&pollUSB);
+	Dispatcher::addHandler(&USB::pollUSB);
 
 	for (;;)
-	{	
-		Dispatcher::run(1000); // blink the LED
-		purge_tempmem();
+	{
+		int c = stdio_getchar_timeout_us(0); // get input from stdin (UART)
+		if (c < 0) c = USB::getChar();       // get input from usb keyboard
+		if (c == '\r') c = '\n';
+		if (c == uchar(c)) printer->putc(char(c));
+
+		Dispatcher::run(1000); // run the registered Dispatcher handlers
+		purge_tempmem();       // house keeping
 	}
 }
 ```
