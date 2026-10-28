@@ -450,6 +450,7 @@ uint get_pixel(const uint8* row, int x) noexcept
 	}
 	else if constexpr (CD == colordepth_8bpp) { return row[x]; }
 	else if constexpr (CD == colordepth_16bpp) { return reinterpret_cast<const uint16*>(row)[x]; }
+	else if constexpr (CD == colordepth_32bpp) { return reinterpret_cast<const uint32*>(row)[x]; }
 	else IERR();
 }
 
@@ -476,6 +477,7 @@ void set_pixel(uint8* row, int x, uint color) noexcept
 	}
 	else if constexpr (CD == colordepth_8bpp) { row[x] = uint8(color); }
 	else if constexpr (CD == colordepth_16bpp) { reinterpret_cast<uint16*>(row)[x] = uint16(color); }
+	else if constexpr (CD == colordepth_32bpp) { reinterpret_cast<uint32*>(row)[x] = uint32(color); }
 	else IERR();
 }
 
@@ -536,6 +538,15 @@ void draw_vline(uint8* row, int row_offset, int x, int height, uint color) noexc
 			row += row_offset;
 		}
 	}
+	else if constexpr (CD == colordepth_32bpp)
+	{
+		row += x << 2;
+		while (--height >= 0)
+		{
+			*reinterpret_cast<uint32*>(row) = uint32(color);
+			row += row_offset;
+		}
+	}
 	else IERR();
 }
 
@@ -552,6 +563,7 @@ void draw_hline(uint8* row, int x, int width, uint color) noexcept
 	if constexpr (CD <= colordepth_4bpp) { clear_row_of_bits(row, x << CD, width << CD, color); }
 	else if constexpr (CD == colordepth_8bpp) { clear_row(row + x, width, color); }
 	else if constexpr (CD == colordepth_16bpp) { clear_row(reinterpret_cast<uint16*>(row) + x, width, color); }
+	else if constexpr (CD == colordepth_32bpp) { clear_row(reinterpret_cast<uint32*>(row) + x, width, color); }
 	else IERR();
 }
 
@@ -594,7 +606,7 @@ void attr_clear_rect(uint8* row, int row_offset, int x1, int width, int height, 
 		while (--height >= 0)
 		{
 			for (int i = 0; i < width; i += colors_per_attr) { p[i] = uint32(color); }
-			p += row_offset >> 1;
+			p += row_offset >> 2;
 		}
 	}
 	else if constexpr (CD == colordepth_16bpp)
@@ -617,6 +629,8 @@ void attr_clear_rect(uint8* row, int row_offset, int x1, int width, int height, 
 	}
 	else // 1bpp .. 4bpp colors
 	{
+		// note: no longer used by Pixmap_wAttr: 1…4 bit Colors also use full byte in attributes
+
 		constexpr int bits_per_pixel = 1 << AM; // 1,2,4
 		constexpr int bits_per_color = 1 << CD; // 1,2,4
 		constexpr int bits_per_attr	 = bits_per_color << bits_per_pixel;
@@ -648,9 +662,10 @@ void attr_clear_rect(uint8* row, int row_offset, int x1, int width, int height, 
 template<ColorDepth CD>
 void copy_rect(uint8* zp, int zrow_offs, int zx, const uint8* qp, int qrow_offs, int qx, int w, int h) noexcept
 {
+	if constexpr (CD == colordepth_32bpp) copy_rect_of_bytes(zp + zx * 4, zrow_offs, qp + qx * 4, qrow_offs, w * 4, h);
 	if constexpr (CD == colordepth_16bpp) copy_rect_of_bytes(zp + zx * 2, zrow_offs, qp + qx * 2, qrow_offs, w * 2, h);
-	else if constexpr (CD == colordepth_8bpp) copy_rect_of_bytes(zp + zx, zrow_offs, qp + qx, qrow_offs, w, h);
-	else copy_rect_of_bits(zp, zrow_offs, zx << CD, qp, qrow_offs, qx << CD, w << CD, h);
+	if constexpr (CD == colordepth_8bpp) copy_rect_of_bytes(zp + zx, zrow_offs, qp + qx, qrow_offs, w, h);
+	if constexpr (CD < colordepth_8bpp) copy_rect_of_bits(zp, zrow_offs, zx << CD, qp, qrow_offs, qx << CD, w << CD, h);
 }
 
 template<ColorDepth CD>
@@ -705,6 +720,7 @@ template<>void draw_bitmap<colordepth_2bpp>(uint8*, int, int, const uint8*, int,
 template<>void draw_bitmap<colordepth_4bpp>(uint8*, int, int, const uint8*, int, int, int, uint) noexcept;
 template<>void draw_bitmap<colordepth_8bpp>(uint8*, int, int, const uint8*, int, int, int, uint) noexcept;
 template<>void draw_bitmap<colordepth_16bpp>(uint8*, int, int, const uint8*, int, int, int, uint) noexcept;
+template<>void draw_bitmap<colordepth_32bpp>(uint8*, int, int, const uint8*, int, int, int, uint) noexcept;
 template<>void draw_char<colordepth_1bpp>(uint8*, int, int, const uint8*, int, uint) noexcept;
 template<>void draw_char<colordepth_2bpp>(uint8*, int, int, const uint8*, int, uint) noexcept;
 template<>void draw_char<colordepth_4bpp>(uint8*, int, int, const uint8*, int, uint) noexcept;
@@ -724,10 +740,28 @@ draw_char<colordepth_16bpp>(uint8* zp, int zrow_offset, int x0, const uint8* qp,
 	draw_bitmap<colordepth_16bpp>(zp, zrow_offset, x0, qp, 1 /*row_offs*/, 8 /*width*/, height, color);
 }
 
+template<>
+inline void
+draw_char<colordepth_32bpp>(uint8* zp, int zrow_offset, int x0, const uint8* qp, int height, uint color) noexcept
+{
+	draw_bitmap<colordepth_32bpp>(zp, zrow_offset, x0, qp, 1 /*row_offs*/, 8 /*width*/, height, color);
+}
+
 template<ColorDepth CD>
 void copy_row_as_1bpp(uint8* zp, const uint8* qp, int w, uint color, uint8 toggle)
 {
-	if constexpr (CD == colordepth_16bpp)
+	if constexpr (CD == colordepth_32bpp)
+	{
+		const uint32* qptr = reinterpret_cast<const uint32*>(qp);
+		while (--w >= 0)
+		{
+			uint8 byte = toggle;
+			for (int i = 0; i < 8; i++) { byte ^= (qptr[i] != uint32(color)) << i; }
+			*zp++ = byte;
+			qptr += 8;
+		}
+	}
+	else if constexpr (CD == colordepth_16bpp)
 	{
 		const uint16* qptr = reinterpret_cast<const uint16*>(qp);
 		while (--w >= 0)
@@ -794,7 +828,7 @@ template<ColorDepth CD>
 void copy_rect_as_bitmap(uint8* zp, int zrow_offs, uint8* qp, int qrow_offs, int w, int h, uint color, bool set)
 {
 	if constexpr (CD <= colordepth_4bpp) color = flood_filled_color<CD>(color);
-	uint8 toggle = -set; // is_set ? 0xff : 0x00
+	uint8 toggle = uint8(-set); // is_set ? 0xff : 0x00
 
 	int r = w & 7;			 // odd bits
 	if (r) r = (1 << r) - 1; // make bitmask from odd bits
@@ -812,7 +846,8 @@ void copy_rect_as_bitmap(uint8* zp, int zrow_offs, uint8* qp, int qrow_offs, int
 template<ColorDepth CD>
 int compare_row(const uint8* zp, const uint8* qp, int width) noexcept
 {
-	if constexpr (CD == colordepth_16bpp) { return memcmp(zp, qp, uint(width) << 1); }
+	if constexpr (CD == colordepth_32bpp) { return memcmp(zp, qp, uint(width) << 2); }
+	else if constexpr (CD == colordepth_16bpp) { return memcmp(zp, qp, uint(width) << 1); }
 	else if constexpr (CD == colordepth_8bpp) { return memcmp(zp, qp, uint(width)); }
 	else
 	{

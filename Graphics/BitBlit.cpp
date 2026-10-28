@@ -23,10 +23,11 @@ void copy_bits(uint32* zp, int zx, const uint32* qp, int qx, int cnt) noexcept
 
 	assert(uint(zx) <= 31);
 	assert(uint(qx) <= 31);
+	assert(cnt >= 0);
 
 	if (zx == qx) // no bit shifting required?
 	{
-		if (zx + cnt <= 32) // very few bits go into single word
+		if (zx + cnt < 32) // very few bits go into single word
 		{
 			uint32 mask = (1u << cnt) - 1; // mask for cnt bits
 			mask		= mask << zx;	   // mask selects bits from q
@@ -144,10 +145,11 @@ void rcopy_bits(uint32* zp, int zx, const uint32* qp, int qx, int cnt) noexcept
 
 	assert(uint(zx) <= 31);
 	assert(uint(qx) <= 31);
+	assert(cnt >= 0);
 
 	if (zx == qx) // no bit shifting required?
 	{
-		if (zx + cnt <= 32) // very few bits go into single word
+		if (zx + cnt < 32) // very few bits go into single word
 		{
 			uint32 mask = ~(~0u >> cnt); // mask for cnt bits
 			mask		= mask >> zx;	 // mask selects bits from q
@@ -975,6 +977,33 @@ void draw_bitmap<colordepth_16bpp>(
 		{
 			if (unlikely((x & 7) == 0)) { byte = qp[x >> 3]; }
 			if (byte & 1) zp[x] = uint16(color);
+			byte >>= 1;
+		}
+
+		qp += q_row_offs;
+		zp += z_row_offs;
+	}
+}
+
+template<>
+void draw_bitmap<colordepth_32bpp>(
+	uint8* zp0, int z_row_offs, int x0, const uint8* qp, int q_row_offs, int width, int height, uint color) noexcept
+{
+	if (width <= 0 || height <= 0) return;
+
+	assert((ssize_t(zp0) & 3) == 0);
+
+	uint32* zp = reinterpret_cast<uint32*>(zp0);
+	zp += x0;
+	z_row_offs = z_row_offs >> 2; // row offset is always in bytes
+	uint8 byte = 0;
+
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			if (unlikely((x & 7) == 0)) { byte = qp[x >> 3]; }
+			if (byte & 1) zp[x] = uint32(color);
 			byte >>= 1;
 		}
 

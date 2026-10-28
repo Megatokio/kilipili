@@ -337,8 +337,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits (was: clear_rect_of_bytes)")
 
 		for(int bg=0; bg<=255; bg+=255)
 		{
-			//uint fg = 0x23456789;
-			uint fg = 0x0f070301;
+			uint fg = 0x23456789;
 			for(int x=0;x<=4;x+=4)
 			{
 				memset(pixmap.px, bg, width*height);
@@ -348,8 +347,7 @@ TEST_CASE("BitBlit: clear_rect_of_bits (was: clear_rect_of_bytes)")
 				clear_rect_of_bits(pixmap.px + y*width + x, width, 0, w<<3, h, fg*0x00000001);
 				for(int i=0; i<w; i+=4) 
 				{
-					draw_vline<colordepth_16bpp>(expect.px + y*width, width, (x+i)/2+0, h, uint16(fg)*0x00010001);
-					draw_vline<colordepth_16bpp>(expect.px + y*width, width, (x+i)/2+1, h, (fg>>16)*0x00010001);
+					draw_vline<colordepth_32bpp>(expect.px + y*width, width, (x+i)/4, h, uint32(fg)*0x00000001);
 				}
 				
 				CHECK_EQ(pixmap,expect);
@@ -499,7 +497,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 	// @param width	width of horizontal line, measured in pixels (colors)
 	// @param color	color for drawing
 	
-	// AM=1bpp, CM=rgb
+	// AM=1bpp, CD=16bpp
 	{
 		constexpr int width = 0x10 * 2,height=5;
 		constexpr int x0=6,w=5,h=3;
@@ -520,7 +518,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		CHECK_EQ(pixmap, expect);
 	}
 	
-	// AM=2bpp, CM=rgb
+	// AM=2bpp, CD=16bpp
 	{
 		constexpr int width = 0x14 * 2,height=3;
 		constexpr int x0=6,w=9,h=1;
@@ -539,7 +537,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		CHECK_EQ(pixmap, expect);
 	}
 	
-	// AM=1bpp, CM=i8
+	// AM=1bpp, CD=8bpp
 	{
 		constexpr int width = 0x10,height=5;
 		constexpr int x0=6,w=5,h=3;
@@ -560,7 +558,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		CHECK_EQ(pixmap, expect);
 	}
 	
-	// AM=2bpp, CM=i8
+	// AM=2bpp, CD=8bpp
 	{
 		constexpr int width = 0x14;
 		constexpr int x0=6,w=9,h=1;
@@ -579,7 +577,8 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		CHECK_EQ(pixmap, expect);
 	}
 	
-	// AM=1bpp, CM=i4, aligned
+	// AM=1bpp, CD=4bpp, aligned
+	// note: currently never used by Pixmap_wAttr: 4 bit Colors also use full byte
 	{
 		constexpr int width = 0x10,height=9;
 		constexpr int x0=8,w=15,h=7;
@@ -603,7 +602,8 @@ TEST_CASE("BitBlit: attr_clear_rect")
 		CHECK_EQ(pixmap, expect);
 	}
 	
-	// AM=1bpp, CM=i4, unaligned, odd row offset
+	// AM=1bpp, CD=4bpp, unaligned, odd row offset
+	// note: currently never used by Pixmap_wAttr: 4 bit Colors also use full byte
 	{
 		constexpr int width = 0x11,height=9;
 		constexpr int x0=9,w=14,h=7;
@@ -628,6 +628,7 @@ TEST_CASE("BitBlit: attr_clear_rect")
 	}
 	
 	// AM=2bpp, CM=i4, unaligned, odd row offset
+	// note: currently never used by Pixmap_wAttr: 4 bit Colors also use full byte
 	{
 		constexpr int width = 0x11,height=3;
 		constexpr int x0=9,w=14,h=1;
