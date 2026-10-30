@@ -65,6 +65,8 @@ struct Color
 	using uRGB = uint8;
 #elif VIDEO_COLOR_PIN_COUNT <= 16
 	using uRGB = uint16;
+#elif VIDEO_COLOR_PIN_COUNT <= 32
+	using uRGB = uint32;
 #endif
 
 	uRGB raw;

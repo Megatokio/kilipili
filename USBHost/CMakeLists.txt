@@ -19,7 +19,7 @@ set(usb_libraries)
 
 
 if(${MAKE_TOOLS})
-	set(USB_ENABLE_HOST ON)
+	set(USB_ENABLE_HOST OFF)
 elseif(${PICO_STDIO_USB})    
 	# if USB is used for STDIO then we are obviously in Device Mode:
 	set(USB_ENABLE_HOST OFF)

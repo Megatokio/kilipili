@@ -9,7 +9,7 @@
 namespace kilipili
 {
 
-extern volatile bool locked_out; // in Video.cpp
+extern volatile bool locked_out; // in VideoController.cpp
 
 
 VideoPlane::VideoPlane(VblankFu* a, RenderFu* b) noexcept : vblank_fu(a), render_fu(b)

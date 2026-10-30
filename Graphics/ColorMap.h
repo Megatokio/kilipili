@@ -118,6 +118,13 @@ protected:
 	Color::uRGB more_colors[(1 << bits) - (1 << (bits - 1))];
 };
 
+template<>
+class ColorMap<16> : public ColorMap<8>
+{};
+template<>
+class ColorMap<32> : public ColorMap<8>
+{};
+
 
 // ---------------------------------------------------------------------------
 // inline definitions:

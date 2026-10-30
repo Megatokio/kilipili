@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <pico/sync.h>
 
-#ifndef PICO_DEFAULT_LED_PIN
+#ifdef CYW43_WL_GPIO_LED_PIN
   #include <pico/cyw43_arch.h>
 #endif
 
@@ -53,7 +53,6 @@ static inline CC now() noexcept
 
 static void wfe_or_timeout(int timeout_usec) noexcept
 {
-	//instead of #include "utilities.h":
 	if (timeout_usec > 0)
 	{
 		idle_start();
@@ -69,6 +68,7 @@ static inline void remove(int i)
 
 static void add(Handler* handler, const void* data, CC when)
 {
+	assert(handler);
 	assert(num_tasks < NELEM(tasks));
 	int i = num_tasks++;
 	for (; i - 1 >= 0 && tasks[i - 1].when < when; i--) { tasks[i] = tasks[i - 1]; }
@@ -165,7 +165,7 @@ void run(int timeout) noexcept
 } // namespace Dispatcher
 
 
-int blinkOnboardLed(void*) noexcept
+int __weak_symbol blinkOnboardLed(void*) noexcept
 {
 	trace(__func__);
 
@@ -183,11 +183,11 @@ int blinkOnboardLed(void*) noexcept
 	gpio_xor_mask(1 << pin);
 	return -500 * 1000; // 1 Hz drift-free
 
-#else
+#elif defined CYW43_WL_GPIO_LED_PIN
 	static bool is_initialized = false;
 	if unlikely (!is_initialized)
 	{
-		if (cyw43_arch_init() != 0) return 0; // failed = > remove me is_initialized = true;
+		if (cyw43_arch_init() != 0) return 0; // failed = > remove me
 		is_initialized = true;
 	}
 
@@ -195,6 +195,9 @@ int blinkOnboardLed(void*) noexcept
 	on			   = !on;
 	cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, on);
 	return -500 * 1000; // 1 Hz drift-free
+
+#else
+	return 0; // no LED => remove me
 #endif
 }
 

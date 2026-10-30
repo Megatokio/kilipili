@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 	
 set(PICO_BOARD_HEADER_DIRS "${CMAKE_CURRENT_LIST_DIR}/boards")
 set(PICO_BOARD_HEADER_DIRS ${PICO_BOARD_HEADER_DIRS} CACHE STRING "PICO board header directories" FORCE)
-set(PICO_BOARD "vgaboard" CACHE STRING "the target board, e.g. \"vgaboard\"")
+set(PICO_BOARD "vgaboard-i2s" CACHE STRING "the target board, e.g. \"vgaboard-i2s\"")
 
 
 # dependencies:
