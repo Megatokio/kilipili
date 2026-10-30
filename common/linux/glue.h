@@ -30,6 +30,8 @@ inline void wfe() noexcept {}
 inline void __wfe() noexcept {}
 inline void __sev() noexcept {}
 inline void __dmb() noexcept {}
+inline void idle_start() {}
+inline void idle_end() {}
 
 // these are defined in the unit test:
 extern void flash_range_erase(uint32 flash_offs, uint32 count);

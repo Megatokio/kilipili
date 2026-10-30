@@ -78,6 +78,7 @@ add_library(kilipili_common STATIC
 	timing.h
 	FlexQueue.h
 	temperature_sensor.h
+	pico_hw/SpinLock.h
 )
 
 target_compile_definitions(kilipili_common PUBLIC  

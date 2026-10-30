@@ -4,10 +4,10 @@
 
 #include "Dispatcher.h"
 #include "LoadSensor.h"
-#include "trace.h"
 #include "cdefs.h"
+#include "pico_hw/SpinLock.h"
+#include "trace.h"
 #include <cstdio>
-#include <pico/sync.h>
 
 #ifdef CYW43_WL_GPIO_LED_PIN
   #include <pico/cyw43_arch.h>
@@ -23,15 +23,12 @@ namespace kilipili
 namespace Dispatcher
 {
 
-static spin_lock_t* spinlock = spin_lock_instance(next_striped_spin_lock_num());
-static uint32		lock() noexcept { return spin_lock_blocking(spinlock); }
-static void			unlock(uint32 sr) noexcept { spin_unlock(spinlock, sr); }
+static SpinLock spinlock(SpinLock::STRIPED);
 
 struct Lock
 {
-	uint32 sr;
-	Lock() noexcept : sr(lock()) {}
-	~Lock() noexcept { unlock(sr); }
+	Lock() noexcept { spinlock.lock(); }
+	~Lock() noexcept { spinlock.unlock(); }
 };
 
 struct Task

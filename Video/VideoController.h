@@ -8,8 +8,8 @@
 #include "internal/VideoBackend.h"
 #include "timing.h"
 #include <functional>
-#include <pico/sem.h>
-#include <pico/types.h>
+//#include <pico/sem.h>
+//#include <pico/types.h>
 
 namespace kilipili
 {
