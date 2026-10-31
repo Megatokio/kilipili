@@ -41,6 +41,10 @@ constexpr bool debug = true;
   #define __weak_symbol __attribute__((__weak__))
 #endif
 
+#ifndef __noinline
+  #define __noinline __attribute__((__noinline__))
+#endif
+
 #ifndef __aligned
   #define __aligned(x) __attribute__((__aligned__(x)))
 #endif
