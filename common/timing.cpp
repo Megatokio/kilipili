@@ -2,17 +2,52 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "LoadSensor.h"
-extern "C" __attribute__((__weak__)) const char* check_heap(); // returns nullptr or error text
-
-#include "trace.h"
-#include "cdefs.h"
-#include "malloc.h"
-#include "memory.h"
-#include <stdio.h>
+#include "timing.h"
 #include <stdlib.h>
-#include <string.h>
-#include <sys/unistd.h>
+#ifndef LIB_PICO_STDLIB
+  #include "standard_types.h"
+  #include <cerrno>
+  #include <ctime>
+  #include <unistd.h>
+#endif
+
+
+#ifdef _POSIX_TIMERS
+uint32 time_us_32()
+{
+	struct timespec tv;
+	clock_gettime(_POSIX_MONOTONIC_CLOCK, &tv);
+	return uint32(tv.tv_sec * 1000000 + tv.tv_nsec / 1000);
+}
+
+uint64 time_us_64()
+{
+	struct timespec tv;
+	clock_gettime(_POSIX_MONOTONIC_CLOCK, &tv);
+	return uint64(tv.tv_sec * 1000000 + tv.tv_nsec / 1000);
+}
+#endif
+
+#ifndef LIB_PICO_STDLIB
+uint64 make_timeout_time_us(uint32 timeout_us)
+{
+	return time_us_64() + timeout_us; //
+}
+
+bool best_effort_wfe_or_timeout(uint64)
+{
+	return true; // timeout
+}
+
+static void sleep_us(uint delay_usec) noexcept
+{
+	time_t	 time_int	= delay_usec / 1000000;
+	long	 time_fract = (delay_usec - time_int * 1000000) * 1000;
+	timespec wait_time	= {time_int, time_fract};
+	while (nanosleep(&wait_time, &wait_time) == -1 && errno == EINTR) {}
+}
+#endif
+
 
 namespace kilipili
 {
@@ -32,7 +67,12 @@ void wfe_or_timeout(int timeout_usec) noexcept
 	if (timeout_usec > 0)
 	{
 		idle_start();
+#ifndef LIB_PICO_STDLIB
+
+		// nop / todo
+#else
 		::best_effort_wfe_or_timeout(from_us_since_boot(time_us_64() + uint(timeout_usec)));
+#endif
 		idle_end();
 	}
 }

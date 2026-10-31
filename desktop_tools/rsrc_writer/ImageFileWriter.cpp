@@ -3,13 +3,13 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "ImageFileWriter.h"
-#include "Devices/StdFile.h"
-#include "cstrings.h"
+#include "common/cstrings.h"
+#include "devices/StdFile.h"
 #include PICO_BOARD_H
-#include "Devices/HeatShrinkEncoder.h"
-#include "Graphics/Color.h"
 #include "RsrcFileEncoder.h"
 #include "common/Array.h"
+#include "devices/HeatShrinkEncoder.h"
+#include "graphics/Color.h"
 
 #define STBI_FAILURE_USERMSG 1
 #include "extern/stb/stb_image.h"

@@ -3,10 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "RgbImageCompressor.h"
-#include "Devices/StdFile.h"
 #include "common/Xoshiro128.h"
 #include "common/basic_math.h"
 #include "common/cstrings.h"
+#include "devices/StdFile.h"
 
 #define STBI_FAILURE_USERMSG 1
 #include "extern/stb/stb_image.h"
@@ -141,8 +141,7 @@ constexpr double unweighted_deviation(double weighted_deviation)
 
 // A 3-dimensional map of absolute colors
 //
-template<int rdim, int gdim, int bdim>
-struct RgbCube
+template<int rdim, int gdim, int bdim> struct RgbCube
 {
 	float values[rdim][gdim][bdim];
 	int	  rc = 0;
@@ -360,8 +359,7 @@ private:
 ////////////////////////////////////////////////////////////
 
 
-template<int rdim, int gdim, int bdim>
-void RgbCube<rdim, gdim, bdim>::blur(int n)
+template<int rdim, int gdim, int bdim> void RgbCube<rdim, gdim, bdim>::blur(int n)
 {
 	// blur n times
 	// each pixel affects all pixels in range [-n .. +n]
@@ -421,8 +419,7 @@ void RgbCube<rdim, gdim, bdim>::blur(int n)
 	}
 }
 
-template<int rdim, int gdim, int bdim>
-bool RgbCube<rdim, gdim, bdim>::find_maximum(int& r, int& g, int& b, int padding)
+template<int rdim, int gdim, int bdim> bool RgbCube<rdim, gdim, bdim>::find_maximum(int& r, int& g, int& b, int padding)
 {
 	r = g = b	  = 0;
 	float maximum = 0;

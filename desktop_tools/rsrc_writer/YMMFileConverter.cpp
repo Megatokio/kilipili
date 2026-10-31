@@ -7,15 +7,15 @@
 // based on YM file format specification by Arnaud Carré
 
 #include "YMMFileConverter.h"
-#include "Audio/Ay38912.h"
-#include "Devices/DevNull.h"
-#include "Devices/LzhDecoder.h"
-#include "Devices/StdFile.h"
-#include "cdefs.h"
-#include "cstrings.h"
-#include "standard_types.h"
-#include <common/Array.h>
-#include <common/basic_math.h>
+#include "audio/Ay38912.h"
+#include "common/Array.h"
+#include "common/basic_math.h"
+#include "common/cdefs.h"
+#include "common/cstrings.h"
+#include "common/standard_types.h"
+#include "devices/DevNull.h"
+#include "devices/LzhDecoder.h"
+#include "devices/StdFile.h"
 #include <cstring>
 #include <dirent.h>
 #include <stdlib.h>

@@ -8,6 +8,7 @@
 
 #if !defined OPTION_STACK_TRACE || OPTION_STACK_TRACE
 
+
 namespace kilipili
 {
 
@@ -32,7 +33,15 @@ public:
 
 	static Path path[2];
 
+  #ifndef LIB_PICO_STDLIB
+
+	Trace(cstr name) noexcept
+	{
+		if (get_core_num() < 2) path[get_core_num()].push(name);
+	}
+  #else
 	Trace(cstr name) noexcept { path[get_core_num()].push(name); }
+  #endif
 	~Trace() noexcept { path[get_core_num()].pop(); }
 
 	static void print(uint core);

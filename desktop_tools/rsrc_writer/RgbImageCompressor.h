@@ -4,9 +4,9 @@
 
 #pragma once
 #include "File.h"
-#include "Graphics/Color.h"
 #include "common/RCPtr.h"
 #include "common/standard_types.h"
+#include "graphics/Color.h"
 #include <cstdlib>
 
 

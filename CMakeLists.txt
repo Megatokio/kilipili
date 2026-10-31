@@ -14,20 +14,22 @@ set(PICO_BOARD "vgaboard-i2s" CACHE STRING "the target board, e.g. \"vgaboard-i2
 
 # dependencies:
 add_subdirectory(common)
-add_subdirectory(Graphics)
-add_subdirectory(Video)
-add_subdirectory(Audio)
-add_subdirectory(Audio/libmad)
-add_subdirectory(Devices)
-add_subdirectory(USBHost)
+add_subdirectory(graphics)
+add_subdirectory(video)
+add_subdirectory(audio)
+add_subdirectory(audio/libmad)
+add_subdirectory(devices)
+add_subdirectory(usb_host)
+add_subdirectory(pico_hw)
 
 add_library(kilipili STATIC
-	common.h
-	graphics.h
-	video.h
-	audio.h
-	devices.h
-	usb_host.h
+	common/common.h
+	graphics/graphics.h
+	video/video.h
+	audio/audio.h
+	devices/devices.h
+	usb_host/usb_host.h
+	pico_hw/pico_hw.h
 	kilipili.h
 )
 
@@ -45,6 +47,7 @@ target_link_libraries(kilipili PUBLIC
 	kilipili_libmad
 	kilipili_devices
 	kilipili_usb_host
+	kilipili_pico_hw
 	)
 
 

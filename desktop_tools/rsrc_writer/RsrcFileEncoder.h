@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Devices/File.h"
+#include "devices/File.h"
 #include "standard_types.h"
 
 namespace kilipili

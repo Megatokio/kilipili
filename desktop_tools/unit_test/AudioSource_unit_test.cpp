@@ -2,7 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Audio/AudioSource.h"
+#include "audio/AudioSource.h"
 #include "cstrings.h"
 #include "doctest.h"
 #include <cmath>
@@ -13,17 +13,9 @@ namespace kilipili
 {
 float hw_sample_frequency = 44100; // normally in AudioController.cpp
 
-template<typename SAMPLE>
-doctest::String toString(AudioSample<1, SAMPLE> s)
-{
-	return usingstr("<%i>", s.m);
-}
+template<typename SAMPLE> doctest::String toString(AudioSample<1, SAMPLE> s) { return usingstr("<%i>", s.m); }
 
-template<typename SAMPLE>
-doctest::String toString(AudioSample<2, SAMPLE> s)
-{
-	return usingstr("<%i,%i>", s.l, s.r);
-}
+template<typename SAMPLE> doctest::String toString(AudioSample<2, SAMPLE> s) { return usingstr("<%i,%i>", s.l, s.r); }
 } // namespace kilipili
 
 
@@ -79,8 +71,7 @@ TEST_CASE("Audio::AudioSource ctor, instantiation")
 	o2 = new SquareWaveSource<2>(440, 22050, 0.1f);
 }
 
-template<uint num_channels>
-struct NumberProvider : public AudioSource<num_channels>
+template<uint num_channels> struct NumberProvider : public AudioSource<num_channels>
 {
 	AudioSample<num_channels> s;
 	NumberProvider(AudioSample<num_channels> start) : s(start) {}

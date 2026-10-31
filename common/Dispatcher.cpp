@@ -3,11 +3,12 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Dispatcher.h"
-#include "LoadSensor.h"
-#include "trace.h"
 #include "cdefs.h"
+#include "pico_hw/LoadSensor.h"
+#include "pico_hw/SpinLock.h"
+#include "timing.h"
+#include "trace.h"
 #include <cstdio>
-#include <pico/sync.h>
 
 #ifdef CYW43_WL_GPIO_LED_PIN
   #include <pico/cyw43_arch.h>
@@ -23,15 +24,13 @@ namespace kilipili
 namespace Dispatcher
 {
 
-static spin_lock_t* spinlock = spin_lock_instance(next_striped_spin_lock_num());
-static uint32		lock() noexcept { return spin_lock_blocking(spinlock); }
-static void			unlock(uint32 sr) noexcept { spin_unlock(spinlock, sr); }
+static SpinLock spinlock(SpinLock::STRIPED);
 
 struct Lock
 {
 	uint32 sr;
-	Lock() noexcept : sr(lock()) {}
-	~Lock() noexcept { unlock(sr); }
+	Lock() noexcept { sr = spinlock.lock(); }
+	~Lock() noexcept { spinlock.unlock(sr); }
 };
 
 struct Task
@@ -51,15 +50,15 @@ static inline CC now() noexcept
 	return CC(time_us_32());
 }
 
-static void wfe_or_timeout(int timeout_usec) noexcept
-{
-	if (timeout_usec > 0)
-	{
-		idle_start();
-		::best_effort_wfe_or_timeout(from_us_since_boot(time_us_64() + uint(timeout_usec)));
-		idle_end();
-	}
-}
+//static void wfe_or_timeout(int timeout_usec) noexcept
+//{
+//	if (timeout_usec > 0)
+//	{
+//		idle_start();
+//		::best_effort_wfe_or_timeout(from_us_since_boot(time_us_64() + uint(timeout_usec)));
+//		idle_end();
+//	}
+//}
 
 static inline void remove(int i)
 {
@@ -134,7 +133,7 @@ void run(int timeout) noexcept
 
 	trace("Dispatcher::run");
 
-	uint zz = lock();
+	uint32 sr = spinlock.lock();
 
 	if (uint8 n = const_cast<volatile uint8&>(num_tasks))
 	{
@@ -146,10 +145,10 @@ void run(int timeout) noexcept
 		if (now() >= when)
 		{
 			num_tasks = n;
-			unlock(zz);
+			spinlock.unlock(sr);
 			//printf("call %s\n", cstr(data));
 			int delay = handler(data);
-			zz		  = lock();
+			sr		  = spinlock.lock();
 
 			if (delay) // reschedule
 			{
@@ -159,7 +158,7 @@ void run(int timeout) noexcept
 		}
 	}
 
-	unlock(zz);
+	spinlock.unlock(sr);
 }
 
 } // namespace Dispatcher

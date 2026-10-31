@@ -15,15 +15,12 @@
 // https://github.com/arnaud-carre/StSound/tree/main/StSoundLibrary
 
 #include "YMFileConverter.h"
-#include "Audio/Ay38912.h"
-#include "Devices/HeatShrinkEncoder.h"
-#include "Devices/LzhDecoder.h"
-#include "Devices/StdFile.h"
-#include "cdefs.h"
-#include "cstrings.h"
-#include "standard_types.h"
-#include <common/Array.h>
-#include <common/basic_math.h>
+#include "audio/Ay38912.h"
+#include "common/cdefs.h"
+#include "common/standard_types.h"
+#include "devices/HeatShrinkEncoder.h"
+#include "devices/LzhDecoder.h"
+#include "devices/StdFile.h"
 #include <cstring>
 #include <dirent.h>
 #include <stdio.h>

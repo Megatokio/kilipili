@@ -7,9 +7,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "extern/stb/stb_image.h"
 //
-#include "Graphics/graphics_types.h"
 #include "common/Array.h"
 #include "common/cdefs.h"
+#include "graphics/graphics_types.h"
 
 
 namespace kilipili

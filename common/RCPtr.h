@@ -1,4 +1,4 @@
-// Copyright (c) 2015 - 2025 kio@little-bat.de
+// Copyright (c) 2015 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -74,19 +74,13 @@ public:
 
 // _____________________________________________________________________
 //
-template<class T>
-class RCPtr
+template<class T> class RCPtr
 {
-	template<class TT>
-	friend class RCArray;
-	template<class T1, class T2>
-	friend class RCHashMap;
-	template<class TT>
-	friend class MTPtr;
-	template<class TT>
-	friend class NVPtr;
-	template<typename T2>
-	friend class kilipili::RCPtr;
+	template<class TT> friend class RCArray;
+	template<class T1, class T2> friend class RCHashMap;
+	template<class TT> friend class MTPtr;
+	template<class TT> friend class NVPtr;
+	template<typename T2> friend class kilipili::RCPtr;
 
 	using nvptr = typename std::remove_volatile_t<T>*;
 
@@ -99,27 +93,27 @@ private:
 
 		if (p && p->rc >= 0)
 		{
-			kilipili_lock_spinlock();
+			kilipili_spinlock_lock();
 			++const_cast<nvptr>(p)->rc;
-			kilipili_unlock_spinlock();
+			kilipili_spinlock_unlock();
 		}
 	}
 	static void release(T* p) noexcept
 	{
 		if (p && p->rc >= 0)
 		{
-			kilipili_lock_spinlock();
+			kilipili_spinlock_lock();
 			auto n = --const_cast<nvptr>(p)->rc;
-			kilipili_unlock_spinlock();
+			kilipili_spinlock_unlock();
 			if (n == 0) delete p;
 		}
 	}
 	static void retain_release(T* q, T* p) noexcept
 	{
-		kilipili_lock_spinlock();
+		kilipili_spinlock_lock();
 		if (q && q->rc >= 0) ++const_cast<nvptr>(q)->rc;
 		bool f = p && p->rc >= 0 && --const_cast<nvptr>(p)->rc == 0;
-		kilipili_unlock_spinlock();
+		kilipili_spinlock_unlock();
 		if (f) delete p;
 	}
 
@@ -131,16 +125,8 @@ public:
 
 	RCPtr(const RCPtr& q) noexcept : p(q.p) { retain(p); }
 	RCPtr(RCPtr&& q) noexcept : p(q.p) { q.p = nullptr; }
-	template<typename T2, subclass_only>
-	RCPtr(const RCPtr<T2>& q) noexcept : p(q.p)
-	{
-		retain(p);
-	}
-	template<typename T2, subclass_only>
-	RCPtr(RCPtr<T2>&& q) noexcept : p(q.p)
-	{
-		q.p = nullptr;
-	}
+	template<typename T2, subclass_only> RCPtr(const RCPtr<T2>& q) noexcept : p(q.p) { retain(p); }
+	template<typename T2, subclass_only> RCPtr(RCPtr<T2>&& q) noexcept : p(q.p) { q.p = nullptr; }
 
 	RCPtr& operator=(T* q) noexcept
 	{
@@ -168,13 +154,8 @@ public:
 		p = qp;
 		return *this;
 	}
-	template<typename T2, subclass_only>
-	RCPtr& operator=(const RCPtr<T2>& q) noexcept
-	{
-		return operator=(q.p);
-	}
-	template<typename T2, subclass_only>
-	RCPtr& operator=(RCPtr<T2>&& q) noexcept
+	template<typename T2, subclass_only> RCPtr& operator=(const RCPtr<T2>& q) noexcept { return operator=(q.p); }
+	template<typename T2, subclass_only> RCPtr& operator=(RCPtr<T2>&& q) noexcept
 	{
 		release(p);
 		p	= q.p;
@@ -200,8 +181,7 @@ public:
 	}
 	inline operator T*() const noexcept { return p; }
 
-	template<typename IDX>
-	inline auto& operator[](IDX i) const
+	template<typename IDX> inline auto& operator[](IDX i) const
 	{
 		assert(p);
 		return (*p)[i];
@@ -229,15 +209,11 @@ public:
 
 		NVPtr(some_mtptr)->dosomething();
 */
-template<class T>
-class MTPtr
+template<class T> class MTPtr
 {
-	template<class TT>
-	friend class MTPtr;
-	template<class TT>
-	friend class NVPtr;
-	template<typename T2>
-	friend class kilipili::MTPtr;
+	template<class TT> friend class MTPtr;
+	template<class TT> friend class NVPtr;
+	template<typename T2> friend class kilipili::MTPtr;
 
 	using nvptr = typename std::remove_volatile<T>::type*;
 
@@ -245,22 +221,22 @@ class MTPtr
 
 	void copy(T* const& q) noexcept
 	{
-		kilipili_lock_spinlock();
+		kilipili_spinlock_lock();
 		T* old = p;
 		p	   = q;
 		if (q && q->rc >= 0) ++const_cast<nvptr>(q)->rc;
 		bool f = old && old->rc >= 0 && --const_cast<nvptr>(old)->rc == 0;
-		kilipili_unlock_spinlock();
+		kilipili_spinlock_unlock();
 		if (f) delete old;
 	}
 	void move(T*& q) noexcept
 	{
-		kilipili_lock_spinlock();
+		kilipili_spinlock_lock();
 		T* old = p;
 		p	   = q;
 		q	   = nullptr;
 		bool f = old && old->rc >= 0 && --const_cast<nvptr>(old)->rc == 0;
-		kilipili_unlock_spinlock();
+		kilipili_spinlock_unlock();
 		if (f) delete old;
 	}
 
@@ -271,55 +247,48 @@ public:
 	{
 		if (p && p->rc >= 0)
 		{
-			kilipili_lock_spinlock();
+			kilipili_spinlock_lock();
 			++const_cast<nvptr>(p)->rc;
-			kilipili_unlock_spinlock();
+			kilipili_spinlock_unlock();
 		}
 	}
 	~MTPtr() noexcept
 	{
 		if (p && p->rc >= 0)
 		{
-			kilipili_lock_spinlock();
+			kilipili_spinlock_lock();
 			auto n = --const_cast<nvptr>(p)->rc;
-			kilipili_unlock_spinlock();
+			kilipili_spinlock_unlock();
 			if (n == 0) delete p;
 		}
 	}
 
 	MTPtr(const MTPtr& q) noexcept
 	{
-		kilipili_lock_spinlock();
+		kilipili_spinlock_lock();
 		p = q.p;
 		if (p && p->rc >= 0) ++const_cast<nvptr>(p)->rc;
-		kilipili_unlock_spinlock();
+		kilipili_spinlock_unlock();
 	}
 	MTPtr(MTPtr&& q) noexcept : p(q.p) // assuming void source has no second ref
 	{
 		q.p = nullptr;
 	}
 
-	template<typename T2, subclass_only>
-	MTPtr(const MTPtr<T2>& q) noexcept
+	template<typename T2, subclass_only> MTPtr(const MTPtr<T2>& q) noexcept
 	{
-		kilipili_lock_spinlock();
+		kilipili_spinlock_lock();
 		p = q.p;
 		if (p && p->rc >= 0) ++const_cast<nvptr>(p)->rc;
-		kilipili_unlock_spinlock();
+		kilipili_spinlock_unlock();
 	}
-	template<typename T2, subclass_only>
-	MTPtr(const RCPtr<T2>& q) noexcept : MTPtr(q.p)
-	{}
+	template<typename T2, subclass_only> MTPtr(const RCPtr<T2>& q) noexcept : MTPtr(q.p) {}
 	template<typename T2, subclass_only>
 	MTPtr(MTPtr<T2>&& q) noexcept : p(q.p) // assuming void source has no second ref
 	{
 		q.p = nullptr;
 	}
-	template<typename T2, subclass_only>
-	MTPtr(RCPtr<T2>&& q) noexcept : p(q.p)
-	{
-		q.p = nullptr;
-	}
+	template<typename T2, subclass_only> MTPtr(RCPtr<T2>&& q) noexcept : p(q.p) { q.p = nullptr; }
 
 	MTPtr& operator=(T* q) noexcept
 	{
@@ -331,14 +300,12 @@ public:
 		copy(q.p);
 		return *this;
 	}
-	template<typename T2, subclass_only>
-	MTPtr& operator=(const MTPtr<T2>& q) noexcept
+	template<typename T2, subclass_only> MTPtr& operator=(const MTPtr<T2>& q) noexcept
 	{
 		copy(q.p);
 		return *this;
 	}
-	template<typename T2, subclass_only>
-	MTPtr& operator=(const RCPtr<T2>& q) noexcept
+	template<typename T2, subclass_only> MTPtr& operator=(const RCPtr<T2>& q) noexcept
 	{
 		copy(q.p);
 		return *this;
@@ -348,36 +315,33 @@ public:
 		move(q.p);
 		return *this;
 	}
-	template<typename T2, subclass_only>
-	MTPtr& operator=(MTPtr<T2>&& q) noexcept
+	template<typename T2, subclass_only> MTPtr& operator=(MTPtr<T2>&& q) noexcept
 	{
 		move(q.p);
 		return *this;
 	}
-	template<typename T2, subclass_only>
-	MTPtr& operator=(RCPtr<T2>&& q) noexcept
+	template<typename T2, subclass_only> MTPtr& operator=(RCPtr<T2>&& q) noexcept
 	{
 		move(q.p);
 		return *this;
 	}
 
-	template<typename T2, baseclass_only>
-	operator RCPtr<T2>() noexcept // yield a RCPtr
+	template<typename T2, baseclass_only> operator RCPtr<T2>() noexcept // yield a RCPtr
 	{
 		RCPtr<T2> rcptr;
-		kilipili_lock_spinlock();
+		kilipili_spinlock_lock();
 		rcptr->p = p;
 		if (p && p->rc >= 0) ++const_cast<nvptr>(p)->rc;
-		kilipili_unlock_spinlock();
+		kilipili_spinlock_unlock();
 		return rcptr;
 	}
 
 	// see https://stackoverflow.com/questions/11562/how-to-overload-stdswap
 	friend void swap(MTPtr& a, MTPtr& b) noexcept
 	{
-		kilipili_lock_spinlock();
+		kilipili_spinlock_lock();
 		std::swap(a.p, b.p);
-		kilipili_unlock_spinlock();
+		kilipili_spinlock_unlock();
 	}
 };
 
@@ -393,8 +357,7 @@ public:
 		- void lock() 
 		- void unlock()
 */
-template<class T>
-class NVPtr
+template<class T> class NVPtr
 {
 	T* p;
 
@@ -422,16 +385,14 @@ public:
 	T*	operator->() const { return p; }
 	operator T*() const { return p; }
 
-	template<typename IDX>
-	auto& operator[](IDX i) const
+	template<typename IDX> auto& operator[](IDX i) const
 	{
 		assert(p);
 		return (*p)[i];
 	}
 };
 
-template<class T>
-class NVPtr<RCPtr<volatile T>>
+template<class T> class NVPtr<RCPtr<volatile T>>
 {
 	T* p; // will be retained!
 
@@ -440,9 +401,9 @@ class NVPtr<RCPtr<volatile T>>
 		if (p && p->rc >= 0)
 		{
 			p->unlock();
-			kilipili_lock_spinlock();
+			kilipili_spinlock_lock();
 			auto n = --p->rc;
-			kilipili_unlock_spinlock();
+			kilipili_spinlock_unlock();
 			if (n == 0) delete p;
 		}
 	}
@@ -450,9 +411,9 @@ class NVPtr<RCPtr<volatile T>>
 	{
 		if (p && p->rc >= 0)
 		{
-			kilipili_lock_spinlock();
+			kilipili_spinlock_lock();
 			++p->rc;
-			kilipili_unlock_spinlock();
+			kilipili_spinlock_unlock();
 			p->lock();
 		}
 	}
@@ -460,11 +421,11 @@ class NVPtr<RCPtr<volatile T>>
 	{
 		T* old = p;
 		if (old) old->unlock();
-		kilipili_lock_spinlock();
+		kilipili_spinlock_lock();
 		p = const_cast<T*>(q);
 		if (p && p->rc >= 0) ++p->rc;
 		bool f = old && old->rc >= 0 && --old->rc == 0;
-		kilipili_unlock_spinlock();
+		kilipili_spinlock_unlock();
 		if (f) delete old;
 		if (p) p->lock();
 	}
@@ -474,30 +435,23 @@ public:
 	NVPtr() = delete;
 	~NVPtr() { unlock(); }
 
-	template<typename T2, subclass_only>
-	NVPtr(const RCPtr<volatile T2>& q) : p(const_cast<T2*>(q.p))
+	template<typename T2, subclass_only> NVPtr(const RCPtr<volatile T2>& q) : p(const_cast<T2*>(q.p)) { lock(); }
+	template<typename T2, subclass_only> NVPtr(const MTPtr<volatile T2>& q)
 	{
-		lock();
-	}
-	template<typename T2, subclass_only>
-	NVPtr(const MTPtr<volatile T2>& q)
-	{
-		kilipili_lock_spinlock();
+		kilipili_spinlock_lock();
 		p = const_cast<T2*>(q.p);
 		if (p && p->rc >= 0) ++p->rc;
-		kilipili_unlock_spinlock();
+		kilipili_spinlock_unlock();
 		if (p) p->lock();
 	}
 
-	template<typename T2, subclass_only>
-	NVPtr& operator=(const RCPtr<volatile T2>& q)
+	template<typename T2, subclass_only> NVPtr& operator=(const RCPtr<volatile T2>& q)
 	{
 		copy(q.p);
 		return *this;
 	}
 
-	template<typename T2, subclass_only>
-	NVPtr& operator=(const MTPtr<volatile T2>& q)
+	template<typename T2, subclass_only> NVPtr& operator=(const MTPtr<volatile T2>& q)
 	{
 		copy(q.p);
 		return *this;
@@ -508,8 +462,7 @@ public:
 	T*	operator->() const { return p; }
 	operator T*() const { return p; }
 
-	template<typename IDX>
-	auto& operator[](IDX i) const
+	template<typename IDX> auto& operator[](IDX i) const
 	{
 		assert(p);
 		return (*p)[i];
@@ -520,20 +473,15 @@ public:
 // _____________________________________________________________________
 // deduction guides:
 
-template<typename T>
-RCPtr(T*) -> RCPtr<T>;
+template<typename T> RCPtr(T*) -> RCPtr<T>;
 
-template<typename T>
-MTPtr(RCPtr<T>) -> MTPtr<T>;
+template<typename T> MTPtr(RCPtr<T>) -> MTPtr<T>;
 
-template<typename T>
-NVPtr(volatile T*) -> NVPtr<T>;
+template<typename T> NVPtr(volatile T*) -> NVPtr<T>;
 
-template<typename T>
-NVPtr(const RCPtr<volatile T>&) -> NVPtr<RCPtr<volatile T>>;
+template<typename T> NVPtr(const RCPtr<volatile T>&) -> NVPtr<RCPtr<volatile T>>;
 
-template<typename T>
-NVPtr(const MTPtr<volatile T>&) -> NVPtr<RCPtr<volatile T>>;
+template<typename T> NVPtr(const MTPtr<volatile T>&) -> NVPtr<RCPtr<volatile T>>;
 
 #undef subclass_only
 

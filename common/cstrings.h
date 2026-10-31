@@ -1,8 +1,8 @@
-#pragma once
 // Copyright (c) 1995 - 2022 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
+#pragma once
 #include "cdefs.h"
 #include "standard_types.h"
 #include "tempmem.h"
@@ -15,8 +15,7 @@
 namespace kilipili
 {
 
-template<typename T, int = 0>
-class Array;
+template<typename T, int = 0> class Array;
 
 inline constexpr bool is_space(char c) noexcept;
 inline constexpr bool is_letter(char c) noexcept;
@@ -136,15 +135,11 @@ extern str hexstr(uint64 n, uint len);
 #define str_if_Tgt4 \
 	typename std::enable_if<(std::is_integral<T>::value || std::is_enum<T>::value) && 4 < sizeof(T), str>::type
 
-template<typename T>
-inline str_if_Tle4 binstr(T n, cstr b0 = "00000000", cstr b1 = "11111111");
-template<typename T>
-inline str_if_Tgt4 binstr(T n, cstr b0 = "00000000", cstr b1 = "11111111");
+template<typename T> inline str_if_Tle4 binstr(T n, cstr b0 = "00000000", cstr b1 = "11111111");
+template<typename T> inline str_if_Tgt4 binstr(T n, cstr b0 = "00000000", cstr b1 = "11111111");
 
-template<typename T>
-inline str_if_Tle4 hexstr(T n, uint len);
-template<typename T>
-inline str_if_Tgt4 hexstr(T n, uint len);
+template<typename T> inline str_if_Tle4 hexstr(T n, uint len);
+template<typename T> inline str_if_Tgt4 hexstr(T n, uint len);
 
 extern str hexstr(cptr, uint len);
 inline str hexstr(cstr s); // must not contain nullbyte
@@ -152,17 +147,14 @@ inline str hexstr(cstr s); // must not contain nullbyte
 //template<class T> str hexstr (T* p, uint cnt) throws AMBIGUITY: reinterpret vs. static cast!
 //template<class T> str hexstr (T n, uint len)  throws AMBIGUITY: reinterpret vs. static cast!
 
-template<class T>
-inline str numstr(T n);
+template<class T> inline str numstr(T n);
 
 static constexpr char str36[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-extern str numstr(uint32 n, uint base, cstr digits = str36);
-extern str numstr(uint64 n, uint base, cstr digits = str36);
-template<typename T>
-inline str_if_Tle4 numstr(T n, uint base, cstr digits = str36);
-template<typename T>
-inline str_if_Tgt4 numstr(T n, uint base, cstr digits = str36);
+extern str								numstr(uint32 n, uint base, cstr digits = str36);
+extern str								numstr(uint64 n, uint base, cstr digits = str36);
+template<typename T> inline str_if_Tle4 numstr(T n, uint base, cstr digits = str36);
+template<typename T> inline str_if_Tgt4 numstr(T n, uint base, cstr digits = str36);
 
 extern str charstr(char);
 extern str charstr(char, char);
@@ -179,11 +171,10 @@ extern str	  datetimestr(time_t secs); // returned string is in local time
 inline str	  datetimestr(double secs) { return datetimestr(time_t(secs)); }
 extern time_t dateval(cstr localtimestr) noexcept;
 
-extern str durationstr(time_t secs);
-extern str durationstr(double secs);
-inline str durationstr(float secs) { return durationstr(double(secs)); }
-template<typename T>
-inline str durationstr(T secs);
+extern str						durationstr(time_t secs);
+extern str						durationstr(double secs);
+inline str						durationstr(float secs) { return durationstr(double(secs)); }
+template<typename T> inline str durationstr(T secs);
 
 // NOTE: _split() reuses the source buffer and overwrites line delimiters with 0, evtl. overwriting char at ptr e!
 extern void _split(Array<str>& z, ptr a, ptr e) throws;			// split at line breaks
@@ -323,53 +314,21 @@ inline void tolower(str s) noexcept
 		for (; *s; s++) *s = to_lower(*s);
 }
 
-template<typename T>
-inline str_if_Tle4 hexstr(T n, uint len)
-{
-	return hexstr(uint32(n), len);
-}
+template<typename T> inline str_if_Tle4 hexstr(T n, uint len) { return hexstr(uint32(n), len); }
 
-template<typename T>
-inline str_if_Tgt4 hexstr(T n, uint len)
-{
-	return hexstr(uint64(n), len);
-}
+template<typename T> inline str_if_Tgt4 hexstr(T n, uint len) { return hexstr(uint64(n), len); }
 
-template<typename T>
-inline str_if_Tle4 binstr(T n, cstr b0, cstr b1)
-{
-	return binstr(uint32(n), b0, b1);
-}
-template<typename T>
-inline str_if_Tgt4 binstr(T n, cstr b0, cstr b1)
-{
-	return binstr(uint64(n), b0, b1);
-}
+template<typename T> inline str_if_Tle4 binstr(T n, cstr b0, cstr b1) { return binstr(uint32(n), b0, b1); }
+template<typename T> inline str_if_Tgt4 binstr(T n, cstr b0, cstr b1) { return binstr(uint64(n), b0, b1); }
 
 inline str hexstr(cstr s) { return hexstr(s, strlen(s)); }
 
-template<class T>
-inline str numstr(T n) throws
-{
-	return tostr(n);
-}
+template<class T> inline str numstr(T n) throws { return tostr(n); }
 
-template<typename T>
-inline str_if_Tle4 numstr(T n, uint base, cstr digits)
-{
-	return numstr(uint32(n), base, digits);
-}
-template<typename T>
-inline str_if_Tgt4 numstr(T n, uint base, cstr digits)
-{
-	return numstr(uint64(n), base, digits);
-}
+template<typename T> inline str_if_Tle4 numstr(T n, uint base, cstr digits) { return numstr(uint32(n), base, digits); }
+template<typename T> inline str_if_Tgt4 numstr(T n, uint base, cstr digits) { return numstr(uint64(n), base, digits); }
 
-template<typename T>
-inline str durationstr(T secs)
-{
-	return durationstr(time_t(secs));
-}
+template<typename T> inline str durationstr(T secs) { return durationstr(time_t(secs)); }
 
 inline void _split(Array<cstr>& z, ptr a, ptr e) throws { _split(reinterpret_cast<Array<str>&>(z), a, e); }
 inline void _split(Array<cstr>& z, ptr a, ptr e, char c) throws { _split(reinterpret_cast<Array<str>&>(z), a, e, c); }

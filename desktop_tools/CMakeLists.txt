@@ -24,9 +24,9 @@ add_compile_definitions(
 	)
 
 add_subdirectory(kilipili/common)
-add_subdirectory(kilipili/Graphics)
-add_subdirectory(kilipili/USBHost)
-add_subdirectory(kilipili/Devices)
+add_subdirectory(kilipili/graphics)
+add_subdirectory(kilipili/usb_host)
+add_subdirectory(kilipili/devices)
 
 
 add_executable(RsrcFileWriter
@@ -36,14 +36,16 @@ add_executable(RsrcFileWriter
 	rsrc_writer/YMFileConverter.cpp
 	rsrc_writer/YMFileConverter.h
 	kilipili/common/Array.h
-	kilipili/Graphics/color_options.h
-	kilipili/Graphics/Color.h
-	kilipili/Audio/AudioSource.h
-	kilipili/Audio/audio_options.h
-	kilipili/Audio/AudioSample.h
-	kilipili/Audio/AudioSource.cpp
-	kilipili/Audio/Ay38912.cpp
-	kilipili/Audio/Ay38912.h
+	kilipili/common/timing.cpp
+	kilipili/common/timing.h
+	kilipili/graphics/color_options.h
+	kilipili/graphics/Color.h
+	kilipili/audio/AudioSource.h
+	kilipili/audio/audio_options.h
+	kilipili/audio/AudioSample.h
+	kilipili/audio/AudioSource.cpp
+	kilipili/audio/Ay38912.cpp
+	kilipili/audio/Ay38912.h
 	kilipili/extern/StSoundLibrary/StSoundLibrary.h
 	kilipili/extern/StSoundLibrary/digidrum.cpp
 	kilipili/extern/StSoundLibrary/digidrum.h
@@ -88,6 +90,7 @@ target_link_libraries(RsrcFileWriter PUBLIC
 
 add_executable(UnitTest
 	unit_test/main_unit_test.cpp
+	unit_test/RCPtr_unit_test.cpp
 	unit_test/Pixmap_unit_test.cpp
 	unit_test/Canvas_unit_test.cpp
 	unit_test/BitBlit_unit_test.cpp
@@ -101,25 +104,27 @@ add_executable(UnitTest
 	unit_test/Ay38912_unit_test.cpp
 	unit_test/QspiFlash_unit_test.cpp
 	unit_test/common_unit_test.cpp
-	kilipili/Devices/SerialDevice.h
-	kilipili/Devices/SerialDevice.cpp
-	kilipili/Devices/Flash.h
-	kilipili/Devices/Flash.cpp
-	kilipili/Devices/BlockDevice.cpp
-	kilipili/Devices/QspiFlashDevice.cpp
-	kilipili/Devices/QspiFlashDevice.h
-	kilipili/Devices/Preferences.cpp
-	kilipili/Devices/Preferences.h
-	kilipili/Audio/AudioSource.h
-	kilipili/Audio/AudioSource.cpp
-	kilipili/Audio/audio_options.h
-	kilipili/Audio/AudioSample.h
-	kilipili/Audio/Ay38912.cpp
-	kilipili/Audio/Ay38912.h
+	kilipili/devices/SerialDevice.h
+	kilipili/devices/SerialDevice.cpp
+	kilipili/devices/Flash.h
+	kilipili/devices/Flash.cpp
+	kilipili/devices/BlockDevice.cpp
+	kilipili/devices/QspiFlashDevice.cpp
+	kilipili/devices/QspiFlashDevice.h
+	kilipili/devices/Preferences.cpp
+	kilipili/devices/Preferences.h
+	kilipili/audio/AudioSource.h
+	kilipili/audio/AudioSource.cpp
+	kilipili/audio/audio_options.h
+	kilipili/audio/AudioSample.h
+	kilipili/audio/Ay38912.cpp
+	kilipili/audio/Ay38912.h
 	unit_test/Mock/MockFlash.h
 	unit_test/Mock/MockFlash.cpp
 	unit_test/Mock/MockPixmap.cpp
 	unit_test/Mock/MockPixmap.h
+	kilipili/common/timing.cpp
+	kilipili/common/timing.h
 	)
 
 target_compile_definitions(UnitTest PUBLIC

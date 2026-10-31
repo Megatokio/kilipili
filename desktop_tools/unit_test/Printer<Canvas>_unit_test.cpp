@@ -2,11 +2,11 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Graphics/Color.h"
-#include "Graphics/Pixmap_wAttr.h"
-#include "Graphics/Printer<Canvas>.h"
 #include "Mock/MockPixmap.h"
 #include "doctest.h"
+#include "graphics/Color.h"
+#include "graphics/Pixmap_wAttr.h"
+#include "graphics/Printer<Canvas>.h"
 
 using namespace kilipili;
 

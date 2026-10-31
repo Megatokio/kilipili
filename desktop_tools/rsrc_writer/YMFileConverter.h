@@ -3,9 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "standard_types.h"
-#include <Devices/File.h>
-#include <common/Array.h>
+#include "common/Array.h"
+#include "common/standard_types.h"
+#include "devices/File.h"
 #include <cstdio>
 
 namespace kilipili

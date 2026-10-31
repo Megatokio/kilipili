@@ -3,10 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Devices/File.h"
-#include "Graphics/Color.h"
 #include "common/Array.h"
 #include "common/standard_types.h"
+#include "devices/File.h"
+#include "graphics/Color.h"
 #include <cstdio>
 
 /*	Image file format:

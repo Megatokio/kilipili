@@ -2,7 +2,7 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Audio/AudioSample.h"
+#include "audio/AudioSample.h"
 #include "doctest.h"
 
 

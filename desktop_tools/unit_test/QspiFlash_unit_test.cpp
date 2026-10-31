@@ -2,12 +2,12 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Devices/Flash.h"
-#include "Devices/Preferences.h"
-#include "Devices/QspiFlashDevice.h"
 #include "Mock/MockFlash.h"
 #include "common/Array.h"
 #include "common/cstrings.h"
+#include "devices/Flash.h"
+#include "devices/Preferences.h"
+#include "devices/QspiFlashDevice.h"
 #include "doctest.h"
 
 // defined in main_unit_test.cpp:

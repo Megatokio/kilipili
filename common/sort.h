@@ -88,12 +88,12 @@ inline void sort(T* a, T* e, compare_fu(T) lt)
 		switch (e - a)
 		{
 		case 2: // 3 items
-			if (lt(a[2],a[0])) std::swap(a[0], a[2]);
-			if (lt(a[2],a[1])) std::swap(a[1], a[2]);
+			if (lt(a[2], a[0])) std::swap(a[0], a[2]);
+			if (lt(a[2], a[1])) std::swap(a[1], a[2]);
 			/* fall through */
 
 		case 1: // 2 items
-			if (lt(a[1],a[0])) std::swap(a[0], a[1]);
+			if (lt(a[1], a[0])) std::swap(a[0], a[1]);
 			/* fall through */
 
 		case 0: // 1 item
@@ -121,15 +121,15 @@ inline void sort(T* a, T* e, compare_fu(T) lt)
 		{
 			if (a >= e) break;
 
-			if (lt(*a_lim,*a))
-				if (lt(*a,*e_lim)) a_lim = a++;
+			if (lt(*a_lim, *a))
+				if (lt(*a, *e_lim)) a_lim = a++;
 				else std::swap(*a, *e), e--;
 			else a++;
 
 			if (a >= e) break;
 
-			if (lt(*e,*e_lim))
-				if (lt(*a_lim,*e)) e_lim = e--;
+			if (lt(*e, *e_lim))
+				if (lt(*a_lim, *e)) e_lim = e--;
 				else std::swap(*a, *e), a++;
 			else e--;
 		}
@@ -137,7 +137,7 @@ inline void sort(T* a, T* e, compare_fu(T) lt)
 		// letztes Element unten oder oben zuschlagen.
 		// wäre unnötig, wenn in der schleife oben das abbruchkriterium (a>b) verwendet würde.
 		// dann würde das letzte Element aber häufig mit sich selbst geswappt, was stören kann.
-		if (lt(*a_lim,*a)) e--;
+		if (lt(*a_lim, *a)) e--;
 		else a++;
 
 		// größeren der subbereiche [a0..e] und [a..e0] pushen, den anderen sofort sortieren

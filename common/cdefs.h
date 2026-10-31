@@ -126,8 +126,7 @@ extern void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
 // Defining it in kilipili/CMakeLists.txt (or even only one of it's modules) will result in some
 // compile units seeing this definition and others not, which results in different sizes of objects.
 #if !defined OPTION_MEMORY_ID || OPTION_MEMORY_ID
-  #define Id(n) \
-	  const char _id[8] { n[0], n[1], n[2], n[3], n[4], n[5], n[6], 0 }
+  #define Id(n) const char _id[8] {n[0], n[1], n[2], n[3], n[4], n[5], n[6], 0}
 #else
   #define Id(n) static const char _id[8]
 #endif

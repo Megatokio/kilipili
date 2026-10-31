@@ -10,28 +10,11 @@ set(common_libraries)
 
 
 if(${MAKE_TOOLS})
-	set(common_sources
-		linux/little_big_endian.h
-		linux/glue.cpp
-		linux/glue.h)
-	set(common_includes
-		${CMAKE_CURRENT_LIST_DIR}/linux)
 else()
 	set(common_sources 
-		timing.cpp
-		memory.cpp
-		system_clock.cpp
-		stack_guard.cpp
-		Dispatcher.cpp
-		LoadSensor.cpp
-		pico/little_big_endian.h
-		pico/glue.cpp
-		pico/glue.h)
-	set(common_includes 
-		${CMAKE_CURRENT_LIST_DIR}/pico)
+		stack_guard.cpp)
 	set(common_libraries 
 		hardware_pwm
-		hardware_adc
 		pico_stdlib)
 endif()
 
@@ -39,11 +22,10 @@ endif()
 add_library(kilipili_common STATIC  
 	${common_sources}  
 	#malloc.cpp  <-- must be included in add_executable directly
+	common.h
 	Array.h
-	DiskLight.h
+	Dispatcher.cpp	
 	Dispatcher.h 
-	Led.h
-	LoadSensor.h
 	Logger.cpp
 	Logger.h 
 	Mutex.h
@@ -60,24 +42,24 @@ add_library(kilipili_common STATIC
 	cdefs.h
 	cstrings.cpp
 	cstrings.h
-	dummy.cpp
 	geometry.cpp
 	geometry.h
 	malloc.h
-	memory.h
 	no_copy_move.h
 	relational_operators.h
 	sdbm_hash.h
 	sort.h
 	stack_guard.h 
 	standard_types.h
-	system_clock.h 
 	template_helpers.h
 	tempmem.cpp
 	tempmem.h
+	timing.cpp
 	timing.h
 	FlexQueue.h
-	temperature_sensor.h
+	little_big_endian.h
+	glue.cpp
+	glue.h
 )
 
 target_compile_definitions(kilipili_common PUBLIC  
