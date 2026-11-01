@@ -38,7 +38,7 @@
    ————————————————————————————————————————————————————————— */
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /* ——————————————————————————————————————————————————————————————————————————
@@ -100,13 +100,22 @@ struct HotShape
 		this->ghostly = ghostly;
 	}
 
+#if VIDEO_COLOR_PIN_COUNT <= 16
 	struct PFX // raw pixels prefix
 	{
 		int8  dx;	 // initial offset
 		uint8 width; // count of pixels that follow
 	};
-
 	enum CMD : uint16 { END = 0x0080, GAP = 0x0180 }; // little endian
+#else
+	struct PFX // raw pixels prefix
+	{
+		int8  dx;	 // initial offset
+		uint8 width; // count of pixels that follow
+		int16 _padding;
+	};
+	enum CMD : uint32 { END = 0x0080, GAP = 0x0180 }; // little endian
+#endif
 
 protected:
 	const Color* pixels = nullptr;
@@ -140,7 +149,7 @@ protected:
 */
 struct Shape
 {
-	using HotShape = Video::HotShape;
+	using HotShape = kilipili::HotShape;
 
 	static constexpr bool isa_shape = true;
 
@@ -192,7 +201,7 @@ struct SoftenedShape : public Shape
 {
 	// sprites are scaled 2:1 horizontally, odd pixels l+r are set using blend
 
-	using HotShape = Video::HotSoftenedShape;
+	using HotShape = kilipili::HotSoftenedShape;
 	// TODO ctor
 };
 
@@ -484,7 +493,7 @@ Shape::Shape(const Pixmap& pm, int transparent_pixel, const Dist& hotspot, const
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

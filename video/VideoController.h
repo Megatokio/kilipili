@@ -40,29 +40,14 @@ using OneTimeAction = std::function<void()>;
 inline int screen_width() noexcept { return vga_mode.width; }
 inline int screen_height() noexcept { return vga_mode.height; }
 
-inline void waitForVBlank() noexcept
-{
-	while (!in_vblank) { wfe(); }
-}
-
 /*	get currently displayed line number.
 	can be less than 0 (-1 or -2) immediately before frame start.
 	is greater or equal to `vga_mode.height` in vblank after the active display area.
 */
-inline int current_scanline() noexcept
-{
-	uint time_us_in_frame = time_us_32() - time_us_at_frame_start;
-	uint cc_in_frame	  = time_us_in_frame * cc_per_us;
-	return int(cc_in_frame) / int(cc_per_scanline);
-}
+extern int current_scanline() noexcept;
 
-inline void waitForScanline(int scanline) noexcept
-{
-	if (uint(scanline) >= uint(vga_mode.height)) return waitForVBlank();
-	idle_start();
-	while (current_scanline() - scanline < 0) {} // wfe();
-	idle_end();
-}
+extern void waitForVBlank() noexcept;
+extern void waitForScanline(int scanline) noexcept;
 
 /* 	setup internal state, buffers and hardware for the requested VideoMode.
 	blocks until backend has started.

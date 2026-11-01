@@ -21,7 +21,7 @@
 		NCH: number of channels is normally set to audio_hw_num_channels.
 
 	AY38912_player<NCH,QSZ>: adds a queue for register set updates.
-		Register setd for each frame are stored into a queue for getAudio().		
+		Register sets for each frame are stored into a queue for getAudio().		
 		NCH: number of channels is normally set to audio_hw_num_channels.
 		QSZ: a queue size of 4 register sets is the default and best in 90% of all use cases.
 		The register sets are written into the AY at a fixed interval, normally the source's frame rate.
@@ -325,7 +325,7 @@ uint Ay38912_player<NCH, QSZ>::getAudio(AudioSample<NCH>* buffer, uint num_frame
 
 				super::current_sample = 0;
 				super::ccx_at_sos	  = super::ccx_now;
-				ccx_buffer_end = super::ccx_now + (output_buffer_end - super::output_buffer) * super::ccx_per_sample;
+				ccx_buffer_end = super::ccx_now + int(output_buffer_end - super::output_buffer) * super::ccx_per_sample;
 			}
 			else super::setRegisters(qdata.registers);
 

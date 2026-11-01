@@ -18,16 +18,12 @@ set(audio_defines)
 set(audio_libraries)
 
 
-if(${MAKE_TOOLS})
-	#set(audio_sources)
-	#set(audio_includes)
-	#set(audio_defines)
-	#set(audio_libraries)
+if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
+	set(audio_libraries
+		pico_stdlib
+		hardware_dma
+		hardware_pio)
 else()
-	#set(audio_sources)
-	#set(audio_includes)
-	#set(audio_defines)
-	#set(audio_libraries)
 endif()
 
 
@@ -38,9 +34,12 @@ add_library(kilipili_audio STATIC
 	AudioSource.h 
 	AudioController.h 
 	AudioController.cpp
-	i2s_audio.pio
-	pwm_audio.pio
-	sid_audio.pio
+	internal/i2s_audio.pio
+	internal/pwm_audio.pio
+	internal/sid_audio.pio
+	internal/i2s_audio.pio.h
+	internal/pwm_audio.pio.h
+	internal/sid_audio.pio.h
 	Ay38912.cpp 
 	Ay38912.h
 	YMMusicPlayer.h 
@@ -57,6 +56,7 @@ target_compile_definitions(kilipili_audio PUBLIC
 	AUDIO_DEFAULT_SAMPLE_FREQUENCY=${AUDIO_DEFAULT_SAMPLE_FREQUENCY}
 	AUDIO_INPUT_BUFFER_ON_STACK=${AUDIO_INPUT_BUFFER_ON_STACK}
 	AUDIO_INPUT_BUFFER_SIZE=${AUDIO_INPUT_BUFFER_SIZE}
+	${CMAKE_SYSTEM_NAME}
 )
 
 target_include_directories(kilipili_audio PUBLIC  
@@ -67,16 +67,14 @@ target_include_directories(kilipili_audio PUBLIC
 target_link_libraries(kilipili_audio PUBLIC  
 	${audio_libraries}
 	kilipili_common
-	pico_stdlib
-	hardware_dma
-	hardware_pio
 )
 
-if(NOT ${MAKE_TOOLS})
-	pico_generate_pio_header(kilipili_audio ${CMAKE_CURRENT_LIST_DIR}/i2s_audio.pio)
-	pico_generate_pio_header(kilipili_audio ${CMAKE_CURRENT_LIST_DIR}/pwm_audio.pio)
-	pico_generate_pio_header(kilipili_audio ${CMAKE_CURRENT_LIST_DIR}/sid_audio.pio)
-endif()
+
+# the resulting header files are already included in internal/:
+# pico_generate_pio_header(kilipili_audio ${CMAKE_CURRENT_LIST_DIR}/i2s_audio.pio)
+# pico_generate_pio_header(kilipili_audio ${CMAKE_CURRENT_LIST_DIR}/pwm_audio.pio)
+# pico_generate_pio_header(kilipili_audio ${CMAKE_CURRENT_LIST_DIR}/sid_audio.pio)
+
 
 
 

@@ -12,15 +12,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DRELEASE")
 
-set(MAKE_TOOLS ON)
 set(PICO_BOARD_HEADER_DIRS "${CMAKE_CURRENT_LIST_DIR}/../boards")
 set(PICO_BOARD_HEADER_DIRS ${PICO_BOARD_HEADER_DIRS} CACHE STRING "PICO board header directories" FORCE)
 set(PICO_BOARD "vgaboard" CACHE STRING "the target board, e.g. \"vgaboard-i2s\"")
 
 add_compile_definitions(
-	MAKE_TOOLS
 	PICO_BOARD_H="boards/${PICO_BOARD}.h"
-	PICO_NO_HARDWARE=1
 	)
 
 add_subdirectory(kilipili/common)
@@ -30,7 +27,7 @@ add_subdirectory(kilipili/devices)
 
 
 add_executable(RsrcFileWriter
-	rsrc_writer/main_rsrc_file_writer.cpp
+	rsrc_writer/main.cpp
 	rsrc_writer/RsrcFileEncoder.cpp
 	rsrc_writer/RsrcFileEncoder.h
 	rsrc_writer/YMFileConverter.cpp
@@ -89,7 +86,7 @@ target_link_libraries(RsrcFileWriter PUBLIC
 
 
 add_executable(UnitTest
-	unit_test/main_unit_test.cpp
+	unit_test/main.cpp
 	unit_test/RCPtr_unit_test.cpp
 	unit_test/Pixmap_unit_test.cpp
 	unit_test/Canvas_unit_test.cpp
@@ -128,7 +125,6 @@ add_executable(UnitTest
 	)
 
 target_compile_definitions(UnitTest PUBLIC
-	UNIT_TEST
 	FLASH_PREFERENCES=${FLASH_PREFERENCES}
 	YM_FILE="${CMAKE_CURRENT_LIST_DIR}/test_files/Ninja Spirits  5.ym"
 	)

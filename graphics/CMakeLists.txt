@@ -9,7 +9,7 @@ set(graphics_defines)
 set(graphics_libraries)
 
 
-if(${MAKE_TOOLS})
+if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 else()
 endif()
 
@@ -62,6 +62,7 @@ add_library(kilipili_graphics STATIC
 
 target_compile_definitions(kilipili_graphics PUBLIC  
 	${graphics_defines}  
+	${CMAKE_SYSTEM_NAME}
 )
 
 target_include_directories(kilipili_graphics PUBLIC  

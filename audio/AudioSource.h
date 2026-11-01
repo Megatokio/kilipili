@@ -11,6 +11,7 @@
 #include <common/cdefs.h>
 #include <string.h>
 
+
 namespace kilipili
 {
 
@@ -48,8 +49,9 @@ protected:
 	AudioSource() noexcept {}
 };
 
-using MonoSource   = AudioSource<1>;
-using StereoSource = AudioSource<2>;
+using MonoSource	= AudioSource<1>;
+using StereoSource	= AudioSource<2>;
+using HwAudioSource = AudioSource<audio_hw_num_channels>;
 
 
 /* _______________________________________________________________________________________
@@ -69,7 +71,7 @@ public:
 		uint						 remaining = num_frames;
 		while (remaining)
 		{
-			uint count = audio_source->getAudio(source, min(remaining, NELEM(source)));
+			uint count = audio_source->getAudio(source, min(remaining, uint(NELEM(source))));
 			if (count == 0) break;
 			for (uint i = 0; i < count; i++) dest[i] = source[i];
 			dest += count;
@@ -109,7 +111,7 @@ public:
 		uint	   remaining = num_frames;
 		while (remaining)
 		{
-			uint cnt = left_source->getAudio(source, min(remaining, NELEM(source)));
+			uint cnt = left_source->getAudio(source, min(remaining, uint(NELEM(source))));
 			for (uint i = 0; i < cnt; i++) dest[i].l = source[i].m;
 			cnt = right_source->getAudio(source, cnt);
 			for (uint i = 0; i < cnt; i++) dest[i].r = source[i].m;
@@ -212,7 +214,7 @@ public:
 				{
 					cnt = uint((num_frames - zi) * source_samples_per_dest_samples - position_in_source + 0.99f);
 					assert_ne(cnt, 0);
-					cnt = audio_source->getAudio(source, min(cnt, NELEM(source)));
+					cnt = audio_source->getAudio(source, min(cnt, uint(NELEM(source))));
 					if (cnt == 0) return zi;
 					qi = 0u;
 				}

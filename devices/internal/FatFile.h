@@ -41,7 +41,7 @@ public:
 
 private:
 	FatFSPtr device; // keep alive
-	FIL		 fatfile;
+	FATFILE	 fatfile;
 
 	FatFile(FatFSPtr device, cstr path, FileOpenMode mode);
 	friend class FatDir;

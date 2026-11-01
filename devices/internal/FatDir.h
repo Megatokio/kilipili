@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -9,8 +9,6 @@
 namespace kilipili
 {
 
-class FatFS;
-
 class FatDir final : public Directory
 {
 public:
@@ -20,7 +18,7 @@ public:
 	virtual void	 rewind() throws override;
 
 private:
-	DIR fatdir;
+	FATDIR fatdir;
 
 	FatDir(RCPtr<FileSystem>, cstr path) throws;
 	friend class FatFS;

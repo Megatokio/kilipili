@@ -1,9 +1,11 @@
-// Copyright (c) 2024 - 2025 kio@little-bat.de
+// Copyright (c) 2024 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "audio_options.h"
 #include "standard_types.h"
+
 
 namespace kilipili
 {
@@ -24,6 +26,7 @@ struct AudioSample;
 using NoAudioSample = AudioSample<0, Sample>;
 using MonoSample	= AudioSample<1, Sample>;
 using StereoSample	= AudioSample<2, Sample>;
+using HwAudioSample = AudioSample<audio_hw_num_channels>;
 
 
 // #################################################################
@@ -33,7 +36,8 @@ using StereoSample	= AudioSample<2, Sample>;
 template<typename Sample>
 struct AudioSample<0, Sample>
 {
-	static Sample* channels; // dummy, for syntax only
+	static constexpr uint	 num_channels = 0;
+	static constexpr Sample* channels	  = nullptr; // dummy, for syntax only
 
 	constexpr Sample left() const noexcept { return 0; }
 	constexpr Sample right() const noexcept { return 0; }
@@ -56,6 +60,8 @@ struct AudioSample<0, Sample>
 template<typename Sample>
 struct AudioSample<1, Sample>
 {
+	static constexpr uint num_channels = 1;
+
 	union
 	{
 		Sample channels[1];
@@ -83,6 +89,8 @@ struct AudioSample<1, Sample>
 template<typename Sample>
 struct AudioSample<2, Sample>
 {
+	static constexpr uint num_channels = 2;
+
 	union
 	{
 		Sample channels[2];
@@ -117,6 +125,8 @@ struct AudioSample<2, Sample>
 template<>
 struct AudioSample<1, int>
 {
+	static constexpr uint num_channels = 1;
+
 	union
 	{
 		int channels[1];
@@ -152,6 +162,8 @@ struct AudioSample<1, int>
 template<>
 struct AudioSample<2, int>
 {
+	static constexpr uint num_channels = 2;
+
 	union
 	{
 		int channels[2];

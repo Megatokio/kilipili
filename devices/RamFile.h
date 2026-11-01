@@ -4,6 +4,8 @@
 
 #pragma once
 #include "File.h"
+#include "common/basic_math.h"
+
 
 /*
 	template class RamFile provides files in ram.
@@ -79,7 +81,7 @@ public:
 		while (rem)
 		{
 			uint offs = fpos & sector_mask;
-			uint cnt  = std::min(rem, sector_size - offs);
+			uint cnt  = min(rem, sector_size - offs);
 			memcpy(data, get_sector(fpos >> ss)->data + offs, cnt);
 			data += cnt;
 			fpos += cnt;
@@ -96,11 +98,11 @@ public:
 		while (rem)
 		{
 			uint offs = fpos & sector_mask;
-			uint cnt  = std::min(rem, sector_size - offs);
+			uint cnt  = min(rem, sector_size - offs);
 			memcpy(get_sector(fpos >> ss)->data + offs, data, cnt);
 			data += cnt;
 			fpos += cnt;
-			fsize = std::max(fsize, fpos);
+			fsize = max(fsize, fpos);
 			rem -= cnt;
 		}
 
@@ -112,7 +114,7 @@ public:
 	virtual void setFpos(ADDR a) override
 	{
 		clear_eof_pending();
-		fpos = std::min(uint(a), fsize);
+		fpos = min(uint(a), fsize);
 	}
 	virtual void close() override {}
 	virtual void truncate() override

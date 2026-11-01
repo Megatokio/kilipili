@@ -4,10 +4,12 @@
 
 #include "timing.h"
 #include <stdlib.h>
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
   #include "standard_types.h"
   #include <cerrno>
+  #include <chrono>
   #include <ctime>
+  #include <thread>
   #include <unistd.h>
 #endif
 
@@ -28,7 +30,12 @@ uint64 time_us_64()
 }
 #endif
 
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
+void sleep_us(uint delay)
+{
+	std::this_thread::sleep_for(std::chrono::microseconds(delay)); //
+}
+
 uint64 make_timeout_time_us(uint32 timeout_us)
 {
 	return time_us_64() + timeout_us; //
@@ -37,14 +44,6 @@ uint64 make_timeout_time_us(uint32 timeout_us)
 bool best_effort_wfe_or_timeout(uint64)
 {
 	return true; // timeout
-}
-
-static void sleep_us(uint delay_usec) noexcept
-{
-	time_t	 time_int	= delay_usec / 1000000;
-	long	 time_fract = (delay_usec - time_int * 1000000) * 1000;
-	timespec wait_time	= {time_int, time_fract};
-	while (nanosleep(&wait_time, &wait_time) == -1 && errno == EINTR) {}
 }
 #endif
 
@@ -67,7 +66,7 @@ void wfe_or_timeout(int timeout_usec) noexcept
 	if (timeout_usec > 0)
 	{
 		idle_start();
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
 
 		// nop / todo
 #else

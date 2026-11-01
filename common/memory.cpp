@@ -5,15 +5,19 @@
 #include "memory.h"
 #include "common/cdefs.h"
 #include "common/malloc.h"
+#include "common/timing.h"
 #include "common/trace.h"
-#include <hardware/clocks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef PICO
+  #include <hardware/clocks.h>
+#endif
 
 
 // defined by linker:
 extern char end;
+#ifdef PICO
 extern char __HeapLimit;
 extern char __StackLimit;
 extern char __StackTop;
@@ -33,11 +37,13 @@ extern char __flash_binary_end;
 
 // ram from ram_vector_table to end / __HeapLimit / __StackLimit / __StackTop
 extern char __data_start__; // TODO: ram_vector_table
+#endif
 
 // =========================================
 
 namespace kilipili
 {
+#ifdef PICO
 size_t heap_start() noexcept { return size_t(&end); }
 size_t heap_end() noexcept { return size_t(&__StackLimit); }
 size_t heap_size() noexcept { return heap_end() - heap_start(); }
@@ -56,13 +62,37 @@ size_t core1_stack_top() noexcept { return size_t(&__StackOneTop); }
 size_t stack_top(uint core) noexcept { return core == 0 ? core0_stack_top() : core1_stack_top(); }
 
 size_t flash_start() noexcept { return XIP_BASE; } // normal address for reading: cached
-size_t flash_end() noexcept { return XIP_BASE + PICO_FLASH_SIZE_BYTES; }
 size_t flash_size() noexcept { return PICO_FLASH_SIZE_BYTES; }
+size_t flash_binary_end() noexcept { return size_t(&__flash_binary_end); }
+#else
+size_t heap_start() noexcept { return size_t(&end); }
+size_t heap_end() noexcept { return size_t(&end) + 0; }
+size_t heap_size() noexcept { return heap_end() - heap_start(); }
+
+size_t core0_scratch_y_start() noexcept { return 0; }
+size_t core0_scratch_y_end() noexcept { return 0; }
+size_t core1_scratch_x_start() noexcept { return 0; }
+size_t core1_scratch_x_end() noexcept { return 0; }
+
+size_t core0_stack_bottom() noexcept { return 0; }
+size_t core1_stack_bottom() noexcept { return 0; }
+size_t stack_bottom(uint core) noexcept { return core == 0 ? core0_stack_bottom() : core1_stack_bottom(); }
+
+size_t core0_stack_top() noexcept { return 0; }
+size_t core1_stack_top() noexcept { return 0; }
+size_t stack_top(uint core) noexcept { return core == 0 ? core0_stack_top() : core1_stack_top(); }
+
+size_t flash_start() noexcept { return 0; }
+size_t flash_size() noexcept { return 0; }
+size_t flash_binary_end() noexcept { return 0; }
+#endif
+
+size_t flash_end() noexcept { return flash_start() + flash_size(); }
 size_t flash_used() noexcept { return flash_binary_end() - flash_start(); }
 size_t flash_free() noexcept { return flash_end() - flash_binary_end(); }
-size_t flash_binary_end() noexcept { return size_t(&__flash_binary_end); }
 size_t flash_binary_size() noexcept { return flash_binary_end() - flash_start(); }
 
+#ifdef PICO
 size_t heap_free() noexcept
 {
 	// calculate the size of the biggest free chunk on the heap:
@@ -78,15 +108,21 @@ size_t heap_free() noexcept
 	}
 	return lo;
 }
+#else
+size_t heap_free() noexcept { return 0; }
+#endif
 
-size_t stack_free() noexcept
+int stack_free() noexcept
 {
 	// calc remaining free size on stack of current core
 
-	char tmp;
-	return size_t(&tmp) - stack_bottom(get_core_num());
+	char	tmp;
+	ssize_t free = ssize_t(&tmp) - ssize_t(stack_bottom(get_core_num()));
+	if (free == int(free)) return int(free);
+	return free < 0 ? -0x7fffffff : +0x7fffffff;
 }
 
+#ifdef PICO
 void assert_stack_free(cstr func, int sz) noexcept
 {
 	int free = stack_free();
@@ -94,9 +130,13 @@ void assert_stack_free(cstr func, int sz) noexcept
 	else if (free >= 0) panic("%s: stack overflow: only %i bytes free (%i required)", func, free, sz);
 	else panic("%s: stack overflow by %i bytes", func, -free);
 }
+#else
+void assert_stack_free(cstr func, int sz) noexcept {}
+#endif
 
 void print_core() { printf("### Hello core%u ###\n", get_core_num()); }
 
+#ifdef PICO
 void print_heap_free(int r)
 {
 	// print list of all free chunks on the heap:
@@ -124,9 +164,13 @@ void print_heap_free(int r)
 	print_heap_free(1);
 	free(p);
 }
+#else
+void print_heap_free(int) { printf("heap free: 0 bytes\n"); }
+#endif
 
-void print_stack_free() { printf("core%u stack free: %u bytes\n", get_core_num(), stack_free()); }
+void print_stack_free() { printf("core%u stack free: %i bytes\n", get_core_num(), int(stack_free())); }
 
+#ifdef PICO
 void print_core0_scratch_y_usage()
 {
 	const uintptr_t xa = uintptr_t(&__scratch_y_start__);
@@ -154,11 +198,16 @@ void print_flash_usage()
 
 	printf("0x%08x to 0x%08x: flash, used %u, free %u\n", fa, fe, flash_used(), flash_free());
 }
+#else
+void print_core0_scratch_y_usage() { printf("scratch y usage: 0 bytes\n"); }
+void print_core1_scratch_x_usage() { printf("scratch x usage: 0 bytes\n"); }
+void print_flash_usage() { printf("flash usage: 0 bytes\n"); }
+#endif
 
 void print_system_info(uint)
 {
 	print_core();
-	printf("total heap size = %u\n", heap_total_size());
+	printf("total heap size = %u\n", uint(heap_total_size()));
 	print_heap_free();
 	print_stack_free();
 	print_core0_scratch_y_usage();
@@ -173,34 +222,11 @@ void print_system_info(uint)
 	//printf("core0 stack base @ 0x%08x\n", get_stack_base(0));
 	//printf("core1 stack base @ 0x%08x\n", get_stack_base(1));
 
-	printf("system clock = %u MHz\n", clock_get_hz(clk_sys) / 1000000);
+	printf("system clock = %u MHz\n", get_system_clock() / 1000000);
 }
 
 
 // ===============================================================
-
-
-void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
-{
-	printf("\n*** <PANIC> ***\ncore: %u\n", get_core_num());
-
-	if (fmt)
-	{
-		va_list args;
-		va_start(args, fmt);
-		vprintf(fmt, args);
-		va_end(args);
-		putchar('\n');
-	}
-
-	Trace::print(get_core_num());
-	printf("stack free = %i\n", int(stack_free()));
-	cstr s = check_heap();
-	printf("heap: %s\n", s ? s : "valid");
-	dump_heap();
-	for (;;);
-	//_exit(1);	 --> HARDFAULT_EXCEPTION
-}
 
 
 } // namespace kilipili

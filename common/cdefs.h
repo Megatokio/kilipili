@@ -3,7 +3,8 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include <cstdlib> // __CONCAT
+#include <cstdio>
+#include <cstdlib>
 
 
 // test for DEBUG and RELEASE are preferred:
@@ -65,9 +66,11 @@ constexpr bool debug = true;
 
 // this is the most portable FALLTHROUGH annotation.
 // only disadvantage: you must not write a ';' after it
-#define __fallthrough               \
-	goto __CONCAT(label, __LINE__); \
-	__CONCAT(label, __LINE__) :
+#define KITTY(X, Y) X##Y
+#define CAT(X, Y)	KITTY(X, Y)
+//#define __fallthrough        \
+//	goto CAT(label, __LINE__); \
+//	CAT(label, __LINE__) :
 
 
 // ######################################

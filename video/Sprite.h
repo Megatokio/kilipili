@@ -1,18 +1,19 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "common/SpinLock.h"
 #include "geometry.h"
 #include "internal/Frames.h"
 #include "no_copy_move.h"
-#include <pico/sync.h>
 
-namespace kilipili::Video
+
+namespace kilipili
 {
 
 extern volatile int hot_row;		  // the currently displayed screen row
-extern spin_lock_t* sprites_spinlock; // spinlock for all sprites
+extern SpinLock		sprites_spinlock; // spinlock for all sprites
 
 
 struct LinkedListElement
@@ -46,8 +47,8 @@ public:
 	NO_COPY_MOVE(Sprite);
 
 	using Shape	 = SHAPE;
-	using Frame	 = Video::Frame<Shape>;
-	using Frames = Video::Frames<Shape>;
+	using Frame	 = kilipili::Frame<Shape>;
+	using Frames = kilipili::Frames<Shape>;
 
 	static constexpr bool is_animated = false;
 	static constexpr bool isa_sprite  = true;
@@ -105,7 +106,7 @@ public:
 };
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 /*
 

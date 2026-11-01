@@ -4,7 +4,7 @@
 
 #pragma once
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
   #include <pico/mutex.h>
 
 namespace kilipili

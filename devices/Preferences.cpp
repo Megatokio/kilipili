@@ -10,7 +10,7 @@
   #include "devices/Flash.h"
   #include <cstring>
 
-  #ifdef MAKE_TOOLS
+  #ifndef PICO
 	#include "glue.h"
 	#define logline(...) (void)0
   #else
@@ -42,7 +42,7 @@
 namespace kilipili
 {
 
-  #ifdef MAKE_TOOLS
+  #ifndef PICO
 	#define xip_flash_base Flash::flash_base()
 	#define xip_flash_size Flash::flash_size()
   #else

@@ -138,8 +138,8 @@ ADDR FatFS::getFileSize(cstr path) throws
 
 	path = makeFullPath(path);
 
-	FILINFO finfo;
-	FRESULT err = f_stat(path, &finfo);
+	FATFILEINFO finfo;
+	FRESULT		err = f_stat(path, &finfo);
 	if (err != FR_OK) throw tostr(err);
 
 	if (finfo.fsize == ADDR(finfo.fsize)) return ADDR(finfo.fsize);
@@ -154,8 +154,8 @@ FileType FatFS::getFileType(cstr path) noexcept
 	path = makeFullPath(path);
 	if (strchr(path, ':')[2] == 0) return DirectoryFile; // f_stat doesn't work for the root dir
 
-	FILINFO finfo;
-	FRESULT err = f_stat(path, &finfo);
+	FATFILEINFO finfo;
+	FRESULT		err = f_stat(path, &finfo);
 	return err ? NoFile : finfo.fattrib == AM_DIR ? DirectoryFile : RegularFile;
 }
 
@@ -169,8 +169,8 @@ void FatFS::makeDir(cstr path) throws
 	FRESULT err = f_mkdir(path);
 	if (err == FR_EXIST)
 	{
-		FILINFO finfo;
-		FRESULT err2 = f_stat(path, &finfo);
+		FATFILEINFO finfo;
+		FRESULT		err2 = f_stat(path, &finfo);
 		if (err2 == FR_OK && finfo.fattrib == AM_DIR) return;
 	}
 	if (err) throw tostr(err);
@@ -205,7 +205,7 @@ void FatFS::setMtime(cstr path, uint32 mtime) throws
 
 	if constexpr (!FF_USE_CHMOD) throw "option disabled";
 
-	FILINFO				   info;
+	FATFILEINFO			   info;
 	static constexpr uint8 dpm[12] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
 	uint days = mtime / (24 * 60 * 60);

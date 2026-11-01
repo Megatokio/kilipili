@@ -8,7 +8,7 @@
 
 
 // pull in board description file for targeted board:
-#ifndef MAKE_TOOLS
+#ifdef PICO
   #include <pico.h>
 #elif defined PICO_BOARD_H
   #define pico_board_cmake_set(...)
@@ -21,7 +21,7 @@
 
   #include "common/cdefs.h"
   #include "common/standard_types.h"
-  #include "pico_hw/system_clock.h"
+  #include "common/timing.h"
   #include "sdcard_spi.h"
   #include <cmath>
   #include <cstdio>
@@ -228,7 +228,7 @@ void devicesSysclockChanged(uint32 new_clock) noexcept
 		if (pio_spi.pio)
 		{
 			constexpr uint cc_per_bit = 4;
-			float		   clkdiv	  = max(float(get_system_clock()) / float(spi_clock * cc_per_bit), 1.0f);
+			float		   clkdiv	  = std::max(float(get_system_clock()) / float(spi_clock * cc_per_bit), 1.0f);
 			pio_sm_set_clkdiv(pio_spi.pio, pio_spi.sm, clkdiv);
 			if constexpr (debug) debugstr_spi_clock(clkdiv);
 		}

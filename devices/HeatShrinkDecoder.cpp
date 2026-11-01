@@ -21,7 +21,9 @@
 
 #include "HeatShrinkDecoder.h"
 #include "cdefs.h"
+#include "common/basic_math.h"
 #include <string.h>
+
 
 #define MIN_WINDOW_BITS 4
 #define MAX_WINDOW_BITS 14
@@ -123,7 +125,7 @@ SIZE HeatShrinkDecoder::read(void* _data, SIZE size, bool partial)
 		if (remaining == 0) return size;
 
 		uint8  buffer[100];
-		uint32 avail = file->read(buffer, std::min(csize - cpos, uint32(sizeof(buffer))));
+		uint32 avail = file->read(buffer, min(csize - cpos, uint32(sizeof(buffer))));
 		if unlikely (avail == 0) throw "data corrupted"; // cpos == csize
 		result = decoder_sink(buffer, avail, &cnt);
 		assert(result >= 0);
@@ -153,7 +155,7 @@ void HeatShrinkDecoder::setFpos(ADDR new_upos)
 	while (upos < uint32(new_upos))
 	{
 		uint8 buffer[100];
-		read(buffer, std::min(uint32(new_upos) - upos, uint32(sizeof(buffer))));
+		read(buffer, min(uint32(new_upos) - upos, uint32(sizeof(buffer))));
 	}
 }
 

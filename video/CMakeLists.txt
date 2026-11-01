@@ -21,28 +21,36 @@ set(video_defines)
 set(video_libraries)
 
 
-if(${MAKE_TOOLS})
-else()
+if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
+	set(video_libraries
+		hardware_pio
+		hardware_dma
+		pico_multicore
+		hardware_interp
+		hardware_exception)
+	
 	set(video_sources
+		internal/system_clock.cpp
+		internal/system_clock.h
 		internal/scanline.pio
 		internal/timing.pio
-		AnimatedSprite.h
-		Sprite.cpp      	
-		Sprite.h
-		MultiSpritesPlane.h	
-		MultiSpritesPlane.cpp
-		SingleSpritePlane.h	
-		SingleSpritePlane.cpp
-		MousePointer.h  	
-		MousePointer.cpp
 		internal/VideoBackend.h  	
 		internal/VideoBackend.cpp
-)
+		internal/ScanlineBuffer.h 	
+		internal/ScanlineBuffer.cpp
+		internal/scanline.pio.h
+		internal/timing.pio.h)
 endif()
 
 
 add_library(kilipili_video STATIC  
 	${video_sources}  
+	AnimatedSprite.h
+	MousePointer.h  	
+	MousePointer.cpp
+	MultiSpritesPlane.h	
+	SingleSpritePlane.h	
+	Sprite.h
 	VgaMode.h
 	internal/video_options.h
 	internal/Shape.h
@@ -55,8 +63,6 @@ add_library(kilipili_video STATIC
 	VideoPlane.cpp
 	VideoController.h	
 	VideoController.cpp
-	internal/ScanlineBuffer.h 	
-	internal/ScanlineBuffer.cpp
 	HamImageInfo.h  	
 	HamImageInfo.cpp
 	Passepartout.h  	
@@ -85,6 +91,7 @@ target_compile_definitions(kilipili_video PUBLIC
 	VIDEO_MAX_SYSCLOCK_MHz=${VIDEO_MAX_SYSCLOCK_MHz}
 	VIDEO_MAX_SCANLINE_BUFFERS=${VIDEO_MAX_SCANLINE_BUFFERS}
 	VIDEO_SCANLINE_RENDERER_SECTION=${VIDEO_SCANLINE_RENDERER_SECTION}
+	${CMAKE_SYSTEM_NAME}
 )
 
 target_include_directories(kilipili_video PUBLIC  
@@ -96,18 +103,12 @@ target_link_libraries(kilipili_video PUBLIC
 	${video_libraries}
 	kilipili_common
 	kilipili_graphics
-	pico_stdlib
-	hardware_pio
-	hardware_dma
-	pico_multicore
-	hardware_interp
-	hardware_exception
 )
 
-if(NOT ${MAKE_TOOLS})
-pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/timing.pio)
-pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/scanline.pio)
-endif()
+# the resulting header files are already included in video/internal/:
+# pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/timing.pio)
+# pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/scanline.pio)
+
 
 
 

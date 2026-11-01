@@ -20,21 +20,24 @@ struct InterpConfig
 {
 	uint32 c;
 
-	constexpr inline InterpConfig() noexcept : c(SIO_INTERP0_CTRL_LANE0_MASK_MSB_BITS) {} // = set_mask(0, 31)
+	constexpr inline InterpConfig() noexcept : c(Interp::lane0_mask_msb_bits) {} // = set_mask(0, 31)
 	constexpr inline InterpConfig(uint32 c) noexcept : c(c) {}
 	constexpr inline operator uint32() noexcept { return c; }
 
 	constexpr inline InterpConfig set_mask(uint mask_lsb, uint mask_msb) noexcept
 	{
-		return (c & ~(SIO_INTERP0_CTRL_LANE0_MASK_LSB_BITS | SIO_INTERP0_CTRL_LANE0_MASK_MSB_BITS)) |
-			   ((mask_lsb << SIO_INTERP0_CTRL_LANE0_MASK_LSB_LSB) & SIO_INTERP0_CTRL_LANE0_MASK_LSB_BITS) |
-			   ((mask_msb << SIO_INTERP0_CTRL_LANE0_MASK_MSB_LSB) & SIO_INTERP0_CTRL_LANE0_MASK_MSB_BITS);
+		return (c & ~(Interp::lane0_mask_lsb_bits | Interp::lane0_mask_msb_bits)) |
+			   ((mask_lsb << Interp::lane0_mask_lsb_lsb) & Interp::lane0_mask_lsb_bits) |
+			   ((mask_msb << Interp::lane0_mask_msb_lsb) & Interp::lane0_mask_msb_bits);
 	}
 	constexpr inline InterpConfig set_shift(uint shift) noexcept
 	{
-		return c | ((shift << SIO_INTERP0_CTRL_LANE0_SHIFT_LSB) & SIO_INTERP0_CTRL_LANE0_SHIFT_BITS);
+		return c | ((shift << Interp::lane0_shift_lsb) & Interp::lane0_shift_bits);
 	}
-	constexpr inline InterpConfig set_cross_input() noexcept { return c | SIO_INTERP0_CTRL_LANE0_CROSS_INPUT_BITS; }
+	constexpr inline InterpConfig set_cross_input() noexcept
+	{
+		return c | Interp::lane0_cross_input_bits; //
+	}
 };
 
 
@@ -47,17 +50,15 @@ struct Interp : public ::Interp
 
 	enum Mode {
 		//     log2(element size)  + log2(array size)
-		i1	 = (1 * ss_color) * 16 + 1,
-		i2	 = (1 * ss_color) * 16 + 2,
-		i4	 = (1 * ss_color) * 16 + 4,
-		i8	 = (1 * ss_color) * 16 + 8,
-		a1w8 = (2 * ss_color) * 16 + 2,
+		i1	 = (ss_color) * 16 + 1,
+		i2	 = (ss_color) * 16 + 2,
+		i4	 = (ss_color) * 16 + 4,
+		i8	 = (ss_color) * 16 + 8,
+		a1w8 = (ss_color + 1) * 16 + 2,
 		// custom:
 		i2u32 = 0x22, // 2 bit element size, 2 bit index => e.g. uint32 foo[4];
 		i4u32 = 0x24, // 2 bit element size, 4 bit index => e.g. uint32 foo[16];
 	};
-
-	Interp() = delete;
 
 	__always_inline size_t pop_lane_result(int lane) noexcept { return interp::pop(lane); }
 	__always_inline void   set_accumulator(int lane, uint32 value) noexcept { accum[lane] = value; }
@@ -103,23 +104,19 @@ struct Interp : public ::Interp
 	}
 };
 
-#ifdef LIB_PICO_STDLIB
-static_assert(SIO_INTERP1_ACCUM0_OFFSET - SIO_INTERP0_ACCUM0_OFFSET == sizeof(Interp));
-#endif
 
+static_assert(sizeof(Interp) == sizeof(interp_hw_t));
 
-// clang-format off
-// check definition unchanged:
-#define interp_hw_array ((interp_hw_t *)(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET))
-// clang-format on
-// redefine it:
-#undef interp_hw_array
-#define interp_hw_array reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET)
+#undef interp0
+#undef interp1
+
+#define interp0 static_cast<Interp*>(interp0_hw)
+#define interp1 static_cast<Interp*>(interp1_hw)
 
 using InterpMode = Interp::Mode;
 
-
 } // namespace kilipili
+
 
 /*
 

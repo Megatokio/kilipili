@@ -5,6 +5,7 @@
 #include "HamImageInfo.h"
 #include "common/little_big_endian.h"
 #include "devices/File.h"
+#include <memory>
 #include <string.h>
 
 namespace kilipili

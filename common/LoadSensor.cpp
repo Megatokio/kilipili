@@ -5,7 +5,7 @@
 #include "LoadSensor.h"
 #include "common/basic_math.h"
 #include "common/cdefs.h"
-#include <hardware/clocks.h>
+#include "common/timing.h"
 #include <stdio.h>
 
 namespace kilipili::LoadSensor
@@ -70,12 +70,6 @@ void CoreData::update() noexcept
 	if (pwm_count > max) max = pwm_count;
 	sum	  = sum + pwm_count;
 	count = count + 1;
-}
-
-static inline uint32 get_system_clock() noexcept
-{
-	//instead of #include "system_clock.h":
-	return clock_get_hz(clk_sys);
 }
 
 static void calibrate() noexcept;

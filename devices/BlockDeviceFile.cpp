@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "BlockDeviceFile.h"
-#ifdef MAKE_TOOLS
+#ifndef PICO
   #define logline(...) (void)0
 #else
   #include "Logger.h"

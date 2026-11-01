@@ -3,13 +3,13 @@
 // https://spdx.org/licenses/BSD-2-Clause.html
 
 #include "SDCard.h"
+#include "common/DiskLight.h"
 #include "common/Logger.h"
 #include "common/cdefs.h"
 #include "common/timing.h"
 #include "common/trace.h"
 #include "internal/crc.h"
 #include "internal/sdcard_spi.h"
-#include "pico_hw/DiskLight.h"
 #include <hardware/gpio.h>
 #include <hardware/spi.h>
 #include <pico/stdlib.h>
@@ -155,7 +155,7 @@ void __attribute__((noreturn)) SDCard::throwDeviceNotResponding()
 {
 	deselect(); // don't yet disconnect: FS will come back to us
 
-	if constexpr (debug) Trace::print(get_core_num());
+	if constexpr (debug) print_trace();
 	throw DEVICE_NOT_RESPONDING;
 }
 

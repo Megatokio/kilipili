@@ -3,8 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "AnimatedSprite.h"
-#include "SingleSpritePlane.h"
+#include "video/AnimatedSprite.h"
+#include "video/SingleSpritePlane.h"
+#include "video/internal/Shape.h"
 
 namespace kilipili
 {
@@ -21,10 +22,10 @@ enum MousePointerID {
 
 
 template<typename Sprite>
-class MousePointer : public Video::SingleSpritePlane<Sprite>
+class MousePointer : public SingleSpritePlane<Sprite>
 {
 public:
-	using super = Video::SingleSpritePlane<Sprite>;
+	using super = SingleSpritePlane<Sprite>;
 	using Shape = typename Sprite::Shape;
 	static_assert(Shape::isa_shape);
 
@@ -47,8 +48,8 @@ public:
 // =========================================================================
 
 // yes, we have them all!
-extern template class MousePointer<Video::Sprite<Video::Shape>>;
-extern template class MousePointer<Video::AnimatedSprite<Video::Shape>>;
+extern template class MousePointer<kilipili::Sprite<kilipili::Shape>>;
+extern template class MousePointer<kilipili::AnimatedSprite<kilipili::Shape>>;
 
 } // namespace kilipili
 

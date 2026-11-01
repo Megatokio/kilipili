@@ -1,35 +1,24 @@
-// Copyright (c) 2025 - 2025 kio@little-bat.de
+// Copyright (c) 2025 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 
 #include "Flash.h"
-#include "pico_hw/DiskLight.h"
+#include "common/DiskLight.h"
+#include "common/glue.h"
 #include <string.h>
 
-#ifdef MAKE_TOOLS
-  #include "common/glue.h"
-#else
+#ifdef PICO
   #include <hardware/flash.h>
   #include <hardware/sync.h>
 extern char __flash_binary_end;
 #endif
 
 
-#ifdef MAKE_TOOLS
-namespace kilipili
-{
-// for unit test: these are in unit_test/Mock/MockFlash.cpp
-extern void flash_range_erase(uint32 flash_offs, uint32 count);
-extern void flash_range_program(uint32 flash_offs, const uint8* data, uint32 count);
-} // namespace kilipili
-#endif
-
-
 namespace kilipili::Flash
 {
 
-#ifdef MAKE_TOOLS
+#ifndef PICO
 
 static cuptr  flash_start;
 static cuptr  flash_start_nocache;

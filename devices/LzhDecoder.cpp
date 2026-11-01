@@ -15,8 +15,10 @@
 */
 
 #include "LzhDecoder.h"
+#include "common/basic_math.h"
 #include <cstring>
 #include <memory.h>
+
 
 namespace kilipili
 {
@@ -89,11 +91,11 @@ SIZE LzhDecoder::read(void* _data, SIZE size, bool partial)
 	{
 		if (obu_ri == sizeof(buffer))
 		{
-			decode(std::min(DICSIZ, usize - upos), buffer);
+			decode(min(DICSIZ, usize - upos), buffer);
 			obu_ri = 0;
 		}
 
-		SIZE n = std::min(remaining, DICSIZ - obu_ri);
+		SIZE n = min(remaining, DICSIZ - obu_ri);
 		memcpy(data, buffer + obu_ri, n);
 		data += n;
 		obu_ri += n;
@@ -126,7 +128,7 @@ void LzhDecoder::setFpos(ADDR new_upos)
 	while (upos < uint32(new_upos))
 	{
 		uint8 buffer[100];
-		read(buffer, std::min(uint32(new_upos) - upos, uint32(sizeof(buffer))));
+		read(buffer, min(uint32(new_upos) - upos, uint32(sizeof(buffer))));
 	}
 }
 
@@ -151,7 +153,7 @@ void LzhDecoder::fillbuf(int n)
 		if (fillbufsize == 0)
 		{
 			fillbuf_i	= 0;
-			fillbufsize = int(file->read(buf, std::min(BUFSIZE - 32, csize - cpos)));
+			fillbufsize = int(file->read(buf, min(BUFSIZE - 32, csize - cpos)));
 			cpos += uint(fillbufsize);
 		}
 		if (fillbufsize > 0) fillbufsize--, subbitbuf = buf[fillbuf_i++];

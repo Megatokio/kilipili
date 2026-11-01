@@ -147,7 +147,7 @@
 
 #define FF_LFN_BUF 255
 #define FF_SFN_BUF 12
-/* This set of options defines size of file name members in the FILINFO structure
+/* This set of options defines size of file name members in the FATFILEINFO structure
 /  which is used to read out directory items. These values should be suffcient for
 /  the file names to read. The maximum possible length of the read file name depends
 /  on character encoding. When LFN is not enabled, these options have no effect. */
@@ -230,7 +230,7 @@
   #define FF_FS_TINY 0
 #endif
 /* This option switches tiny buffer configuration. (0:Normal or 1:Tiny)
-/  At the tiny configuration, size of file object (FIL) is shrinked FF_MAX_SS bytes.
+/  At the tiny configuration, size of file object (FATFILE) is shrinked FF_MAX_SS bytes.
 /  Instead of private sector buffer eliminated from the file object, common sector
 /  buffer in the filesystem object (FATFS) is used for the file data transfer. */
 

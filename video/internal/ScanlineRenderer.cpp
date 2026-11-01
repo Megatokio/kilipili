@@ -11,12 +11,14 @@
 */
 
 #include "ScanlineRenderer.h"
+#include "Interp.h"
 #include "common/basic_math.h"
 #include "common/cdefs.h"
 #include "common/template_helpers.h"
-#include "internal/Interp.h"
-#include <hardware/gpio.h>
-#include <pico/stdio.h>
+#ifdef PICO
+  #include <hardware/gpio.h>
+  #include <pico/stdio.h>
+#endif
 
 #ifndef VIDEO_OPTIMISTIC_A1W8
   #define VIDEO_OPTIMISTIC_A1W8 OFF
@@ -34,7 +36,11 @@
   #define VIDEO_SCANLINE_RENDERER_SECTION XRAM
 #endif
 
-#define SECTION __section(VIDEO_SCANLINE_RENDERER_SECTION ".slr" __XSTRING(__LINE__))
+#ifdef PICO
+  #define SECTION __section(VIDEO_SCANLINE_RENDERER_SECTION ".slr" __XSTRING(__LINE__))
+#else
+  #define SECTION
+#endif
 
 
 // ============================================================================================
@@ -67,9 +73,12 @@ ScanlineRenderer_i1::ScanlineRenderer_i1(const Color* colormap_in) noexcept
 	}
 }
 
-void SECTION ScanlineRenderer_i1::render(uint32* dest, uint width, const uint8* pixels) noexcept
+void SECTION ScanlineRenderer_i1::render(uint32* _dest, uint width, const uint8* pixels) noexcept
 {
+	assert(sizeof(Color) <= 2 || (size_t(_dest) & 7) == 0);
+
 	const twocolors* colors = reinterpret_cast<const twocolors*>(colormap);
+	twocolors*		 dest	= reinterpret_cast<twocolors*>(_dest);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -99,9 +108,12 @@ ScanlineRenderer_i2::ScanlineRenderer_i2(const Color* colormap_in) noexcept
 	}
 }
 
-void SECTION ScanlineRenderer_i2::render(uint32* dest, uint width, const uint8* pixels) noexcept
+void SECTION ScanlineRenderer_i2::render(uint32* _dest, uint width, const uint8* pixels) noexcept
 {
+	assert(sizeof(Color) <= 2 || (size_t(_dest) & 7) == 0);
+
 	const twocolors* colors = reinterpret_cast<const twocolors*>(colormap);
+	twocolors*		 dest	= reinterpret_cast<twocolors*>(_dest);
 
 	for (uint i = 0; i < width / 8; i++)
 	{
@@ -370,12 +382,22 @@ void __section(XRAM ".slr") ScanlineRenderer<Pixmap_a1w8>( //
 			}
 
 			uint32 bits = *pixels++;
-			interp->set_accumulator(lane0, bits >> (2 - ss_twocolors));
-
-			*dest++ = ctable[bits & 3];
-			*dest++ = *interp->next_color<twocolors>();
-			*dest++ = *interp->next_color<twocolors>();
-			*dest++ = *interp->next_color<twocolors>();
+			if constexpr (ss_twocolors <= 2)
+			{
+				interp->set_accumulator(lane0, bits >> (2 - ss_twocolors));
+				*dest++ = ctable[bits & 3];
+				*dest++ = *interp->next_color<twocolors>();
+				*dest++ = *interp->next_color<twocolors>();
+				*dest++ = *interp->next_color<twocolors>();
+			}
+			else // 32bit Color:
+			{
+				interp->set_accumulator(lane0, bits >> (4 - ss_twocolors));
+				*dest++ = ctable[bits & 3];
+				*dest++ = ctable[(bits >> 2) & 3];
+				*dest++ = *interp->next_color<twocolors>();
+				*dest++ = *interp->next_color<twocolors>();
+			}
 
 			color10b = *attributes++;
 			if (!VIDEO_OPTIMISTIC_A1W8 || color10a != color10b)

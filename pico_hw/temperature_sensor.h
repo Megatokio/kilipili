@@ -15,6 +15,10 @@ namespace kilipili
 
 	init_temperature() must be called before first reading
 	and also after the ADC was used otherwise.
+
+	*note*
+	add `hardware_adc` to the project:
+	CMakeLists.txt: `target_link_libraries(${PROJECT} ...)`
 */
 
 template<int unit = 'C'>

@@ -3,13 +3,14 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "Sprite.h"
-#include "VideoPlane.h"
-#include "internal/Frames.h"
-#include "internal/Shape.h"
+#include "graphics/Color.h"
+#include "video/Sprite.h"
+#include "video/VideoPlane.h"
+//#include "internal/Frames.h"
+//#include "internal/Shape.h"
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /*
@@ -29,8 +30,8 @@ class SingleSpritePlane : public VideoPlane
 public:
 	using Shape	   = typename Sprite::Shape;
 	using HotShape = typename Shape::HotShape;
-	using Frames   = Video::Frames<Shape>;
-	using Frame	   = Video::Frame<Shape>;
+	using Frames   = kilipili::Frames<Shape>;
+	using Frame	   = kilipili::Frame<Shape>;
 
 	static constexpr bool is_animated = Sprite::is_animated;
 
@@ -71,11 +72,11 @@ protected:
 		uint32 sreg;
 		Lock() noexcept
 		{
-			if constexpr (is_animated) sreg = spin_lock_blocking(sprites_spinlock);
+			if constexpr (is_animated) sreg = sprites_spinlock.lock();
 		}
 		~Lock() noexcept
 		{
-			if constexpr (is_animated) spin_unlock(sprites_spinlock, sreg);
+			if constexpr (is_animated) sprites_spinlock.unlock(sreg);
 		}
 	};
 };
@@ -90,7 +91,6 @@ SingleSpritePlane<Sprite>::SingleSpritePlane(const Shape& s, const Point& positi
 {
 	if constexpr (is_animated)
 	{
-		if (!sprites_spinlock) sprites_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
 		sprite.current_frame = 0xff; //
 		sprite.next_frame();		 // needed?
 	}
@@ -102,7 +102,6 @@ SingleSpritePlane<Sprite>::SingleSpritePlane(Frames&& frames, const Point& posit
 {
 	if constexpr (is_animated)
 	{
-		if (!sprites_spinlock) sprites_spinlock = spin_lock_init(uint(spin_lock_claim_unused(true)));
 		sprite.current_frame = 0xff; //
 		sprite.next_frame();		 // needed?
 	}
@@ -187,7 +186,7 @@ void __section(RAM ".ssp") SingleSpritePlane<Sprite>::renderScanline( //
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

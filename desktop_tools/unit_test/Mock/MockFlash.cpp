@@ -3,7 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "MockFlash.h"
-#include "Array.h"
+#include "common/Array.h"
+#include "common/glue.h"
+
 
 namespace kilipili
 {
@@ -20,35 +22,6 @@ static MockFlash* qspi = nullptr;
 #define LOG(...)	   qspi->log.append(usingstr(__VA_ARGS__))
 #define LOG_ERROR(...) qspi->error_log.append(usingstr(__VA_ARGS__))
 
-
-extern void flash_range_erase(uint32 addr, uint32 size)
-{
-	assert(qspi);
-	LOG("erase 0x%08x + 0x%08x -> 0x%08x", addr, size, addr + size);
-
-	if (addr & emask || size & emask || addr + size > qspi->data.count()) qspi->error = 1;
-	else memset(&qspi->data[addr], 0xff, size);
-}
-
-extern void flash_range_program(uint32 addr, const uint8* data, uint32 size)
-{
-	assert(qspi);
-	LOG("write 0x%08x + 0x%08x -> 0x%08x", addr, size, addr + size);
-
-	if (!data)
-	{
-		qspi->error = 1;
-		LOG("data==nullptr");
-	}
-	else if (addr & wmask || size & wmask || addr + size > qspi->data.count()) //
-	{
-		qspi->error = 1;
-	}
-	else
-	{
-		for (uint i = 0; i < size; i++) qspi->data[addr + i] &= data[i];
-	}
-}
 
 MockFlash::MockFlash(Array<uint8>& data, Array<cstr>& log, bool& error) : //
 	data(data),
@@ -68,6 +41,40 @@ MockFlash::~MockFlash()
 }
 
 } // namespace kilipili
+
+
+using namespace kilipili;
+
+
+void flash_range_erase(uint32 addr, uint32 size)
+{
+	assert(qspi);
+	LOG("erase 0x%08x + 0x%08x -> 0x%08x", addr, size, addr + size);
+
+	if (addr & emask || size & emask || addr + size > qspi->data.count()) qspi->error = 1;
+	else memset(&qspi->data[addr], 0xff, size);
+}
+
+void flash_range_program(uint32 addr, const uint8* data, uint32 size)
+{
+	assert(qspi);
+	LOG("write 0x%08x + 0x%08x -> 0x%08x", addr, size, addr + size);
+
+	if (!data)
+	{
+		qspi->error = 1;
+		LOG("data==nullptr");
+	}
+	else if (addr & wmask || size & wmask || addr + size > qspi->data.count()) //
+	{
+		qspi->error = 1;
+	}
+	else
+	{
+		for (uint i = 0; i < size; i++) qspi->data[addr + i] &= data[i];
+	}
+}
+
 
 /*
 

@@ -22,7 +22,7 @@ extern size_t stack_bottom(uint core) noexcept;
 extern size_t core0_stack_top() noexcept;
 extern size_t core1_stack_top() noexcept;
 extern size_t stack_top(uint core) noexcept;
-extern size_t stack_free() noexcept;
+extern int	  stack_free() noexcept;
 
 extern size_t flash_binary_end() noexcept;
 extern size_t flash_binary_size() noexcept;

@@ -1,12 +1,11 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "RCPtr.h"
-#include "standard_types.h"
-#include "tempmem.h"
-#include <memory>
+#include "common/RCPtr.h"
+#include "common/standard_types.h"
+
 
 namespace kilipili
 {
@@ -68,6 +67,7 @@ enum FileType : uint8 {
 	NoFile		  = 0,
 	RegularFile	  = 1,
 	DirectoryFile = 2,
+	SymbolicLink  = 3,
 };
 
 enum FileMode : uint8 {

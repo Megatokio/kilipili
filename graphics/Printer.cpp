@@ -473,9 +473,15 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 			case RUBOUT:
 			case BACKSPACE: c = KEY_BACKSPACE; break;
 			case ESC:
+				c = getc();
+				if (c != '[')
+				{
+					debugstr("{ESC,0x%02x}", uint(c));
+					continue;
+				}
+				[[fallthrough]];
 			case CSI:
-				if (c == ESC) c = getc();
-				if (c == '[') c = getc();
+				c = getc();
 				switch (c)
 				{
 				case '3': // ESC[3~
@@ -486,7 +492,7 @@ str Printer<>::inputLine(std::function<int()> getc, str oldtext, int epos)
 				case 'B': c = KEY_ARROW_DOWN; break;  // ESC[B
 				case 'C': c = KEY_ARROW_RIGHT; break; // ESC[C
 				case 'D': c = KEY_ARROW_LEFT; break;  // ESC[D
-				default: debugstr("{ESC,0x%02x}", uint(c)); continue;
+				default: debugstr("{ESC,[,0x%02x}", uint(c)); continue;
 				}
 				break;
 			default: debugstr("{0x%02x}", uint(c)); continue;

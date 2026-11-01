@@ -11,7 +11,6 @@
 
 namespace kilipili
 {
-using namespace Video;
 
 
 // =============================================================

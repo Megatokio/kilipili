@@ -16,7 +16,7 @@ namespace kilipili
 {
 
 template<>
-FileInfo::FileInfo(const FILINFO& info)
+FileInfo::FileInfo(const FATFILEINFO& info)
 {
 	trace(__func__);
 
@@ -65,8 +65,8 @@ FileInfo FatDir::next(cstr pattern) throws
 
 	for (;;)
 	{
-		FILINFO filinfo;
-		FRESULT err = f_readdir(&fatdir, &filinfo);
+		FATFILEINFO filinfo;
+		FRESULT		err = f_readdir(&fatdir, &filinfo);
 		if (err) throw tostr(err);
 		if (filinfo.fname[0] == 0) return FileInfo(); // end of dir
 		if (fnmatch(pattern, filinfo.fname, true)) return FileInfo(filinfo);

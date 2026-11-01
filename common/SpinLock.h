@@ -3,13 +3,11 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-
-
 #include "common/standard_types.h"
-#ifndef LIB_PICO_STDLIB
-  #include <mutex>
-#else
+#ifdef PICO
   #include <pico/sync.h>
+#else
+  #include <mutex>
 #endif
 
 
@@ -22,27 +20,17 @@ struct SpinLock
 	uint32 lock(); // blocking
 	void   unlock(uint32) noexcept;
 	bool   try_lock_unsafe() noexcept;
+	bool   is_locked() noexcept;
 
-#ifndef LIB_PICO_STDLIB
-
-	std::mutex mutex;
-#else
+#ifdef PICO
 	spin_lock_t* spinlock;
+#else
+	std::mutex mutex;
 #endif
 };
 
 
-#ifndef LIB_PICO_STDLIB
-inline SpinLock::SpinLock(int) noexcept {}
-inline SpinLock::~SpinLock() noexcept {}
-inline uint32 SpinLock::lock()
-{
-	mutex.lock();
-	return 0;
-}
-inline void SpinLock::unlock(uint32) noexcept { mutex.unlock(); }
-#else
-
+#ifdef PICO
 inline SpinLock::SpinLock(int id) noexcept
 {
 	if (id == STRIPED) spinlock = spin_lock_instance(next_striped_spin_lock_num());
@@ -54,9 +42,24 @@ inline SpinLock::SpinLock(int id) noexcept
 	}
 }
 inline SpinLock::~SpinLock() noexcept { spin_lock_unclaim(spin_lock_get_num(spinlock)); }
-
 inline uint32 SpinLock::lock() { return spin_lock_blocking(spinlock); }
 inline void	  SpinLock::unlock(uint32 sr) noexcept { spin_unlock(spinlock, sr); }
 inline bool	  SpinLock::try_lock_unsafe() noexcept { return spin_try_lock_unsafe(spinlock); }
+inline bool	  SpinLock::is_locked() noexcept { return is_spin_locked(spinlock); }
 
+#else
+inline SpinLock::SpinLock(int) noexcept {}
+inline SpinLock::~SpinLock() noexcept {}
+inline uint32 SpinLock::lock()
+{
+	mutex.lock();
+	return 0;
+}
+inline void SpinLock::unlock(uint32) noexcept { mutex.unlock(); }
+inline bool SpinLock::is_locked() noexcept
+{
+	bool avail = mutex.try_lock();
+	if (avail) mutex.unlock();
+	return !avail;
+}
 #endif

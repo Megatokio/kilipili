@@ -48,7 +48,7 @@ static constexpr int  sse	= 12;
 static constexpr uint esize = 1 << sse;
 static constexpr uint wsize = 1 << ssw;
 
-#ifdef MAKE_TOOLS
+#ifndef PICO
 extern void setupMockFlash(uint8* flash, uint32 size) noexcept;
 #endif
 

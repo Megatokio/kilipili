@@ -1,4 +1,4 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -6,19 +6,23 @@
 #include "basic_math.h"
 #include <stdio.h>
 
-#if !defined OPTION_STACK_TRACE || OPTION_STACK_TRACE
+#if !defined KILIPILI_OPTION_STACK_TRACE || KILIPILI_OPTION_STACK_TRACE
 
 namespace kilipili
 {
 
-Trace::Path Trace::path[2];
+  #ifdef PICO
+Trace traces[2];
+  #else
+thread_local Trace my_trace;
+  #endif
 
-void Trace::print(uint core)
+
+void Trace::print()
 {
-	Path& stack = path[core];
-	for (uint i = 0; i < min(stack.depth, maxdepth); i++)
+	for (uint i = 0; i < min(depth, maxdepth); i++)
 	{
-		printf("core%u: %u: %s\n", core, i, stack.procs[i]); //
+		printf("core%u: %u: %s\n", get_core_num(), i, names[i]); //
 	}
 }
 

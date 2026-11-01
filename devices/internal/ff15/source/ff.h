@@ -198,7 +198,7 @@ typedef struct {
 
 
 
-/* File object structure (FIL) */
+/* File object structure (FATFILE) */
 
 typedef struct {
 	FFOBJID	obj;			/* Object identifier (must be the 1st member to detect invalid object pointer) */
@@ -217,11 +217,11 @@ typedef struct {
 #if !FF_FS_TINY
 	BYTE	buf[FF_MAX_SS];	/* File private data read/write window */
 #endif
-} FIL;
+} FATFILE;
 
 
 
-/* Directory object structure (DIR) */
+/* Directory object structure (FATDIR) */
 
 typedef struct {
 	FFOBJID	obj;			/* Object identifier */
@@ -236,11 +236,11 @@ typedef struct {
 #if FF_USE_FIND
 	const TCHAR* pat;		/* Pointer to the name matching pattern */
 #endif
-} DIR;
+} FATDIR;
 
 
 
-/* File information structure (FILINFO) */
+/* File information structure (FATFILEINFO) */
 
 typedef struct {
 	FSIZE_t	fsize;			/* File size */
@@ -253,7 +253,7 @@ typedef struct {
 #else
 	TCHAR	fname[12 + 1];	/* File name */
 #endif
-} FILINFO;
+} FATFILEINFO;
 
 
 
@@ -301,40 +301,40 @@ typedef enum {
 /* FatFs Module Application Interface                           */
 /*--------------------------------------------------------------*/
 
-FRESULT f_open (FIL* fp, const TCHAR* path, BYTE mode);				/* Open or create a file */
-FRESULT f_close (FIL* fp);											/* Close an open file object */
-FRESULT f_read (FIL* fp, void* buff, UINT btr, UINT* br);			/* Read data from the file */
-FRESULT f_write (FIL* fp, const void* buff, UINT btw, UINT* bw);	/* Write data to the file */
-FRESULT f_lseek (FIL* fp, FSIZE_t ofs);								/* Move file pointer of the file object */
-FRESULT f_truncate (FIL* fp);										/* Truncate the file */
-FRESULT f_sync (FIL* fp);											/* Flush cached data of the writing file */
-FRESULT f_opendir (DIR* dp, const TCHAR* path);						/* Open a directory */
-FRESULT f_closedir (DIR* dp);										/* Close an open directory */
-FRESULT f_readdir (DIR* dp, FILINFO* fno);							/* Read a directory item */
-FRESULT f_findfirst (DIR* dp, FILINFO* fno, const TCHAR* path, const TCHAR* pattern);	/* Find first file */
-FRESULT f_findnext (DIR* dp, FILINFO* fno);							/* Find next file */
+FRESULT f_open (FATFILE* fp, const TCHAR* path, BYTE mode);				/* Open or create a file */
+FRESULT f_close (FATFILE* fp);											/* Close an open file object */
+FRESULT f_read (FATFILE* fp, void* buff, UINT btr, UINT* br);			/* Read data from the file */
+FRESULT f_write (FATFILE* fp, const void* buff, UINT btw, UINT* bw);	/* Write data to the file */
+FRESULT f_lseek (FATFILE* fp, FSIZE_t ofs);								/* Move file pointer of the file object */
+FRESULT f_truncate (FATFILE* fp);										/* Truncate the file */
+FRESULT f_sync (FATFILE* fp);											/* Flush cached data of the writing file */
+FRESULT f_opendir (FATDIR* dp, const TCHAR* path);						/* Open a directory */
+FRESULT f_closedir (FATDIR* dp);										/* Close an open directory */
+FRESULT f_readdir (FATDIR* dp, FATFILEINFO* fno);							/* Read a directory item */
+FRESULT f_findfirst (FATDIR* dp, FATFILEINFO* fno, const TCHAR* path, const TCHAR* pattern);	/* Find first file */
+FRESULT f_findnext (FATDIR* dp, FATFILEINFO* fno);							/* Find next file */
 FRESULT f_mkdir (const TCHAR* path);								/* Create a sub directory */
 FRESULT f_unlink (const TCHAR* path);								/* Delete an existing file or directory */
 FRESULT f_rename (const TCHAR* path_old, const TCHAR* path_new);	/* Rename/Move a file or directory */
-FRESULT f_stat (const TCHAR* path, FILINFO* fno);					/* Get file status */
+FRESULT f_stat (const TCHAR* path, FATFILEINFO* fno);					/* Get file status */
 FRESULT f_chmod (const TCHAR* path, BYTE attr, BYTE mask);			/* Change attribute of a file/dir */
-FRESULT f_utime (const TCHAR* path, const FILINFO* fno);			/* Change timestamp of a file/dir */
+FRESULT f_utime (const TCHAR* path, const FATFILEINFO* fno);			/* Change timestamp of a file/dir */
 FRESULT f_chdir (const TCHAR* path);								/* Change current directory */
 FRESULT f_chdrive (const TCHAR* path);								/* Change current drive */
 FRESULT f_getcwd (TCHAR* buff, UINT len);							/* Get current directory */
 FRESULT f_getfree (const TCHAR* path, DWORD* nclst, FATFS** fatfs);	/* Get number of free clusters on the drive */
 FRESULT f_getlabel (const TCHAR* path, TCHAR* label, DWORD* vsn);	/* Get volume label */
 FRESULT f_setlabel (const TCHAR* label);							/* Set volume label */
-FRESULT f_forward (FIL* fp, UINT(*func)(const BYTE*,UINT), UINT btf, UINT* bf);	/* Forward data to the stream */
-FRESULT f_expand (FIL* fp, FSIZE_t fsz, BYTE opt);					/* Allocate a contiguous block to the file */
+FRESULT f_forward (FATFILE* fp, UINT(*func)(const BYTE*,UINT), UINT btf, UINT* bf);	/* Forward data to the stream */
+FRESULT f_expand (FATFILE* fp, FSIZE_t fsz, BYTE opt);					/* Allocate a contiguous block to the file */
 FRESULT f_mount (FATFS* fs, const TCHAR* path, BYTE opt);			/* Mount/Unmount a logical drive */
 FRESULT f_mkfs (const TCHAR* path, const MKFS_PARM* opt, void* work, UINT len);	/* Create a FAT volume */
 FRESULT f_fdisk (BYTE pdrv, const LBA_t ptbl[], void* work);		/* Divide a physical drive into some partitions */
 FRESULT f_setcp (WORD cp);											/* Set current code page */
-int f_putc (TCHAR c, FIL* fp);										/* Put a character to the file */
-int f_puts (const TCHAR* str, FIL* cp);								/* Put a string to the file */
-int f_printf (FIL* fp, const TCHAR* str, ...);						/* Put a formatted string to the file */
-TCHAR* f_gets (TCHAR* buff, int len, FIL* fp);						/* Get a string from the file */
+int f_putc (TCHAR c, FATFILE* fp);										/* Put a character to the file */
+int f_puts (const TCHAR* str, FATFILE* cp);								/* Put a string to the file */
+int f_printf (FATFILE* fp, const TCHAR* str, ...);						/* Put a formatted string to the file */
+TCHAR* f_gets (TCHAR* buff, int len, FATFILE* fp);						/* Get a string from the file */
 
 /* Some API fucntions are implemented as macro */
 
@@ -414,7 +414,7 @@ void ff_mutex_give (int vol);		/* Unlock sync object */
 #define FS_FAT32	3
 #define FS_EXFAT	4
 
-/* File attribute bits for directory entry (FILINFO.fattrib) */
+/* File attribute bits for directory entry (FATFILEINFO.fattrib) */
 #define	AM_RDO	0x01	/* Read only */
 #define	AM_HID	0x02	/* Hidden */
 #define	AM_SYS	0x04	/* System */

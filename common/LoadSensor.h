@@ -3,8 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 
+  #include <hardware/clocks.h>
   #include <hardware/pwm.h>
   #include <pico/stdlib.h>
 
@@ -16,7 +17,6 @@
 
 namespace kilipili::LoadSensor
 {
-
 void start() noexcept;
 void stop() noexcept;
 void recalibrate() noexcept;

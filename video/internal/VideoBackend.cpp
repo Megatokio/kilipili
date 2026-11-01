@@ -1,4 +1,4 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -6,25 +6,23 @@
 #include "ScanlineBuffer.h"
 #include "common/basic_math.h"
 #include "common/cdefs.h"
-#include "pico_hw/system_clock.h"
 #include "scanline.pio.h"
+#include "system_clock.h"
 #include "timing.h"
 #include "timing.pio.h"
 #include "video_options.h"
-#include <hardware/clocks.h>
 #include <hardware/dma.h>
 #include <hardware/irq.h>
 #include <hardware/pio.h>
-#include <pico/sync.h>
 #include <stdio.h>
 
 namespace kilipili
 {
 
 // clang-format off
-#define pio0_hw ((pio_hw_t *)PIO0_BASE)				// assert definition hasn't changed
+#define pio0_hw ((pio_hw_t *)PIO0_BASE)					// assert definition hasn't changed
 #undef pio0_hw											// undef c-style definition
-#define pio0_hw reinterpret_cast<pio_hw_t*>(PIO0_BASE) // replace with c++-style definition
+#define pio0_hw reinterpret_cast<pio_hw_t*>(PIO0_BASE)	// replace with c++-style definition
 
 #define dma_hw ((dma_hw_t *)DMA_BASE)					// assert definition hasn't changed
 #undef dma_hw											// undef c-style definition
@@ -388,7 +386,7 @@ static void stop_sm_and_dma() noexcept
 	pio_set_sm_mask_enabled(video_pio, (1u << SCANLINE_SM) | (1u << TIMING_SM), false);
 }
 
-sysclock_params calc_new_sysclock(uint32 min_clock, uint32 pixel_clock)
+uint32 calc_new_sysclock(uint32 min_clock, uint32 pixel_clock)
 {
 	// the resulting sysclock should be higher than min_sys_clock
 	// the resulting sysclock must be lower than VIDEO_MAX_SYSCLOCK_MHz
@@ -401,13 +399,19 @@ sysclock_params calc_new_sysclock(uint32 min_clock, uint32 pixel_clock)
 	min_clock		 = max(min_clock, 90 MHz, 2 * pixel_clock);
 	min_clock		 = (min_clock + pixel_clock - 99) / pixel_clock * pixel_clock;
 
-	sysclock_params best = calc_sysclock_params(min_clock);
-	for (uint clock = min_clock + pixel_clock; best.err && clock <= max_clock; clock += pixel_clock)
+	uint32 best_clock = min_clock;
+	uint   best_err	  = calc_sysclock_error(min_clock);
+
+	for (uint clock = min_clock + pixel_clock; best_err && clock <= max_clock; clock += pixel_clock)
 	{
-		sysclock_params params = calc_sysclock_params(clock);
-		if (params.err < best.err) best = params;
+		uint new_err = calc_sysclock_error(clock);
+		if (new_err < best_err)
+		{
+			best_err   = new_err;
+			best_clock = clock;
+		}
 	}
-	return best;
+	return best_clock;
 }
 
 void start_video_backend(const VgaMode& vga_mode, uint32 min_sys_clock) throws
@@ -419,14 +423,8 @@ void start_video_backend(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 	// we need a multiple of pixel clock and a multiple of 1 MHz less than fMAX:
 	// `min_sys_clock` is only used as a hint.
 	if (!min_sys_clock) min_sys_clock = uint32(vga_mode.width) * vga_mode.v_total() * 8 * 60; // best guess
-	sysclock_params params = calc_new_sysclock(min_sys_clock, vga_mode.pixel_clock);
-	assert(params.sysclock % 1000000 == 0);
-
-	if (params.voltage > vreg_get_voltage())
-	{
-		vreg_set_voltage(params.voltage); // up
-		sleep_ms(5);
-	}
+	uint32 new_sysclock = calc_new_sysclock(min_sys_clock, vga_mode.pixel_clock);
+	assert(new_sysclock % 1000000 == 0);
 
 	if (state != not_started)
 	{
@@ -437,12 +435,11 @@ void start_video_backend(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 
 	// *** VIDEO GENERATION STOPPED ***
 
-	set_sys_clock_pll(params.vco, params.div1, params.div2);
-	assert(get_system_clock() == params.sysclock);
+	set_system_clock(new_sysclock);
+	new_sysclock = get_system_clock();
 
-	uint32	   new_sys_clock = params.sysclock;
-	const uint cc_per_pixel	 = (new_sys_clock + vga_mode.pixel_clock / 2) / vga_mode.pixel_clock;
-	uint32	   pixel_clock	 = new_sys_clock / cc_per_pixel;
+	const uint cc_per_pixel = (new_sysclock + vga_mode.pixel_clock / 2) / vga_mode.pixel_clock;
+	uint32	   pixel_clock	= new_sysclock / cc_per_pixel;
 
 	kilipili::vga_mode			   = vga_mode;
 	kilipili::vga_mode.pixel_clock = pixel_clock;
@@ -455,7 +452,7 @@ void start_video_backend(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 	uint32 px_per_frame	   = vga_mode.h_total() * vga_mode.v_total(); // non fract
 	cc_per_scanline		   = cc_per_pixel * px_per_scanline;		  // non fract
 	cc_per_frame		   = cc_per_pixel * px_per_frame;			  // non fract
-	cc_per_us			   = new_sys_clock / 1000000;				  // non fract
+	cc_per_us			   = new_sysclock / 1000000;				  // non fract
 	us_per_frame		   = cc_per_frame / cc_per_us;				  // fract
 	cc_per_frame_fract	   = cc_per_frame % cc_per_us;				  // remainder
 	cc_per_frame_rest	   = 0;										  // correction counter
@@ -475,17 +472,9 @@ void start_video_backend(const VgaMode& vga_mode, uint32 min_sys_clock) throws
 
 	// *** VIDEO GENERATION RESTARTED ***
 
-	sysclock_changed(new_sys_clock);
-
-	if (params.voltage < vreg_get_voltage())
-	{
-		sleep_ms(5);
-		vreg_set_voltage(params.voltage); // down
-	}
-
 	uint __unused fps = (pixel_clock / vga_mode.h_total() * 1000 + vga_mode.v_total() / 2) / vga_mode.v_total();
 	debugstr("set resolution %i x %i @ %u.%03u Hz\n", vga_mode.width, vga_mode.height, fps / 1000, fps % 1000);
-	debugstr("system clock = %u\n", new_sys_clock);
+	debugstr("system clock = %u\n", new_sysclock);
 	debugstr("pixel clock  = %u\n", pixel_clock);
 	debugstr("cc_per_us = %u\n", cc_per_us);
 	debugstr("cc_per_px = %u\n", cc_per_px);

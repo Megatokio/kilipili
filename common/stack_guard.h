@@ -9,7 +9,7 @@ using uint = unsigned int;
 namespace kilipili
 {
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 extern void init_stack_guard();
 extern void test_stack_guard(uint core);
 extern uint calc_stack_guard_min_free(uint core);

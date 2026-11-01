@@ -1,0 +1,154 @@
+cmake_minimum_required(VERSION 3.19)
+
+set(PROJECT KilipiliEmulator)
+
+option(EMULATOR "compile for Qt desktop emulator" OFF)
+
+
+# ---------------------
+
+if(NOT EMULATOR)
+    include(pico_sdk_import.cmake)
+    #include(pico_extras_import.cmake)
+endif()
+
+project(${PROJECT} CXX C ASM)
+
+if(EMULATOR)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets OpenGL)
+qt_standard_project_setup()
+endif()
+
+
+# ---------------------
+
+MESSAGE (STATUS "System = ${CMAKE_SYSTEM_NAME}")   # Linux, PICO
+MESSAGE (STATUS "CPU = ${CMAKE_SYSTEM_PROCESSOR}") # x86_64, cortex-m0plus
+
+set(PICO_CXX_ENABLE_EXCEPTIONS 1)
+#set(PICO_CXX_ENABLE_RTTI 1)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DRELEASE")
+
+add_compile_definitions(
+	ON=1 OFF=0
+	PICO_STDIO_USB=${PICO_STDIO_USB}
+	PICO_STDIO_UART=${PICO_STDIO_UART}
+	#MALLOC_EXTENDED_VALIDATION=${MALLOC_EXTENDED_VALIDATION}
+	#FF_FS_TINY=${OPTION_FF_FS_TINY}
+	#FF_FS_LOCK=${OPTION_FF_FS_LOCK}
+	PICO_CORE1_STACK_SIZE=0x600
+    ${CMAKE_SYSTEM_NAME}
+	)
+
+if(EMULATOR)
+    add_compile_definitions(
+        PICO_BOARD_H="${CMAKE_CURRENT_LIST_DIR}/kilipili/boards/qtboard.h"
+        )
+endif()
+
+
+# ---------------------
+
+set(project_sources
+    main.cpp)
+
+set(project_libraries
+    kilipili)
+
+
+# ---------------------
+
+if(EMULATOR)
+    qt_add_executable(${PROJECT}
+        WIN32 MACOSX_BUNDLE
+        kilipili/qt/QtGLMainWindow.cpp
+        kilipili/qt/QtGLMainWindow.h
+        ${project_sources}
+    )
+else()
+    add_executable(${PROJECT}
+        kilipili/common/malloc.cpp
+        ${project_sources}
+    )
+    pico_sdk_init()
+    pico_enable_stdio_usb (${PROJECT} ${PICO_STDIO_USB})
+    pico_enable_stdio_uart(${PROJECT} ${PICO_STDIO_UART})
+endif()
+
+
+# ---------------------
+
+# add current dir to 'include search path':
+target_include_directories(${PROJECT} PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/kilipili
+	)
+
+add_subdirectory(kilipili)
+
+
+# ---------------------
+
+if(EMULATOR)
+    target_link_libraries(${PROJECT} PRIVATE
+        ${project_libraries}
+        Qt::Core
+        Qt::Widgets
+        Qt::OpenGL)
+else()
+    target_link_libraries(${PROJECT} PRIVATE
+        ${project_libraries})
+
+    # create map/bin/hex/uf2 file etc.
+    pico_add_extra_outputs(${PROJECT})
+endif()
+
+
+# ---------------------
+
+# if(EMULATOR)
+# include(GNUInstallDirs)
+#
+# install(TARGETS KilipiliEmulator
+#     BUNDLE  DESTINATION .
+#     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+#     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+# )
+#
+# qt_generate_deploy_app_script(
+#     TARGET KilipiliEmulator
+#     OUTPUT_SCRIPT deploy_script
+#     NO_UNSUPPORTED_PLATFORM_ERROR
+# )
+# install(SCRIPT ${deploy_script})
+# endif()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

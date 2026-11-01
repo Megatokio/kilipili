@@ -63,13 +63,16 @@ void makeFS(BlockDevicePtr bdev, cstr type) throws // static
 	debugstr("FS::makeFS(bdev,type)\n");
 
 	type = lowerstr(type);
+#ifdef PICO
 	if (startswith(type, "fat"))
 	{
 		int idx = index_of(nullptr); // FatFS needs a slot, even if not mounted
 		if (idx < 0) throw NO_MOUNTPOINT_FREE;
 		FatFS::mkfs(bdev, idx, type);
+		return;
 	}
-	else throw UNKNOWN_FILESYSTEM;
+#endif
+	throw UNKNOWN_FILESYSTEM;
 }
 
 void makeFS(cstr devicename, cstr type) throws
@@ -122,7 +125,9 @@ FileSystemPtr mountFS(cstr devicename, BlockDevicePtr bdev) throws
 	{
 		try
 		{
+#ifdef PICO
 			if (i == 0) return new FatFS(devicename, bdev);
+#endif
 			if (i == 1) {} //etc.
 			break;
 		}

@@ -133,8 +133,8 @@ void FrameBuffer<CharMap, std::enable_if_t<CharMap::isa_CharMap>>:: //
 	if constexpr (sizeof(Color) == 2) interp->setup(InterpMode::i2u32);
 	if constexpr (sizeof(Color) == 2) interp->set_color_base(mask4x2);
 
-	if constexpr (bg_bits) interp1->base[0] = uint32(me->bgcolors);
-	if constexpr (fg_bits) interp1->base[1] = uint32(me->fgcolors);
+	if constexpr (bg_bits) interp1->base[0] = size_t(me->bgcolors);
+	if constexpr (fg_bits) interp1->base[1] = size_t(me->fgcolors);
 
 	if constexpr (bg_bits) interp1->ctrl[0] = InterpConfig().set_mask(2, 2 + bg_bits - 1).set_shift(8 + bg_ss - 2);
 	if constexpr (fg_bits)

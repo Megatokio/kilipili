@@ -5,7 +5,7 @@
 #include "FrameBuffer<CharMap>.h"
 #include "common/Logger.h"
 #include "common/cdefs.h"
-#include "pico_hw/memory.h"
+#include "common/memory.h"
 
 namespace kilipili
 {
