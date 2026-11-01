@@ -5,10 +5,9 @@
 #pragma once
 #include "common/basic_math.h"
 #include "common/cdefs.h"
+#include "common/glue.h"
 #include "common/standard_types.h"
-#ifndef LIB_PICO_STDLIB
-
-#else
+#ifdef LIB_PICO_STDLIB
   #include <hardware/interp.h>
 #endif
 
@@ -55,8 +54,31 @@ struct interp_hw_t
 
 struct Interp : public interp_hw_t
 {
-#ifndef LIB_PICO_STDLIB
+	// provide values for kilipili emulator:
+	static constexpr int	lane0_shift_lsb			= 0;
+	static constexpr int	lane0_mask_lsb_lsb		= 5;
+	static constexpr int	lane0_mask_msb_lsb		= 10;
+	static constexpr uint32 lane0_shift_bits		= 0x1f;
+	static constexpr uint32 lane0_mask_lsb_bits		= 0x1f << 5;
+	static constexpr uint32 lane0_mask_msb_bits		= 0x1f << 10;
+	static constexpr uint32 lane0_sign_extend_bits	= 1 << 15;
+	static constexpr uint32 lane0_cross_input_bits	= 1 << 16;
+	static constexpr uint32 lane0_cross_result_bits = 1 << 17;
+	static constexpr uint32 lane0_add_raw_bits		= 1 << 18;
 
+#ifdef LIB_PICO_STDLIB
+	Interp()  = delete;
+	~Interp() = delete;
+	uint32 __always_inline pop(int i) noexcept { return interp_hw_t::pop[i]; }
+	uint32 __always_inline peek(int i) noexcept { return interp_hw_t::peek[i]; }
+	void __always_inline   set_base01(uint32 n) noexcept { interp_hw_t::base01 = n; }
+	void __always_inline   add_raw(int i, uint32 n) noexcept { interp_hw_t::add_raw[i] = n; }
+
+	static_assert(lane0_shift_bits == SIO_INTERP0_CTRL_LANE0_SHIFT_BITS);
+	static_assert(lane0_mask_lsb_bits == SIO_INTERP0_CTRL_LANE0_MASK_LSB_BITS);
+	static_assert(lane0_mask_msb_bits == SIO_INTERP0_CTRL_LANE0_MASK_MSB_BITS);
+	static_assert(lane0_cross_input_bits == SIO_INTERP0_CTRL_LANE0_CROSS_INPUT_BITS);
+#else
 	static constexpr int SIGNED		  = 15;
 	static constexpr int CROSS_INPUT  = 16;
 	static constexpr int CROSS_RESULT = 17;
@@ -122,21 +144,24 @@ struct Interp : public interp_hw_t
 		accum[1] = uint32(result[(~ctrl[1] >> CROSS_RESULT) & 1]);
 		return result[i];
 	}
-
-
-#else // pico
-	Interp() = delete;
-	uint32 __always_inline pop(int i) noexcept { return interp_hw_t::pop[i]; }
-	uint32 __always_inline peek(int i) noexcept { return interp_hw_t::peek[i]; }
-	void __always_inline   set_base01(uint32 n) noexcept { interp_hw_t::base01 = n; }
-	void __always_inline   add_raw(int i, uint32 n) noexcept { interp_hw_t::add_raw[i] = n; }
 #endif
 };
 
 
+#undef interp0
+#undef interp1
+
 #ifdef LIB_PICO_STDLIB
 static_assert(sizeof(interp_hw_t) == 16 * 4);
 static_assert(SIO_INTERP1_ACCUM0_OFFSET - SIO_INTERP0_ACCUM0_OFFSET == sizeof(Interp));
+  #define interp0 reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET)
+  #define interp1 reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP1_ACCUM0_OFFSET)
+#else
+extern Interp interp0_hw_array[2];
+extern Interp interp1_hw_array[2];
+  #define interp0 &interp0_hw_array[get_core_num()]
+  #define interp1 &interp1_hw_array[get_core_num()]
+
 #endif
 
 

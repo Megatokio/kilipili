@@ -55,6 +55,8 @@ struct VgaMode
 	}
 };
 
+extern VgaMode vga_mode; // VGAMode in use: in VideoBackend.cpp
+
 
 // VGA TIMING
 // no 2 sources use the same timing ...

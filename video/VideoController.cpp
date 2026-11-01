@@ -9,32 +9,27 @@
 #include "common/tempmem.h"
 #include "common/timing.h"
 #include "common/trace.h"
-#include "internal/ScanlineBuffer.h"
 #include "internal/VideoBackend.h"
-#include "pico_hw/LoadSensor.h"
 #include "pico_hw/SpinLock.h"
-#include "pico_hw/memory.h"
 #include <cstdio>
 
-#ifndef LIB_PICO_STDLIB
-
-static_assert(unix == true); // somewhere deep inside the system ...
-  #include <thread>
-#else
-static constexpr bool unix = false;
+#ifdef LIB_PICO_STDLIB
+  #include "internal/ScanlineBuffer.h"
   #include <hardware/exception.h>
   #include <pico/multicore.h>
+#else
+  #include <thread>
 #endif
 
 
 using namespace kilipili;
 
 
-static volatile bool lockout_requested = false;
+extern volatile bool lockout_requested;
+volatile bool		 lockout_requested = false;
 
 __weak_symbol void suspend_core1() noexcept
 {
-#ifdef LIB_PICO_STDLIB
 	assert(get_core_num() == 0);
 	assert(lockout_requested == false);
 
@@ -42,27 +37,24 @@ __weak_symbol void suspend_core1() noexcept
 	lockout_requested = true;
 	__sev();
 	while (!locked_out) kilipili::wfe();
-#endif
 }
 
 __weak_symbol void resume_core1() noexcept
 {
-#ifdef LIB_PICO_STDLIB
 	assert(get_core_num() == 0);
 	assert(lockout_requested == true);
 	assert(locked_out == true);
 
 	lockout_requested = false;
 	__sev();
-#endif
 }
 
-
+#ifdef LIB_PICO_STDLIB
 __noreturn static void __section(RAM ".vc") hard_fault_handler() noexcept
 {
 	if (!locked_out) kilipili::panic("HARDFAULT_EXCEPTION");
 
-#ifdef PICO_DEFAULT_LED_PIN
+  #ifdef PICO_DEFAULT_LED_PIN
 	if constexpr (0)
 	{
 		// core0 = short ON, long off
@@ -76,9 +68,10 @@ __noreturn static void __section(RAM ".vc") hard_fault_handler() noexcept
 		}
 	}
 	else
-#endif
+  #endif
 		for (;;);
 }
+#endif
 
 
 // =========================================================
@@ -98,19 +91,21 @@ uint		  scanlines_missed = 0;
 volatile bool locked_out	   = false;
 
 static constexpr uint max_planes = 8;
-
-static uint			 num_planes			= 0;
-static VideoPlanePtr planes[max_planes] = {nullptr};
-static VBlankAction	 vblank_action		= nullptr;
-static OneTimeAction onetime_action		= nullptr;
+extern uint			  num_planes;
+uint				  num_planes = 0;
+extern VideoPlanePtr  planes[];
+VideoPlanePtr		  planes[max_planes] = {nullptr};
+static VBlankAction	  vblank_action		 = nullptr;
+static OneTimeAction  onetime_action	 = nullptr;
 
 enum State : bool {
 	STOPPED,
 	RUNNING,
 };
 
-static volatile State state			  = STOPPED;
-static volatile State requested_state = STOPPED;
+static volatile State state = STOPPED;
+extern volatile State requested_state;
+volatile State		  requested_state = STOPPED;
 static uint32		  requested_system_clock;
 
 static SpinLock spinlock(SpinLock::UNUSED);
@@ -123,7 +118,7 @@ struct Locker
 };
 
 static void core1_runner() noexcept;
-static void video_runner(int row0, uint32 cc_at_line_start);
+void		video_runner();
 
 
 // =========================================================
@@ -134,14 +129,11 @@ static void initialize() noexcept
 	assert(!is_initialized);
 	assert(get_core_num() == 0);
 
+	initialize_video_backend();
 	is_initialized	= true;
 	requested_state = STOPPED;
 
-#ifndef LIB_PICO_STDLIB
-
-	std::thread(&core1_runner).detach();
-#else
-	initialize_video_backend();
+#ifdef LIB_PICO_STDLIB
 	multicore_launch_core1([] {
 		exception_set_exclusive_handler(
 			HARDFAULT_EXCEPTION,
@@ -150,6 +142,8 @@ static void initialize() noexcept
 		//sleep_us(10);				 // static videocontroller's ctor must finish
 		core1_runner(); // else calling getRef() leads to recursion
 	});
+#else
+	std::thread(&core1_runner).detach();
 #endif
 }
 
@@ -164,7 +158,9 @@ void startVideo(const VgaMode& mode, uint32 system_clock, uint scanline_buffer_c
 
 	vga_mode = mode;
 	USB::setMouseLimits(mode.width, mode.height);
+#ifdef LIB_PICO_STDLIB
 	scanline_buffer.setup(vga_mode, scanline_buffer_count); // throws
+#endif
 	requested_system_clock = system_clock;
 	requested_state		   = RUNNING;
 	__sev();
@@ -182,10 +178,12 @@ void stopVideo() noexcept
 	onetime_action = nullptr; // if planes were added but the VideoController was never started
 }
 
-static void __unused __noinline __section(RAM ".vc") poll_isr(volatile bool& lockout) noexcept
+#ifdef LIB_PICO_STDLIB
+static void __noinline __section(RAM ".vc") poll_isr(volatile bool& lockout) noexcept
 {
 	while (lockout) { __wfe(); }
 }
+#endif
 
 static void __noreturn core1_runner() noexcept
 {
@@ -195,8 +193,6 @@ static void __noreturn core1_runner() noexcept
 
 	try
 	{
-		// if (debug) print_core();
-		// if (debug) print_stack_free();
 		init_stack_guard();
 
 		while (true)
@@ -220,22 +216,14 @@ static void __noreturn core1_runner() noexcept
 				state = RUNNING;
 				__sev();
 
-				{ // setup calculations for video_runner() done here in flash to save ram:
-					uint32 cc_max_ahead = (scanline_buffer.count - 1) * cc_per_scanline +
-										  ((vga_mode.h_total() - vga_mode.h_active()) + 18) * cc_per_px + 50 + 50;
-				a:
-					int	   row0 = line_at_frame_start; // rolling number
-					uint32 cc_at_line_start =
-						time_cc_at_frame_start + uint(vga_mode.height) * cc_per_scanline - cc_max_ahead;
-					if (row0 != line_at_frame_start) goto a;
-
-					video_runner(row0, cc_at_line_start);
-					assert(requested_state == STOPPED);
-				}
+				video_runner();
+				assert(requested_state == STOPPED);
 
 				stop_video_backend();
 				while (num_planes) { planes[--num_planes] = nullptr; }
+#ifdef LIB_PICO_STDLIB
 				scanline_buffer.teardown();
+#endif
 				vblank_action  = nullptr;
 				onetime_action = nullptr;
 				state		   = STOPPED;
@@ -254,7 +242,7 @@ static void __noreturn core1_runner() noexcept
 	}
 }
 
-static void __noinline call_vblank_actions() noexcept
+void __noinline call_vblank_actions() noexcept
 {
 	trace(__func__);
 
@@ -267,16 +255,15 @@ static void __noinline call_vblank_actions() noexcept
 		// therefore we must not wait blindly for the spinlock to become available.
 		// therefore we wait for the spinlock with interrupts enabled:
 
-#ifndef LIB_PICO_STDLIB
-
-		uint32 state = spinlock.lock();
-#else
+#ifdef LIB_PICO_STDLIB
 		uint32 state = save_and_disable_interrupts();
 		while (!spinlock.try_lock_unsafe())
 		{
 			restore_interrupts_from_disabled(state);
 			state = save_and_disable_interrupts();
 		}
+#else
+		uint32 state = spinlock.lock();
 #endif
 
 		auto fu		   = std::move(onetime_action);
@@ -289,6 +276,25 @@ static void __noinline call_vblank_actions() noexcept
 	if (vblank_action) { vblank_action(); }
 
 	purge_tempmem();
+}
+
+#ifdef LIB_PICO_STDLIB
+static void video_runner(int row0, uint32 cc_at_line_start);
+
+void video_runner()
+{
+	for (;;)
+	{
+		// setup calculations for video_runner() done here in flash to save ram:
+
+		uint32 cc_max_ahead = (scanline_buffer.count - 1) * cc_per_scanline +
+							  ((vga_mode.h_total() - vga_mode.h_active()) + 18) * cc_per_px + 50 + 50;
+		int	   row0				= line_at_frame_start; // rolling number
+		uint32 cc_at_line_start = time_cc_at_frame_start + uint(vga_mode.height) * cc_per_scanline - cc_max_ahead;
+
+		if (row0 == line_at_frame_start) return video_runner(row0, cc_at_line_start);
+		// else retry
+	}
 }
 
 static void __section(RAM ".vc") video_runner(int row0, uint32 cc_at_line_start)
@@ -382,6 +388,7 @@ static void __section(RAM ".vc") video_runner(int row0, uint32 cc_at_line_start)
 		}
 	}
 }
+#endif
 
 bool isVideoPlaneAdded(const VideoPlane* vp) noexcept
 {

@@ -23,6 +23,14 @@ set(video_libraries)
 
 if(${MAKE_TOOLS})
 else()
+	set(video_libraries
+		pico_stdlib
+		hardware_pio
+		hardware_dma
+		pico_multicore
+		hardware_interp
+		hardware_exception)
+	
 	set(video_sources
 		internal/scanline.pio
 		internal/timing.pio
@@ -37,6 +45,8 @@ else()
 		MousePointer.cpp
 		internal/VideoBackend.h  	
 		internal/VideoBackend.cpp
+		internal/ScanlineBuffer.h 	
+		internal/ScanlineBuffer.cpp
 )
 endif()
 
@@ -55,8 +65,6 @@ add_library(kilipili_video STATIC
 	VideoPlane.cpp
 	VideoController.h	
 	VideoController.cpp
-	internal/ScanlineBuffer.h 	
-	internal/ScanlineBuffer.cpp
 	HamImageInfo.h  	
 	HamImageInfo.cpp
 	Passepartout.h  	
@@ -96,12 +104,6 @@ target_link_libraries(kilipili_video PUBLIC
 	${video_libraries}
 	kilipili_common
 	kilipili_graphics
-	pico_stdlib
-	hardware_pio
-	hardware_dma
-	pico_multicore
-	hardware_interp
-	hardware_exception
 )
 
 if(NOT ${MAKE_TOOLS})

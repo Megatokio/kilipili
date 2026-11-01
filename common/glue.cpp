@@ -5,6 +5,7 @@
 #include "glue.h"
 #ifndef LIB_PICO_STDLIB
   #include "common/cdefs.h"
+  #include "pico_hw/Interp.h"
   #include "usb_host/hid_handler.h"
   #include <ctime>
   #include <unistd.h>
@@ -14,6 +15,8 @@
 #ifndef LIB_PICO_STDLIB
 thread_local int core_num;
 SpinLock		 kilipili_spinlock;
+Interp			 interp0_hw_array[2];
+Interp			 interp1_hw_array[2];
 
 int getchar_timeout_us(uint32)
 {

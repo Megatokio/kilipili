@@ -8,14 +8,16 @@
 #include "FrameBuffer<CharMap>.h"
 #include "FrameBuffer<Pixmap>.h"
 #include "FrameBuffer<SimpleCharMap>.h"
+#include "HamImageVideoPlane.h"
 #include "HorizontalLayout.h"
 #include "Passepartout.h"
+#include "UniColorBackdrop.h"
 #include "VerticalLayout.h"
 //
-#include "AnimatedSprite.h"
-#include "HamImageVideoPlane.h"
-#include "MousePointer.h"
-#include "MultiSpritesPlane.h"
-#include "SingleSpritePlane.h"
-#include "Sprite.h"
-#include "UniColorBackdrop.h"
+#ifdef LIB_PICO_STDLIB
+  #include "AnimatedSprite.h"
+  #include "MousePointer.h"
+  #include "MultiSpritesPlane.h"
+  #include "SingleSpritePlane.h"
+  #include "Sprite.h"
+#endif
