@@ -187,6 +187,9 @@ static void __noinline __section(RAM ".vc") poll_isr(volatile bool& lockout) noe
 
 static void __noreturn core1_runner() noexcept
 {
+#ifndef LIB_PICO_STDLIB
+	core_num = 1;
+#endif
 	assert(get_core_num() == 1);
 	assert(state == STOPPED);
 	trace(__func__);
