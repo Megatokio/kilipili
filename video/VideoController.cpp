@@ -178,6 +178,28 @@ void stopVideo() noexcept
 	onetime_action = nullptr; // if planes were added but the VideoController was never started
 }
 
+void waitForVBlank() noexcept
+{
+	while (!in_vblank) { wfe(); }
+}
+
+#ifdef LIB_PICO_STDLIB
+int current_scanline() noexcept
+{
+	uint time_us_in_frame = time_us_32() - time_us_at_frame_start;
+	uint cc_in_frame	  = time_us_in_frame * cc_per_us;
+	return int(cc_in_frame) / int(cc_per_scanline);
+}
+#endif
+
+void waitForScanline(int scanline) noexcept
+{
+	if (uint(scanline) >= uint(vga_mode.height)) return waitForVBlank();
+	idle_start();
+	while (current_scanline() - scanline < 0) {} // wfe();
+	idle_end();
+}
+
 #ifdef LIB_PICO_STDLIB
 static void __noinline __section(RAM ".vc") poll_isr(volatile bool& lockout) noexcept
 {

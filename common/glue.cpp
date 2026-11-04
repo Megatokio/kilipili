@@ -12,27 +12,7 @@
 #endif
 
 
-#ifndef LIB_PICO_STDLIB
-thread_local int core_num;
-SpinLock		 kilipili_spinlock;
-Interp			 interp0_hw_array[2];
-Interp			 interp1_hw_array[2];
-
-int getchar_timeout_us(uint32)
-{
-	TODO();
-	return -1; // no char
-}
-
-namespace kilipili::USB
-{
-// for unknown reason the linker insists on these symbols:
-void setHidMouseEventHandler(HidMouseEventHandler* handler) noexcept { IERR(); }
-void setHidKeyboardEventHandler(HidKeyboardEventHandler* handler) noexcept { IERR(); }
-} // namespace kilipili::USB
-
-
-#else
+#ifdef LIB_PICO_STDLIB
   #if defined KILIPILI_SPINLOCK_NUMBER
 
 static struct OnInit
@@ -45,4 +25,31 @@ static struct OnInit
 } init;
 
   #endif
+
+
+#else // ====================================================
+
+SpinLock kilipili_spinlock;
+
+thread_local int core_num;
+Interp			 interp0_hw_array[2];
+Interp			 interp1_hw_array[2];
+
+// overridden by emulator:
+void __weak_symbol stdio_init_all() {}
+int __weak_symbol  stdio_getchar_timeout_us(uint32) { return -1; }
+
+namespace kilipili::USB
+{
+void initUSBHost() noexcept {}
+int	 pollUSB(void*) noexcept { return 0; }
+bool keyboardPresent() noexcept { return false; }
+bool mousePresent() noexcept { return false; }
+
+// for unknown reason the linker insists on these symbols:
+void setHidMouseEventHandler(HidMouseEventHandler* handler) noexcept { IERR(); }
+void setHidKeyboardEventHandler(HidKeyboardEventHandler* handler) noexcept { IERR(); }
+} // namespace kilipili::USB
+
+
 #endif

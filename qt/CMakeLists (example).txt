@@ -1,0 +1,79 @@
+cmake_minimum_required(VERSION 3.19)
+project(KilipiliEmulator CXX C)
+
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets OpenGL)
+
+qt_standard_project_setup()
+
+
+# ---------------------
+
+MESSAGE (STATUS "System = ${CMAKE_SYSTEM_NAME}")   # Linux, PICO
+MESSAGE (STATUS "CPU = ${CMAKE_SYSTEM_PROCESSOR}") # x86_64, cortex-m0plus
+
+#set(PICO_CXX_ENABLE_EXCEPTIONS 1)
+#set(PICO_CXX_ENABLE_RTTI 1)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DRELEASE")
+
+set(MAKE_TOOLS ON)
+
+add_compile_definitions(
+	MAKE_TOOLS
+	PICO_BOARD_H="${CMAKE_CURRENT_LIST_DIR}/kilipili/boards/qtboard.h"
+    PICO_NO_HARDWARE=1
+	)
+
+add_subdirectory(kilipili/common)   # -> library kilipili_common
+add_subdirectory(kilipili/graphics) # -> library kilipili_graphics
+add_subdirectory(kilipili/devices)  # -> library kilipili_devices
+add_subdirectory(kilipili/usb_host)
+add_subdirectory(kilipili/video)
+
+# ---------------------
+
+
+qt_add_executable(KilipiliEmulator
+    WIN32 MACOSX_BUNDLE
+    main.cpp
+    QtGLMainWindow.cpp
+    QtGLMainWindow.h
+)
+
+target_compile_definitions(KilipiliEmulator PUBLIC
+	)
+
+# add current dir to 'include search path':
+target_include_directories(KilipiliEmulator PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/kilipili
+	)
+
+target_link_libraries(KilipiliEmulator
+    PRIVATE
+        Qt::Core
+        Qt::Widgets
+        Qt::OpenGL
+        kilipili_common
+        kilipili_graphics
+        kilipili_devices
+        kilipili_usb_host
+        kilipili_video
+    )
+
+# include(GNUInstallDirs)
+#
+# install(TARGETS KilipiliEmulator
+#     BUNDLE  DESTINATION .
+#     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+#     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+# )
+#
+# qt_generate_deploy_app_script(
+#     TARGET KilipiliEmulator
+#     OUTPUT_SCRIPT deploy_script
+#     NO_UNSUPPORTED_PLATFORM_ERROR
+# )
+# install(SCRIPT ${deploy_script})

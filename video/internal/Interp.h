@@ -50,11 +50,11 @@ struct Interp : public ::Interp
 
 	enum Mode {
 		//     log2(element size)  + log2(array size)
-		i1	 = (1 * ss_color) * 16 + 1,
-		i2	 = (1 * ss_color) * 16 + 2,
-		i4	 = (1 * ss_color) * 16 + 4,
-		i8	 = (1 * ss_color) * 16 + 8,
-		a1w8 = (2 * ss_color) * 16 + 2,
+		i1	 = (ss_color) * 16 + 1,
+		i2	 = (ss_color) * 16 + 2,
+		i4	 = (ss_color) * 16 + 4,
+		i8	 = (ss_color) * 16 + 8,
+		a1w8 = (ss_color + 1) * 16 + 2,
 		// custom:
 		i2u32 = 0x22, // 2 bit element size, 2 bit index => e.g. uint32 foo[4];
 		i4u32 = 0x24, // 2 bit element size, 4 bit index => e.g. uint32 foo[16];
