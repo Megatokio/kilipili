@@ -14,14 +14,6 @@
 
 namespace kilipili
 {
-void panic(const char* fmt, ...)
-{
-	va_list va;
-	va_start(va, fmt);
-	vprintf(fmt, va);
-	exit(2);
-}
-
 doctest::String toString(Array<cstr> log)
 {
 	if (log.count() == 0) return "{<empty>}";

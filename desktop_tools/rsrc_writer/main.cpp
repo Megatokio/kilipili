@@ -29,14 +29,6 @@ float hw_sample_frequency; // normally in AudioController.cpp
 
 namespace kilipili
 {
-void panic(const char* fmt, ...)
-{
-	va_list va;
-	va_start(va, fmt);
-	vprintf(fmt, va);
-	exit(2);
-}
-
 static bool		   write_rsrc = false;	 // will be enabled if no other is set
 static cstr		   indir	  = nullptr; // must be set
 static cstr		   outdir	  = nullptr; // will be set to indir if not set
