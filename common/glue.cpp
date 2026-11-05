@@ -4,9 +4,9 @@
 
 #include "glue.h"
 #include "common/cdefs.h"
+#include "common/malloc.h"
 #include "common/trace.h"
 #ifdef PICO
-  #include "common/malloc.h"
   #include <stdio.h>
 #else
   #include "pico_hw/Interp.h"
@@ -81,7 +81,20 @@ void __noreturn __printflike(1, 2) panic(const char* fmt, ...)
 
 
 // ========================================================
-//					stubs
+//					malloc.c stubs
+// ========================================================
+
+__weak_symbol bool	 mresize(void* mem, size_t size) { return false; }
+__weak_symbol cstr	 check_heap() { return "check_heap() not implemented (malloc.cpp)"; }
+__weak_symbol void	 dump_heap() {}
+__weak_symbol void	 dump_heap_to_fu(dump_heap_print_fu*, void* data) {}
+__weak_symbol size_t heap_total_size() { return 99000000; }
+__weak_symbol size_t heap_largest_free_block() { return 99000000; }
+__weak_symbol bool	 heap_cut_exception_block() { return false; }
+
+
+// ========================================================
+//					other stubs
 // ========================================================
 
 #ifndef PICO
