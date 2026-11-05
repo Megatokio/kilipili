@@ -107,7 +107,9 @@ uint8 YMMusicPlayer::BackrefBuffer::next_value(YMMusicPlayer* instream)
 
 
 // size is close to 600 bytes plus 3 memory Ids:
+#ifdef PICO
 static_assert(sizeof(YMMusicPlayer) <= 608);
+#endif
 
 static int ymm_callback(void* data) noexcept
 {

@@ -325,7 +325,7 @@ uint Ay38912_player<NCH, QSZ>::getAudio(AudioSample<NCH>* buffer, uint num_frame
 
 				super::current_sample = 0;
 				super::ccx_at_sos	  = super::ccx_now;
-				ccx_buffer_end = super::ccx_now + (output_buffer_end - super::output_buffer) * super::ccx_per_sample;
+				ccx_buffer_end = super::ccx_now + int(output_buffer_end - super::output_buffer) * super::ccx_per_sample;
 			}
 			else super::setRegisters(qdata.registers);
 

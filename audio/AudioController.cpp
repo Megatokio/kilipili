@@ -5,16 +5,18 @@
 #include "AudioController.h"
 #include "common/system_clock.h"
 #include "common/timing.h"
-#include "internal/i2s_audio.pio.h"
-#include "internal/pwm_audio.pio.h"
-#include "internal/sid_audio.pio.h"
 #include <cstdio>
 #include <cstring>
-#include <hardware/dma.h>
-#include <hardware/gpio.h>
-#include <hardware/pio.h>
-#include <hardware/sync.h>
 #include <new>
+#ifdef PICO
+  #include "internal/i2s_audio.pio.h"
+  #include "internal/pwm_audio.pio.h"
+  #include "internal/sid_audio.pio.h"
+  #include <hardware/dma.h>
+  #include <hardware/gpio.h>
+  #include <hardware/pio.h>
+  #include <hardware/sync.h>
+#endif
 
 
 namespace kilipili
@@ -755,6 +757,7 @@ int32		   fillAudioBuffer(void*) noexcept { return 0; } // => remove me
 
 void beep(float, float, uint32 duration_ms)
 {
+  #ifdef PICO
 	if constexpr (audio_hw == AudioHardware::NONE) return;
 
 	// audio_hw = AudioHardware::BUZZER
@@ -781,6 +784,7 @@ void beep(float, float, uint32 duration_ms)
 	id = add_alarm_in_ms(duration_ms, switch_off, nullptr, false);
 	assert(id >= 0);
 	return;
+  #endif
 }
 
 #endif
