@@ -33,7 +33,7 @@ public:
 
 	static Path path[2];
 
-  #ifndef LIB_PICO_STDLIB
+  #ifndef PICO
 
 	Trace(cstr name) noexcept
 	{

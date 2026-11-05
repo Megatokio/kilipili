@@ -15,7 +15,7 @@
 #include "common/basic_math.h"
 #include "common/cdefs.h"
 #include "common/template_helpers.h"
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
   #include <hardware/gpio.h>
   #include <pico/stdio.h>
 #endif
@@ -36,7 +36,7 @@
   #define VIDEO_SCANLINE_RENDERER_SECTION XRAM
 #endif
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
   #define SECTION __section(VIDEO_SCANLINE_RENDERER_SECTION ".slr" __XSTRING(__LINE__))
 #else
   #define SECTION

@@ -13,7 +13,7 @@
 #include "internal/VideoBackend.h"
 #include <cstdio>
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
   #include "internal/ScanlineBuffer.h"
   #include <hardware/exception.h>
   #include <pico/multicore.h>
@@ -49,7 +49,7 @@ __weak_symbol void resume_core1() noexcept
 	__sev();
 }
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 __noreturn static void __section(RAM ".vc") hard_fault_handler() noexcept
 {
 	if (!locked_out) kilipili::panic("HARDFAULT_EXCEPTION");
@@ -133,7 +133,7 @@ static void initialize() noexcept
 	is_initialized	= true;
 	requested_state = STOPPED;
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 	multicore_launch_core1([] {
 		exception_set_exclusive_handler(
 			HARDFAULT_EXCEPTION,
@@ -158,7 +158,7 @@ void startVideo(const VgaMode& mode, uint32 system_clock, uint scanline_buffer_c
 
 	vga_mode = mode;
 	USB::setMouseLimits(mode.width, mode.height);
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 	scanline_buffer.setup(vga_mode, scanline_buffer_count); // throws
 #endif
 	requested_system_clock = system_clock;
@@ -183,7 +183,7 @@ void waitForVBlank() noexcept
 	while (!in_vblank) { wfe(); }
 }
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 int current_scanline() noexcept
 {
 	uint time_us_in_frame = time_us_32() - time_us_at_frame_start;
@@ -200,7 +200,7 @@ void waitForScanline(int scanline) noexcept
 	idle_end();
 }
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 static void __noinline __section(RAM ".vc") poll_isr(volatile bool& lockout) noexcept
 {
 	while (lockout) { __wfe(); }
@@ -209,7 +209,7 @@ static void __noinline __section(RAM ".vc") poll_isr(volatile bool& lockout) noe
 
 static void __noreturn core1_runner() noexcept
 {
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
 	core_num = 1;
 #endif
 	assert(get_core_num() == 1);
@@ -224,7 +224,7 @@ static void __noreturn core1_runner() noexcept
 		{
 			wfe();
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 			if (lockout_requested)
 			{
 				locked_out = true;
@@ -246,7 +246,7 @@ static void __noreturn core1_runner() noexcept
 
 				stop_video_backend();
 				while (num_planes) { planes[--num_planes] = nullptr; }
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 				scanline_buffer.teardown();
 #endif
 				vblank_action  = nullptr;
@@ -280,7 +280,7 @@ void __noinline call_vblank_actions() noexcept
 		// therefore we must not wait blindly for the spinlock to become available.
 		// therefore we wait for the spinlock with interrupts enabled:
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 		uint32 state = save_and_disable_interrupts();
 		while (!spinlock.try_lock_unsafe())
 		{
@@ -303,7 +303,7 @@ void __noinline call_vblank_actions() noexcept
 	purge_tempmem();
 }
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 static void video_runner(int row0, uint32 cc_at_line_start);
 
 void video_runner()

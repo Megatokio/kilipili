@@ -9,7 +9,7 @@
 #include "common/glue.h"
 
 
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
 
 extern "C" uint32 time_us_32(); // 32 bit usec timestamp. overflows every ~71 minutes
 extern "C" uint64 time_us_64();

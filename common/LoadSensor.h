@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 
   #include <hardware/clocks.h>
   #include <hardware/pwm.h>
@@ -61,8 +61,6 @@ inline void isr_end(uint32_t old_idle_state) noexcept
 
 namespace kilipili
 {
-
-//inline uint32_t get_system_clock() { return clock_get_hz(clk_sys); }
 
 inline void idle_start() noexcept { LoadSensor::idle_start(); }
 inline void idle_end() noexcept { LoadSensor::idle_end(); }

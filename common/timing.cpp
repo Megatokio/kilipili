@@ -4,7 +4,7 @@
 
 #include "timing.h"
 #include <stdlib.h>
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
   #include "standard_types.h"
   #include <cerrno>
   #include <ctime>
@@ -28,7 +28,7 @@ uint64 time_us_64()
 }
 #endif
 
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
 uint64 make_timeout_time_us(uint32 timeout_us)
 {
 	return time_us_64() + timeout_us; //
@@ -67,7 +67,7 @@ void wfe_or_timeout(int timeout_usec) noexcept
 	if (timeout_usec > 0)
 	{
 		idle_start();
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
 
 		// nop / todo
 #else

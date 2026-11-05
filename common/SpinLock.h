@@ -6,7 +6,7 @@
 
 
 #include "common/standard_types.h"
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
   #include <mutex>
 #else
   #include <pico/sync.h>
@@ -23,7 +23,7 @@ struct SpinLock
 	void   unlock(uint32) noexcept;
 	bool   try_lock_unsafe() noexcept;
 
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
 
 	std::mutex mutex;
 #else
@@ -32,7 +32,7 @@ struct SpinLock
 };
 
 
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
 inline SpinLock::SpinLock(int) noexcept {}
 inline SpinLock::~SpinLock() noexcept {}
 inline uint32 SpinLock::lock()

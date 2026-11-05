@@ -108,7 +108,7 @@ struct Interp : public ::Interp
 #undef interp0
 #undef interp1
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 static_assert(SIO_INTERP1_ACCUM0_OFFSET - SIO_INTERP0_ACCUM0_OFFSET == sizeof(Interp));
   #define interp0 reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET)
   #define interp1 reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP1_ACCUM0_OFFSET)
