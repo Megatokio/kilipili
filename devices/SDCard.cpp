@@ -155,7 +155,7 @@ void __attribute__((noreturn)) SDCard::throwDeviceNotResponding()
 {
 	deselect(); // don't yet disconnect: FS will come back to us
 
-	if constexpr (debug) Trace::print(get_core_num());
+	if constexpr (debug) print_trace();
 	throw DEVICE_NOT_RESPONDING;
 }
 

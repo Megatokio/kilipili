@@ -50,8 +50,8 @@ inline void __wfi() noexcept {}
 inline void __sev() noexcept {}
 inline void __dmb() noexcept { std::atomic_thread_fence(std::memory_order_acq_rel); }
 
-extern thread_local int core_num;
-inline int				get_core_num() noexcept { return core_num; }
+extern thread_local uint core_num;
+inline uint				 get_core_num() noexcept { return core_num; }
 
 struct interp_hw_t
 {

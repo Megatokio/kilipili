@@ -3,9 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "glue.h"
+#include "common/trace.h"
 #ifdef PICO
   #include "common/malloc.h"
-  #include "common/trace.h"
   #include <stdio.h>
 #else
   #include "common/cdefs.h"
@@ -51,7 +51,7 @@ void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 	char tmp;
 	ptr	 stack_bottom = get_core_num() ? &__scratch_x_end__ : &__scratch_y_end__;
 
-	Trace::print(get_core_num());
+	print_trace();
 	printf("stack free = %i\n", int(&tmp) - int(stack_bottom));
 	cstr s = check_heap();
 	printf("heap: %s\n", s ? s : "valid");
@@ -66,7 +66,7 @@ void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 
 SpinLock kilipili_spinlock;
 
-thread_local int		 core_num;
+thread_local uint		 core_num;
 thread_local interp_hw_t interp_hw_array[2];
 
 // overridden by emulator:

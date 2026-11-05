@@ -1,58 +1,57 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "glue.h"
-#include "standard_types.h"
+#include "common/glue.h"
+#include "common/standard_types.h"
 
-#if !defined OPTION_STACK_TRACE || OPTION_STACK_TRACE
+#if !defined KILIPILI_OPTION_STACK_TRACE || KILIPILI_OPTION_STACK_TRACE
+
+  #ifndef KILIPILI_STACK_TRACE_MAX_DEPTH
+	#define KILIPILI_STACK_TRACE_MAX_DEPTH 8
+  #endif
 
 
 namespace kilipili
 {
-
-class Trace
+struct Trace
 {
-public:
-	static constexpr uint maxdepth = 10;
+	static constexpr uint maxdepth = KILIPILI_STACK_TRACE_MAX_DEPTH;
 
-	struct Path
+	cstr names[maxdepth];
+	uint depth = 0;
+
+	void push(cstr fu) noexcept
 	{
-		cstr procs[maxdepth];
-		uint depth = 0;
-
-		void push(cstr fu) noexcept
-		{
-			if (depth < maxdepth) procs[depth] = fu;
-			__dmb();
-			depth += 1;
-		}
-		void pop() noexcept { depth -= 1; }
-	};
-
-	static Path path[2];
-
-  #ifndef PICO
-
-	Trace(cstr name) noexcept
-	{
-		if (get_core_num() < 2) path[get_core_num()].push(name);
+		if (depth < maxdepth) names[depth] = fu;
+		depth += 1;
 	}
-  #else
-	Trace(cstr name) noexcept { path[get_core_num()].push(name); }
-  #endif
-	~Trace() noexcept { path[get_core_num()].pop(); }
-
-	static void print(uint core);
+	void pop() noexcept { depth -= 1; }
+	void print();
 };
 
-  #define trace(name) kilipili::Trace _trace(name)
+  #ifdef PICO
+extern Trace traces[2];
+	#define my_trace traces[get_core_num()]
+  #else
+extern thread_local Trace my_trace;
+  #endif
+
+struct Tracer
+{
+	Tracer(cstr fu) { my_trace.push(fu); }
+	~Tracer() { my_trace.pop(); }
+};
+
+  #define trace(name)	kilipili::Tracer _trace(name)
+  #define print_trace() my_trace.print()
 
 } // namespace kilipili
 
 #else
 
-  #define trace(name) void(0)
+  #define trace(name)	void(0)
+  #define print_trace() void(0)
 
 #endif
