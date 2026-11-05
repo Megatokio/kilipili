@@ -23,6 +23,10 @@ extern uint32 get_system_clock() noexcept;
 extern Error  set_system_clock(uint32 sys_clock = 125 MHz, uint32 max_error = 1 MHz) noexcept;
 extern uint	  calc_sysclock_error(uint32 clock) noexcept;
 
+#else
+
+inline uint32 get_system_clock() noexcept { return 999 MHz; }
+
 #endif
 
 } // namespace kilipili

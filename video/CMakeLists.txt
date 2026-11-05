@@ -33,12 +33,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 		internal/scanline.pio
 		internal/timing.pio
 		AnimatedSprite.h
-		Sprite.cpp      	
-		Sprite.h
-		MultiSpritesPlane.h	
-		MultiSpritesPlane.cpp
-		SingleSpritePlane.h	
-		SingleSpritePlane.cpp
+		#Sprite.cpp      	
+		#Sprite.h
+		#MultiSpritesPlane.h	
+		#MultiSpritesPlane.cpp
+		#SingleSpritePlane.h	
+		#SingleSpritePlane.cpp
 		MousePointer.h  	
 		MousePointer.cpp
 		internal/VideoBackend.h  	
@@ -52,6 +52,12 @@ endif()
 
 add_library(kilipili_video STATIC  
 	${video_sources}  
+	MultiSpritesPlane.h	
+	MultiSpritesPlane.cpp
+	SingleSpritePlane.h	
+	SingleSpritePlane.cpp
+	Sprite.cpp      	
+	Sprite.h
 	VgaMode.h
 	internal/video_options.h
 	internal/Shape.h

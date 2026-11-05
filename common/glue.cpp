@@ -106,8 +106,19 @@ thread_local interp_hw_t interp_hw_array[2];
 void __weak_symbol stdio_init_all() {}
 int __weak_symbol  stdio_getchar_timeout_us(uint32) { return -1; }
 
+int getchar_timeout_us(uint32) { TODO(); }
+
+
 namespace kilipili::USB
 {
+void sleep_us(uint delay_usec)
+{
+	time_t	 time_int	= delay_usec / 1000000;
+	long	 time_fract = (delay_usec - time_int * 1000000) * 1000;
+	timespec wait_time	= {time_int, time_fract};
+	while (nanosleep(&wait_time, &wait_time) == -1 && errno == EINTR) {}
+}
+
 void initUSBHost() noexcept {}
 int	 pollUSB(void*) noexcept { return 0; }
 bool keyboardPresent() noexcept { return false; }

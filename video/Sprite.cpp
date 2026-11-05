@@ -1,13 +1,14 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Sprite.h"
+#include "common/SpinLock.h"
 
 namespace kilipili::Video
 {
 
-volatile int hot_row		  = 0;
-spin_lock_t* sprites_spinlock = nullptr;
+volatile int hot_row = 0;
+SpinLock	 sprites_spinlock(SpinLock::UNUSED);
 
 } // namespace kilipili::Video

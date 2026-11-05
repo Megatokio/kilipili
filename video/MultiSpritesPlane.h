@@ -1,18 +1,26 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "AnimatedSprite.h"
-#include "VideoPlane.h"
-#include "internal/Shape.h"
-#include <pico/sync.h>
+//#include "video/AnimatedSprite.h"
+#include "video/VideoPlane.h"
+//#include "internal/Shape.h"
+//#include <pico/sync.h>
+#include "common/SpinLock.h"
+#include "common/geometry.h"
+#include "graphics/Color.h"
+
+
+// TODO: gcc ignores section!
 
 
 namespace kilipili::Video
 {
 
-extern bool hotlist_overflow; // set by add_to_hotlist()
+extern bool			hotlist_overflow; // set by add_to_hotlist()
+extern SpinLock		sprites_spinlock; // spinlock for all sprites
+extern volatile int hot_row;		  // the currently displayed screen row
 
 enum ZPlane : bool { NoZ = 0, HasZ = 1 };
 
@@ -65,8 +73,8 @@ private:
 	struct Lock
 	{
 		uint32 status_register;
-		Lock() noexcept { status_register = spin_lock_blocking(sprites_spinlock); }
-		~Lock() noexcept { spin_unlock(sprites_spinlock, status_register); }
+		Lock() noexcept { status_register = sprites_spinlock.lock(); }
+		~Lock() noexcept { sprites_spinlock.unlock(status_register); }
 	};
 
 	Sprite* displaylist			 = nullptr;
@@ -84,17 +92,296 @@ private:
 // Implementations
 
 
-// ============================================================================
+template<typename Sprite, ZPlane WZ>
+MultiSpritesPlane<Sprite, WZ>::MultiSpritesPlane() noexcept
+{}
 
-// yes, we have them all!
-extern template class MultiSpritesPlane<Sprite<Shape>, NoZ>;
-extern template class MultiSpritesPlane<Sprite<Shape>, HasZ>;
-extern template class MultiSpritesPlane<Sprite<SoftenedShape>, NoZ>;
-extern template class MultiSpritesPlane<Sprite<SoftenedShape>, HasZ>;
-extern template class MultiSpritesPlane<AnimatedSprite<Shape>, NoZ>;
-extern template class MultiSpritesPlane<AnimatedSprite<Shape>, HasZ>;
-extern template class MultiSpritesPlane<AnimatedSprite<SoftenedShape>, NoZ>;
-extern template class MultiSpritesPlane<AnimatedSprite<SoftenedShape>, HasZ>;
+template<typename Sprite, ZPlane WZ>
+MultiSpritesPlane<Sprite, WZ>::~MultiSpritesPlane() noexcept
+{
+	if (debug) clear_displaylist(false);
+}
+
+template<typename Sprite, ZPlane WZ>
+void MultiSpritesPlane<Sprite, WZ>::clear_displaylist(bool delete_sprites) noexcept
+{
+	trace(__func__);
+
+	while (displaylist)
+	{
+		Sprite* s;
+		{
+			Lock _;
+			s = displaylist;
+			if (s) _unlink(s);
+		}
+		if (delete_sprites) delete s;
+	}
+
+	Lock _;
+	next_sprite = nullptr;
+	num_hot		= 0;
+}
+
+template<typename Sprite, ZPlane WZ>
+Sprite* MultiSpritesPlane<Sprite, WZ>::add(Sprite* sprite) throws
+{
+	trace(__func__);
+
+	Lock _;
+	_link(sprite);
+	return sprite;
+}
+
+template<typename Sprite, ZPlane WZ>
+Sprite* MultiSpritesPlane<Sprite, WZ>::remove(Sprite* sprite) noexcept
+{
+	trace(__func__);
+	assert(is_in_displaylist(sprite));
+
+	Lock _;
+	_unlink(sprite);
+	return sprite;
+}
+
+template<typename Sprite, ZPlane WZ>
+void MultiSpritesPlane<Sprite, WZ>::moveTo(Sprite* s, const Point& p) noexcept
+{
+	trace(__func__);
+	assert(is_in_displaylist(s));
+
+	Lock _;
+	bool f = p.y != s->get_ypos();
+	s->set_position(p);
+	if (f) _move(s);
+}
+
+template<typename Sprite, ZPlane WZ>
+void MultiSpritesPlane<Sprite, WZ>::replace(Sprite* s, const Shape& new_shape) noexcept
+{
+	if (s->replace(new_shape)) _move(s);
+}
+
+
+// -------------------------------
+// in RAM:
+// TODO: gcc ignores section!
+
+template<typename Sprite, ZPlane WZ>
+void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::_unlink(Sprite* s) noexcept
+{
+	// used in renderScanline()
+
+	assert(is_in_displaylist(s));
+	assert(sprites_spinlock.is_locked());
+
+	if unlikely (next_sprite == s) next_sprite = static_cast<Sprite*>(s->next);
+
+	if (s->prev) s->prev->next = s->next;
+	else displaylist = static_cast<Sprite*>(s->next);
+	s->prev = nullptr;
+
+	if (s->next) s->next->prev = s->prev;
+	// s->next = nullptr;	  don't clear s->next: vblank() may need it!
+}
+
+template<typename Sprite, ZPlane WZ>
+void __always_inline MultiSpritesPlane<Sprite, WZ>::_link_after(Sprite* s, Sprite* other) noexcept
+{
+	// used in renderScanline()
+
+	assert(!is_in_displaylist(s));
+	assert(other && is_in_displaylist(other));
+	assert(sprites_spinlock.is_locked());
+
+	s->prev = other;
+	s->next = other->next;
+
+	if (s->next) s->next->prev = s;
+	other->next = s;
+}
+
+template<typename Sprite, ZPlane WZ>
+void __always_inline MultiSpritesPlane<Sprite, WZ>::_link_before(Sprite* s, Sprite* other) noexcept
+{
+	// used in renderScanline()
+
+	assert(!is_in_displaylist(s));
+	assert(other && is_in_displaylist(other));
+	assert(sprites_spinlock.is_locked());
+
+	s->next = other;
+	s->prev = other->prev;
+
+	other->prev = s;
+	if (s->prev) s->prev->next = s;
+	else displaylist = s;
+}
+
+template<typename Sprite, ZPlane WZ>
+void MultiSpritesPlane<Sprite, WZ>::_link(Sprite* s) noexcept
+{
+	trace(__func__);
+	assert(!is_in_displaylist(s));
+	assert(sprites_spinlock.is_locked());
+
+	Sprite* other = displaylist;
+	int		y	  = s->pos.y;
+
+	if (other && y > other->pos.y)
+	{
+		Sprite* next;
+		while ((next = static_cast<Sprite*>(other->next)) && y > next->pos.y) { other = next; }
+		_link_after(s, other);
+	}
+	else
+	{
+		s->next = displaylist;
+		s->prev = nullptr;
+		if (s->next) s->next->prev = s;
+		displaylist = s;
+	}
+}
+
+template<typename Sprite, ZPlane WZ>
+void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::_move(Sprite* s) noexcept
+{
+	trace(__func__);
+	assert(sprites_spinlock.is_locked());
+
+	int		y = s->pos.y;
+	Sprite* other;
+
+	if ((other = static_cast<Sprite*>(s->prev)) && y < other->pos.y)
+	{
+		_unlink(s);
+		Sprite* prev = static_cast<Sprite*>(other->prev);
+		do other = prev;
+		while ((prev = static_cast<Sprite*>(other->prev)) && y < prev->pos.y);
+		_link_before(s, other);
+	}
+	else if ((other = static_cast<Sprite*>(s->next)) && y > other->pos.y)
+	{
+		_unlink(s);
+		Sprite* next = static_cast<Sprite*>(other->next);
+		do other = next;
+		while ((next = static_cast<Sprite*>(other->next)) && y > next->pos.y);
+		_link_after(s, other);
+	}
+}
+
+template<typename Sprite, ZPlane WZ>
+void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::add_to_hotlist(const Sprite* sprite) noexcept
+{
+	if unlikely (num_hot == max_hot)
+	{
+		hotlist_overflow = true;
+		return;
+	}
+
+	uint idx = num_hot++;
+
+	if constexpr (WZ == HasZ)
+	{
+		uint z = sprite->z;
+		while (idx && z > hotlist[idx - 1].z)
+		{
+			hotlist[idx] = hotlist[idx - 1];
+			idx--;
+		}
+	}
+
+	HotShape& hot_shape = hotlist[idx];
+	sprite->start(hot_shape);
+	if constexpr (WZ) hot_shape.z = sprite->z;
+
+	if unlikely (sprite->pos.y < hot_row)
+	{
+		for (int dy = sprite->pos.y - hot_row; dy < 0; dy++)
+		{
+			bool finished = hot_shape.skip_row();
+			if unlikely (finished) return; // TODO: remove from hotlist
+		}
+	}
+}
+
+template<typename Sprite, ZPlane WZ>
+void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::renderScanline( //
+	int hot_row, int width, uint32* scanline) noexcept					  // TODO gcc ignores section
+{
+	trace(__func__);
+	assert(get_core_num() == 1);
+
+	Video::hot_row = hot_row;
+
+	// add sprites coming into range of scanline:
+	// adds sprites which start in the current row
+	// adds sprites which started in a previous row and advances shape properly,
+	//   e.g. after a missed scanline or for sprites starting above screen
+
+	Sprite* s = next_sprite;
+	while (s && s->pos.y <= hot_row)
+	{
+		if (s->pos.x < width && s->pos.x + s->width() > 0) { add_to_hotlist(s); }
+		next_sprite = s = static_cast<Sprite*>(s->next);
+	}
+
+	// render shapes into framebuffer and
+	// advance shapes to next row and remove finished shapes
+	for (uint i = num_hot; i;)
+	{
+		HotShape& hot_shape = hotlist[--i];
+		bool	  finished	= hot_shape.render_row(reinterpret_cast<Color*>(scanline));
+		if unlikely (finished)
+		{
+			if (WZ == NoZ) //
+			{
+				hot_shape = hotlist[--num_hot];
+			}
+			else // WithZ
+			{
+				for (uint j = i + 1; j < num_hot; j++) hotlist[j - 1] = hotlist[j];
+				num_hot -= 1;
+			}
+		}
+	}
+}
+
+template<typename Sprite, ZPlane WZ>
+void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::vblank() noexcept // TODO gcc ignores section
+{
+	// called by VideoController before first renderScanline().
+	// called by VideoController at start of each frame.
+	// variants: with and without animation.
+
+	trace(__func__);
+	assert(get_core_num() == 1);
+
+	num_hot		= 0;
+	hot_row		= -9999;
+	next_sprite = displaylist;
+
+	if constexpr (Sprite::is_animated)
+	{
+		// in a RC the other thread may have just unlinked the sprite.
+		// remove(): the sprite will be deleted and subsequently overwritten.
+		//			 but sprite.next was not nulled and can be used if we act fast!
+		// move():   we will miss this animation. depending on whether the sprite is moved up or down
+		//			 animations for other sprites will be done twice or missed as well.
+
+		for (Sprite* s = displaylist; s; s = static_cast<Sprite*>(s->next))
+		{
+			if (--s->countdown > 0) continue;
+
+			Lock _;
+
+			if (is_in_displaylist(s))
+			{
+				if (s->next_frame()) _move(s);
+			}
+		}
+	}
+}
 
 
 } // namespace kilipili::Video

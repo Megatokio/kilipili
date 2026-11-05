@@ -38,14 +38,6 @@ bool best_effort_wfe_or_timeout(uint64)
 {
 	return true; // timeout
 }
-
-static void sleep_us(uint delay_usec) noexcept
-{
-	time_t	 time_int	= delay_usec / 1000000;
-	long	 time_fract = (delay_usec - time_int * 1000000) * 1000;
-	timespec wait_time	= {time_int, time_fract};
-	while (nanosleep(&wait_time, &wait_time) == -1 && errno == EINTR) {}
-}
 #endif
 
 

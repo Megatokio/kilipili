@@ -6,13 +6,15 @@
 #include "geometry.h"
 #include "internal/Frames.h"
 #include "no_copy_move.h"
-#include <pico/sync.h>
+//#include <pico/sync.h>
+#include "common/SpinLock.h"
+
 
 namespace kilipili::Video
 {
 
 extern volatile int hot_row;		  // the currently displayed screen row
-extern spin_lock_t* sprites_spinlock; // spinlock for all sprites
+extern SpinLock		sprites_spinlock; // spinlock for all sprites
 
 
 struct LinkedListElement

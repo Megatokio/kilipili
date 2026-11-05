@@ -161,8 +161,8 @@ int Mp3Player::run() noexcept
 
 			YIELD(4)
 			assert(stream->error == MAD_ERROR_BUFLEN);
-			size_t nprocessed = size_t(stream->next_frame - buffer->data); // num bytes processed for current/last frame
-			size_t nremaining = buffer->count - nprocessed;				   // num bytes remaining unprocessed in buffer
+			SIZE nprocessed = SIZE(stream->next_frame - buffer->data); // num bytes processed for current/last frame
+			SIZE nremaining = buffer->count - nprocessed;			   // num bytes remaining unprocessed in buffer
 			assert(nprocessed <= buffer->count);
 			assert(nremaining <= buffer->count);
 			if unlikely (nremaining == buffer->size) throw "mp3_input: buffer too small";

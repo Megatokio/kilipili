@@ -3,8 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "AnimatedSprite.h"
-#include "SingleSpritePlane.h"
+#include "video/AnimatedSprite.h"
+#include "video/SingleSpritePlane.h"
+#include "video/internal/Shape.h"
 
 namespace kilipili
 {

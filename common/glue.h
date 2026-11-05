@@ -64,10 +64,13 @@ extern thread_local interp_hw_t interp_hw_array[2];
   #define interp0_hw (&interp_hw_array[0])
   #define interp1_hw (&interp_hw_array[1])
 
+extern "C" void sleep_us(uint delay_usec);
 extern "C" void stdio_init_all();
 extern "C" int	stdio_getchar_timeout_us(uint32);
   #define save_and_disable_interrupts() 0
    #define restore_interrupts(o)		 (void)(o)
+
+extern "C" int getchar_timeout_us(uint32);
 #endif
 
 
