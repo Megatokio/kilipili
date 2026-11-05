@@ -3,18 +3,24 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "glue.h"
+#include "common/cdefs.h"
 #include "common/trace.h"
 #ifdef PICO
   #include "common/malloc.h"
   #include <stdio.h>
 #else
-  #include "common/cdefs.h"
   #include "pico_hw/Interp.h"
   #include "usb_host/hid_handler.h"
+  #include <cstdarg>
+  #include <cstdio>
   #include <ctime>
   #include <unistd.h>
 #endif
 
+
+// ========================================================
+//					SpinLock
+// ========================================================
 
 #ifdef PICO
   #if defined KILIPILI_SPINLOCK_NUMBER
@@ -29,13 +35,21 @@ static struct OnInit
 } init;
 
   #endif
+#else
+SpinLock kilipili_spinlock;
+#endif
+
+
+// ========================================================
+//					panic(fmt,…)
+// ========================================================
 
 extern char __scratch_x_end__; // set by linker
 extern char __scratch_y_end__; // set by linker
 
 namespace kilipili
 {
-void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
+void __noreturn __printflike(1, 2) panic(const char* fmt, ...)
 {
 	printf("\n*** <PANIC> ***\ncore: %u\n", get_core_num());
 
@@ -48,6 +62,7 @@ void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 		putchar('\n');
 	}
 
+#ifdef PICO
 	char tmp;
 	ptr	 stack_bottom = get_core_num() ? &__scratch_x_end__ : &__scratch_y_end__;
 
@@ -56,15 +71,20 @@ void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 	cstr s = check_heap();
 	printf("heap: %s\n", s ? s : "valid");
 	dump_heap();
-	for (;;);
-	//_exit(1);	 --> HARDFAULT_EXCEPTION
+	for (;;); //_exit(1); --> HARDFAULT_EXCEPTION
+#else
+	print_trace();
+	abort();
+#endif
 }
 } // namespace kilipili
 
 
-#else // ====================================================
+// ========================================================
+//					stubs
+// ========================================================
 
-SpinLock kilipili_spinlock;
+#ifndef PICO
 
 thread_local uint		 core_num;
 thread_local interp_hw_t interp_hw_array[2];

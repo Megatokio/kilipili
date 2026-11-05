@@ -20,31 +20,6 @@
 #include <thread>
 
 
-extern "C" void __noreturn __printflike(1, 2) panic(const char* fmt, ...);
-void __noreturn			   panic(const char* format, ...)
-{
-	va_list va;
-	va_start(va, format);
-	vfprintf(stderr, format, va);
-	fprintf(stderr, "\n");
-	va_end(va);
-	abort();
-}
-
-namespace kilipili
-{
-void __noreturn __printflike(1, 2) panic(const char* format, ...) // TODO: -> glue
-{
-	va_list va;
-	va_start(va, format);
-	vfprintf(stderr, format, va);
-	fprintf(stderr, "\n");
-	va_end(va);
-	abort();
-}
-} // namespace kilipili
-
-
 // =============================================================================
 
 
