@@ -3,10 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Dispatcher.h"
-#include "cdefs.h"
-#include "pico_hw/LoadSensor.h"
-#include "pico_hw/SpinLock.h"
-#include "timing.h"
+#include "common/LoadSensor.h"
+#include "common/SpinLock.h"
+#include "common/cdefs.h"
+#include "common/timing.h"
 #include "trace.h"
 #include <cstdio>
 

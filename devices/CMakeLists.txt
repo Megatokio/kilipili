@@ -11,17 +11,14 @@ set_property(CACHE FLASH_PREFERENCES PROPERTY STRINGS "0" "4*1024" "8*1024" "12*
 set(FLASH_BLOCKDEVICE "300*1024" CACHE STRING "size of flash disk in program flash")
 set_property(CACHE FLASH_BLOCKDEVICE PROPERTY STRINGS "0" "300*1024" "500*1024" "720*1024" "1000*1024" "1400*1024")
 
+
 set(devices_sources)
 set(devices_includes)
 set(devices_defines)
 set(devices_libraries)
 
 
-if(${MAKE_TOOLS})
-	set(devices_sources 
-		StdFile.cpp
-		StdFile.h)
-else()
+if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 	set(devices_sources 
 		internal/sdcard_spi.cpp
 		internal/sdcard_spi.h
@@ -62,6 +59,10 @@ else()
 		hardware_flash
 		hardware_pio
 	)
+else()
+	set(devices_sources 
+		StdFile.cpp
+		StdFile.h)
 endif()
 
 
@@ -105,6 +106,7 @@ target_compile_definitions(kilipili_devices PUBLIC
 	DEVICES_LARGE_FILE_SUPPORT=${DEVICES_LARGE_FILE_SUPPORT}
 	FLASH_PREFERENCES=${FLASH_PREFERENCES}
 	FLASH_BLOCKDEVICE=${FLASH_BLOCKDEVICE}
+	${CMAKE_SYSTEM_NAME}
 )
 
 target_include_directories(kilipili_devices PUBLIC  

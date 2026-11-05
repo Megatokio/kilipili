@@ -4,10 +4,10 @@
 
 
 #include "Flash.h"
-#include "pico_hw/DiskLight.h"
+#include "common/DiskLight.h"
 #include <string.h>
 
-#ifdef MAKE_TOOLS
+#ifndef PICO
   #include "common/glue.h"
 #else
   #include <hardware/flash.h>
@@ -16,7 +16,7 @@ extern char __flash_binary_end;
 #endif
 
 
-#ifdef MAKE_TOOLS
+#ifndef PICO
 namespace kilipili
 {
 // for unit test: these are in unit_test/Mock/MockFlash.cpp
@@ -29,7 +29,7 @@ extern void flash_range_program(uint32 flash_offs, const uint8* data, uint32 cou
 namespace kilipili::Flash
 {
 
-#ifdef MAKE_TOOLS
+#ifndef PICO
 
 static cuptr  flash_start;
 static cuptr  flash_start_nocache;

@@ -18,9 +18,9 @@ set(usb_includes)
 set(usb_libraries)
 
 
-if(${MAKE_TOOLS})
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "PICO")
 	set(USB_ENABLE_HOST OFF)
-elseif(${PICO_STDIO_USB})    
+elseif(PICO_STDIO_USB)    
 	# if USB is used for STDIO then we are obviously in Device Mode:
 	set(USB_ENABLE_HOST OFF)
 else()
@@ -57,6 +57,7 @@ target_compile_definitions(kilipili_usb_host PUBLIC
 	USB_KEY_DELAY1=${USB_KEY_DELAY1}
 	USB_KEY_DELAY=${USB_KEY_DELAY}
 	USB_DEFAULT_KEYTABLE=${USB_DEFAULT_KEYTABLE}
+	${CMAKE_SYSTEM_NAME}
 )
 
 target_include_directories(kilipili_usb_host PUBLIC  

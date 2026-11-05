@@ -3,7 +3,11 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "glue.h"
-#ifndef LIB_PICO_STDLIB
+#ifdef PICO
+  #include "common/malloc.h"
+  #include "common/trace.h"
+  #include <stdio.h>
+#else
   #include "common/cdefs.h"
   #include "pico_hw/Interp.h"
   #include "usb_host/hid_handler.h"
@@ -12,7 +16,7 @@
 #endif
 
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
   #if defined KILIPILI_SPINLOCK_NUMBER
 
 static struct OnInit
@@ -25,6 +29,37 @@ static struct OnInit
 } init;
 
   #endif
+
+extern char __scratch_x_end__; // set by linker
+extern char __scratch_y_end__; // set by linker
+
+namespace kilipili
+{
+void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
+{
+	printf("\n*** <PANIC> ***\ncore: %u\n", get_core_num());
+
+	if (fmt)
+	{
+		va_list args;
+		va_start(args, fmt);
+		vprintf(fmt, args);
+		va_end(args);
+		putchar('\n');
+	}
+
+	char tmp;
+	ptr	 stack_bottom = get_core_num() ? &__scratch_x_end__ : &__scratch_y_end__;
+
+	Trace::print(get_core_num());
+	printf("stack free = %i\n", int(&tmp) - int(stack_bottom));
+	cstr s = check_heap();
+	printf("heap: %s\n", s ? s : "valid");
+	dump_heap();
+	for (;;);
+	//_exit(1);	 --> HARDFAULT_EXCEPTION
+}
+} // namespace kilipili
 
 
 #else // ====================================================

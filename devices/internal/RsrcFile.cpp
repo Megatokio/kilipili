@@ -3,7 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "RsrcFile.h"
-#include "pico_hw/DiskLight.h"
+#include "common/DiskLight.h"
 #include <cstring>
 
 namespace kilipili

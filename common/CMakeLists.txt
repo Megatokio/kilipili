@@ -3,14 +3,17 @@
 
 cmake_minimum_required(VERSION 3.13)
 
+set(PICO_BOARD_HEADER_DIRS "${CMAKE_CURRENT_LIST_DIR}/../boards")
+set(PICO_BOARD_HEADER_DIRS ${PICO_BOARD_HEADER_DIRS} CACHE STRING "PICO board header directories" FORCE)
+set(PICO_BOARD "vgaboard-i2s" CACHE STRING "the target board, e.g. \"vgaboard-i2s\"")
+
 set(common_sources)
 set(common_defines)
 set(common_includes)
 set(common_libraries)
 
 
-if(${MAKE_TOOLS})
-else()
+if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 	set(common_sources 
 		stack_guard.cpp)
 	set(common_libraries 
@@ -28,9 +31,13 @@ add_library(kilipili_common STATIC
 	Dispatcher.h 
 	Logger.cpp
 	Logger.h 
+	LoadSensor.cpp
+	LoadSensor.h
+	DiskLight.h
 	Mutex.h
 	Queue.h
 	RCPtr.h
+	SpinLock.h
 	trace.cpp
 	trace.h
 	Xoshiro128.cpp
@@ -56,6 +63,10 @@ add_library(kilipili_common STATIC
 	tempmem.h
 	timing.cpp
 	timing.h
+	memory.cpp
+	memory.h
+	system_clock.h
+	system_clock.cpp
 	FlexQueue.h
 	little_big_endian.h
 	glue.cpp
@@ -67,6 +78,7 @@ target_compile_definitions(kilipili_common PUBLIC
 	ON=1 OFF=0
 	PICO_MALLOC_PANIC=0
 	PICO_STDIO_ENABLE_CRLF_SUPPORT=1
+	${CMAKE_SYSTEM_NAME}
 )
 
 target_include_directories(kilipili_common PUBLIC  

@@ -4,13 +4,13 @@
 
 #include "VideoController.h"
 #include "VideoPlane.h"
+#include "common/SpinLock.h"
 #include "common/cdefs.h"
 #include "common/stack_guard.h"
 #include "common/tempmem.h"
 #include "common/timing.h"
 #include "common/trace.h"
 #include "internal/VideoBackend.h"
-#include "pico_hw/SpinLock.h"
 #include <cstdio>
 
 #ifdef LIB_PICO_STDLIB

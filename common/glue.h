@@ -6,7 +6,7 @@
 #ifdef SETTINGS_FILE
   #include SETTINGS_FILE
 #endif
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
   #include <hardware/timer.h>
   #include <pico/stdio.h>
   #include <pico/sync.h>
@@ -29,7 +29,7 @@
 // This spinlock must be initialized very early before it can be used.
 
 #if !defined kilipili_spinlock_lock && !defined kilipili_spinlock_unlock
-  #ifdef LIB_PICO_STDLIB
+  #ifdef PICO
 	#ifndef KILIPILI_SPINLOCK_NUMBER
 	  #define KILIPILI_SPINLOCK_NUMBER PICO_SPINLOCK_ID_OS1
 	#endif
@@ -44,7 +44,7 @@ extern SpinLock kilipili_spinlock;
 #endif
 
 
-#ifndef LIB_PICO_STDLIB
+#ifndef PICO
 inline void __wfe() noexcept {}
 inline void __wfi() noexcept {}
 inline void __sev() noexcept {}

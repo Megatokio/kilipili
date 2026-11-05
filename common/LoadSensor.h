@@ -5,6 +5,7 @@
 #pragma once
 #ifdef LIB_PICO_STDLIB
 
+  #include <hardware/clocks.h>
   #include <hardware/pwm.h>
   #include <pico/stdlib.h>
 
@@ -16,7 +17,6 @@
 
 namespace kilipili::LoadSensor
 {
-
 void start() noexcept;
 void stop() noexcept;
 void recalibrate() noexcept;
@@ -61,6 +61,8 @@ inline void isr_end(uint32_t old_idle_state) noexcept
 
 namespace kilipili
 {
+
+//inline uint32_t get_system_clock() { return clock_get_hz(clk_sys); }
 
 inline void idle_start() noexcept { LoadSensor::idle_start(); }
 inline void idle_end() noexcept { LoadSensor::idle_end(); }

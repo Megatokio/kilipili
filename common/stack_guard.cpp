@@ -5,8 +5,10 @@
 #include "stack_guard.h"
 #include "cdefs.h"
 #include "standard_types.h"
-#include <pico.h>
 #include <string.h>
+#ifdef PICO
+  #include <pico.h>
+#endif
 
 extern char __scratch_x_end__;
 extern char __scratch_y_end__;

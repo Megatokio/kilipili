@@ -7,7 +7,7 @@
 #include "template_helpers.h"
 #include <cstring>
 #include <new>
-#if !defined MAKE_TOOLS
+#ifdef PICO
   #include <pico/sync.h>
 #endif
 
@@ -43,7 +43,7 @@ struct PoolSZ : public Pool
 };
 
 
-#if defined MAKE_TOOLS
+#ifndef PICO
 
 static constexpr poolsize_t std_pool_size = 8000;
 static thread_local Pool*	current_pool  = new PoolSZ<std_pool_size>();

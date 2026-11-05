@@ -4,7 +4,7 @@
 // ==== CONFIG ====================================================
 
 // pull in board description file for targeted board:
-#ifndef MAKE_TOOLS
+#ifdef PICO
   #include <pico.h>
 #elif defined PICO_BOARD_H
   #define pico_board_cmake_set(...)

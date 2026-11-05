@@ -21,10 +21,8 @@ set(video_defines)
 set(video_libraries)
 
 
-if(${MAKE_TOOLS})
-else()
+if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 	set(video_libraries
-		pico_stdlib
 		hardware_pio
 		hardware_dma
 		pico_multicore
@@ -47,7 +45,8 @@ else()
 		internal/VideoBackend.cpp
 		internal/ScanlineBuffer.h 	
 		internal/ScanlineBuffer.cpp
-)
+		internal/scanline.pio.h
+		internal/timing.pio.h)
 endif()
 
 
@@ -93,6 +92,7 @@ target_compile_definitions(kilipili_video PUBLIC
 	VIDEO_MAX_SYSCLOCK_MHz=${VIDEO_MAX_SYSCLOCK_MHz}
 	VIDEO_MAX_SCANLINE_BUFFERS=${VIDEO_MAX_SCANLINE_BUFFERS}
 	VIDEO_SCANLINE_RENDERER_SECTION=${VIDEO_SCANLINE_RENDERER_SECTION}
+	${CMAKE_SYSTEM_NAME}
 )
 
 target_include_directories(kilipili_video PUBLIC  
@@ -106,10 +106,10 @@ target_link_libraries(kilipili_video PUBLIC
 	kilipili_graphics
 )
 
-if(NOT ${MAKE_TOOLS})
-pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/timing.pio)
-pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/scanline.pio)
-endif()
+# the resulting header files are already included in internal/:
+# pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/timing.pio)
+# pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/scanline.pio)
+
 
 
 

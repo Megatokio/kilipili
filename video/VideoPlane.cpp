@@ -4,7 +4,7 @@
 
 #include "VideoPlane.h"
 #include "common/Logger.h"
-#include "pico_hw/memory.h"
+#include "common/memory.h"
 
 namespace kilipili
 {
@@ -14,7 +14,7 @@ extern volatile bool locked_out; // in VideoController.cpp
 
 VideoPlane::VideoPlane(VblankFu* a, RenderFu* b) noexcept : vblank_fu(a), render_fu(b)
 {
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 	if (size_t(a) >= flash_start() && size_t(a) < flash_end())
 	{
 		logline("WARNING: vblank function is in flash!"); //

@@ -180,29 +180,6 @@ void print_system_info(uint)
 // ===============================================================
 
 
-void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
-{
-	printf("\n*** <PANIC> ***\ncore: %u\n", get_core_num());
-
-	if (fmt)
-	{
-		va_list args;
-		va_start(args, fmt);
-		vprintf(fmt, args);
-		va_end(args);
-		putchar('\n');
-	}
-
-	Trace::print(get_core_num());
-	printf("stack free = %i\n", int(stack_free()));
-	cstr s = check_heap();
-	printf("heap: %s\n", s ? s : "valid");
-	dump_heap();
-	for (;;);
-	//_exit(1);	 --> HARDFAULT_EXCEPTION
-}
-
-
 } // namespace kilipili
 
 

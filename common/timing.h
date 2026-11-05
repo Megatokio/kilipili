@@ -1,13 +1,12 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
 
-//#include "cdefs.h"
-#include "basic_math.h"
-#include "glue.h"
-#include "pico_hw/LoadSensor.h"
+#include "common/LoadSensor.h"
+#include "common/basic_math.h"
+#include "common/glue.h"
 
 
 #ifndef LIB_PICO_STDLIB
