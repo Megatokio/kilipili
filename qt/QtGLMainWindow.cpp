@@ -286,14 +286,6 @@ static std::counting_semaphore<4> keyqueue_sema(0);
 
 int stdio_getchar_timeout_us(uint32 timeout_us)
 {
-	if (timeout_us == 0)
-	{
-		keyqueue_sema.acquire();
-		std::lock_guard<std::mutex> locker(keyqueue_mutex);
-		assert(keyqueue.avail());
-		return uchar(keyqueue.get());
-	}
-
 	if (keyqueue_sema.try_acquire_for(std::chrono::duration<uint32, std::micro>(timeout_us)))
 	{
 		std::lock_guard<std::mutex> locker(keyqueue_mutex);
