@@ -105,18 +105,13 @@ struct Interp : public ::Interp
 };
 
 
+static_assert(sizeof(Interp) == sizeof(interp_hw_t));
+
 #undef interp0
 #undef interp1
 
-#ifdef PICO
-static_assert(SIO_INTERP1_ACCUM0_OFFSET - SIO_INTERP0_ACCUM0_OFFSET == sizeof(Interp));
-  #define interp0 reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET)
-  #define interp1 reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP1_ACCUM0_OFFSET)
-#else
-static_assert(sizeof(Interp) == sizeof(kilipili::Interp));
-  #define interp0 static_cast<Interp*>(&interp0_hw_array[get_core_num()])
-  #define interp1 static_cast<Interp*>(&interp1_hw_array[get_core_num()])
-#endif
+#define interp0 static_cast<Interp*>(interp0_hw)
+#define interp1 static_cast<Interp*>(interp1_hw)
 
 using InterpMode = Interp::Mode;
 

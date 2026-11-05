@@ -7,7 +7,7 @@
 #include "common/cdefs.h"
 #include "common/glue.h"
 #include "common/standard_types.h"
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
   #include <hardware/interp.h>
 #endif
 
@@ -23,9 +23,9 @@
 	on 64bit the the base registers and results are 64bit. this may cause problems.
 */
 
-#ifndef LIB_PICO_STDLIB
-
-struct interp_hw_t
+#if 0
+  #ifndef PICO
+struct interp_hw_t		 // <-- defined in glue.h
 {
 	uint32 accum[2] {0}; // read/write
 	size_t base[3] {0};	 // read/write
@@ -49,6 +49,7 @@ struct interp_hw_t
 	// 0x000003e0 [9:5]   MASK_LSB     (0) The least-significant bit allowed to pass by the mask (inclusive)
 	// 0x0000001f [4:0]   SHIFT        (0) Logical right-shift applied to accumulator before masking
 };
+  #endif
 #endif
 
 
@@ -66,7 +67,7 @@ struct Interp : public interp_hw_t
 	static constexpr uint32 lane0_cross_result_bits = 1 << 17;
 	static constexpr uint32 lane0_add_raw_bits		= 1 << 18;
 
-#ifdef LIB_PICO_STDLIB
+#ifdef PICO
 	Interp()  = delete;
 	~Interp() = delete;
 	uint32 __always_inline pop(int i) noexcept { return interp_hw_t::pop[i]; }
@@ -148,21 +149,13 @@ struct Interp : public interp_hw_t
 };
 
 
+static_assert(sizeof(Interp) == sizeof(interp_hw_t));
+
 #undef interp0
 #undef interp1
 
-#ifdef LIB_PICO_STDLIB
-static_assert(sizeof(interp_hw_t) == 16 * 4);
-static_assert(SIO_INTERP1_ACCUM0_OFFSET - SIO_INTERP0_ACCUM0_OFFSET == sizeof(Interp));
-  #define interp0 reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP0_ACCUM0_OFFSET)
-  #define interp1 reinterpret_cast<Interp*>(SIO_BASE + SIO_INTERP1_ACCUM0_OFFSET)
-#else
-extern Interp interp0_hw_array[2];
-extern Interp interp1_hw_array[2];
-  #define interp0 &interp0_hw_array[get_core_num()]
-  #define interp1 &interp1_hw_array[get_core_num()]
-
-#endif
+#define interp0 static_cast<Interp*>(interp0_hw)
+#define interp1 static_cast<Interp*>(interp1_hw)
 
 
 /*

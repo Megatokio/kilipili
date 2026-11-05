@@ -15,6 +15,9 @@ set(common_libraries)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 	set(common_sources 
+		memory.cpp
+		LoadSensor.cpp
+		system_clock.cpp
 		stack_guard.cpp)
 	set(common_libraries 
 		hardware_pwm
@@ -31,7 +34,6 @@ add_library(kilipili_common STATIC
 	Dispatcher.h 
 	Logger.cpp
 	Logger.h 
-	LoadSensor.cpp
 	LoadSensor.h
 	DiskLight.h
 	Mutex.h
@@ -63,10 +65,8 @@ add_library(kilipili_common STATIC
 	tempmem.h
 	timing.cpp
 	timing.h
-	memory.cpp
 	memory.h
 	system_clock.h
-	system_clock.cpp
 	FlexQueue.h
 	little_big_endian.h
 	glue.cpp

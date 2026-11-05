@@ -66,9 +66,8 @@ void __attribute__((noreturn)) __printflike(1, 0) panic(const char* fmt, ...)
 
 SpinLock kilipili_spinlock;
 
-thread_local int core_num;
-Interp			 interp0_hw_array[2];
-Interp			 interp1_hw_array[2];
+thread_local int		 core_num;
+thread_local interp_hw_t interp_hw_array[2];
 
 // overridden by emulator:
 void __weak_symbol stdio_init_all() {}
