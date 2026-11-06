@@ -1,13 +1,12 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "common/SpinLock.h"
 #include "geometry.h"
 #include "internal/Frames.h"
 #include "no_copy_move.h"
-//#include <pico/sync.h>
-#include "common/SpinLock.h"
 
 
 namespace kilipili

@@ -18,6 +18,16 @@
 #endif
 
 
+namespace kilipili
+{
+volatile int  hot_row = 0;						  // Sprite
+SpinLock	  sprites_spinlock(SpinLock::UNUSED); // Sprite
+bool		  hotlist_overflow = false;			  // MultiSpritesPlane
+uint		  scanlines_missed = 0;				  // VideoController
+volatile bool locked_out	   = false;			  // VideoController
+} // namespace kilipili
+
+
 // ========================================================
 //					SpinLock
 // ========================================================

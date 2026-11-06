@@ -86,10 +86,6 @@ __weak_symbol void setMouseLimits(int, int) noexcept {}
 
 namespace kilipili
 {
-
-uint		  scanlines_missed = 0;
-volatile bool locked_out	   = false;
-
 static constexpr uint max_planes = 8;
 extern uint			  num_planes;
 uint				  num_planes = 0;

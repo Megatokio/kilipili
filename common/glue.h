@@ -74,6 +74,16 @@ extern "C" int getchar_timeout_us(uint32);
 #endif
 
 
+namespace kilipili
+{
+extern volatile int	 hot_row;		   // Sprite
+extern SpinLock		 sprites_spinlock; // Sprite
+extern bool			 hotlist_overflow; // MultiSpritesPlane
+extern uint			 scanlines_missed; // VideoController
+extern volatile bool locked_out;	   // VideoController
+} // namespace kilipili
+
+
 /*
 
 

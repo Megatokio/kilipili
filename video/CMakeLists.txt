@@ -47,10 +47,7 @@ add_library(kilipili_video STATIC
 	MousePointer.h  	
 	MousePointer.cpp
 	MultiSpritesPlane.h	
-	MultiSpritesPlane.cpp
 	SingleSpritePlane.h	
-	SingleSpritePlane.cpp
-	Sprite.cpp      	
 	Sprite.h
 	VgaMode.h
 	internal/video_options.h
@@ -106,7 +103,7 @@ target_link_libraries(kilipili_video PUBLIC
 	kilipili_graphics
 )
 
-# the resulting header files are already included in internal/:
+# the resulting header files are already included in video/internal/:
 # pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/timing.pio)
 # pico_generate_pio_header(kilipili_video ${CMAKE_CURRENT_LIST_DIR}/internal/scanline.pio)
 
