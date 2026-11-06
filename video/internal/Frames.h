@@ -9,7 +9,7 @@
 #include <new>
 #include <utility>
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 template<typename Shape>
@@ -26,7 +26,7 @@ struct Frame
 template<typename Shape>
 struct Frames
 {
-	using Frame = Video::Frame<Shape>;
+	using Frame = kilipili::Frame<Shape>;
 
 	Frame* frames	  = nullptr;
 	uint   num_frames = 0;
@@ -210,4 +210,4 @@ void Frames<Shape>::alloc_and_copy(const Frame* frames, uint count) throws
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili

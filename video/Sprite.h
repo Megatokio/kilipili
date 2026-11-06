@@ -10,7 +10,7 @@
 #include "common/SpinLock.h"
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 extern volatile int hot_row;		  // the currently displayed screen row
@@ -48,8 +48,8 @@ public:
 	NO_COPY_MOVE(Sprite);
 
 	using Shape	 = SHAPE;
-	using Frame	 = Video::Frame<Shape>;
-	using Frames = Video::Frames<Shape>;
+	using Frame	 = kilipili::Frame<Shape>;
+	using Frames = kilipili::Frames<Shape>;
 
 	static constexpr bool is_animated = false;
 	static constexpr bool isa_sprite  = true;
@@ -107,7 +107,7 @@ public:
 };
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 /*
 

@@ -8,7 +8,7 @@
   #include <pico/sync.h>
 #endif
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 struct HotShapeFoo
@@ -46,7 +46,7 @@ struct SpriteFoo
 void testFoo() { SingleSpritePlane<SpriteFoo> foo {ShapeFoo(), Point {}}; }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

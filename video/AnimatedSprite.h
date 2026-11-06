@@ -8,7 +8,7 @@
 #include "internal/Frames.h"
 #include "string.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /* ————————————————————————————————————————————————————————————
@@ -32,8 +32,8 @@ class AnimatedSprite : public Sprite<SHAPE>
 public:
 	using super	 = Sprite<SHAPE>;
 	using Shape	 = SHAPE;
-	using Frame	 = Video::Frame<Shape>;
-	using Frames = Video::Frames<Shape>;
+	using Frame	 = kilipili::Frame<Shape>;
+	using Frames = kilipili::Frames<Shape>;
 
 	static constexpr bool is_animated = true; // helper for templates
 	static constexpr bool isa_sprite  = true;
@@ -198,7 +198,7 @@ bool AnimatedSprite<Shape>::next_frame() noexcept
 	return super::replace(frames[current_frame].shape);
 }
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 /*
 

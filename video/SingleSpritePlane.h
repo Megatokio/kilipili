@@ -10,7 +10,7 @@
 //#include "internal/Shape.h"
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /*
@@ -30,8 +30,8 @@ class SingleSpritePlane : public VideoPlane
 public:
 	using Shape	   = typename Sprite::Shape;
 	using HotShape = typename Shape::HotShape;
-	using Frames   = Video::Frames<Shape>;
-	using Frame	   = Video::Frame<Shape>;
+	using Frames   = kilipili::Frames<Shape>;
+	using Frame	   = kilipili::Frame<Shape>;
 
 	static constexpr bool is_animated = Sprite::is_animated;
 
@@ -186,7 +186,7 @@ void __section(RAM ".ssp") SingleSpritePlane<Sprite>::renderScanline( //
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

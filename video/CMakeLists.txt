@@ -32,15 +32,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 	set(video_sources
 		internal/scanline.pio
 		internal/timing.pio
-		AnimatedSprite.h
-		#Sprite.cpp      	
-		#Sprite.h
-		#MultiSpritesPlane.h	
-		#MultiSpritesPlane.cpp
-		#SingleSpritePlane.h	
-		#SingleSpritePlane.cpp
-		MousePointer.h  	
-		MousePointer.cpp
 		internal/VideoBackend.h  	
 		internal/VideoBackend.cpp
 		internal/ScanlineBuffer.h 	
@@ -52,6 +43,9 @@ endif()
 
 add_library(kilipili_video STATIC  
 	${video_sources}  
+	AnimatedSprite.h
+	MousePointer.h  	
+	MousePointer.cpp
 	MultiSpritesPlane.h	
 	MultiSpritesPlane.cpp
 	SingleSpritePlane.h	

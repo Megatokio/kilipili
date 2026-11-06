@@ -4,12 +4,12 @@
 
 #include "MultiSpritesPlane.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 bool hotlist_overflow = false; // set by add_to_hotlist()
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

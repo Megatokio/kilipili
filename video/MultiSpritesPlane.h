@@ -15,7 +15,7 @@
 // TODO: gcc ignores section!
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 extern bool			hotlist_overflow; // set by add_to_hotlist()
@@ -312,7 +312,7 @@ void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::renderScanline( //
 	trace(__func__);
 	assert(get_core_num() == 1);
 
-	Video::hot_row = hot_row;
+	kilipili::hot_row = hot_row;
 
 	// add sprites coming into range of scanline:
 	// adds sprites which start in the current row
@@ -384,7 +384,7 @@ void __section(RAM ".msp") MultiSpritesPlane<Sprite, WZ>::vblank() noexcept // T
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

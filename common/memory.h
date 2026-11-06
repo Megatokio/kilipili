@@ -8,7 +8,6 @@
 
 namespace kilipili
 {
-#ifdef PICO
 extern size_t heap_start() noexcept;
 extern size_t heap_end() noexcept;
 
@@ -23,8 +22,7 @@ extern size_t stack_bottom(uint core) noexcept;
 extern size_t core0_stack_top() noexcept;
 extern size_t core1_stack_top() noexcept;
 extern size_t stack_top(uint core) noexcept;
-extern size_t stack_free() noexcept;
-#endif
+extern int	  stack_free() noexcept;
 
 extern size_t flash_binary_end() noexcept;
 extern size_t flash_binary_size() noexcept;

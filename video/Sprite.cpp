@@ -5,10 +5,10 @@
 #include "Sprite.h"
 #include "common/SpinLock.h"
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 volatile int hot_row = 0;
 SpinLock	 sprites_spinlock(SpinLock::UNUSED);
 
-} // namespace kilipili::Video
+} // namespace kilipili

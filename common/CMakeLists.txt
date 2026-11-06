@@ -15,7 +15,6 @@ set(common_libraries)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 	set(common_sources 
-		memory.cpp
 		LoadSensor.cpp
 		system_clock.cpp
 		stack_guard.cpp)
@@ -28,6 +27,7 @@ endif()
 add_library(kilipili_common STATIC  
 	${common_sources}  
 	#malloc.cpp  <-- must be included in add_executable directly
+	memory.cpp
 	common.h
 	Array.h
 	Dispatcher.cpp	

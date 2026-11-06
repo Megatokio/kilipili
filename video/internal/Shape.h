@@ -38,7 +38,7 @@
    ————————————————————————————————————————————————————————— */
 
 
-namespace kilipili::Video
+namespace kilipili
 {
 
 /* ——————————————————————————————————————————————————————————————————————————
@@ -140,7 +140,7 @@ protected:
 */
 struct Shape
 {
-	using HotShape = Video::HotShape;
+	using HotShape = kilipili::HotShape;
 
 	static constexpr bool isa_shape = true;
 
@@ -192,7 +192,7 @@ struct SoftenedShape : public Shape
 {
 	// sprites are scaled 2:1 horizontally, odd pixels l+r are set using blend
 
-	using HotShape = Video::HotSoftenedShape;
+	using HotShape = kilipili::HotSoftenedShape;
 	// TODO ctor
 };
 
@@ -484,7 +484,7 @@ Shape::Shape(const Pixmap& pm, int transparent_pixel, const Dist& hotspot, const
 }
 
 
-} // namespace kilipili::Video
+} // namespace kilipili
 
 
 /*

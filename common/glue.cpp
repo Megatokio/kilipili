@@ -111,19 +111,10 @@ int getchar_timeout_us(uint32) { TODO(); }
 
 namespace kilipili::USB
 {
-void sleep_us(uint delay_usec)
-{
-	time_t	 time_int	= delay_usec / 1000000;
-	long	 time_fract = (delay_usec - time_int * 1000000) * 1000;
-	timespec wait_time	= {time_int, time_fract};
-	while (nanosleep(&wait_time, &wait_time) == -1 && errno == EINTR) {}
-}
-
 void initUSBHost() noexcept {}
 int	 pollUSB(void*) noexcept { return 0; }
 bool keyboardPresent() noexcept { return false; }
 bool mousePresent() noexcept { return false; }
-
 // for unknown reason the linker insists on these symbols:
 void setHidMouseEventHandler(HidMouseEventHandler* handler) noexcept { IERR(); }
 void setHidKeyboardEventHandler(HidKeyboardEventHandler* handler) noexcept { IERR(); }
