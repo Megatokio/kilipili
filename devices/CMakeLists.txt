@@ -32,10 +32,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 		internal/FatFS.cpp
 		internal/FatDir.h 
 		internal/FatDir.cpp
-		internal/RsrcFile.h 
-		internal/RsrcFile.cpp
-		internal/RsrcFS.h 
-		internal/RsrcFS.cpp	
 		internal/ff15/source/ff.h
 		internal/ff15/source/ff.c
 		internal/ff15/source/ffconf.h
@@ -67,6 +63,10 @@ endif()
 add_library(kilipili_devices STATIC  
 	${devices_sources}  
 	devices_types.h
+	internal/RsrcFile.h 
+	internal/RsrcFile.cpp
+	internal/RsrcFS.h 
+	internal/RsrcFS.cpp	
 	FileSystem.h 
 	FileSystem.cpp	
 	RamFile.cpp 	

@@ -7,7 +7,9 @@
 #ifndef PICO
   #include "standard_types.h"
   #include <cerrno>
+  #include <chrono>
   #include <ctime>
+  #include <thread>
   #include <unistd.h>
 #endif
 
@@ -26,17 +28,14 @@ uint64 time_us_64()
 	clock_gettime(_POSIX_MONOTONIC_CLOCK, &tv);
 	return uint64(tv.tv_sec * 1000000 + tv.tv_nsec / 1000);
 }
-
-void sleep_us(uint delay_usec)
-{
-	time_t	 time_int	= delay_usec / 1000000;
-	long	 time_fract = (delay_usec - time_int * 1000000) * 1000;
-	timespec wait_time	= {time_int, time_fract};
-	while (nanosleep(&wait_time, &wait_time) == -1 && errno == EINTR) {}
-}
 #endif
 
 #ifndef PICO
+void sleep_us(uint delay)
+{
+	std::this_thread::sleep_for(std::chrono::microseconds(delay)); //
+}
+
 uint64 make_timeout_time_us(uint32 timeout_us)
 {
 	return time_us_64() + timeout_us; //

@@ -17,22 +17,23 @@
 
 // QRgb = #AARRGGBB
 // openGL RGBA8888 = bytes R,G,B,A in memory or little endian #AABBGGRR  and AA = 0xFF !!
-#define VIDEO_PIXEL_RSHIFT 16u
-#define VIDEO_PIXEL_GSHIFT 8u
-#define VIDEO_PIXEL_BSHIFT 0u
-#define VIDEO_PIXEL_RCOUNT 8
-#define VIDEO_PIXEL_GCOUNT 8
-#define VIDEO_PIXEL_BCOUNT 8
+// we use only 5 bit per component
+#define VIDEO_PIXEL_RSHIFT 19 // 16+3
+#define VIDEO_PIXEL_GSHIFT 11 //  8+3
+#define VIDEO_PIXEL_BSHIFT 3  //  0+3
+#define VIDEO_PIXEL_RCOUNT 5
+#define VIDEO_PIXEL_GCOUNT 5
+#define VIDEO_PIXEL_BCOUNT 5
 
 // Audio
-#define AUDIO_NONE
+// #define AUDIO_NONE
 
 // #define AUDIO_BUZZER
 // #define AUDIO_BUZZER_PIN
 
-// #define AUDIO_I2S
-// #define AUDIO_I2S_DATA_PIN
-// #define AUDIO_I2S_CLOCK_PIN_BASE
+#define AUDIO_I2S
+#define AUDIO_I2S_DATA_PIN		 2 // dummy
+#define AUDIO_I2S_CLOCK_PIN_BASE 3 // dummy
 
 // #define AUDIO_PWM
 // #define AUDIO_MONO_PIN 28

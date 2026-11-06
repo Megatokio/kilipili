@@ -127,6 +127,15 @@ extern void removeAudioSource(RCPtr<HwAudioSource>) noexcept;
 
 extern void removeAllAudioSources() noexcept;
 
+
+// private exports for emulator:
+#if audio_hw_num_channels != 0
+extern bool					audio_is_running;
+extern uint					num_sources;
+extern RCPtr<HwAudioSource> audio_sources[];
+extern SpinLock				audio_spinlock;
+#endif
+
 } // namespace kilipili
 
 /*

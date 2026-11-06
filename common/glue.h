@@ -6,13 +6,13 @@
 #ifdef SETTINGS_FILE
   #include SETTINGS_FILE
 #endif
+#include "common/SpinLock.h"
+#include "common/standard_types.h"
 #ifdef PICO
   #include <hardware/timer.h>
   #include <pico/stdio.h>
   #include <pico/sync.h>
 #else
-  #include "common/SpinLock.h"
-  #include "common/standard_types.h"
   #include <atomic>
 #endif
 

@@ -3,6 +3,7 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "AudioController.h"
+#include "common/SpinLock.h"
 #include "common/system_clock.h"
 #include "common/timing.h"
 #include <cstdio>
@@ -37,7 +38,16 @@ static constexpr uint ibu_size = 64;
 
 #if audio_hw_num_channels != 0
 
-// clang-format off
+float				  hw_sample_frequency = AUDIO_DEFAULT_SAMPLE_FREQUENCY; // actual sample frequency
+bool				  audio_is_running	  = false;
+static constexpr uint max_sources		  = 8;
+uint				  num_sources		  = 0;
+RCPtr<HwAudioSource>  audio_sources[max_sources];
+SpinLock			  audio_spinlock(SpinLock::STRIPED); // lock for audio_sources[]
+
+  #ifdef PICO
+
+	// clang-format off
   #define pio0_hw ((pio_hw_t *)PIO0_BASE)				 // assert definition hasn't changed
   #undef pio0_hw										 // undef c-style definition
   #define pio0_hw reinterpret_cast<pio_hw_t*>(PIO0_BASE) // replace with c++-style definition
@@ -45,13 +55,13 @@ static constexpr uint ibu_size = 64;
   #define dma_hw ((dma_hw_t *)DMA_BASE)					 // assert definition hasn't changed
   #undef dma_hw											 // undef c-style definition
   #define dma_hw reinterpret_cast<dma_hw_t*>(DMA_BASE)	 // replace with c++-style definition
-// clang-format on
+	// clang-format on
 
 
-// =========================================================
+	// =========================================================
 
 
-  #define audio_pio pio0 // same as video pio
+	#define audio_pio pio0 // same as video pio
 
 constexpr uint dma_buffer_num_frames = AUDIO_DMA_BUFFER_SIZE;
 constexpr uint dma_buffer_frame_size = audio_hw_sample_size * (audio_hw == I2S ? 2 : 1);
@@ -70,22 +80,17 @@ constexpr bool has_second_sm	= hw_num_channels >= 2 && audio_hw != I2S;
 constexpr uint num_sm			= 1 + has_second_sm;
 constexpr uint dma_num_channels = num_sm;
 
-static uint8		sm[num_sm];
-static uint8		dma_channel[dma_num_channels];
-static spin_lock_t* spinlock = nullptr;
+static uint8 sm[num_sm];
+static uint8 dma_channel[dma_num_channels];
 
 static uint32 dma_buffer[dma_num_channels][dma_buffer_size / 4];
 static uint	  dma_wi = 0;
 
-static constexpr uint		max_sources = 8;
-static uint					num_sources = 0;
-static RCPtr<HwAudioSource> audio_sources[max_sources];
-
-  #if defined AUDIO_SIGMA_DELTA
+	#if defined AUDIO_SIGMA_DELTA
 static int sid_last_sample[hw_num_channels];
-  #else
+	#else
 extern int* sid_last_sample; // dummy, syntax only
-  #endif
+	#endif
 
 static constexpr uint32 dither_table[16] = {
 	0b0000000000000000u << 16, // 0/16
@@ -107,21 +112,11 @@ static constexpr uint32 dither_table[16] = {
 };
 
 static float		 requested_sample_frequency = AUDIO_DEFAULT_SAMPLE_FREQUENCY;
-float				 hw_sample_frequency		= AUDIO_DEFAULT_SAMPLE_FREQUENCY; // actual sample frequency
 static float		 max_latency				= 10e-3f;
 static uint			 max_frames_ahead			= dma_buffer_num_frames - 1;
 static volatile bool check_timing				= false;
-static bool			 is_running					= false;
 static alarm_id_t	 timer_id					= 0;
 static uint32		 timer_period_us			= 0;
-
-struct Locker // lock for audio_sources[]
-{
-	uint32 state;
-	Locker() noexcept { state = spin_lock_blocking(spinlock); }
-	~Locker() noexcept { spin_unlock(spinlock, state); }
-};
-
 
 // =========================================================
 
@@ -253,14 +248,13 @@ static void stop_dma() noexcept
 	for (uint i = 0; i < dma_num_channels; i++) dma_channel_cleanup(dma_channel[i]);
 }
 
-static bool is_initialized = false;
 static void initialize() noexcept
 {
-	assert(!is_initialized);
 	assert(get_core_num() == 0);
 
+	static bool is_initialized = false;
+	if (is_initialized) return;
 	is_initialized = true;
-	spinlock	   = spin_lock_instance(next_striped_spin_lock_num());
 
 	if constexpr (audio_hw == I2S)
 	{
@@ -315,10 +309,10 @@ static void update_timing() noexcept
 		if constexpr (num_sm == 2)
 		{
 			// keep them synchronized:
-			if (is_running) pio_set_sm_mask_enabled(audio_pio, (1 << sm[0]) | (1 << sm[1]), false);
+			if (audio_is_running) pio_set_sm_mask_enabled(audio_pio, (1 << sm[0]) | (1 << sm[1]), false);
 			pio_sm_set_clkdiv_int_frac8(audio_pio, sm[0], d, f);
 			pio_sm_set_clkdiv_int_frac8(audio_pio, sm[1], d, f);
-			if (is_running) pio_enable_sm_mask_in_sync(audio_pio, (1 << sm[0]) | (1 << sm[1]));
+			if (audio_is_running) pio_enable_sm_mask_in_sync(audio_pio, (1 << sm[0]) | (1 << sm[1]));
 		}
 		else pio_sm_set_clkdiv_int_frac8(audio_pio, sm[0], d, f);
 	}
@@ -536,9 +530,7 @@ static int64 fill_buffer(alarm_id_t, void*) noexcept
 
 int32 fillAudioBuffer(void*) noexcept
 {
-	//if unlikely (!is_initialized) initialize();
-
-	if (is_running)
+	if (audio_is_running)
 	{
 		if (timer_id <= 0) // no timer used
 		{
@@ -556,9 +548,9 @@ int32 fillAudioBuffer(void*) noexcept
 
 void startAudio(bool with_timer) noexcept
 {
-	if unlikely (!is_initialized) initialize();
+	initialize();
 
-	if (is_running)
+	if (audio_is_running)
 	{
 		if (with_timer == (timer_id > 0)) return;
 		else stopAudio();
@@ -571,7 +563,7 @@ void startAudio(bool with_timer) noexcept
 	start_dma();
 	start_pio();
 
-	is_running = true;
+	audio_is_running = true;
 
 	if (with_timer)
 	{
@@ -583,10 +575,8 @@ void startAudio(bool with_timer) noexcept
 
 void stopAudio(bool remove_audio_sources) noexcept
 {
-	if unlikely (!is_initialized) initialize();
-
-	if (!is_running) return;
-	is_running = false;
+	if (!audio_is_running) return;
+	audio_is_running = false;
 
 	if (timer_id > 0) cancel_alarm(timer_id);
 	timer_id = 0;
@@ -595,13 +585,6 @@ void stopAudio(bool remove_audio_sources) noexcept
 	stop_pio();
 
 	if (remove_audio_sources) removeAllAudioSources();
-}
-
-bool isAudioRunning() noexcept
-{
-	//if unlikely (!is_initialized) initialize();
-
-	return is_running;
 }
 
 void setAudioMaxLatency(uint32 ms) noexcept
@@ -626,7 +609,7 @@ float getAudioSampleFrequency() noexcept
 {
 	//if unlikely (!is_initialized) initialize();
 
-	if (check_timing && is_running)
+	if (check_timing && audio_is_running)
 	{
 		if (timer_id > 0)
 			while (check_timing) wfe();
@@ -635,10 +618,32 @@ float getAudioSampleFrequency() noexcept
 	return hw_sample_frequency;
 }
 
+void audioSysclockChanged(uint32 /*new_clock*/) noexcept
+{
+	// called from set_system_clock():
+	// sample frequency will be changed next time fill_buffer() is called
+
+	//if unlikely (!is_initialized) initialize();
+
+	check_timing = true;
+}
+
+  #endif // ifdef PICO
+
+bool isAudioRunning() noexcept
+{
+	return audio_is_running; //
+}
+
+struct Locker
+{
+	uint32 state;
+	Locker() noexcept { state = audio_spinlock.lock(); }
+	~Locker() noexcept { audio_spinlock.unlock(state); }
+};
+
 HwAudioSource* addAudioSource(RCPtr<AudioSource<hw_num_channels>> ac) noexcept
 {
-	if unlikely (!is_initialized) initialize();
-
 	Locker _;
 	if (ac == nullptr || num_sources >= max_sources) return nullptr;
 	else return audio_sources[num_sources++] = std::move(ac);
@@ -684,16 +689,6 @@ void removeAllAudioSources() noexcept
 	}
 }
 
-void audioSysclockChanged(uint32 /*new_clock*/) noexcept
-{
-	// called from set_system_clock():
-	// sample frequency will be changed next time fill_buffer() is called
-
-	//if unlikely (!is_initialized) initialize();
-
-	check_timing = true;
-}
-
 void beep(float frequency, float volume, uint32 duration_ms)
 {
 	// create a channel which produces a square wave of the given frequency, volume and duration:
@@ -733,7 +728,7 @@ void beep(float frequency, float volume, uint32 duration_ms)
 		}
 	};
 
-	if (!is_running) startAudio(true);
+	if (!audio_is_running) startAudio(true);
 	addAudioSource(new BeepingAudioSource(frequency, volume, duration_ms));
 }
 

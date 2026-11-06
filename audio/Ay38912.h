@@ -21,7 +21,7 @@
 		NCH: number of channels is normally set to audio_hw_num_channels.
 
 	AY38912_player<NCH,QSZ>: adds a queue for register set updates.
-		Register setd for each frame are stored into a queue for getAudio().		
+		Register sets for each frame are stored into a queue for getAudio().		
 		NCH: number of channels is normally set to audio_hw_num_channels.
 		QSZ: a queue size of 4 register sets is the default and best in 90% of all use cases.
 		The register sets are written into the AY at a fixed interval, normally the source's frame rate.
