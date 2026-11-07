@@ -36,7 +36,8 @@ using HwAudioSample = AudioSample<audio_hw_num_channels>;
 template<typename Sample>
 struct AudioSample<0, Sample>
 {
-	static Sample* channels; // dummy, for syntax only
+	static constexpr uint	 num_channels = 0;
+	static constexpr Sample* channels	  = nullptr; // dummy, for syntax only
 
 	constexpr Sample left() const noexcept { return 0; }
 	constexpr Sample right() const noexcept { return 0; }
@@ -59,6 +60,8 @@ struct AudioSample<0, Sample>
 template<typename Sample>
 struct AudioSample<1, Sample>
 {
+	static constexpr uint num_channels = 1;
+
 	union
 	{
 		Sample channels[1];
@@ -86,6 +89,8 @@ struct AudioSample<1, Sample>
 template<typename Sample>
 struct AudioSample<2, Sample>
 {
+	static constexpr uint num_channels = 2;
+
 	union
 	{
 		Sample channels[2];
@@ -120,6 +125,8 @@ struct AudioSample<2, Sample>
 template<>
 struct AudioSample<1, int>
 {
+	static constexpr uint num_channels = 1;
+
 	union
 	{
 		int channels[1];
@@ -155,6 +162,8 @@ struct AudioSample<1, int>
 template<>
 struct AudioSample<2, int>
 {
+	static constexpr uint num_channels = 2;
+
 	union
 	{
 		int channels[2];
