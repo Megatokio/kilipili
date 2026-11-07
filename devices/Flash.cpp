@@ -1,25 +1,17 @@
-// Copyright (c) 2025 - 2025 kio@little-bat.de
+// Copyright (c) 2025 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 
 #include "Flash.h"
 #include "common/DiskLight.h"
+#include "common/glue.h"
 #include <string.h>
 
-#ifndef PICO
-  #include "common/glue.h"
-#else
+#ifdef PICO
   #include <hardware/flash.h>
   #include <hardware/sync.h>
 extern char __flash_binary_end;
-#endif
-
-
-#ifndef PICO
-// for unit test: these are in unit_test/Mock/MockFlash.cpp
-extern "C" void flash_range_erase(uint32 flash_offs, uint32 count);
-extern "C" void flash_range_program(uint32 flash_offs, const uint8* data, uint32 count);
 #endif
 
 
