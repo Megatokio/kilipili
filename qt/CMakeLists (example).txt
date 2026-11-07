@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.19)
 
 set(PROJECT KilipiliEmulator)
 
-option(EMULATOR "compile for Qt desktop emulator" ON)
+option(EMULATOR "compile for Qt desktop emulator" OFF)
 
 
 # ---------------------
@@ -32,14 +32,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -DRELEASE")
 
-add_compile_definitions( 
+add_compile_definitions(
 	ON=1 OFF=0
 	PICO_STDIO_USB=${PICO_STDIO_USB}
 	PICO_STDIO_UART=${PICO_STDIO_UART}
 	#MALLOC_EXTENDED_VALIDATION=${MALLOC_EXTENDED_VALIDATION}
 	#FF_FS_TINY=${OPTION_FF_FS_TINY}
 	#FF_FS_LOCK=${OPTION_FF_FS_LOCK}
-	PICO_CORE1_STACK_SIZE=0x600		
+	PICO_CORE1_STACK_SIZE=0x600
     ${CMAKE_SYSTEM_NAME}
 	)
 
@@ -97,7 +97,7 @@ if(EMULATOR)
         ${project_libraries}
         Qt::Core
         Qt::Widgets
-        Qt::OpenGL)    
+        Qt::OpenGL)
 else()
     target_link_libraries(${PROJECT} PRIVATE
         ${project_libraries})
