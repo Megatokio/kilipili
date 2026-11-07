@@ -1,9 +1,11 @@
-// Copyright (c) 2024 - 2025 kio@little-bat.de
+// Copyright (c) 2024 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "audio_options.h"
 #include "standard_types.h"
+
 
 namespace kilipili
 {
@@ -24,6 +26,7 @@ struct AudioSample;
 using NoAudioSample = AudioSample<0, Sample>;
 using MonoSample	= AudioSample<1, Sample>;
 using StereoSample	= AudioSample<2, Sample>;
+using HwAudioSample = AudioSample<audio_hw_num_channels>;
 
 
 // #################################################################

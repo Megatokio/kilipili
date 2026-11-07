@@ -8,6 +8,12 @@
 #include <QMediaDevices>
 #include <thread>
 
+#if defined AUDIO_INPUT_BUFFER_SIZE && AUDIO_INPUT_BUFFER_SIZE != 0
+static constexpr uint ibu_size = AUDIO_INPUT_BUFFER_SIZE;
+#else
+static constexpr uint ibu_size = 64;
+#endif
+
 
 #if audio_hw_num_channels > 0
 
@@ -24,16 +30,65 @@ extern float				hw_sample_frequency;
 extern uint					num_sources;
 extern RCPtr<HwAudioSource> audio_sources[];
 extern SpinLock				audio_spinlock;
-static volatile bool		timer_running = false;
+static volatile bool		timer_running			   = false;
+static int32				requested_sample_frequency = 0;
 
-void  setAudioSampleFrequency(float f) noexcept {}
-void  setAudioMaxLatency(uint32 msec) noexcept {}
+static RCPtr<AudioSource<hw_num_channels>> combined_audio = nullptr;
+
+
 float getAudioSampleFrequency() noexcept { return hw_sample_frequency; }
+void  setAudioMaxLatency(uint32 msec) noexcept {}
+void  setAudioSampleFrequency(float f) noexcept { requested_sample_frequency = int32(f + 0.5f); }
 
 
 inline Sample		clamped(int q) noexcept { return q == Sample(q) ? Sample(q) : q < 0 ? -0x7fff : +0x7fff; }
 inline MonoSample	clamped(const AudioSample<1, int>& q) { return clamped(q.m); }
 inline StereoSample clamped(const AudioSample<2, int>& q) { return StereoSample(clamped(q.l), clamped(q.r)); }
+
+class CombinedAudioSources : public AudioSource<hw_num_channels>
+{
+	int __unused _padding;
+
+public:
+	virtual void setSampleRate(float new_sample_frequency) noexcept override {}
+
+	virtual uint getAudio(HwAudioSample* output_buffer, uint count) noexcept override
+	{
+		assert(count <= ibu_size);
+		auto sr = audio_spinlock.lock();
+
+		if (num_sources == 0)
+		{
+			memset(output_buffer, 0, count * sizeof(*output_buffer)); //
+		}
+		else if (num_sources == 1)
+		{
+			uint cnt = audio_sources[0]->getAudio(output_buffer, count);
+			if (cnt < count) { audio_sources[--num_sources] = nullptr; }
+		}
+		else
+		{
+			AudioSample<hw_num_channels, int> input_buffer[ibu_size];
+			memset(input_buffer, 0, sizeof(input_buffer));
+
+			for (uint i = 0; i < num_sources; i++)
+			{
+				uint cnt = audio_sources[i]->getAudio(output_buffer, count);
+				for (uint i = 0; i < cnt; i++) input_buffer[i] += output_buffer[i];
+				if (cnt < count)
+				{
+					swap(audio_sources[i--], audio_sources[--num_sources]);
+					audio_sources[num_sources] = nullptr;
+				}
+			}
+
+			for (uint i = 0; i < count; i++) { *output_buffer++ = clamped(input_buffer[i]); }
+		}
+
+		audio_spinlock.unlock(sr);
+		return count;
+	}
+};
 
 int32 fillAudioBuffer(void*) noexcept
 {
@@ -42,35 +97,32 @@ int32 fillAudioBuffer(void*) noexcept
 	assert(audio_device != nullptr);
 	assert(audio_sink != nullptr);
 
-	static constexpr uint			  ibu_size = 64;
-	AudioSample<hw_num_channels, int> input_buffer[ibu_size];
-	AudioSample<hw_num_channels>	  ibu[ibu_size];
+	if (requested_sample_frequency)
+	{
+		if (requested_sample_frequency != int(hw_sample_frequency))
+		{
+			combined_audio = new CombinedAudioSources();
+			if (requested_sample_frequency != audio_sink->format().sampleRate())
+				combined_audio = new SampleRateAdapter(
+					combined_audio, requested_sample_frequency, audio_sink->format().sampleRate());
+			hw_sample_frequency = requested_sample_frequency;
+		}
+		requested_sample_frequency = 0;
+	}
+
+	HwAudioSample ibu[ibu_size];
 
 	uint frames_needed = uint(audio_sink->bytesFree()) / sizeof(HwAudioSample);
 
-	auto sr = audio_spinlock.lock();
 	while (int(frames_needed) > 0)
 	{
-		memset(input_buffer, 0, sizeof(input_buffer));
-
 		uint count = min(frames_needed, ibu_size);
-		for (uint i = 0; i < num_sources; i++)
-		{
-			uint cnt = audio_sources[i]->getAudio(ibu, count);
-			for (uint i = 0; i < cnt; i++) input_buffer[i] += ibu[i];
-			if (cnt < count)
-			{
-				swap(audio_sources[i--], audio_sources[--num_sources]);
-				audio_sources[num_sources] = nullptr;
-			}
-		}
-
-		for (uint i = 0; i < count; i++) { ibu[i] = clamped(input_buffer[i]); }
+		uint sz	   = combined_audio->getAudio(ibu, count);
+		assert(sz == count);
 		ssize_t cnt = audio_device->write(ptr(ibu), count * sizeof(HwAudioSample));
-		assert(cnt == count);
+		assert(cnt == count * sizeof(HwAudioSample));
 		frames_needed -= count;
 	}
-	audio_spinlock.unlock(sr);
 
 	return 5000; // usec
 }
@@ -104,8 +156,9 @@ void startAudio(bool with_timer) noexcept
 
 		audio_sink = new QAudioSink(format);
 		assert(audio_sink->error() == QAudio::NoError);
-		uint buffer_size = uint(sizeof(HwAudioSample) * hw_sample_frequency * 0.1f); // 0.1 sec
-		audio_sink->setBufferSize(buffer_size);
+		size_t buffer_size = sizeof(HwAudioSample) * uint(hw_sample_frequency * 0.1f); // 0.1 sec
+		audio_sink->setBufferSize(ssize_t(buffer_size));
+		combined_audio = new CombinedAudioSources();
 	}
 	else if (audio_is_running)
 	{

@@ -11,6 +11,7 @@
 #include <common/cdefs.h>
 #include <string.h>
 
+
 namespace kilipili
 {
 
@@ -48,8 +49,9 @@ protected:
 	AudioSource() noexcept {}
 };
 
-using MonoSource   = AudioSource<1>;
-using StereoSource = AudioSource<2>;
+using MonoSource	= AudioSource<1>;
+using StereoSource	= AudioSource<2>;
+using HwAudioSource = AudioSource<audio_hw_num_channels>;
 
 
 /* _______________________________________________________________________________________

@@ -1,11 +1,10 @@
-// Copyright (c) 2024 - 2025 kio@little-bat.de
+// Copyright (c) 2024 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "AudioSample.h"
 #include "AudioSource.h"
-#include "audio_options.h"
+
 
 /* _______________________________________________________________________________________
    namespace Audio
@@ -25,12 +24,6 @@ extern float hw_sample_frequency;
 
 // actual HW number of channels, set from information from your boards header file
 constexpr uint hw_num_channels = audio_hw_num_channels;
-
-// AudioSample with the same number of channels as the hardware
-using HwAudioSample = AudioSample<hw_num_channels>;
-
-// AudioSource with the same number of channels as the hardware
-using HwAudioSource = AudioSource<hw_num_channels>;
 
 
 /* _______________________________________________________________________________________

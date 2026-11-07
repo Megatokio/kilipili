@@ -55,6 +55,9 @@ volatile uint32 time_us_at_frame_start;
 //uint32	time_cc_32() noexcept;
 
 
+static constexpr int h_padding = 32;
+static constexpr int v_padding = 24;
+
 static OGLVideoWindow* qmainwindow = nullptr;
 static QImage*		   qimage	   = nullptr;
 static std::mutex	   qimage_lock;
@@ -81,8 +84,8 @@ void start_video_backend(const VgaMode& vgamode, uint32 min_sys_clock)
 	time_us_at_frame_start = time_us_32();
 	row					   = 0;
 
-	if (qmainwindow) qmainwindow->setWidth(vgamode.width);
-	if (qmainwindow) qmainwindow->setHeight(vgamode.height);
+	//if (qmainwindow) qmainwindow->setWidth(vgamode.width);
+	//if (qmainwindow) qmainwindow->setHeight(vgamode.height);
 
 	qimage			  = new QImage(vgamode.width, vgamode.height, QImage::Format_RGB32);
 	qimage_bits		  = qimage->bits();
@@ -187,8 +190,8 @@ void OGLVideoWindow::onFrameSwapped()
 {
 	update();
 
-	static int n = 0;
-	if (++n % 100 == 0) fprintf(stderr, "swapped %i\n", n);
+	//static int n = 0;
+	//if (++n % 100 == 0) fprintf(stderr, "swapped %i\n", n);
 
 	(void)qimage->bits(); // without reading bits() they are moved away?
 	assert(qimage_bits == qimage->bits());
@@ -203,8 +206,8 @@ void OGLVideoWindow::onFrameSwapped()
 
 void OGLVideoWindow::paintGL()
 {
-	static int n = 0;
-	if (++n % 100 == 0) fprintf(stderr, "paint %i\n", n);
+	//static int n = 0;
+	//if (++n % 100 == 0) fprintf(stderr, "paint %i\n", n);
 
 	if (in_vblank == false) return;
 
@@ -218,6 +221,8 @@ void OGLVideoWindow::paintGL()
 	}
 	else
 	{
+		painter.fillRect(zrect, Qt::black); //
+		zrect.adjust(h_padding, v_padding, -h_padding, -v_padding);
 		painter.drawImage(zrect, *qimage); //
 	}
 
@@ -229,8 +234,13 @@ void OGLVideoWindow::paintGL()
 OGLVideoWindow::OGLVideoWindow(int w, int h, QWindow* parent) : QOpenGLWindow(NoPartialUpdate, parent)
 {
 	qmainwindow = this;
-	setWidth(qimage ? qimage->width() : w);
-	setHeight(qimage ? qimage->height() : h);
+	if (qimage)
+	{
+		w = qimage->width();
+		h = qimage->height();
+	}
+	setWidth(w + 2 * h_padding);
+	setHeight(h + 2 * v_padding);
 
 	//time_us_at_frame_start = time_us_32();
 
@@ -251,7 +261,7 @@ static QApplication* appl = nullptr;
 
 void __noreturn gui_runner()
 {
-	core_num = 2; // for trace()
+	core_num = 2;
 
 	char		 arg1[] = "kilipili_emulator";
 	char*		 argv[] = {arg1};
@@ -303,8 +313,12 @@ void OGLVideoWindow::keyPressEvent(QKeyEvent* e)
 		switch (e->key())
 		{
 		case Qt::Key_Q: appl->quit(); return e->accept();
-		case Qt::Key_1: qmainwindow->resize(vga_mode.width, vga_mode.height); return e->accept();
-		case Qt::Key_2: qmainwindow->resize(vga_mode.width * 2, vga_mode.height * 2); return e->accept();
+		case Qt::Key_1:
+			qmainwindow->resize(vga_mode.width + 2 * h_padding, vga_mode.height + 2 * v_padding);
+			return e->accept();
+		case Qt::Key_2:
+			qmainwindow->resize(vga_mode.width * 2 + 2 * h_padding, vga_mode.height * 2 + 2 * v_padding);
+			return e->accept();
 		case Qt::Key_F:
 		default: break;
 		}
