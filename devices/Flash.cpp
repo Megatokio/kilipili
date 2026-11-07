@@ -17,12 +17,9 @@ extern char __flash_binary_end;
 
 
 #ifndef PICO
-namespace kilipili
-{
 // for unit test: these are in unit_test/Mock/MockFlash.cpp
-extern void flash_range_erase(uint32 flash_offs, uint32 count);
-extern void flash_range_program(uint32 flash_offs, const uint8* data, uint32 count);
-} // namespace kilipili
+extern "C" void flash_range_erase(uint32 flash_offs, uint32 count);
+extern "C" void flash_range_program(uint32 flash_offs, const uint8* data, uint32 count);
 #endif
 
 

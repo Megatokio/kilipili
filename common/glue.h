@@ -70,7 +70,12 @@ extern "C" int	stdio_getchar_timeout_us(uint32);
   #define save_and_disable_interrupts() 0
    #define restore_interrupts(o)		 (void)(o)
 
-extern "C" int getchar_timeout_us(uint32);
+// alias for backward compatibility:
+static inline int getchar_timeout_us(uint32_t timeout_us) { return stdio_getchar_timeout_us(timeout_us); }
+
+// for unit test: these are in unit_test/Mock/MockFlash.cpp
+extern "C" void flash_range_erase(uint32 flash_offs, uint32 count);
+extern "C" void flash_range_program(uint32 flash_offs, const uint8* data, uint32 count);
 #endif
 
 

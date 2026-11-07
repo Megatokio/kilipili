@@ -95,7 +95,7 @@ void __noreturn __printflike(1, 2) panic(const char* fmt, ...)
 // ========================================================
 
 __weak_symbol bool	 mresize(void* mem, size_t size) { return false; }
-__weak_symbol cstr	 check_heap() { return "check_heap() not implemented (malloc.cpp)"; }
+__weak_symbol cstr	 check_heap() { return NO_ERROR; }
 __weak_symbol void	 dump_heap() {}
 __weak_symbol void	 dump_heap_to_fu(dump_heap_print_fu*, void* data) {}
 __weak_symbol size_t heap_total_size() { return 99000000; }
@@ -116,8 +116,6 @@ thread_local interp_hw_t interp_hw_array[2];
 void __weak_symbol stdio_init_all() {}
 int __weak_symbol  stdio_getchar_timeout_us(uint32) { return -1; }
 
-int getchar_timeout_us(uint32) { TODO(); }
-
 
 namespace kilipili::USB
 {
@@ -129,6 +127,10 @@ bool mousePresent() noexcept { return false; }
 void setHidMouseEventHandler(HidMouseEventHandler* handler) noexcept { IERR(); }
 void setHidKeyboardEventHandler(HidKeyboardEventHandler* handler) noexcept { IERR(); }
 } // namespace kilipili::USB
+
+// these are also in unit_test/Mock/MockFlash.cpp:
+void __weak_symbol flash_range_erase(uint32 flash_offs, uint32 count) { TODO(); }
+void __weak_symbol flash_range_program(uint32 flash_offs, const uint8* data, uint32 count) { TODO(); }
 
 
 #endif

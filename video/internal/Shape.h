@@ -100,13 +100,22 @@ struct HotShape
 		this->ghostly = ghostly;
 	}
 
+#if VIDEO_COLOR_PIN_COUNT <= 16
 	struct PFX // raw pixels prefix
 	{
 		int8  dx;	 // initial offset
 		uint8 width; // count of pixels that follow
 	};
-
 	enum CMD : uint16 { END = 0x0080, GAP = 0x0180 }; // little endian
+#else
+	struct PFX // raw pixels prefix
+	{
+		int8  dx;	 // initial offset
+		uint8 width; // count of pixels that follow
+		int16 _padding;
+	};
+	enum CMD : uint32 { END = 0x0080, GAP = 0x0180 }; // little endian
+#endif
 
 protected:
 	const Color* pixels = nullptr;
