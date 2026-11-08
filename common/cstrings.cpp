@@ -788,18 +788,21 @@ cstr fromhtmlstr(cstr s0)
 	}
 }
 
-str fromutf8str(cstr qstr) // sets errno
+cstr fromutf8str(cstr qstr) // sets errno
 {
 	if (!qstr || *qstr == 0) return emptystr;
 
 	if (*qstr == char(0xef) && *(qstr + 1) == char(0xbb) && *(qstr + 2) == char(0xbf)) qstr += 3; // skip BOM
 
-	int zlen = 0; // golden rule: every non_fup makes a character!
-	for (cptr q = qstr; *q;) { zlen += !is_utf8_fup(*q++); }
+	cptr q;
+	int	 zlen = 0; // golden rule: every non_fup makes a character!
+	for (q = qstr; *q;) { zlen -= is_utf8_fup(*q++); }
+	if (zlen == 0) return qstr; // no fups => all ascii
+	zlen += q - qstr;
 
-	str	 zstr = tempstr(zlen);
-	cptr q	  = qstr;
-	ptr	 z	  = zstr;
+	str zstr = tempstr(zlen);
+	q		 = qstr;
+	ptr	 z	 = zstr;
 	char c1, c2;
 
 	while (*q)
@@ -832,13 +835,14 @@ str fromutf8str(cstr qstr) // sets errno
 	return zstr;
 }
 
-str toutf8str(cstr qstr)
+cstr toutf8str(cstr qstr)
 {
-	if (qstr == nullptr || *qstr == 0) return nullptr;
+	if (qstr == nullptr || *qstr == 0) return emptystr;
 
 	int	 zlen = 0;
 	cptr q	  = qstr;
 	while (*q) zlen += !is_ascii(*q++);
+	if (zlen == 0) return qstr; // all ascii
 	zlen += q - qstr;
 	str zstr = tempstr(zlen);
 	ptr z	 = zstr;

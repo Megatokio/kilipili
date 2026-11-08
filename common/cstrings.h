@@ -113,8 +113,8 @@ extern str	escapedstr(cstr);
 extern str	unescapedstr(cstr); // sets errno
 extern str	tohtmlstr(cstr);
 extern cstr fromhtmlstr(cstr); // may return original string
-extern str	toutf8str(cstr);
-extern str	fromutf8str(cstr); // ucs1, sets errno
+extern cstr toutf8str(cstr);
+extern cstr fromutf8str(cstr); // ucs1, sets errno
 extern str	unhexstr(cstr);	   // may return nullptr
 extern str	base64str(cstr);
 extern str	unbase64str(cstr);		   // may return nullptr
