@@ -55,8 +55,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 	)
 else()
 	set(devices_sources 
-		StdFile.cpp
-		StdFile.h)
+		StdFS.h		StdFS.cpp
+		StdFile.cpp StdFile.h
+		StdDir.h	StdDir.cpp)
 endif()
 
 

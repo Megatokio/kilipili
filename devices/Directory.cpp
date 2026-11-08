@@ -11,7 +11,7 @@ namespace kilipili
 Directory::Directory(RCPtr<FileSystem> fs, cstr full_path) : fs(std::move(fs)), dirpath(nullptr)
 {
 	assert(full_path);
-	assert(kilipili::find(full_path, ":/"));
+	//assert(kilipili::find(full_path, ":/"));		StdDir uses FS path
 	this->dirpath = newcopy(full_path);
 }
 

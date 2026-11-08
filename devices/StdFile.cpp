@@ -3,7 +3,9 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "StdFile.h"
+#include "common/tempmem.h"
 #include <cstring>
+
 
 namespace kilipili
 {
@@ -54,6 +56,7 @@ uint32 StdFile::ioctl(IoCtl cmd, void* arg1, void* arg2)
 
 __noreturn void StdFile::throw_error()
 {
+	if (file == nullptr) throw errno ? dupstr(strerror(errno)) : END_OF_FILE;
 	Error e = ferror(file) ? dupstr(strerror(errno)) : END_OF_FILE;
 	clearerr(file);
 	throw e;

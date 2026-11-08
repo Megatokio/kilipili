@@ -36,7 +36,7 @@ protected:
 	Directory(RCPtr<FileSystem>, cstr full_path);
 
 	RCPtr<FileSystem> fs;
-	cstr			  dirpath = nullptr; // full path
+	cstr			  dirpath = nullptr; // full path "dev:/path/to/dir"
 };
 
 

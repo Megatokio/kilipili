@@ -15,6 +15,10 @@
 #include "common/cstrings.h"
 #include "common/trace.h"
 #include "ff15/source/ffconf.h"
+#ifndef PICO
+  #include "StdFS.h"
+#endif
+
 
 #if defined FLASH_PREFERENCES && FLASH_PREFERENCES
 static constexpr uint prefs_size = FLASH_PREFERENCES;
@@ -167,7 +171,12 @@ FileSystemPtr mountFS(cstr name) throws
 		return new FatFS(name, new QspiFlashDevice<9>(size));
 	}
 #endif
+#ifndef PICO
+	// last chance: it's "disk" or a device in "/mnt" or "/media"
+	return new StdFS(name);
+#else
 	throw UNKNOWN_DEVICE;
+#endif
 }
 
 void unmountFS(FileSystem* fs)

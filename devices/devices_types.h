@@ -67,14 +67,17 @@ enum FileType : uint8 {
 	NoFile		  = 0,
 	RegularFile	  = 1,
 	DirectoryFile = 2,
-	SymbolicLink  = 3,
+	SymbolicLink  = 3, // only if lstat() was requested, else ftype of link target!
+	SpecialFile	  = 4, // pipe, socket, chardev, blkdev, ...
 };
 
 enum FileMode : uint8 {
+	Writable	   = 0,
 	WriteProtected = 0x1, // Fat: Read-only
 	Hidden		   = 0x2, // Fat: Hidden
 	SystemFile	   = 0x4, // Fat: System
 	Modified	   = 0x8, // Fat: Archive
+	IsaSymlink	   = 0x10,
 };
 
 
@@ -102,14 +105,15 @@ struct DateTime
 struct FileInfo
 {
 	cstr	 fname = nullptr; // tempstr
-	SIZE	 fsize;
+	SIZE	 fsize = 0;
 	DateTime mtime;
-	FileType ftype;
+	FileType ftype = NoFile;
 	FileMode fmode;
 
 	constexpr	   operator bool() const noexcept { return fname != nullptr; }
 	constexpr bool isaFile() const noexcept { return fname && ftype == FileType::RegularFile; }
 	constexpr bool isaDir() const noexcept { return fname && ftype == FileType::DirectoryFile; }
+	constexpr bool isaSymlink() const noexcept { return fname && (fmode & IsaSymlink); }
 
 	FileInfo() noexcept = default;
 
