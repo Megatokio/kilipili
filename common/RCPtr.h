@@ -6,6 +6,7 @@
 #include "cdefs.h"
 #include "glue.h"
 #include "no_copy_move.h"
+#include "template_helpers.h"
 #include <type_traits>
 #include <utility>
 
@@ -61,8 +62,9 @@ namespace kilipili
 class RCObject
 {
 public:
-	alignas(4) mutable int16_t rc = 0;
-	uint16_t rc_magic			  = 0x55AA;
+	mutable int_with_size<sizeof(ptr) / 2> rc		= 0;
+	uint_with_size<sizeof(ptr) / 2>		   rc_magic = 0x55AA;
+
 	virtual ~RCObject() noexcept
 	{
 		assert(rc == 0);
