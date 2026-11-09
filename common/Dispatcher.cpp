@@ -50,16 +50,6 @@ static inline CC now() noexcept
 	return CC(time_us_32());
 }
 
-//static void wfe_or_timeout(int timeout_usec) noexcept
-//{
-//	if (timeout_usec > 0)
-//	{
-//		idle_start();
-//		::best_effort_wfe_or_timeout(from_us_since_boot(time_us_64() + uint(timeout_usec)));
-//		idle_end();
-//	}
-//}
-
 static inline void remove(int i)
 {
 	for (num_tasks--; i < num_tasks; i++) { tasks[i] = tasks[i + 1]; }

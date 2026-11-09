@@ -6,6 +6,7 @@
 #include "common/cdefs.h"
 #include "common/malloc.h"
 #include "common/trace.h"
+#include "timing.h"
 #ifdef PICO
   #include <stdio.h>
 #else
@@ -42,87 +43,121 @@ volatile bool locked_out	   = false;			  // VideoController
 // when the global count is higher than the local count then a event was triggered since.
 static std::atomic<uint64> global_event_count = 0;
 static thread_local uint64 local_event_count  = 0;
+using Sema									  = std::binary_semaphore;
+static Sema semaphores[2] {{Sema(0)}, {Sema(0)}};
 
-// send event:
-// broadcast event to all threads
+
 void __sev() noexcept
 {
+	// send event:
+	// broadcast event to all threads
+
 	// increment count to indicate a new sev() event
 	global_event_count.fetch_add(1, std::memory_order_release);
 
-	// wake up all threads currently parked in a wfe() loop
-	global_event_count.notify_all();
+	if ((0))
+	{
+		// note: if both cores sev() at the very same time this still may overflow the semaphore counter
+		// this is highly unlikely but we could build a spinlock (or mutex?) around it...
+		semaphores[0].try_acquire(); // decrement to 0 if it was 1
+		semaphores[0].release();	 // increment to 1
+		semaphores[1].try_acquire();
+		semaphores[1].release();
+	}
+	else
+	{
+		// the own semaphore needs no release:
+		// this core is obviously running and not waiting in wfe() or wfe_with_timeout().
+		// next time it calls wfe() or wfe_with_timeout() it will first check the event count
+		// before trying to acquire the semaphore => no need to release the semaphore here!
+		// simultaneous sev() on core0 and core1 can't collide!
+		// this even reduces the cpu load for multiple try_acquire() / release() below:
+
+		// note: if the gui thread calls __sev() at the very same time as one of the cores
+		// then this still may overflow the semaphore counter
+		uint n = core_num;
+		if (n != 0)
+		{
+			semaphores[0].try_acquire(); // decrement to 0 if it was 1
+			semaphores[0].release();	 // increment to 1
+		}
+		if (n != 1)
+		{
+			semaphores[1].try_acquire();
+			semaphores[1].release();
+		}
+	}
 }
 
-// wait for event:
 void __wfe() noexcept
 {
-	// read the current hardware event count
-	uint64 global_count = global_event_count; //.load(std::memory_order_acquire);
+	// wait for event
 
-	// quick test whether there was (at least one) event since last test:
-	if (global_count > local_event_count)
+	// gui thread has core_num = 2: semaphore may be added if needed.
+	assert_lt(core_num, NELEM(semaphores));
+
+	for (;;)
 	{
-		local_event_count = global_count;
-		return;
+		// read the current hardware event count
+		uint64 global_count = global_event_count.load(std::memory_order_acquire);
+
+		// was there any event since last test?
+		if (global_count > local_event_count)
+		{
+			local_event_count = global_count;
+			return;
+		}
+
+		semaphores[core_num].acquire();
 	}
-
-	// no event pending: park the thread until notified.
-	// std::atomic::wait loops internally if global_event_sequence == current_global
-	global_event_count.wait(global_count, std::memory_order_acquire);
-
-	// event seen!
-	// update local tracking register
-	local_event_count = global_event_count; //.load(std::memory_order_relaxed);
-}
-
-// send event locally
-void sevl()
-{
-	// Set the local event register to 0 forcing the *next* WFE to drop through
-	local_event_count = 0;
 }
 
 bool wfe_or_timeout(int timeout_us)
 {
 	// wait for event or timeout
+	//
 	// return false: event
 	// return true:  timeout
-	//
-	// attn: in case of timeout a spurious event for all threads is generated :-/
 
-	uint64 global_count = global_event_count; //.load(std::memory_order_acquire);
+	// gui thread has core_num = 2: semaphore may be added if needed.
+	assert_lt(core_num, NELEM(semaphores));
+
+	using namespace kilipili;
+
+	// was there any event since last test?
+	uint64 global_count = global_event_count.load(std::memory_order_acquire);
 	if (global_count > local_event_count)
 	{
 		local_event_count = global_count;
-		return false; // event!
+		return false; // event
 	}
 
-	if (timeout_us <= 0) return true; // timeout
+	CC final_time_us = now() + timeout_us;
 
-	std::binary_semaphore sema(0);
-	std::thread			  thread(
-		  [&](uint64 ec, int to) {
-			  local_event_count = ec;
-			  __wfe();
-			  sema.release();
-		  },
-		  local_event_count, timeout_us);
-	thread.detach();
-
-	if (sema.try_acquire_for(std::chrono::duration<int, std::micro>(timeout_us)))
+	while (timeout_us > 0)
 	{
-		// got sema => event occured, thread terminated
-		local_event_count = global_event_count; //.load(std::memory_order_relaxed);
-		return false;							// event
+		std::chrono::duration<int, std::micro> delay {timeout_us};
+		semaphores[core_num].try_acquire_for(delay);
+
+		// was there an event since last test?
+		uint64 global_count = global_event_count.load(std::memory_order_acquire);
+		if (global_count > local_event_count)
+		{
+			local_event_count = global_count;
+			return false; // event
+		}
+
+		timeout_us = final_time_us - now();
 	}
-	else // didn't get it => no event => thread still running
-	{
-		// wake it up (and everybody else currently waiting)
-		__sev();
-		sema.acquire(); // wait for thread to set the semaphore
-		return true;	// timeout
-	}
+
+	return true; // timeout
+}
+
+void sevl()
+{
+	// send event locally:
+	// force an event on the own core only:
+	local_event_count = 0;
 }
 #endif
 
