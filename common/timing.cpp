@@ -36,15 +36,15 @@ void sleep_us(uint delay)
 	std::this_thread::sleep_for(std::chrono::microseconds(delay)); //
 }
 
-uint64 make_timeout_time_us(uint32 timeout_us)
-{
-	return time_us_64() + timeout_us; //
-}
+//uint64 make_timeout_time_us(uint32 timeout_us)
+//{
+//	return time_us_64() + timeout_us; //
+//}
 
-bool best_effort_wfe_or_timeout(uint64)
-{
-	return true; // timeout
-}
+//bool best_effort_wfe_or_timeout(uint64)
+//{
+//	return true; // timeout
+//}
 #endif
 
 
@@ -66,11 +66,10 @@ void wfe_or_timeout(int timeout_usec) noexcept
 	if (timeout_usec > 0)
 	{
 		idle_start();
-#ifndef PICO
-
-		// nop / todo
-#else
+#ifdef PICO
 		::best_effort_wfe_or_timeout(from_us_since_boot(time_us_64() + uint(timeout_usec)));
+#else
+		::wfe_or_timeout(timeout_usec);
 #endif
 		idle_end();
 	}

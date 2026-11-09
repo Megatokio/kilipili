@@ -11,10 +11,14 @@
 #else
   #include "pico_hw/Interp.h"
   #include "usb_host/hid_handler.h"
+  #include <atomic>
   #include <cstdarg>
   #include <cstdio>
   #include <ctime>
+  #include <semaphore>
+  #include <thread>
   #include <unistd.h>
+  #include <vector>
 #endif
 
 
@@ -26,6 +30,101 @@ bool		  hotlist_overflow = false;			  // MultiSpritesPlane
 uint		  scanlines_missed = 0;				  // VideoController
 volatile bool locked_out	   = false;			  // VideoController
 } // namespace kilipili
+
+
+// ========================================================
+//					wfe(), sev()
+// ========================================================
+
+#ifndef PICO
+// sev() increments a global event counter.
+// threads maintain the count they have seen in a thread-local tracking register.
+// when the global count is higher than the local count then a event was triggered since.
+static std::atomic<uint64> global_event_count = 0;
+static thread_local uint64 local_event_count  = 0;
+
+// send event:
+// broadcast event to all threads
+void __sev() noexcept
+{
+	// increment count to indicate a new sev() event
+	global_event_count.fetch_add(1, std::memory_order_release);
+
+	// wake up all threads currently parked in a wfe() loop
+	global_event_count.notify_all();
+}
+
+// wait for event:
+void __wfe() noexcept
+{
+	// read the current hardware event count
+	uint64 global_count = global_event_count; //.load(std::memory_order_acquire);
+
+	// quick test whether there was (at least one) event since last test:
+	if (global_count > local_event_count)
+	{
+		local_event_count = global_count;
+		return;
+	}
+
+	// no event pending: park the thread until notified.
+	// std::atomic::wait loops internally if global_event_sequence == current_global
+	global_event_count.wait(global_count, std::memory_order_acquire);
+
+	// event seen!
+	// update local tracking register
+	local_event_count = global_event_count; //.load(std::memory_order_relaxed);
+}
+
+// send event locally
+void sevl()
+{
+	// Set the local event register to 0 forcing the *next* WFE to drop through
+	local_event_count = 0;
+}
+
+bool wfe_or_timeout(int timeout_us)
+{
+	// wait for event or timeout
+	// return false: event
+	// return true:  timeout
+	//
+	// attn: in case of timeout a spurious event for all threads is generated :-/
+
+	uint64 global_count = global_event_count; //.load(std::memory_order_acquire);
+	if (global_count > local_event_count)
+	{
+		local_event_count = global_count;
+		return false; // event!
+	}
+
+	if (timeout_us <= 0) return true; // timeout
+
+	std::binary_semaphore sema(0);
+	std::thread			  thread(
+		  [&](uint64 ec, int to) {
+			  local_event_count = ec;
+			  __wfe();
+			  sema.release();
+		  },
+		  local_event_count, timeout_us);
+	thread.detach();
+
+	if (sema.try_acquire_for(std::chrono::duration<int, std::micro>(timeout_us)))
+	{
+		// got sema => event occured, thread terminated
+		local_event_count = global_event_count; //.load(std::memory_order_relaxed);
+		return false;							// event
+	}
+	else // didn't get it => no event => thread still running
+	{
+		// wake it up (and everybody else currently waiting)
+		__sev();
+		sema.acquire(); // wait for thread to set the semaphore
+		return true;	// timeout
+	}
+}
+#endif
 
 
 // ========================================================

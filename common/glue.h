@@ -45,10 +45,11 @@ extern SpinLock kilipili_spinlock;
 
 
 #ifndef PICO
-inline void __wfe() noexcept {}
+extern void __wfe() noexcept;
+extern void __sev() noexcept;
 inline void __wfi() noexcept {}
-inline void __sev() noexcept {}
 inline void __dmb() noexcept { std::atomic_thread_fence(std::memory_order_acq_rel); }
+extern bool wfe_or_timeout(int timeout_us);
 
 extern thread_local uint core_num;
 inline uint				 get_core_num() noexcept { return core_num; }
