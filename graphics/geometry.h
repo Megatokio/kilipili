@@ -1,23 +1,16 @@
-// Copyright (c) 2022 - 2025 kio@little-bat.de
+// Copyright (c) 2022 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
 #include "basic_math.h"
 #include "cdefs.h"
-#include <bits/move.h>
-#include <utility>
 
 namespace kilipili
 {
 
 using coord = int;
 
-//template<typename T>
-//inline void swap(T& a, T& b)
-//{
-//	std::swap(a, b);
-//}
 using std::swap;
 template<typename T>
 inline void sort(T& a, T& b)

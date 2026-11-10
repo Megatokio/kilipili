@@ -7,4 +7,5 @@
 #include "Pixmap.h"
 #include "Pixmap_wAttr.h"
 #include "Printer<Canvas>.h"
+#include "geometry.h"
 #include "graphics_types.h"

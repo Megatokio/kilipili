@@ -18,6 +18,7 @@ add_library(kilipili_graphics STATIC
 	${graphics_sources}  
 	fixint.h
 	graphics_types.h
+	geometry.h
 	color_options.h
 	Color.h
 	gif/GifArray.h

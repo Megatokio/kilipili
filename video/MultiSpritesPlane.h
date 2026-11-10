@@ -3,13 +3,10 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-//#include "video/AnimatedSprite.h"
-#include "video/VideoPlane.h"
-//#include "internal/Shape.h"
-//#include <pico/sync.h>
 #include "common/SpinLock.h"
-#include "common/geometry.h"
 #include "graphics/Color.h"
+#include "graphics/geometry.h"
+#include "video/VideoPlane.h"
 
 
 // TODO: gcc ignores section!

@@ -50,8 +50,6 @@ add_library(kilipili_common STATIC
 	cdefs.h
 	cstrings.cpp
 	cstrings.h
-	geometry.cpp
-	geometry.h
 	malloc.h
 	no_copy_move.h
 	relational_operators.h

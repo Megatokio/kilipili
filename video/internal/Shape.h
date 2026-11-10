@@ -5,9 +5,9 @@
 #pragma once
 #include "common/RCPtr.h"
 #include "common/cdefs.h"
-#include "common/geometry.h"
 #include "graphics/Color.h"
 #include "graphics/Pixmap_wAttr.h"
+#include "graphics/geometry.h"
 #include "video/VideoController.h"
 
 

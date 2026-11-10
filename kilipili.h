@@ -9,3 +9,7 @@
 #include "graphics/graphics.h"
 #include "usb_host/usb_host.h"
 #include "video/video.h"
+
+// defined in common.h:
+// static constexpr uint kilipili_version		 = 0x020000;
+// static constexpr char kilipili_version_str[] = "2.0.0";
