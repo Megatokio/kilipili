@@ -6,10 +6,13 @@
 #include "common/basic_math.h"
 #include "common/cdefs.h"
 #include "common/timing.h"
+#include <cstdlib>
 #include <stdio.h>
 
 namespace kilipili::LoadSensor
 {
+
+#ifdef PICO
 
 static constexpr uint pwm0 = PWM_LOAD_SENSOR_SLICE_NUM_BASE + 0;
 static constexpr uint pwm1 = PWM_LOAD_SENSOR_SLICE_NUM_BASE + 1;
@@ -152,6 +155,42 @@ void getLoad(uint core_num, uint& min, uint& avg, uint& max) noexcept
 
 	if unlikely (min > avg) min = avg; // after set_system_clock(): core.max > max_pwm_count
 }
+
+#else
+
+// get sysload values
+// ranges: 1, 5, and 15 minutes
+//
+// returns the number of processes in the system run queue (waiting for) execution.
+// kio 2016-02-20: i have never seen values below 1.0 on OS X 10.9 and assume that
+// the sysload is updated on a user thread which doesn't subtract itself.
+//
+void getLoad(double load[3]) noexcept
+{
+	// sysload same for all cores
+	// we don't measure core time
+	// maybe we could try the cpu time clock
+
+	int n = getloadavg(load, 3);
+	if (n < 3)
+	{
+		if (n < 1) load[0] = 1.0;
+		if (n < 2) load[1] = load[0];
+		load[2] = load[1];
+	}
+  #ifdef _MACOSX
+	static bool fixit = true;
+	if (load[0] < 0.99) fixit = false;
+	if (fixit)
+	{
+		load[0]--;
+		load[1]--;
+		load[2]--;
+	}
+  #endif
+}
+#endif
+
 
 } // namespace kilipili::LoadSensor
 

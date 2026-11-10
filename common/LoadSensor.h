@@ -3,20 +3,21 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "standard_types.h"
 #ifdef PICO
-
   #include <hardware/clocks.h>
   #include <hardware/pwm.h>
   #include <pico/stdlib.h>
+#endif
 
-
-  #ifndef PWM_LOAD_SENSOR_SLICE_NUM_BASE
-	#define PWM_LOAD_SENSOR_SLICE_NUM_BASE 6
-  #endif
-
+#ifndef PWM_LOAD_SENSOR_SLICE_NUM_BASE
+  #define PWM_LOAD_SENSOR_SLICE_NUM_BASE 6
+#endif
 
 namespace kilipili::LoadSensor
 {
+#ifdef PICO
+
 void start() noexcept;
 void stop() noexcept;
 void recalibrate() noexcept;
@@ -56,28 +57,24 @@ inline void isr_end(uint32_t old_idle_state) noexcept
 	hw_set_bits(csr, old_idle_state);
 }
 
+#else
+inline void start() noexcept {}
+inline void stop() noexcept {}
+// void recalibrate() noexcept;
+void			getLoad(double[3]) noexcept; // Hz
+inline void		idle_start() noexcept {}
+inline void		idle_end() noexcept {}
+inline uint32_t isr_start() noexcept { return 0; }			 // if we ever
+inline void		isr_end(uint32_t old_idle_state) noexcept {} // emulate interrupts
+#endif
 }; // namespace kilipili::LoadSensor
 
-
 namespace kilipili
 {
-
 inline void idle_start() noexcept { LoadSensor::idle_start(); }
 inline void idle_end() noexcept { LoadSensor::idle_end(); }
-
 } // namespace kilipili
 
-#else
-
-namespace kilipili
-{
-
-inline void idle_start() noexcept {}
-inline void idle_end() noexcept {}
-
-} // namespace kilipili
-
-#endif
 
 /*
 
