@@ -99,7 +99,8 @@ enum State : bool {
 	RUNNING,
 };
 
-static volatile State state = STOPPED;
+extern volatile State state;
+volatile State		  state = STOPPED;
 extern volatile State requested_state;
 volatile State		  requested_state = STOPPED;
 static uint32		  requested_system_clock;

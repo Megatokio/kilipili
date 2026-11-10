@@ -34,6 +34,7 @@ enum State : bool {
 	STOPPED,
 	RUNNING,
 };
+extern volatile State state;
 extern volatile State requested_state;
 extern uint			  num_planes;
 extern VideoPlanePtr  planes[];
@@ -264,7 +265,9 @@ void __noreturn gui_runner()
 	OGLVideoWindow videoWindow(800, 600);
 	videoWindow.show();
 
-	int rval = appl->exec();
+	int rval		= appl->exec();
+	requested_state = STOPPED;
+	for (int i = 0; i < 100 && state != STOPPED; i++) { sleep_us(1000); }
 	exit(rval);
 }
 
