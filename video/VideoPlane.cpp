@@ -14,16 +14,14 @@ extern volatile bool locked_out; // in VideoController.cpp
 
 VideoPlane::VideoPlane(VblankFu* a, RenderFu* b) noexcept : vblank_fu(a), render_fu(b)
 {
-#ifdef PICO
-	if (size_t(a) >= flash_start() && size_t(a) < flash_end())
+	if (cuptr(a) >= flash_start() && cuptr(a) < flash_end())
 	{
 		logline("WARNING: vblank function is in flash!"); //
 	}
-	if (size_t(b) >= flash_start() && size_t(b) < flash_end())
+	if (cuptr(b) >= flash_start() && cuptr(b) < flash_end())
 	{
 		logline("WARNING: scanline render function is in flash!");
 	}
-#endif
 }
 
 void __section(RAM ".vp") VideoPlane::do_vblank(VideoPlane* vp) noexcept

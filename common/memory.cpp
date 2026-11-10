@@ -12,6 +12,9 @@
 #include <string.h>
 #ifdef PICO
   #include <hardware/clocks.h>
+#else
+  #include PICO_BOARD_H
+  #include "glue.h"
 #endif
 
 
@@ -32,8 +35,8 @@ extern char __StackTop;		  // = ORIGIN(SCRATCH_Y) + LENGTH(SCRATCH_Y);
 extern char __StackOneBottom; // = __StackOneTop - SIZEOF(.stack1_dummy);
 extern char __StackBottom;	  // = __StackTop - SIZEOF(.stack_dummy);
 
-extern char __flash_binary_start;
-extern char __flash_binary_end;
+extern const uchar __flash_binary_start;
+extern const uchar __flash_binary_end;
 
 // ram from ram_vector_table to end / __HeapLimit / __StackLimit / __StackTop
 extern char __data_start__; // TODO: ram_vector_table
@@ -61,9 +64,9 @@ size_t core0_stack_top() noexcept { return size_t(&__StackTop); }
 size_t core1_stack_top() noexcept { return size_t(&__StackOneTop); }
 size_t stack_top(uint core) noexcept { return core == 0 ? core0_stack_top() : core1_stack_top(); }
 
-size_t flash_start() noexcept { return XIP_BASE; } // normal address for reading: cached
-size_t flash_size() noexcept { return PICO_FLASH_SIZE_BYTES; }
-size_t flash_binary_end() noexcept { return size_t(&__flash_binary_end); }
+cuptr flash_start() noexcept { return cuptr(XIP_BASE); } // normal address for reading: cached
+uint  flash_size() noexcept { return PICO_FLASH_SIZE_BYTES; }
+cuptr flash_binary_end() noexcept { return &__flash_binary_end; }
 #else
 size_t heap_start() noexcept { return size_t(&end); }
 size_t heap_end() noexcept { return size_t(&end) + 0; }
@@ -82,15 +85,15 @@ size_t core0_stack_top() noexcept { return 0; }
 size_t core1_stack_top() noexcept { return 0; }
 size_t stack_top(uint core) noexcept { return core == 0 ? core0_stack_top() : core1_stack_top(); }
 
-size_t flash_start() noexcept { return 0; }
-size_t flash_size() noexcept { return 0; }
-size_t flash_binary_end() noexcept { return 0; }
+cuptr flash_start() noexcept { return flash_image_start; }
+uint  flash_size() noexcept { return flash_image_size; }
+cuptr flash_binary_end() noexcept { return flash_start(); }
 #endif
 
-size_t flash_end() noexcept { return flash_start() + flash_size(); }
-size_t flash_used() noexcept { return flash_binary_end() - flash_start(); }
-size_t flash_free() noexcept { return flash_end() - flash_binary_end(); }
-size_t flash_binary_size() noexcept { return flash_binary_end() - flash_start(); }
+cuptr flash_end() noexcept { return flash_start() + flash_size(); }
+uint  flash_used() noexcept { return uint(flash_binary_end() - flash_start()); }
+uint  flash_free() noexcept { return uint(flash_end() - flash_binary_end()); }
+uint  flash_binary_size() noexcept { return uint(flash_binary_end() - flash_start()); }
 
 #ifdef PICO
 size_t heap_free() noexcept

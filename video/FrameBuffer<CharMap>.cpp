@@ -21,7 +21,7 @@ FrameBufferCharMapBase::FrameBufferCharMapBase(CharMapBase* charmap, scanline_re
 	assert(font2->char_width == 8);
 	assert(font1->char_height == font2->char_height);
 
-	if (size_t(fu) >= flash_start() && size_t(fu) < flash_end())
+	if (cuptr(fu) >= flash_start() && cuptr(fu) < flash_end())
 	{
 		logline("WARNING: scanline render function is in flash!");
 	}

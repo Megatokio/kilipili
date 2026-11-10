@@ -16,6 +16,7 @@
   #include <atomic>
   #include <cstdarg>
   #include <cstdio>
+  #include <cstring>
   #include <ctime>
   #include <semaphore>
   #include <thread>
@@ -315,10 +316,23 @@ void setHidMouseEventHandler(HidMouseEventHandler* handler) noexcept { IERR(); }
 void setHidKeyboardEventHandler(HidKeyboardEventHandler* handler) noexcept { IERR(); }
 } // namespace kilipili::USB
 
-// these are also in unit_test/Mock/MockFlash.cpp:
-void __weak_symbol flash_range_erase(uint32 flash_offs, uint32 count) { TODO(); }
-void __weak_symbol flash_range_program(uint32 flash_offs, const uint8* data, uint32 count) { TODO(); }
+namespace kilipili
+{
+uptr   flash_image_start = nullptr;
+uint32 flash_image_size	 = 0;
+} // namespace kilipili
 
+// these are also in unit_test/Mock/MockFlash.cpp:
+void __weak_symbol flash_range_erase(uint32 flash_offs, uint32 count)
+{
+	assert(flash_offs + count <= kilipili::flash_image_size);
+	memset(kilipili::flash_image_start + flash_offs, 0xff, count);
+}
+void __weak_symbol flash_range_program(uint32 flash_offs, const uint8* data, uint32 count)
+{
+	assert(flash_offs + count <= kilipili::flash_image_size);
+	memcpy(kilipili::flash_image_start + flash_offs, data, count);
+}
 
 #endif
 

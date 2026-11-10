@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -9,8 +9,10 @@
 #include "cdefs.h"
 #include "cstrings.h"
 #include "trace.h"
-#include <pico/stdio.h>
-#include <utility>
+#ifdef PICO
+  #include <pico/stdio.h>
+  #include <utility>
+#endif
 
 namespace kilipili
 {

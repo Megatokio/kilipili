@@ -64,6 +64,8 @@
 //#define PICO_SECOND_I2C_SDA_PIN 0
 //#define PICO_SECOND_I2C_SCL_PIN 1
 
+#define PICO_FLASH_SIZE_BYTES (16 * 1024 * 1024)
+
 // pull in Pico defaults
 //#include "boards/pico.h"
 

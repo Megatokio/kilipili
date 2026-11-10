@@ -81,6 +81,15 @@ static inline int putchar_raw(char c) { return stdio_putchar_raw(c); }
 // for unit test: these are in unit_test/Mock/MockFlash.cpp
 extern "C" void flash_range_erase(uint32 flash_offs, uint32 count);
 extern "C" void flash_range_program(uint32 flash_offs, const uint8* data, uint32 count);
+
+  #define FLASH_SECTOR_SIZE (4 kB)
+  #define FLASH_PAGE_SIZE	256
+
+namespace kilipili
+{
+extern uptr	  flash_image_start; // Flash
+extern uint32 flash_image_size;	 // Flash
+} // namespace kilipili
 #endif
 
 

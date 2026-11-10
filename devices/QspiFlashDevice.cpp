@@ -1,9 +1,12 @@
-// Copyright (c) 2025 - 2025 kio@little-bat.de
+// Copyright (c) 2025 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "QspiFlashDevice.h"
 #include "Flash.h"
+#ifdef PICO
+  #include <hardware/flash.h>
+#endif
 
 
 namespace kilipili
@@ -15,23 +18,25 @@ static constexpr uint prefs_size = FLASH_PREFERENCES;
 static constexpr uint prefs_size = 0;
 #endif
 
+static constexpr int sse = 12;
+static_assert(FLASH_SECTOR_SIZE == (1 << sse));
 
 template<int ssw>
 QspiFlashDevice<ssw>::QspiFlashDevice(uint32 addr, uint32 size, FSFlags flags) throws :
-	BlockDevice(size >> ssw, 0, ssw, Flash::sse, flags),
+	BlockDevice(size >> ssw, 0, ssw, sse, flags),
 	first_sector(addr >> ssw)
 {
-	assert(addr % (1 << Flash::sse) == 0); // must be aligned to erase sector size
-	assert(size % (1 << Flash::sse) == 0); // must be aligned to erase sector size
+	assert(addr % (1 << sse) == 0); // must be aligned to erase sector size
+	assert(size % (1 << sse) == 0); // must be aligned to erase sector size
 
-	if (addr < Flash::binary_size()) throw("program overwrote start of flash disk");
-	if (addr + size > Flash::flash_size()) throw("the flash disk extends beyond flash end");
-	if (addr + size > Flash::flash_size() - prefs_size) throw("the flash disk overwrites the preferences");
+	if (addr < flash_binary_size()) throw("program overwrote start of flash disk");
+	if (addr + size > flash_size()) throw("the flash disk extends beyond flash end");
+	if (addr + size > flash_size() - prefs_size) throw("the flash disk overwrites the preferences");
 }
 
 template<int ssw>
 QspiFlashDevice<ssw>::QspiFlashDevice(uint32 size, FSFlags flags) throws :
-	QspiFlashDevice(Flash::flash_size() - size, size - prefs_size, flags)
+	QspiFlashDevice(flash_size() - size, size - prefs_size, flags)
 {}
 
 template<int ssw>

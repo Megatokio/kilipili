@@ -24,13 +24,13 @@ extern size_t core1_stack_top() noexcept;
 extern size_t stack_top(uint core) noexcept;
 extern int	  stack_free() noexcept;
 
-extern size_t flash_binary_end() noexcept;
-extern size_t flash_binary_size() noexcept;
-extern size_t flash_start() noexcept;
-extern size_t flash_end() noexcept;
-extern size_t flash_size() noexcept;
-extern size_t flash_used() noexcept;
-extern size_t flash_free() noexcept;
+extern cuptr flash_binary_end() noexcept;
+extern uint	 flash_binary_size() noexcept;
+extern cuptr flash_start() noexcept;
+extern cuptr flash_end() noexcept;
+extern uint	 flash_size() noexcept;
+extern uint	 flash_used() noexcept;
+extern uint	 flash_free() noexcept;
 
 
 extern void print_core();

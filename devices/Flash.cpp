@@ -5,53 +5,46 @@
 
 #include "Flash.h"
 #include "common/DiskLight.h"
-#include "common/glue.h"
 #include <string.h>
 
 #ifdef PICO
   #include <hardware/flash.h>
   #include <hardware/sync.h>
-extern char __flash_binary_end;
+#else
+  #include "common/glue.h"
 #endif
 
 
 namespace kilipili::Flash
 {
+#define esize FLASH_SECTOR_SIZE
+#define wsize FLASH_PAGE_SIZE
 
-#ifndef PICO
+#ifdef PICO
 
-static cuptr  flash_start;
-static cuptr  flash_start_nocache;
-static uint32 xip_flash_size;
-uint32		  binary_size() noexcept { return xip_flash_size / 8 - 220; } // dummy
-
-void setupMockFlash(uint8* flash, uint32 size) noexcept
-{
-	flash_start			= flash;
-	flash_start_nocache = flash;
-	xip_flash_size		= size;
-}
-
-#else
-
-static_assert(wsize == FLASH_PAGE_SIZE);
-static_assert(esize == FLASH_SECTOR_SIZE);
-static constexpr uint32 xip_flash_size = PICO_FLASH_SIZE_BYTES;
-
+  #define flash_size		  PICO_FLASH_SIZE_BYTES
   #define flash_start		  cuptr(XIP_BASE)				  // cached:   used for reading in write()
   #define flash_start_nocache cuptr(XIP_NOCACHE_NOALLOC_BASE) // uncached: used for reading in read()
 
-uint32 binary_size() noexcept { return size_t(&__flash_binary_end) - XIP_BASE; }
+#else
 
+static uptr	  flash_start;
+static cuptr  flash_start_nocache;
+static uint32 flash_size;
+
+void setFlashImage(uint8* flash, uint32 size) noexcept
+{
+	flash_start			= flash;
+	flash_start_nocache = flash;
+	flash_size			= size;
+
+	flash_image_start = flash;
+	flash_image_size  = size;
+}
 #endif
-
 
 static constexpr uint32 wmask = wsize - 1;
 static constexpr uint32 emask = esize - 1;
-
-
-cuptr  flash_base() noexcept { return flash_start; }
-uint32 flash_size() noexcept { return xip_flash_size; }
 
 void flash_erase(uint32 addr, uint32 size) noexcept
 {
@@ -164,7 +157,7 @@ void eraseData(uint32 addr, uint32 size) throws
 
 	if (size == 0) return;
 	assert(get_core_num() == 0);
-	assert(addr <= xip_flash_size && size <= xip_flash_size - addr);
+	assert(addr <= flash_size && size <= flash_size - addr);
 
 	DiskLight _;
 
@@ -200,7 +193,7 @@ static void write_partial_sector(uint32 addr, cuptr data, uint size)
 		// no need to save old contents:
 		while (is_same_as(addr, data, wsize)) addr += wsize, data += wsize, size -= wsize;
 		while (is_same_as(addr + size - wsize, data + size - wsize, wsize)) size -= wsize;
-		assert(size != 0 && addr + size <= xip_flash_size);
+		assert(size != 0 && addr + size <= flash_size);
 		flash_program(addr, data, size);
 	}
 	else
@@ -241,7 +234,7 @@ void writeData(uint32 addr, const void* _data, uint32 size) throws
 
 	if (size == 0) return;
 	assert(get_core_num() == 0);
-	assert(addr <= xip_flash_size && size <= xip_flash_size - addr);
+	assert(addr <= flash_size && size <= flash_size - addr);
 
 	DiskLight _;
 
@@ -269,7 +262,7 @@ void writeData(uint32 addr, const void* _data, uint32 size) throws
 void readData(uint32 addr, void* data, uint32 size) noexcept
 {
 	if (size == 0) return;
-	assert(addr <= xip_flash_size && size <= xip_flash_size - addr);
+	assert(addr <= flash_size && size <= flash_size - addr);
 
 	DiskLight _;
 

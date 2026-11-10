@@ -1,4 +1,4 @@
-// Copyright (c) 2025 - 2025 kio@little-bat.de
+// Copyright (c) 2025 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -7,15 +7,14 @@
 
   #include "Preferences.h"
   #include "common/Array.h"
+  #include "common/Logger.h"
   #include "devices/Flash.h"
   #include <cstring>
-
-  #ifndef PICO
-	#include "glue.h"
-	#define logline(...) (void)0
-  #else
-	#include "common/Logger.h"
+  #ifdef PICO
+	#include <hardware/flash.h>
 	#include <pico.h>
+  #else
+	#include "glue.h"
   #endif
 
 
@@ -41,10 +40,9 @@
 
 namespace kilipili
 {
-
   #ifndef PICO
-	#define xip_flash_base Flash::flash_base()
-	#define xip_flash_size Flash::flash_size()
+	#define xip_flash_base flash_start()
+	#define xip_flash_size flash_size()
   #else
 	#define xip_flash_base cuptr(XIP_BASE)
 	#define xip_flash_size PICO_FLASH_SIZE_BYTES
@@ -53,7 +51,7 @@ namespace kilipili
   #define xip_flash_end (xip_flash_base + xip_flash_size)
   #define prefs_base	(xip_flash_end - prefs_size)
 static constexpr uint prefs_size = FLASH_PREFERENCES;
-static_assert(prefs_size % Flash::esize == 0 && prefs_size <= 32 kB);
+static_assert(prefs_size % FLASH_SECTOR_SIZE == 0 && prefs_size <= 32 kB);
 
 static cuptr first_tag = nullptr;
 

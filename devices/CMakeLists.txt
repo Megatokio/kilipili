@@ -9,8 +9,11 @@ set(FLASH_PREFERENCES "4*1024" CACHE STRING "size of preferences in program flas
 set_property(CACHE FLASH_PREFERENCES PROPERTY STRINGS "0" "4*1024" "8*1024" "12*1024" "16*1024")
 
 set(FLASH_BLOCKDEVICE "300*1024" CACHE STRING "size of flash disk in program flash")
+if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 set_property(CACHE FLASH_BLOCKDEVICE PROPERTY STRINGS "0" "300*1024" "500*1024" "720*1024" "1000*1024" "1400*1024")
-
+else()
+	set_property(CACHE FLASH_BLOCKDEVICE PROPERTY STRINGS "0" "720 kB" "1 MB" "2 MB" "4 MB" "8 MB" "16 MB")
+endif()
 
 set(devices_sources)
 set(devices_includes)
@@ -26,17 +29,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 		internal/CSD.cpp
 		internal/crc.h 
 		internal/crc.cpp
-		internal/FatFile.h 
-		internal/FatFile.cpp
-		internal/FatFS.h 
-		internal/FatFS.cpp
-		internal/FatDir.h 
-		internal/FatDir.cpp
-		internal/ff15/source/ff.h
-		internal/ff15/source/ff.c
-		internal/ff15/source/ffconf.h
-		internal/ff15/source/diskio.h
-		internal/ff15/source/ffunicode.c
 		SDCard.cpp   
 		SDCard.h
 	)
@@ -62,6 +54,17 @@ endif()
 add_library(kilipili_devices STATIC  
 	${devices_sources}  
 	devices_types.h
+	internal/FatFile.h 
+	internal/FatFile.cpp
+	internal/FatFS.h 
+	internal/FatFS.cpp
+	internal/FatDir.h 
+	internal/FatDir.cpp
+	internal/ff15/source/ff.h
+	internal/ff15/source/ff.c
+	internal/ff15/source/ffconf.h
+	internal/ff15/source/diskio.h
+	internal/ff15/source/ffunicode.c
 	internal/RsrcFile.h 
 	internal/RsrcFile.cpp
 	internal/RsrcFS.h 

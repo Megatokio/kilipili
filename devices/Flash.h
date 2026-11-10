@@ -1,17 +1,18 @@
-// Copyright (c) 2025 - 2025 kio@little-bat.de
+// Copyright (c) 2025 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "cdefs.h"
-#include "standard_types.h"
+#include "common/cdefs.h"
+#include "common/memory.h"
+#include "common/standard_types.h"
 
 // you may define this symbol to get a disk activity light:
 extern __weak_symbol void set_disk_light(bool onoff);
 
 // these are normally defined in Video/VideoController:
-__weak_symbol void suspend_core1() noexcept;
-__weak_symbol void resume_core1() noexcept;
+extern __weak_symbol void suspend_core1() noexcept;
+extern __weak_symbol void resume_core1() noexcept;
 
 
 namespace kilipili::Flash
@@ -38,18 +39,9 @@ extern void readData(uint32 offs, void* data, uint32 size) noexcept;
 extern void writeData(uint32 offs, const void* data, uint32 size) throws;
 extern void eraseData(uint32 offs, uint32 size) throws;
 
-extern cuptr  flash_base() noexcept;
-extern uint32 flash_size() noexcept;
-extern uint32 binary_size() noexcept;
-
-// these consts are checked in Flash.cpp:
-static constexpr int  ssw	= 8;
-static constexpr int  sse	= 12;
-static constexpr uint esize = 1 << sse;
-static constexpr uint wsize = 1 << ssw;
-
 #ifndef PICO
-extern void setupMockFlash(uint8* flash, uint32 size) noexcept;
+extern void				 setFlashImage(uint8* flash, uint32 size) noexcept;
+inline __deprecated void setupMockFlash(uint8* flash, uint32 size) noexcept { setFlashImage(flash, size); }
 #endif
 
 

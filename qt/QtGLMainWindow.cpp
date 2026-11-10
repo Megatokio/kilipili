@@ -1,6 +1,9 @@
 #include "QtGLMainWindow.h"
 #include "common/Queue.h"
 #include "common/timing.h"
+#include "cstrings.h"
+#include "memory.h"
+#include "tempmem.h"
 #include "video/VgaMode.h"
 #include "video/VideoPlane.h"
 #include "video/internal/VideoBackend.h"
@@ -16,8 +19,12 @@
 #include <QPushButton>
 #include <QSettings>
 #include <QTimer>
+#include <fcntl.h>
 #include <semaphore>
+#include <sys/stat.h>
 #include <thread>
+#include PICO_BOARD_H
+#include "devices/Flash.h"
 
 
 // =============================================================================
@@ -252,6 +259,14 @@ OGLVideoWindow::~OGLVideoWindow() { qmainwindow = nullptr; }
 //QSettings settings("kio@little-bat.de", "kilipili_emulator");
 static QApplication* appl = nullptr;
 
+cstr homedirpath() noexcept
+{
+	cstr dir = getenv("HOME");
+	return dir ? dir : "/tmp";
+}
+
+static int flash_fd = -1;
+
 void __noreturn gui_runner()
 {
 	core_num = 2;
@@ -265,20 +280,63 @@ void __noreturn gui_runner()
 	OGLVideoWindow videoWindow(800, 600);
 	videoWindow.show();
 
-	int rval		= appl->exec();
-	requested_state = STOPPED;
+	int rval = appl->exec(); // *** DOIT ***
+
+	requested_state = STOPPED; // stop video generation
+	if (flash_fd > 0)
+	{
+		off_t n = lseek(flash_fd, 0, SEEK_SET);
+		if (n == 0) n = write(flash_fd, flash_start(), flash_size());
+		if (n != PICO_FLASH_SIZE_BYTES) fprintf(stderr, "failed to write back flash contents: %s\n", strerror(errno));
+		close(flash_fd);
+	}
+
+	//requested_state = STOPPED;
 	for (int i = 0; i < 100 && state != STOPPED; i++) { sleep_us(1000); }
 	exit(rval);
 }
 
 void stdio_init_all()
 {
-	core_num = 0;
-	std::setlocale(LC_ALL, "en_US"); // decimal POINT!  Mann wie ich das HASSE!
-
 	static bool gui_thread_running = false;
 	if (gui_thread_running == false)
 	{
+		core_num = 0;
+		std::setlocale(LC_ALL, "en_US"); // decimal POINT!  Mann wie ich das HASSE!
+
+		cstr dir = catstr(homedirpath(), "/.kilipili");
+		int	 err = ::mkdir(dir, 0770);
+		if (err && errno != EEXIST) fprintf(stderr, "could not create '%s/'\n", dir);
+		else
+		{
+			static_assert(PICO_FLASH_SIZE_BYTES % (1 MB) == 0);
+			uint flashsize = PICO_FLASH_SIZE_BYTES;
+			cstr sizestr   = tostr(flashsize / (1 MB));
+			flash_fd	   = open(catstr(dir, "/xip_flash_", sizestr, "MB.img"), O_CREAT | O_RDWR, 0770);
+			if (flash_fd < 0) fprintf(stderr, "could not create '%s/xip_flash.img'\n", dir);
+			else
+			{
+				uint   pagesize = 64 kB;
+				uchar* buffer	= new uchar[flashsize + pagesize] + pagesize;
+				buffer -= size_t(buffer) & (pagesize - 1);
+				off_t fsize = lseek(flash_fd, 0, SEEK_END);
+				assert(fsize >= 0);
+				if (fsize < flashsize)
+				{
+					memset(buffer, 0xff, size_t(flashsize - fsize));
+					off_t n = write(flash_fd, buffer, size_t(flashsize - fsize));
+					if (n < 0) fprintf(stderr, "flash file error: %s", strerror(errno));
+					assert(n + fsize == flashsize);
+				}
+				lseek(flash_fd, 0, SEEK_SET);
+				off_t n = read(flash_fd, buffer, flashsize);
+				if (n < 0) fprintf(stderr, "flash file error: %s", strerror(errno));
+				assert(n == flashsize);
+				Flash::setFlashImage(buffer, flashsize);
+				// don't close file
+			}
+		}
+
 		gui_thread_running = true;
 		std::thread(&gui_runner).detach();
 	}
