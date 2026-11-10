@@ -1,11 +1,11 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "VgaMode.h"
-#include "cdefs.h"
-#include "standard_types.h"
+#include "common/cdefs.h"
+#include "common/standard_types.h"
+#include "video/VgaMode.h"
 
 #if !defined VIDEO_MAX_SCANLINE_BUFFERS
   #define VIDEO_MAX_SCANLINE_BUFFERS 16 // 2 .. 2^N .. 16
@@ -21,6 +21,7 @@ namespace kilipili
 */
 struct ScanlineBuffer
 {
+#ifdef PICO
 	/*
 		Setup the buffer for VgaMode and buffer size. 
 		The buffer size measured in source bitmap lines. 
@@ -55,6 +56,10 @@ struct ScanlineBuffer
 	static constexpr uint max_count = VIDEO_MAX_SCANLINE_BUFFERS;
 	static_assert(max_count >= 2 && max_count <= 32 && (max_count & (max_count - 1)) == 0);
 	static uint32* scanlines[max_count]; // array of pointers to scanlines, ready for fragment dma
+#else
+	static void setup(const VgaMode& vga_mode, uint buffer_size) throws {}
+	static void teardown() noexcept {}
+#endif
 };
 
 extern ScanlineBuffer scanline_buffer;

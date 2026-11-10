@@ -10,11 +10,11 @@
 #include "common/tempmem.h"
 #include "common/timing.h"
 #include "common/trace.h"
+#include "internal/ScanlineBuffer.h"
 #include "internal/VideoBackend.h"
 #include <cstdio>
 
 #ifdef PICO
-  #include "internal/ScanlineBuffer.h"
   #include <hardware/exception.h>
   #include <pico/multicore.h>
 #else
@@ -24,7 +24,7 @@
 
 using namespace kilipili;
 
-
+static bool			 core1_is_running = false;
 extern volatile bool lockout_requested;
 volatile bool		 lockout_requested = false;
 
@@ -33,17 +33,20 @@ __weak_symbol void suspend_core1() noexcept
 	assert(get_core_num() == 0);
 	assert(lockout_requested == false);
 
-	while (locked_out) kilipili::wfe(); // because we don't wait in resume_core1()
-	lockout_requested = true;
-	__sev();
-	while (!locked_out) kilipili::wfe();
+	if (core1_is_running)
+	{
+		// because we don't wait in resume_core1():
+		while (locked_out) kilipili::wfe();
+
+		lockout_requested = true;
+		__sev();
+		while (!locked_out) kilipili::wfe();
+	}
 }
 
 __weak_symbol void resume_core1() noexcept
 {
 	assert(get_core_num() == 0);
-	assert(lockout_requested == true);
-	assert(locked_out == true);
 
 	lockout_requested = false;
 	__sev();
@@ -114,40 +117,32 @@ struct Locker
 	~Locker() noexcept { spinlock.unlock(state); }
 };
 
-static void core1_runner() noexcept;
-void		video_runner();
+void				   video_runner();
+static void __noreturn core1_runner() noexcept;
 
 
 // =========================================================
 
-static bool is_initialized = false;
-static void initialize() noexcept
+static void start_core1() noexcept
 {
-	assert(!is_initialized);
 	assert(get_core_num() == 0);
+	assert(core1_is_running == false);
 
 	initialize_video_backend();
-	is_initialized	= true;
-	requested_state = STOPPED;
 
 #ifdef PICO
-	multicore_launch_core1([] {
-		exception_set_exclusive_handler(
-			HARDFAULT_EXCEPTION,
-			hard_fault_handler);	 // contraire to documentation, this sets the handler for both cores
-		assert(get_core_num() == 1); // yes we are on core1
-		//sleep_us(10);				 // static videocontroller's ctor must finish
-		core1_runner(); // else calling getRef() leads to recursion
-	});
+	multicore_launch_core1(&core1_runner);
 #else
 	std::thread(&core1_runner).detach();
 #endif
+
+	while (!core1_is_running) wfe();
 }
 
 void startVideo(const VgaMode& mode, uint32 system_clock, uint scanline_buffer_count)
 {
-	if unlikely (!is_initialized) initialize();
 	assert(get_core_num() == 0);
+	if (!core1_is_running) start_core1();
 	assert(state == STOPPED);
 	assert(requested_state == STOPPED);
 	assert(lockout_requested == false);
@@ -155,9 +150,7 @@ void startVideo(const VgaMode& mode, uint32 system_clock, uint scanline_buffer_c
 
 	vga_mode = mode;
 	USB::setMouseLimits(mode.width, mode.height);
-#ifdef PICO
 	scanline_buffer.setup(vga_mode, scanline_buffer_count); // throws
-#endif
 	requested_system_clock = system_clock;
 	requested_state		   = RUNNING;
 	__sev();
@@ -166,8 +159,8 @@ void startVideo(const VgaMode& mode, uint32 system_clock, uint scanline_buffer_c
 
 void stopVideo() noexcept
 {
-	if unlikely (!is_initialized) initialize();
 	assert(get_core_num() == 0);
+	if (!core1_is_running) start_core1();
 
 	requested_state = STOPPED;
 	__sev();
@@ -197,21 +190,29 @@ void waitForScanline(int scanline) noexcept
 	idle_end();
 }
 
-#ifdef PICO
 static void __noinline __section(RAM ".vc") poll_isr(volatile bool& lockout) noexcept
 {
 	while (lockout) { __wfe(); }
 }
-#endif
 
 static void __noreturn core1_runner() noexcept
 {
 #ifndef PICO
 	core_num = 1;
+#else
+	exception_set_exclusive_handler(
+		HARDFAULT_EXCEPTION,
+		hard_fault_handler); // contraire to documentation, this sets the handler for both cores
 #endif
+
 	assert(get_core_num() == 1);
-	assert(state == STOPPED);
+	assert(core1_is_running == false);
+
 	trace(__func__);
+	state			 = STOPPED;
+	requested_state	 = STOPPED;
+	core1_is_running = true;
+	__sev();
 
 	try
 	{
@@ -221,7 +222,6 @@ static void __noreturn core1_runner() noexcept
 		{
 			wfe();
 
-#ifdef PICO
 			if (lockout_requested)
 			{
 				locked_out = true;
@@ -230,7 +230,6 @@ static void __noreturn core1_runner() noexcept
 				locked_out = false;
 				__sev();
 			}
-#endif
 
 			if (requested_state == RUNNING)
 			{
@@ -243,9 +242,7 @@ static void __noreturn core1_runner() noexcept
 
 				stop_video_backend();
 				while (num_planes) { planes[--num_planes] = nullptr; }
-#ifdef PICO
 				scanline_buffer.teardown();
-#endif
 				vblank_action  = nullptr;
 				onetime_action = nullptr;
 				state		   = STOPPED;
@@ -478,7 +475,7 @@ void addVBlankOneTimeAction(const std::function<void()>& fu) noexcept
 	// if MALLOC_EXTENDED_LOGGING=ON then up to ~3000 usec (depending on serial speed)
 
 	trace(__func__);
-	if unlikely (!is_initialized) initialize();
+	if unlikely (!core1_is_running) start_core1();
 	Locker _;
 
 	if (!onetime_action)

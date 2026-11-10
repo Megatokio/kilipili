@@ -36,7 +36,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 		internal/timing.pio
 		internal/VideoBackend.h  	
 		internal/VideoBackend.cpp
-		internal/ScanlineBuffer.h 	
 		internal/ScanlineBuffer.cpp
 		internal/scanline.pio.h
 		internal/timing.pio.h)
@@ -71,6 +70,7 @@ add_library(kilipili_video STATIC
 	VerticalLayout.cpp
 	HorizontalLayout.h	
 	HorizontalLayout.cpp
+	internal/ScanlineBuffer.h 	
 	internal/ScanlineRenderer.h	
 	internal/ScanlineRenderer.cpp
 	UniColorBackdrop.h 	
