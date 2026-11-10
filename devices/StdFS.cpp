@@ -49,6 +49,45 @@ cstr StdFS::make_utf8_path(cstr path_ucs1)
 	}
 }
 
+Array<cstr> StdFS::getListOfDevices()
+{
+	Array<cstr> list;
+	list << "disk";
+	if (DIR* dir = opendir("/mnt"))
+	{
+		while (dirent* dirent = readdir(dir))
+		{
+			if (dirent->d_name[0] != '.' && dirent->d_type == DT_DIR) //
+				list << dupstr(fromutf8str(dirent->d_name));
+		}
+		closedir(dir);
+	}
+	if (DIR* dir = opendir("/media"))
+	{
+		// the rules in "/media" may vary.
+
+		while (dirent* media_dirent = readdir(dir))
+		{
+			if (media_dirent->d_name[0] == '.') continue;
+			if (media_dirent->d_type != DT_DIR) continue;
+
+			if (DIR* dir = opendir(catstr("/media/", media_dirent->d_name)))
+			{
+				// list << dupstr(fromutf8str(media_dirent->d_name)); // probably the user name
+
+				while (dirent* dirent = readdir(dir))
+				{
+					if (dirent->d_name[0] != '.' && dirent->d_type == DT_DIR) //
+						list << dupstr(fromutf8str(dirent->d_name));
+				}
+				closedir(dir);
+			}
+		}
+		closedir(dir);
+	}
+	return list;
+}
+
 StdFS::StdFS(cstr name_ucs1) throws : FileSystem(hash(name_ucs1))
 {
 	trace("StdFS::StdFS");

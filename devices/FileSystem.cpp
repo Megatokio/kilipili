@@ -196,6 +196,25 @@ void unmountAll()
 		}
 }
 
+Array<cstr> getListOfDevices()
+{
+	Array<cstr> list;
+	list << "rsrc";
+#if defined FLASH_BLOCKDEVICE && FLASH_BLOCKDEVICE
+	list << "flash";
+#endif
+#if defined SDCARD_SPI
+	list << "sdcard";
+#endif
+#if defined SDCARD_SPI && defined SDCARD_SPI_CS2_PIN
+	list << "sdcard2";
+#endif
+#ifndef PICO
+	list.append(StdFS::getListOfDevices());
+#endif
+	return list;
+}
+
 constexpr static cptr find_dp(cstr p) noexcept
 {
 	while (is_alphanumeric(*p)) p++;

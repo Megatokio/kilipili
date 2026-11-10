@@ -4,6 +4,7 @@
 
 #pragma once
 #include "BlockDevice.h"
+#include "common/Array.h"
 
 extern const unsigned char resource_file_data[] __weak_symbol;
 
@@ -14,6 +15,13 @@ namespace kilipili
 //			global methods without object			   //
 // =================================================== //
 
+/*	get a list of all known devices
+	typical list is: {"rsrc","flash","sdcard"}
+	on the emulator it might look more like:
+	{"rsrc","flash","disk","HD1","HD4","usb-128gb"}
+	removable media are listed even if they are not inserted.
+*/
+extern Array<cstr> getListOfDevices();
 
 /*	Create filesystem on the supplied BlockDevice.
 	Type "FAT" creates the default variant of FAT for the disk size.

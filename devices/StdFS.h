@@ -36,6 +36,8 @@ public:
 	virtual void	 setMtime(cstr path, uint32 mtime) throws override;
 	virtual ADDR	 getFileSize(cstr path) override;
 
+	static Array<cstr> getListOfDevices();
+
 protected:
 	friend FileSystemPtr mountFS(cstr name_ucs1);
 	StdFS(cstr name) throws;
