@@ -18,8 +18,8 @@ HamImageVideoPlane::HamImageVideoPlane(const Pixmap_i8* pm, uint16 first_rel_cod
 	first_rel_code(first_rel_code)
 {
 	assert(colormap && colormap->count >= 256);
+	if (size_t(pixmap->pixmap) & 1) throw "ham image: odd image address not supported";
 	if (row_offset & 1) throw "ham image: odd row offset not supported";
-	if (pm->width & 3) {} // then up to 3 rightmost pixel at the right border will never be set
 }
 
 void HamImageVideoPlane::setupNextImage(int new_row_offset, uint16 new_first_rel_code)
@@ -64,7 +64,21 @@ void __section(XRAM ".ham") HamImageVideoPlane::do_render( //
 	Color*		  dest			  = reinterpret_cast<Color*>(framebuffer);
 	Color*		  first_pixel	  = dest;
 
-	for (uint i = 0; i < uint(width) / 4; i++)
+	if unlikely (width & 2)
+	{
+		width -= 2;
+		const Color* color;
+
+		interp->set_pixels(*pixels++);
+
+		color	= interp->next_color();
+		*dest++ = current_color = color >= first_rel_color ? current_color + *color : *color;
+
+		color	= interp->next_color();
+		*dest++ = current_color = color >= first_rel_color ? current_color + *color : *color;
+	}
+
+	for (uint i = 0; i < uint(width); i += 4)
 	{
 		const Color* color;
 

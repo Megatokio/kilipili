@@ -15,6 +15,8 @@ namespace kilipili
 	which uses part of it's colormap for relative color offset codes.
 	This is only a useful mode if sizeof(Color) > 1.
 	RGB images can be encoded for this color mode with desktop_tools/rsrc_writer.
+	The image must start on an even address and have an even row offset.
+	The image may have an odd with thou but then the rightmost pixel column is not displayed.
 */
 class HamImageVideoPlane final : public VideoPlane
 {
