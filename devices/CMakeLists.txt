@@ -37,8 +37,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "PICO")
 		internal/ff15/source/ffconf.h
 		internal/ff15/source/diskio.h
 		internal/ff15/source/ffunicode.c
-		Stdio.cpp    
-		Stdio.h
 		SDCard.cpp   
 		SDCard.h
 	)
@@ -68,6 +66,8 @@ add_library(kilipili_devices STATIC
 	internal/RsrcFile.cpp
 	internal/RsrcFS.h 
 	internal/RsrcFS.cpp	
+	Stdio.cpp    
+	Stdio.h
 	FileSystem.h 
 	FileSystem.cpp	
 	RamFile.cpp 	

@@ -10,6 +10,7 @@
 #ifdef PICO
   #include <stdio.h>
 #else
+  #include "common/Queue.h"
   #include "pico_hw/Interp.h"
   #include "usb_host/hid_handler.h"
   #include <atomic>
@@ -248,7 +249,59 @@ thread_local interp_hw_t interp_hw_array[2];
 
 // overridden by emulator:
 void __weak_symbol stdio_init_all() {}
-int __weak_symbol  stdio_getchar_timeout_us(uint32) { return -1; }
+
+static kilipili::Queue<uchar, 4, uint16> keyqueue;
+static std::mutex						 keyqueue_mutex;
+static std::counting_semaphore<4>		 keyqueue_sema(0);
+static std::thread*						 keyqueue_receiver = nullptr;
+
+static void __noreturn receive_stdin()
+{
+	for (;;)
+	{
+		while (!keyqueue.free()) ::sleep_us(10 * 1000);
+		int c = fgetc(stdin);
+		assert(c >= 0);
+		keyqueue.put(uchar(c));
+		keyqueue_sema.release();
+	}
+}
+
+// TODO: currently overridden by emulator to get input from keyboard instead
+int __weak_symbol stdio_getchar_timeout_us(uint32 timeout_us)
+{
+	if (!keyqueue_receiver) (keyqueue_receiver = new std::thread(&receive_stdin))->detach();
+	if (keyqueue_sema.try_acquire_for(std::chrono::duration<uint32, std::micro>(timeout_us)))
+	{
+		std::lock_guard<std::mutex> locker(keyqueue_mutex);
+		assert(keyqueue.avail());
+		return keyqueue.get();
+	}
+	return -1;
+}
+
+int stdio_getchar()
+{
+	if (!keyqueue_receiver) (keyqueue_receiver = new std::thread(&receive_stdin))->detach();
+	keyqueue_sema.acquire();
+	std::lock_guard<std::mutex> locker(keyqueue_mutex);
+	assert(keyqueue.avail());
+	return keyqueue.get();
+}
+
+void stdio_flush() { fflush(stdout); }
+int	 stdio_putchar_raw(char c) { return fputc(c, stdout); }
+int	 stdio_putchar(int c) { return fputc(c, stdout); }
+int	 stdio_puts(const char* s) { return fputs(s, stdout); }
+int	 __printflike(1, 0) stdio_vprintf(const char* fmt, va_list va) { return ::vprintf(fmt, va); }
+int	 __printflike(1, 2) stdio_printf(const char* fmt, ...)
+{
+	va_list va;
+	va_start(va, fmt);
+	int n = ::vprintf(fmt, va);
+	va_end(va);
+	return n;
+}
 
 
 namespace kilipili::USB
@@ -268,3 +321,40 @@ void __weak_symbol flash_range_program(uint32 flash_offs, const uint8* data, uin
 
 
 #endif
+
+
+/*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*/

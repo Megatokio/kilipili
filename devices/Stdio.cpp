@@ -1,12 +1,15 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #include "Stdio.h"
-#include "tempmem.h"
-#include <pico/stdio.h>
+#include "common/glue.h"
+#include "common/tempmem.h"
 #include <stdarg.h>
 #include <stdio.h>
+#ifdef PICO
+  #include <pico/stdio.h>
+#endif
 
 namespace kilipili
 {
@@ -17,7 +20,7 @@ uint32 Stdio::ioctl(IoCtl ctl, void*, void*)
 	{
 	case IoCtl::FLUSH_OUT: stdio_flush(); break;
 	case IoCtl::FLUSH_IN:
-		while (getchar_timeout_us(0) >= 0) {}
+		while (stdio_getchar_timeout_us(0) >= 0) {}
 		break;
 	default: throw INVALID_ARGUMENT;
 	}
@@ -33,7 +36,7 @@ static cstr getchar_error(int err)
 
 int Stdio::getc(uint timeout_us)
 {
-	int c	  = getchar_timeout_us(timeout_us);
+	int c	  = stdio_getchar_timeout_us(timeout_us);
 	last_char = char(c);
 	if (c >= 0) return c;
 	if (c == PICO_ERROR_TIMEOUT) return c;
@@ -44,7 +47,7 @@ char Stdio::getc()
 {
 	for (;;)
 	{
-		int c	  = getchar_timeout_us(60 * 1000 * 1000);
+		int c	  = stdio_getchar_timeout_us(60 * 1000 * 1000);
 		last_char = char(c);
 		if (c >= 0) return char(c);
 		if (c == PICO_ERROR_TIMEOUT) continue;
@@ -58,7 +61,7 @@ SIZE Stdio::read(void* _data, SIZE sz, bool partial)
 
 	for (uint i = 0; i < sz; i++)
 	{
-		int c = getchar_timeout_us(0);
+		int c = stdio_getchar_timeout_us(0);
 		if (c >= 0) data[i] = char(c);
 		else if (partial && c == PICO_ERROR_TIMEOUT) return i;
 		else throw getchar_error(c);
@@ -70,7 +73,7 @@ SIZE Stdio::write(const void* _data, SIZE sz, __unused bool partial)
 {
 	cptr data = cptr(_data);
 
-	for (uint i = 0; i < sz; i++) putchar_raw(data[i]);
+	for (uint i = 0; i < sz; i++) stdio_putchar_raw(data[i]);
 	return sz;
 }
 
@@ -79,7 +82,7 @@ void Stdio::putc(char c)
 	// TODO putchar() probably inserts cr before any nl.
 	// add a binary setting?
 
-	putchar_raw(c);
+	stdio_putchar_raw(c);
 }
 
 void Stdio::puts(cstr s)
