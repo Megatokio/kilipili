@@ -33,8 +33,7 @@ extern void flash_write_data(uint32 offs, const void* data, uint32 size) throws;
 extern void flash_erase_data(uint32 offs, uint32 size) throws;
 
 #ifndef PICO
-extern void				 setFlashImage(uint8* flash, uint32 size) noexcept;
-inline __deprecated void setupMockFlash(uint8* flash, uint32 size) noexcept { setFlashImage(flash, size); }
+extern void setFlashImage(uint8* flash, uint32 size) noexcept;
 #endif
 
 

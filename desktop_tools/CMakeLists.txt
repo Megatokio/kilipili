@@ -99,15 +99,15 @@ add_executable(UnitTest
 	unit_test/relational_operators.test.cpp
 	unit_test/Array.test.cpp
 	unit_test/Ay38912_unit_test.cpp
-	unit_test/QspiFlash_unit_test.cpp
+	unit_test/FlashBlockDevice_unit_test.cpp
 	unit_test/common_unit_test.cpp
 	kilipili/devices/SerialDevice.h
 	kilipili/devices/SerialDevice.cpp
-	kilipili/devices/Flash.h
-	kilipili/devices/Flash.cpp
+	kilipili/devices/internal/Flash.h
+	kilipili/devices/internal/Flash.cpp
 	kilipili/devices/BlockDevice.cpp
-	kilipili/devices/QspiFlashDevice.cpp
-	kilipili/devices/QspiFlashDevice.h
+	kilipili/devices/FlashBlockDevice.cpp
+	kilipili/devices/FlashBlockDevice.h
 	kilipili/devices/Preferences.cpp
 	kilipili/devices/Preferences.h
 	kilipili/audio/AudioSource.h
@@ -116,8 +116,6 @@ add_executable(UnitTest
 	kilipili/audio/AudioSample.h
 	kilipili/audio/Ay38912.cpp
 	kilipili/audio/Ay38912.h
-	unit_test/Mock/MockFlash.h
-	unit_test/Mock/MockFlash.cpp
 	unit_test/Mock/MockPixmap.cpp
 	unit_test/Mock/MockPixmap.h
 	kilipili/common/timing.cpp

@@ -1,10 +1,12 @@
-// Copyright (c) 2024 - 2025 kio@little-bat.de
+// Copyright (c) 2024 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
+#include "common/basic_math.h"
+#include "common/standard_types.h"
 #include "devices/File.h"
-#include "standard_types.h"
+
 
 namespace kilipili
 {
@@ -38,7 +40,7 @@ public:
 	~RsrcFileEncoder() noexcept override;
 
 	virtual SIZE write(const void* data, SIZE, bool partial = false) override;
-	virtual ADDR getSize() const noexcept override { return std::max(fpos, fsize); }
+	virtual ADDR getSize() const noexcept override { return max(fpos, fsize); }
 	virtual ADDR getFpos() const noexcept override { return fpos; }
 	virtual void setFpos(ADDR) override;
 	void		 close() override;

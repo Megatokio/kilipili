@@ -1,40 +1,62 @@
-// Copyright (c) 2025 - 2025 kio@little-bat.de
+// Copyright (c) 2025 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "Mock/MockFlash.h"
+//#include "Mock/MockFlash.h"
 #include "common/Array.h"
 #include "common/cstrings.h"
-#include "devices/Flash.h"
+#include "devices/FlashBlockDevice.h"
 #include "devices/Preferences.h"
-#include "devices/QspiFlashDevice.h"
+#include "devices/internal/Flash.h"
 #include "doctest.h"
 
-// defined in main_unit_test.cpp:
 
-namespace kilipili
-{
-extern doctest::String toString(Array<cstr>);
+using namespace kilipili;
+static constexpr int	ssw	  = 8;
+static constexpr int	sse	  = 12;
+static constexpr uint32 wsize = 1 << ssw;
+static constexpr uint32 esize = 1 << sse;
+static constexpr uint32 wmask = wsize - 1;
+static constexpr uint32 emask = esize - 1;
 
-namespace Test
-{
-static constexpr int			 ssw   = 8; // or 9
-static constexpr int			 sse   = 12;
-static constexpr uint32			 wsize = 1 << ssw;
-static constexpr uint32			 esize = 1 << sse;
-__unused static constexpr uint32 wmask = wsize - 1;
-__unused static constexpr uint32 emask = esize - 1;
-
+static Array<cstr>		log;
+static bool				error	   = 0;
 static constexpr uint32 flash_size = 2 MB;
 static Array<uint8>		flash {flash_size};
 static Array<uint8>		flash2 {flash_size};
-static Array<cstr>		log;
-static bool				error = 0;
-
-static MockFlash mock_flash(flash, log, error);
 
 #define LOG(...) log.append(usingstr(__VA_ARGS__))
 
+// replacement routine:
+void flash_range_erase(uint32 addr, uint32 size)
+{
+	LOG("erase 0x%08x + 0x%08x -> 0x%08x", addr, size, addr + size);
+
+	if (addr & emask || size & emask || addr + size > flash.count()) error = 1;
+	else memset(&flash[addr], 0xff, size);
+}
+
+// replacement routine:
+void flash_range_program(uint32 addr, const uint8* data, uint32 size)
+{
+	LOG("write 0x%08x + 0x%08x -> 0x%08x", addr, size, addr + size);
+
+	if (!data) LOG("data==nullptr");
+	if (!data || addr & wmask || size & wmask || addr + size > flash.count()) { error = 1; }
+	else
+	{
+		for (uint i = 0; i < size; i++) flash[addr + i] &= data[i];
+	}
+}
+
+
+namespace kilipili
+{
+extern doctest::String toString(Array<cstr>); // defined in main_unit_test.cpp
+
+
+namespace Test
+{
 static constexpr uint random_data_size = flash_size;
 static uint8*		  random_data	   = new uint8[random_data_size];
 
@@ -46,10 +68,10 @@ static void printLog(int line)
 }
 
 
-class QspiMock : public QspiFlashDevice<ssw>
+class QspiMock : public FlashBlockDevice<ssw>
 {
 public:
-	using super = QspiFlashDevice;
+	using super = FlashBlockDevice;
 
 	uint32 flashdisk_base;
 	uint32 flashdisk_size;
@@ -149,7 +171,7 @@ public:
 TEST_CASE("QspiFlash: constructor")
 {
 	for (uint i = 0; i < random_data_size; i++) random_data[i] = uint8(rand() >> 8);
-	setupMockFlash(&flash[0], flash_size);
+	setFlashImage(&flash[0], flash_size);
 
 	QspiMock q(500 kB, 1 MB);
 	q.writeData(0, nullptr, 0);
@@ -530,7 +552,7 @@ static constexpr uint prefs_size = FLASH_PREFERENCES;
 
 TEST_CASE("Preferences: ctor")
 {
-	flash_erase(flash_size() - prefs_size, prefs_size);
+	flash_erase_data(flash_size - prefs_size, prefs_size);
 	Preferences p;
 	CHECK_EQ(p.free(), prefs_size);
 }

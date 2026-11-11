@@ -331,7 +331,8 @@ void __weak_symbol flash_range_erase(uint32 flash_offs, uint32 count)
 void __weak_symbol flash_range_program(uint32 flash_offs, const uint8* data, uint32 count)
 {
 	assert(flash_offs + count <= kilipili::flash_image_size);
-	memcpy(kilipili::flash_image_start + flash_offs, data, count);
+	uptr dest = kilipili::flash_image_start + flash_offs;
+	for (uint i = 0; i < count; i++) dest[i] &= data[i];
 }
 
 #endif

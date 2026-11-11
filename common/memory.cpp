@@ -13,6 +13,8 @@
 #ifdef PICO
   #include <hardware/clocks.h>
 #else
+  #define pico_board_cmake_set(...)
+  #define pico_board_cmake_set_default(...)
   #include PICO_BOARD_H
   #include "glue.h"
 #endif
