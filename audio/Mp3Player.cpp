@@ -50,6 +50,167 @@ static inline Sample mp3_scale(mad_fixed_t sample) // scale mp3 output to int16
 	return sample == Sample(sample) ? Sample(sample) : sample < 0 ? -0x8000 : +0x7fff;
 }
 
+static uint32 decode_synchsafeint(cuptr data)
+{
+	return (((data[0]) & 0x7Fu) << 21) | //
+		   (((data[1]) & 0x7Fu) << 14) | //
+		   (((data[2]) & 0x7Fu) << 7) |	 //
+		   ((data[3]) & 0x7F);
+}
+
+static uint32 peek_little_endian32(cuptr data)
+{
+	return data[0] + 0x100 * (data[1] + 0x100 * (data[2] + 0x100 * data[3]));
+}
+
+static void dump_memory(cuptr p, int sz)
+{
+	for (int i = 0; i < sz; i += 32)
+	{
+		printf("  ");
+		int n = min(32, sz - i);
+		for (int j = i; j < i + n; j++) printf("%02x ", p[j]);
+		for (int j = i + n; j < i + 32; j++) printf("   ");
+		for (int j = i; j < i + n; j++) printf("%c", p[j] >= 32 && p[j] < 127 ? p[j] : '_');
+		printf("\n");
+		stdio_flush();
+	}
+}
+
+void Mp3Player::skip_id3v2()
+{
+	// ID3v2 header is at least 10 bytes and starts with "ID3"
+
+	uint8 data[10];
+	input_file->read(data, 10);
+	uint32 tag_size = 0;
+	if (memcmp(data, "ID3", 3) == 0)
+	{
+		// flags (byte 5): bit 4 (0x10) indicates a 10-byte footer is present
+		bool has_footer = data[5] & 0x10;
+		tag_size		= 10 + decode_synchsafeint(data + 6) + (has_footer ? 10 : 0);
+		debugstr("ID3v2 tag at start of file (%u bytes)\n", tag_size);
+	}
+	input_file->setFpos(tag_size);
+}
+
+static bool is_info_frame(MadStream* stream, MadHeader* header)
+{
+	// needs either the complete (very short) frame or at least 40 bytes of the frame
+
+	cuptr frame_start = stream->this_frame;
+	off_t frame_len	  = stream->next_frame - stream->this_frame;
+
+	// Determine side-information offset after the 4-byte MPEG header
+	off_t side_info_offset = 4;
+	if (header->flags & MAD_FLAG_LSF_EXT)
+		side_info_offset += (header->mode == MAD_MODE_SINGLE_CHANNEL) ? 9 : 17;	  // MPEG-2 / 2.5
+	else side_info_offset += (header->mode == MAD_MODE_SINGLE_CHANNEL) ? 17 : 32; // MPEG-1
+
+	// Check for "Xing" or "Info"
+	if (frame_len >= side_info_offset + 4)
+	{
+		cuptr id = frame_start + side_info_offset;
+		if (memcmp(id, "Xing", 4) == 0 || memcmp(id, "Info", 4) == 0)
+		{
+			debugstr("%.4s frame (%i bytes)\n", cptr(id), int(frame_len));
+			return true;
+		}
+	}
+
+	// Check for "VBRI" (always at fixed offset 36 from frame start)
+	if (frame_len >= 40 && memcmp(frame_start + 36, "VBRI", 4) == 0)
+	{
+		debugstr("VBRI frame (%i bytes)\n", int(frame_len));
+		return true;
+	}
+
+	return false;
+}
+
+bool Mp3Player::is_id3v1_or_ape()
+{
+	// return true if an id3v1 or ape frame was skipped
+
+	// we have at least 8 bytes (MAD_BUFFER_GUARD) bytes available
+	// because otherwise header.decode() bailed out with MAD_ERROR_BUFLEN first:
+	uint remaining = uint(stream->bufend - stream->this_frame);
+	assert(remaining >= 8);
+
+	// test for ID3v1 tag:
+	// always 128 bytes long and always at end of file
+	if (memcmp(stream->this_frame, "TAG", 3) == 0)
+	{
+		remaining += input_file->getSize() - input_file->getFpos();
+		if (remaining == 128) debugstr("ID3v1 tag at end of file (128 bytes)\n");
+		else if (remaining < 128) debugstr("ID3v1 tag truncated (%u bytes)\n", remaining);
+		else debugstr("ID3v1 tag before eof (128 + %u bytes)\n", remaining - 128u);
+		input_file->setFpos(input_file->getSize());
+		stream->next_frame = stream->bufend;
+		return true; // skipped
+	}
+
+	// test for APE tag:
+	// the APE tag is either first or last frame.
+	// if last it comes right before an eventual final ID3v1 tag:
+	if (memcmp(stream->this_frame, "APETAGEX", 8) == 0)
+	{
+		if (!first_frame)
+		{
+			debugstr("APE tag in last frame: skipping rest of file\n"); // incl. an evtl. ID3v1 tag
+			input_file->setFpos(input_file->getSize());
+			stream->next_frame = stream->bufend;
+			return true; // skipped
+		}
+
+		// this probably never happens because for the first frame the input buffer should be full:
+		if (remaining < 16)
+		{
+			stream->next_frame = stream->this_frame; // -> come back here
+			stream->error	   = MAD_ERROR_BUFLEN;
+			return false; // not skipped
+		}
+
+		cuptr data	   = stream->this_frame;
+		uint  ape_size = 32 + peek_little_endian32(data + 12);
+
+		debugstr("APE tag in first frame (%u bytes)\n", ape_size);
+
+		if (remaining >= ape_size)
+		{
+			stream->next_frame = stream->this_frame + ape_size;
+			return true; // skipped
+		}
+		else // this may happen if s.o. puts an image into the APE frame:
+		{
+			stream->next_frame = stream->bufend;
+			input_file->setFpos(input_file->getFpos() + ape_size - remaining);
+			return true; // skipped
+		}
+	}
+
+	// a real glitch in the file:
+
+	if (remaining < 128)
+	{
+		stream->next_frame = stream->this_frame; // -> come back here
+		stream->error	   = MAD_ERROR_BUFLEN;
+		return false; // not skipped
+	}
+
+	debugstr("mp3_header_decode: %s\n", stream->errorstr());
+	if (debug) dump_memory(stream->this_frame, 128);
+
+	// skip over possible burst of 0xff to prevent a burst of memory dumps
+	// and reduce the chance for 'successfully' decoding a broken frame:
+	cuptr p = stream->this_frame;
+	cuptr e = stream->bufend;
+	while (p < e && *p == 0xff) p++;
+	stream->next_frame = max(stream->next_frame, p - 1);
+
+	return false; // not skipped
+}
+
 
 #define YIELD(N)     \
 	state = N;       \
@@ -102,6 +263,12 @@ int Mp3Player::run() noexcept
 			}
 
 			YIELD(5);
+
+			// skip ID3v2 tag at start of file:
+			skip_id3v2();
+			// prepare to skip Info, Xing or VBRI in first frame:
+			first_frame = true;
+
 			buffer->count = uint16(input_file->read(buffer->data, buffer->size, true));
 			stream->set_buffer_pointers(buffer->data, buffer->count);
 
@@ -112,17 +279,22 @@ int Mp3Player::run() noexcept
 				if (frame->header.decode(stream) == -1)
 				{
 					if (stream->error == MAD_ERROR_BUFLEN) break; // need more input data
-					if ((0)) debugstr("mp3_header_decode: %s\n", stream->errorstr());
-					if (is_recoverable(stream->error)) continue; // return 1 * 1000; // cover art?
-					else throw stream->errorstr();
+					if (!is_recoverable(stream->error)) throw stream->errorstr();
+					if (is_id3v1_or_ape()) continue;			  // resolved: skipped
+					if (stream->error == MAD_ERROR_BUFLEN) break; // need more input data
+					continue;									  // not resolved: seek sync
 				}
+
+				// skip first valid audio frame if it is in fact a Xing, VBRI or Info frame:
+				if (first_frame && is_info_frame(stream, &frame->header)) continue;
+				first_frame = false;
 
 				if (frame->decode(stream) == -1)
 				{
-					if (stream->error == MAD_ERROR_BUFLEN) break;			// need more input data
-					debugstr("mp3_frame_decode: %s\n", stream->errorstr()); // almost always header: cover art?
-					if (is_recoverable(stream->error)) continue;			// return 1 * 1000;
-					else throw stream->errorstr();
+					if (stream->error == MAD_ERROR_BUFLEN) break; // safety, never happens
+					if (!is_recoverable(stream->error)) throw stream->errorstr();
+					debugstr("mp3_frame_decode: %s\n", stream->errorstr());
+					continue;
 				}
 
 				YIELD(2)
@@ -161,8 +333,8 @@ int Mp3Player::run() noexcept
 
 			YIELD(4)
 			assert(stream->error == MAD_ERROR_BUFLEN);
-			SIZE nprocessed = SIZE(stream->next_frame - buffer->data); // num bytes processed for current/last frame
-			SIZE nremaining = buffer->count - nprocessed;			   // num bytes remaining unprocessed in buffer
+			uint nprocessed = uint(stream->next_frame - buffer->data); // num bytes processed for current/last frame
+			uint nremaining = buffer->count - nprocessed;			   // num bytes remaining unprocessed in buffer
 			assert(nprocessed <= buffer->count);
 			assert(nremaining <= buffer->count);
 			if unlikely (nremaining == buffer->size) throw "mp3_input: buffer too small";
@@ -173,12 +345,19 @@ int Mp3Player::run() noexcept
 
 			if (n)
 			{
-				stream->set_buffer_pointers(buffer->data, nremaining + n); //
+				stream->set_buffer_pointers(buffer->data, nremaining + n);
 				state = 1;
 			}
 			else // n=0 => end of file => next file or quit
 			{
-				debugstr("mp3_input: %u bytes not processed at eof\n", nremaining);
+				if (debug && nremaining)
+				{
+					bool id3v1 = nremaining >= 128 && memcmp(buffer->data + nremaining - 128, "TAG", 3) == 0;
+					if (id3v1) nremaining -= 128;
+					debugstr("mp3_input: %u bytes not processed at eof\n", nremaining);
+					dump_memory(buffer->data, int(nremaining));
+					if (id3v1) debugstr("ID3v1 tag at end of file\n");
+				}
 
 				state = 0;
 				if (repeat_file && !next_file && !next_dir) input_file->setFpos(0u);

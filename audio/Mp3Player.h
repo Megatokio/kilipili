@@ -56,7 +56,12 @@ public:
 	uchar  options {0};
 	uchar  rc {0}; // RCPtr<>
 	uchar  state {0};
+	bool   first_frame {false};
 	ushort nsamples_done;
+
+private:
+	void skip_id3v2();
+	bool is_id3v1_or_ape();
 };
 
 
