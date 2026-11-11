@@ -15,7 +15,7 @@
 #endif
 
 
-namespace kilipili::Flash
+namespace kilipili
 {
 #define esize FLASH_SECTOR_SIZE
 #define wsize FLASH_PAGE_SIZE
@@ -46,7 +46,7 @@ void setFlashImage(uint8* flash, uint32 size) noexcept
 static constexpr uint32 wmask = wsize - 1;
 static constexpr uint32 emask = esize - 1;
 
-void flash_erase(uint32 addr, uint32 size) noexcept
+static void flash_erase(uint32 addr, uint32 size) noexcept
 {
 	assert(get_core_num() == 0);
 
@@ -57,7 +57,7 @@ void flash_erase(uint32 addr, uint32 size) noexcept
 	if (resume_core1) resume_core1();
 }
 
-void flash_program(uint32 addr, cuptr bu, uint32 size) noexcept
+static void flash_program(uint32 addr, cuptr bu, uint32 size) noexcept
 {
 	assert(get_core_num() == 0);
 
@@ -151,7 +151,7 @@ static void erase_sectors(uint32 addr, uint size)
 	if (size) flash_erase(addr, size);
 }
 
-void eraseData(uint32 addr, uint32 size) throws
+void flash_erase_data(uint32 addr, uint32 size) throws
 {
 	// Erase data[size] at address
 
@@ -228,7 +228,7 @@ static void write_sectors(uint32 addr, cuptr data, uint size)
 	if (size) flash_program(addr, data, size);
 }
 
-void writeData(uint32 addr, const void* _data, uint32 size) throws
+void flash_write_data(uint32 addr, const void* _data, uint32 size) throws
 {
 	// Write data[size] to address
 
@@ -259,7 +259,7 @@ void writeData(uint32 addr, const void* _data, uint32 size) throws
 	write_sectors(addr, data, size);
 }
 
-void readData(uint32 addr, void* data, uint32 size) noexcept
+void flash_read_data(uint32 addr, void* data, uint32 size) noexcept
 {
 	if (size == 0) return;
 	assert(addr <= flash_size && size <= flash_size - addr);
@@ -272,4 +272,4 @@ void readData(uint32 addr, void* data, uint32 size) noexcept
 }
 
 
-} // namespace kilipili::Flash
+} // namespace kilipili

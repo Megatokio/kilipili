@@ -2,8 +2,9 @@
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
-#include "QspiFlashDevice.h"
-#include "Flash.h"
+#include "FlashBlockDevice.h"
+#include "common/memory.h"
+#include "internal/Flash.h"
 #ifdef PICO
   #include <hardware/flash.h>
 #endif
@@ -22,7 +23,7 @@ static constexpr int sse = 12;
 static_assert(FLASH_SECTOR_SIZE == (1 << sse));
 
 template<int ssw>
-QspiFlashDevice<ssw>::QspiFlashDevice(uint32 addr, uint32 size, FSFlags flags) throws :
+FlashBlockDevice<ssw>::FlashBlockDevice(uint32 addr, uint32 size, FSFlags flags) throws :
 	BlockDevice(size >> ssw, 0, ssw, sse, flags),
 	first_sector(addr >> ssw)
 {
@@ -35,44 +36,44 @@ QspiFlashDevice<ssw>::QspiFlashDevice(uint32 addr, uint32 size, FSFlags flags) t
 }
 
 template<int ssw>
-QspiFlashDevice<ssw>::QspiFlashDevice(uint32 size, FSFlags flags) throws :
-	QspiFlashDevice(flash_size() - size, size - prefs_size, flags)
+FlashBlockDevice<ssw>::FlashBlockDevice(uint32 size, FSFlags flags) throws :
+	FlashBlockDevice(flash_size() - size, size - prefs_size, flags)
 {}
 
 template<int ssw>
-void QspiFlashDevice<ssw>::readSectors(LBA block, void* data, SIZE count) throws
+void FlashBlockDevice<ssw>::readSectors(LBA block, void* data, SIZE count) throws
 {
 	clamp_blocks(block, count);
-	Flash::readData((first_sector + block) << ssw, data, count << ssw);
+	flash_read_data((first_sector + block) << ssw, data, count << ssw);
 }
 
 template<int ssw>
-void QspiFlashDevice<ssw>::readData(ADDR addr, void* data, SIZE size) throws
+void FlashBlockDevice<ssw>::readData(ADDR addr, void* data, SIZE size) throws
 {
 	clamp(addr, size);
-	Flash::readData((first_sector << ssw) + addr, data, size);
+	flash_read_data((first_sector << ssw) + addr, data, size);
 }
 
 template<int ssw>
-void QspiFlashDevice<ssw>::writeSectors(LBA block, const void* data, SIZE count) throws
+void FlashBlockDevice<ssw>::writeSectors(LBA block, const void* data, SIZE count) throws
 {
 	if (!isWritable()) throw NOT_WRITABLE;
 	clamp_blocks(block, count);
-	if (data) Flash::writeData((first_sector + block) << ssw, data, count << ssw);
-	else Flash::eraseData((first_sector + block) << ssw, count << ssw);
+	if (data) flash_write_data((first_sector + block) << ssw, data, count << ssw);
+	else flash_erase_data((first_sector + block) << ssw, count << ssw);
 }
 
 template<int ssw>
-void QspiFlashDevice<ssw>::writeData(ADDR addr, const void* data, SIZE size) throws
+void FlashBlockDevice<ssw>::writeData(ADDR addr, const void* data, SIZE size) throws
 {
 	if (!isWritable()) throw NOT_WRITABLE;
 	clamp(addr, size);
-	if (data) Flash::writeData((first_sector << ssw) + addr, data, size);
-	else Flash::eraseData((first_sector << ssw) + addr, size);
+	if (data) flash_write_data((first_sector << ssw) + addr, data, size);
+	else flash_erase_data((first_sector << ssw) + addr, size);
 }
 
 template<int ssw>
-uint32 QspiFlashDevice<ssw>::ioctl(IoCtl cmd, void* arg1, void* arg2) throws
+uint32 FlashBlockDevice<ssw>::ioctl(IoCtl cmd, void* arg1, void* arg2) throws
 {
 	switch (cmd.cmd)
 	{
@@ -99,9 +100,9 @@ uint32 QspiFlashDevice<ssw>::ioctl(IoCtl cmd, void* arg1, void* arg2) throws
 }
 
 
-template class QspiFlashDevice<8>;
-template class QspiFlashDevice<9>;
-template class QspiFlashDevice<12>;
+template class FlashBlockDevice<8>;
+template class FlashBlockDevice<9>;
+template class FlashBlockDevice<12>;
 
 
 } // namespace kilipili

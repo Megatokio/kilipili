@@ -5,8 +5,8 @@
 #include "FileSystem.h"
 #include "FatFS.h"
 #include "File.h"
+#include "FlashBlockDevice.h"
 #include "Preferences.h"
-#include "QspiFlashDevice.h"
 #include "RsrcFS.h"
 #include "SDCard.h"
 #include "common/Dispatcher.h"
@@ -90,7 +90,7 @@ void makeFS(cstr devicename, cstr type) throws
 #if defined FLASH_BLOCKDEVICE && FLASH_BLOCKDEVICE
 	if (lceq(devicename, "flash"))
 	{
-		makeFS(new QspiFlashDevice<9>(FLASH_BLOCKDEVICE), type);
+		makeFS(new FlashBlockDevice<9>(FLASH_BLOCKDEVICE), type);
 		if constexpr (prefs_size) Preferences().write(tag_flashdisk_size, uint32(FLASH_BLOCKDEVICE));
 		return;
 	}
@@ -168,7 +168,7 @@ FileSystemPtr mountFS(cstr name) throws
 	{
 		uint32 size = FLASH_BLOCKDEVICE;
 		if constexpr (prefs_size) size = Preferences().read<uint32>(tag_flashdisk_size, size);
-		return new FatFS(name, new QspiFlashDevice<9>(size));
+		return new FatFS(name, new FlashBlockDevice<9>(size));
 	}
 #endif
 #ifndef PICO

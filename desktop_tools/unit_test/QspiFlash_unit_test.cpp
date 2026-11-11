@@ -149,7 +149,7 @@ public:
 TEST_CASE("QspiFlash: constructor")
 {
 	for (uint i = 0; i < random_data_size; i++) random_data[i] = uint8(rand() >> 8);
-	Flash::setupMockFlash(&flash[0], flash_size);
+	setupMockFlash(&flash[0], flash_size);
 
 	QspiMock q(500 kB, 1 MB);
 	q.writeData(0, nullptr, 0);
@@ -530,7 +530,7 @@ static constexpr uint prefs_size = FLASH_PREFERENCES;
 
 TEST_CASE("Preferences: ctor")
 {
-	Flash::flash_erase(Flash::flash_size() - prefs_size, prefs_size);
+	flash_erase(flash_size() - prefs_size, prefs_size);
 	Preferences p;
 	CHECK_EQ(p.free(), prefs_size);
 }

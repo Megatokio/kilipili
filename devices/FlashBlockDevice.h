@@ -27,15 +27,15 @@ namespace kilipili
 	  - 12/4096 bytes: this is the erase sector size of the program flash.
 */
 template<int ssw>
-class QspiFlashDevice : public BlockDevice
+class FlashBlockDevice : public BlockDevice
 {
 public:
 	// create BlockDevice at with 'size' at 'offset' in program flash.
-	QspiFlashDevice(uint32 offset, uint32 size, FSFlags = readable | writable) throws;
+	FlashBlockDevice(uint32 offset, uint32 size, FSFlags = readable | writable) throws;
 
 	// create BlockDevice at with 'size' at end of program flash.
 	// if FLASH_PREFERENCES is defined then the size is reduced to preserve the preferences.
-	QspiFlashDevice(uint32 size, FSFlags = readable | writable) throws;
+	FlashBlockDevice(uint32 size, FSFlags = readable | writable) throws;
 
 	// BlockDevice interface:
 	virtual void   readSectors(LBA, void* data, SIZE count) throws override;
@@ -50,8 +50,8 @@ private:
 
 
 // 3 versions are implemented:
-extern template class QspiFlashDevice<8>;
-extern template class QspiFlashDevice<9>;
-extern template class QspiFlashDevice<12>;
+extern template class FlashBlockDevice<8>;
+extern template class FlashBlockDevice<9>;
+extern template class FlashBlockDevice<12>;
 
 } // namespace kilipili

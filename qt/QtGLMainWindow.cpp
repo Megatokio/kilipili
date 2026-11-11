@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <thread>
 #include PICO_BOARD_H
-#include "devices/Flash.h"
+#include "devices/internal/Flash.h"
 
 
 // =============================================================================
@@ -332,7 +332,7 @@ void stdio_init_all()
 				off_t n = read(flash_fd, buffer, flashsize);
 				if (n < 0) fprintf(stderr, "flash file error: %s", strerror(errno));
 				assert(n == flashsize);
-				Flash::setFlashImage(buffer, flashsize);
+				setFlashImage(buffer, flashsize);
 				// don't close file
 			}
 		}

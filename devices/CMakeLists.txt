@@ -69,6 +69,8 @@ add_library(kilipili_devices STATIC
 	internal/RsrcFile.cpp
 	internal/RsrcFS.h 
 	internal/RsrcFS.cpp	
+	internal/Flash.h 		
+	internal/Flash.cpp	
 	Stdio.cpp    
 	Stdio.h
 	FileSystem.h 
@@ -95,10 +97,8 @@ add_library(kilipili_devices STATIC
 	HeatShrinkEncoder.cpp
 	LzhDecoder.cpp	
 	LzhDecoder.h
-	QspiFlashDevice.h 
-	QspiFlashDevice.cpp
-	Flash.h 		
-	Flash.cpp	
+	FlashBlockDevice.h 
+	FlashBlockDevice.cpp
 	Preferences.h	
 	Preferences.cpp
 	devices.h

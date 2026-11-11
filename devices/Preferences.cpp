@@ -8,13 +8,14 @@
   #include "Preferences.h"
   #include "common/Array.h"
   #include "common/Logger.h"
-  #include "devices/Flash.h"
+  #include "common/memory.h"
+  #include "internal/Flash.h"
   #include <cstring>
   #ifdef PICO
 	#include <hardware/flash.h>
 	#include <pico.h>
   #else
-	#include "glue.h"
+	#include "common/glue.h"
   #endif
 
 
@@ -106,9 +107,9 @@ void Preferences::sync() throws
 	}
 
 	// if store was compacted or is invalid (or was just empty):
-	if (first_tag == xip_flash_end) Flash::flash_erase(xip_flash_size - prefs_size, prefs_size);
+	if (first_tag == xip_flash_end) flash_erase_data(xip_flash_size - prefs_size, prefs_size);
 
-	Flash::writeData(uint32(first_tag - count - xip_flash_base), pending_data.getData(), count);
+	flash_write_data(uint32(first_tag - count - xip_flash_base), pending_data.getData(), count);
 	first_tag = first_tag - count; // core1 sees the new values
 	pending_data.purge();
 }

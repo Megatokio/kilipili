@@ -16,7 +16,7 @@
 
 // block devices:
 #include "BlockDevice.h"
-#include "QspiFlashDevice.h"
+#include "FlashBlockDevice.h"
 #include "SDCard.h"
 
 // serial devices:
