@@ -47,8 +47,6 @@ inline StereoSample clamped(const AudioSample<2, int>& q) { return StereoSample(
 
 class CombinedAudioSources : public AudioSource<hw_num_channels>
 {
-	int __unused _padding;
-
 public:
 	virtual void setSampleRate(float new_sample_frequency) noexcept override {}
 
@@ -173,6 +171,18 @@ void startAudio(bool with_timer) noexcept
 
 void stopAudio(bool remove_audio_sources) noexcept
 {
+	if (get_core_num() == 2) // Gui thread: shut down & exit
+	{
+		// this isn't completely water tight:
+		// core0 could startAudio() just right now
+		if (audio_is_running)
+		{
+			audio_is_running = false; // -> fillAudioBuffer() will immediately return
+			sleep_us(500);			  // if fillAudioBuffer() is currently executed
+		}
+		return;
+	}
+
 	assert(get_core_num() == 0);
 
 	audio_is_running = false;

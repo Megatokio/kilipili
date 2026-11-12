@@ -1,4 +1,5 @@
 #include "QtGLMainWindow.h"
+#include "AudioController.h"
 #include "common/Queue.h"
 #include "common/timing.h"
 #include "cstrings.h"
@@ -283,6 +284,8 @@ void __noreturn gui_runner()
 	int rval = appl->exec(); // *** DOIT ***
 
 	requested_state = STOPPED; // stop video generation
+	stopAudio();			   // just stop audio
+
 	if (flash_fd > 0)
 	{
 		off_t n = lseek(flash_fd, 0, SEEK_SET);
