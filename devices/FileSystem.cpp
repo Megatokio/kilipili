@@ -268,6 +268,7 @@ static cstr make_fullpath(cstr path, FileSystem* fs)
 
 	// prepend device and workdir
 	// eliminate "//", "/.", "/.." and trailing '/'
+	// if !PICO then replace "//" at start of path with "disk:/"
 
 	// fs != nullptr <=> called from this fs
 	//	 use fs->name instead of device from path, if present (but should be same)
@@ -294,6 +295,10 @@ static cstr make_fullpath(cstr path, FileSystem* fs)
 	assert(path);
 
 	if (is_canonical_fullpath(path, fs)) return path;
+
+#ifndef PICO
+	if (startswith(path, "//")) path = catstr("disk:", path + 1);
+#endif
 
 	if (!fs) fs = cwd;
 	cptr dp = find_dp(path);
