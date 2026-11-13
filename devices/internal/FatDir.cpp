@@ -39,7 +39,8 @@ FatDir::FatDir(RCPtr<FileSystem>fs, cstr path) throws : //
 {
 	trace(__func__);
 	//assert(dynamic_cast<FatFS*>(this->fs.ptr()));
-	assert(kilipili::find(path, ":/"));
+	//assert(find(path, ":/"));
+	assert(Directory::fs->is_resolved_fullpath(path)); // "flash:" or "flash:/path/…"
 
 	FRESULT err = f_opendir(&fatdir, path);
 	if (err) throw tostr(err);

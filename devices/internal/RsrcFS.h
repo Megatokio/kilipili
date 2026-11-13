@@ -1,4 +1,4 @@
-// Copyright (c) 2024 - 2025 kio@little-bat.de
+// Copyright (c) 2024 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -26,19 +26,6 @@ namespace kilipili
 	  uint32 size       uncompressed data size | 0x80000000
 	  uint24 csize      sizeof cdata[]
 	  uint8  flags		wbits<<4 + lbits
-	  char[] data       compressed file data
-
-ALT uncompressed[] =
-	  char[] filename   0-terminated string
-	  uint24 size       data size (after flag)
-	  uint8  flag = 0
-	  char[] data       uncompressed file data
-
-ALT	compressed[] =
-	  char[] filename   0-terminated string
-	  uint24 csize      compressed size (incl. usize)
-	  uint8  flags != 0 windowsize<<4 + lookaheadsize
-	  uint32 usize      uncompressed size
 	  char[] data       compressed file data
 */
 

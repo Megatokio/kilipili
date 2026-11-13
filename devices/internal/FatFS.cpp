@@ -121,24 +121,27 @@ uint64 FatFS::getSize()
 DirectoryPtr FatFS::openDir(cstr path)
 {
 	trace("FatFS::openDir");
+	assert(is_resolved_fullpath(path));
+	//assert(isaDirectory(path));
+	//path = makeFullPath(path);
 
-	path = makeFullPath(path);
 	return new FatDir(this, path);
 }
 
 FilePtr FatFS::openFile(cstr path, FileOpenMode flags)
 {
 	trace("FatFS::openFile");
+	assert(is_resolved_fullpath(path));
+	//path = makeFullPath(path);
 
-	path = makeFullPath(path);
 	return new FatFile(this, path, flags);
 }
 
 ADDR FatFS::getFileSize(cstr path) throws
 {
 	trace("FatFS::getFileSize");
-
-	path = makeFullPath(path);
+	assert(is_resolved_fullpath(path));
+	//path = makeFullPath(path);
 
 	FATFILEINFO finfo;
 	FRESULT		err = f_stat(path, &finfo);
@@ -152,9 +155,10 @@ ADDR FatFS::getFileSize(cstr path) throws
 FileType FatFS::getFileType(cstr path) noexcept
 {
 	trace("FatFS::getFileType");
+	assert(is_canonical_fullpath(path)); // may still contain wildcards
+	//path = makeFullPath(path);
 
-	path = makeFullPath(path);
-	if (strchr(path, ':')[2] == 0) return DirectoryFile; // f_stat doesn't work for the root dir
+	if (strchr(path, '/') == nullptr) return DirectoryFile; // f_stat doesn't work for the root dir
 
 	FATFILEINFO finfo;
 	FRESULT		err = f_stat(path, &finfo);
@@ -164,9 +168,10 @@ FileType FatFS::getFileType(cstr path) noexcept
 void FatFS::makeDir(cstr path) throws
 {
 	trace("FatFS::makeDir");
+	assert(is_resolved_fullpath(path));
+	//path = makeFullPath(path);
 
-	path = makeFullPath(path);
-	if (strchr(path, ':')[2] == 0) return; // f_stat doesn't work for the root dir
+	if (strchr(path, '/') == nullptr) return; // f_stat doesn't work for the root dir
 
 	FRESULT err = f_mkdir(path);
 	if (err == FR_EXIST)
@@ -180,30 +185,40 @@ void FatFS::makeDir(cstr path) throws
 
 void FatFS::remove(cstr path) throws
 {
-	FRESULT err = f_unlink(makeFullPath(path));
+	trace("FatFS::remove");
+	assert(is_resolved_fullpath(path));
+	//path = makeFullPath(path);
+
+	FRESULT err = f_unlink(path);
 	if (err) throw tostr(err);
 }
 
 void FatFS::rename(cstr path, cstr name) throws
 {
-	trace(__func__);
+	trace("FatFS::rename");
+	assert(is_resolved_fullpath(path));
+	//path = makeFullPath(path);
 
-	FRESULT err = f_rename(makeFullPath(path), name);
+	FRESULT err = f_rename(path, name);
 	if (err) throw tostr(err);
 }
 
 void FatFS::setFmode(cstr path, FileMode fmode, uint8 mask) throws
 {
-	trace(__func__);
+	trace("FatFS::setFmode");
+	assert(is_resolved_fullpath(path));
 	if constexpr (!FF_USE_CHMOD) throw "option disabled";
+	//path = makeFullPath(path);
 
-	FRESULT err = f_chmod(makeFullPath(path), fmode, mask);
+	FRESULT err = f_chmod(path, fmode, mask);
 	if (err) throw tostr(err);
 }
 
 void FatFS::setMtime(cstr path, uint32 mtime) throws
 {
-	trace(__func__);
+	trace("FatFS::setMtime");
+	assert(is_resolved_fullpath(path));
+	//path = makeFullPath(path);
 
 	if constexpr (!FF_USE_CHMOD) throw "option disabled";
 
@@ -239,7 +254,7 @@ void FatFS::setMtime(cstr path, uint32 mtime) throws
 
 	info.fdate = uint16(y * 512 | (mo + 1) * 32 | (days + 1));
 
-	FRESULT err = f_utime(makeFullPath(path), &info);
+	FRESULT err = f_utime(path, &info);
 	if (err) throw tostr(err);
 }
 

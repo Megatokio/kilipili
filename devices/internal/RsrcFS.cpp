@@ -71,6 +71,24 @@ static const uint8* next_direntry(cuptr p, cstr pattern)
 	return p;
 }
 
+bool lceq_dir_fname(cstr dir, cstr fname) noexcept
+{
+	assert(dir);
+	assert(fname);
+
+	int i = 0;
+	while (fname[i] && to_lower(fname[i]) == to_lower(dir[i])) i++;
+	return fname[i] == 0 && (dir[i] == 0 || dir[i] == '/');
+}
+
+static const uint8* find(cstr filename) // file or dir
+{
+	trace(__func__);
+	cuptr p = resource_file_data;
+	while (p && !lceq_dir_fname(cptr(p), filename)) { p = next_direntry(p); }
+	return p;
+}
+
 
 // ***********************************************************************
 // Resource File System
@@ -89,14 +107,15 @@ uint64 RsrcFS::getSize()
 
 DirectoryPtr RsrcFS::openDir(cstr path)
 {
-	trace(__func__);
+	trace("RsrcFS::openDir");
 	assert(path);
+	assert(is_resolved_fullpath(path));
 
-	cstr full_path = makeFullPath(path);
-
-	path		 = strchr(full_path, ':') + 2;
-	cstr pattern = *path == 0 ? "*" : catstr(path, "/*");
-	if (next_direntry(resource_file_data, pattern)) return new RsrcDir(this, full_path);
+	cuptr p = resource_file_data;
+	if (p == nullptr) throw DIRECTORY_NOT_FOUND;
+	cstr fname = strchr(path, '/');
+	if (!fname) return new RsrcDir(this, path); // root dir
+	if (find(fname + 1)) return new RsrcDir(this, path);
 	else throw DIRECTORY_NOT_FOUND;
 }
 
@@ -114,12 +133,13 @@ FilePtr RsrcFS::openFile(cstr path, FileOpenMode mode)
 		  uint8  flags		wbits<<4 + lbits
 		  char[] data       compressed file data
 	*/
-	trace(__func__);
+	trace("RsrcFS::openFile");
 	assert(path);
+	assert(is_resolved_fullpath(path));
 
-	path = strchr(makeFullPath(path), ':') + 2;
 	if (mode & ~READ) throw NOT_WRITABLE;
-	cuint8* p = next_direntry(resource_file_data, path);
+	path	  = strchr(path, '/');
+	cuint8* p = path ? find(path + 1) : nullptr;
 	if (!p) throw FILE_NOT_FOUND;
 
 	p = skip(p);
@@ -129,26 +149,30 @@ FilePtr RsrcFS::openFile(cstr path, FileOpenMode mode)
 
 ADDR RsrcFS::getFileSize(cstr path) throws
 {
-	trace(__func__);
+	trace("RsrcFS::getFileSize");
 	assert(path);
+	assert(is_resolved_fullpath(path));
 
-	path	  = strchr(makeFullPath(path), ':') + 2;
-	cuint8* p = next_direntry(resource_file_data, path);
+	path	  = strchr(path, '/');
+	cuint8* p = path ? find(path + 1) : nullptr;
 	if (!p) throw FILE_NOT_FOUND;
 	return usize(skip(p));
 }
 
-
 FileType RsrcFS::getFileType(cstr path) noexcept
 {
-	trace(__func__);
-	assert(path);
+	// path may still contain wildcards => return NoFile
 
-	path = strchr(makeFullPath(path), ':') + 2;
-	if (*path == 0) return FileType::DirectoryFile; // root dir
-	if (next_direntry(resource_file_data, path)) return FileType::RegularFile;
-	if (next_direntry(resource_file_data, catstr(path, "/*"))) return FileType::DirectoryFile;
-	else return FileType::NoFile;
+	trace("RsrcFS::getFileType");
+	assert(path);
+	assert(is_canonical_fullpath(path, false));
+
+	path = strchr(path, '/');
+	if (path == nullptr) return FileType::DirectoryFile; // root dir
+	cuptr p = find(path + 1);
+	if (!p) return FileType::NoFile;
+	if (p[strlen(path + 1)] == 0) return FileType::RegularFile;
+	else return FileType::DirectoryFile;
 }
 
 
@@ -162,7 +186,7 @@ RsrcDir::RsrcDir(RCPtr<RsrcFS> fs, cstr full_path) : //
 
 void RsrcDir::rewind() throws
 {
-	trace(__func__);
+	trace("RsrcFS::rewind");
 	dpos = resource_file_data;
 	subdirs.purge();
 }

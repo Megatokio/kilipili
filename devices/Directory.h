@@ -1,4 +1,4 @@
-// Copyright (c) 2023 - 2025 kio@little-bat.de
+// Copyright (c) 2023 - 2026 kio@little-bat.de
 // BSD-2-Clause license
 // https://opensource.org/licenses/BSD-2-Clause
 
@@ -22,12 +22,8 @@ public:
 
 	virtual ~Directory() noexcept override { delete[] dirpath; }
 
-	/* ————————————————————————————————————————
-		Iterate over directory entries:
-	*/
 	virtual void	 rewind() throws					 = 0; // rewind dir
 	virtual FileInfo next(cstr pattern = nullptr) throws = 0; // next file in dir
-	FileInfo		 find(cstr pattern = nullptr) throws;	  // rewind & return first
 
 	cstr		getFullPath() const noexcept { return dirpath; } // "dev:/path/to/dir"
 	FileSystem* getFS() const noexcept { return fs; }
@@ -38,15 +34,5 @@ protected:
 	RCPtr<FileSystem> fs;
 	cstr			  dirpath = nullptr; // full path "dev:/path/to/dir"
 };
-
-
-// ===================== Implementations ======================
-
-
-inline FileInfo Directory::find(cstr pattern) throws
-{
-	rewind();
-	return next(pattern);
-}
 
 } // namespace kilipili

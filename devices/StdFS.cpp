@@ -35,18 +35,17 @@ cstr StdFS::make_utf8_path(cstr path_ucs1)
 {
 	// convert character encoding and fs naming conventions
 
-	path_ucs1 = makeFullPath(path_ucs1); // "disk:/foo/path"
-	cptr dp	  = strchr(path_ucs1, ':');
-	assert(dp);
+	assert(is_canonical_fullpath(path_ucs1)); // may still contain wildcards
 
-	if (fs_path_ucs1) // "usb-EF3:/foo/path"  ->  "media/username/usb-stick128mb/foo/path"
-	{
-		return toutf8str(catstr(fs_path_ucs1, dp + 1));
-	}
-	else // "disk:/foo/path"  ->  "/foo/path"
-	{
-		return toutf8str(dp + 1);
-	}
+	cptr dp = strchr(path_ucs1, ':');
+	assert(dp);
+	assert(dp[1] == 0 || dp[1] == '/');
+
+	// "usb-EF3:/foo/path"  ->  "media/username/usb-stick128mb/foo/path"
+	if (fs_path_ucs1) return toutf8str(catstr(fs_path_ucs1, dp + 1));
+
+	// "disk:/foo/path"  ->  "/foo/path"
+	else return dp[1] == 0 ? "/" : toutf8str(dp + 1);
 }
 
 Array<cstr> StdFS::getListOfDevices()
