@@ -256,6 +256,16 @@ bool islowerstr(cstr s) noexcept
 	return true;
 }
 
+bool is_ascii(cstr s) noexcept
+{
+	// test if characters in string are all ascii
+
+	if (s)
+		while (*s)
+			if (*s++ & 0x80) return false;
+	return true;
+}
+
 str mulstr(cstr q, uint n) throws
 {
 	// Repeate string n times

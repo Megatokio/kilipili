@@ -73,6 +73,7 @@ extern bool endswith(cstr, cstr) noexcept;
 inline bool contains(cstr z, cstr s) noexcept { return find(z, s); }
 extern bool isupperstr(cstr) noexcept;
 extern bool islowerstr(cstr) noexcept;
+extern bool is_ascii(cstr) noexcept;
 
 
 // ----	allocate with new[] ----
