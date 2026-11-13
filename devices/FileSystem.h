@@ -127,10 +127,25 @@ public:
 	char name[8] = "";
 	cstr workdir = nullptr; // full path, may be nullptr for rootdir!
 
+	enum WcFlag { wc_default, wc_file, wc_dir, wc_mkdir = 4 };
+	// resolve wildchars in path, return path and filetype and pattern if any
+	// wc_dir:		path must be a dir
+	// wc_file:		path must be a file or available to create one
+	// wc_default:	filename may be any file, available filename or a pattern
+	// wc_mkdir:	create directories as you go
+	cstr resolvedFullPath(cstr path, WcFlag wc, FileType* filetype_out, cstr* pattern_out);
+
 protected:
+	str	 resolved_fullpath(cstr path, WcFlag, FileType*, cstr* pattern);
 	cstr makeFullPath(cstr path);
 	FileSystem(cstr name) throws;
 };
+
+
+inline FileSystem::WcFlag operator|(FileSystem::WcFlag a, FileSystem::WcFlag b) noexcept
+{
+	return FileSystem::WcFlag(int(a) | int(b));
+}
 
 
 } // namespace kilipili

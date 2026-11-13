@@ -27,25 +27,27 @@ class File;
 using FilePtr = RCPtr<File>;
 
 
-constexpr char NOT_WRITABLE[]		   = "not writable";
-constexpr char NOT_READABLE[]		   = "not readable";
-constexpr char NOT_ERASABLE[]		   = "not erasable";
-constexpr char END_OF_FILE[]		   = "end of file";
-constexpr char TIMEOUT[]			   = "timeout";
-constexpr char INVALID_ARGUMENT[]	   = "invalid argument";	  // ioctl()
-constexpr char DEVICE_NOT_RESPONDING[] = "Device not responding"; // block devices
-constexpr char HARD_WRITE_ERROR[]	   = "Hard write error";	  // block devices
-constexpr char HARD_READ_ERROR[]	   = "Hard read error";		  // block devices
-constexpr char FILE_NOT_FOUND[]		   = "File not found";
-constexpr char DIRECTORY_NOT_FOUND[]   = "Directory not found";
-constexpr char UNKNOWN_FILESYSTEM[]	   = "unknown file system";		  // mount(), makeFS()
-constexpr char UNKNOWN_DEVICE[]		   = "unknown device";			  // mount()
-constexpr char DEVICE_IN_USE[]		   = "device in use";			  // mount(), new FileSystem()
-constexpr char NO_MOUNTPOINT_FREE[]	   = "no mountpoint free";		  // mount()
-constexpr char NO_WORKING_DEVICE[]	   = "no current working device"; //
-constexpr char NAME_TOO_LONG[]		   = "name too long";			  // mount()
-constexpr char REGULAR_FILE[]		   = "not a directory";			  // remove()
-constexpr char DISK_FULL[]			   = "disk full";				  // write()
+constexpr char NOT_WRITABLE[]			 = "not writable";
+constexpr char NOT_READABLE[]			 = "not readable";
+constexpr char NOT_ERASABLE[]			 = "not erasable";
+constexpr char END_OF_FILE[]			 = "end of file";
+constexpr char TIMEOUT[]				 = "timeout";
+constexpr char INVALID_ARGUMENT[]		 = "invalid argument";		// ioctl()
+constexpr char DEVICE_NOT_RESPONDING[]	 = "Device not responding"; // block devices
+constexpr char HARD_WRITE_ERROR[]		 = "Hard write error";		// block devices
+constexpr char HARD_READ_ERROR[]		 = "Hard read error";		// block devices
+constexpr char FILE_NOT_FOUND[]			 = "File not found";
+constexpr char DIRECTORY_NOT_FOUND[]	 = "Directory not found";
+constexpr char UNKNOWN_FILESYSTEM[]		 = "unknown file system";		// mount(), makeFS()
+constexpr char UNKNOWN_DEVICE[]			 = "unknown device";			// mount()
+constexpr char DEVICE_IN_USE[]			 = "device in use";				// mount(), new FileSystem()
+constexpr char NO_MOUNTPOINT_FREE[]		 = "no mountpoint free";		// mount()
+constexpr char NO_WORKING_DEVICE[]		 = "no current working device"; //
+constexpr char NAME_TOO_LONG[]			 = "name too long";				// mount()
+constexpr char NOT_A_DIRECTORY[]		 = "not a directory";			// remove()
+constexpr char NOT_A_REGULAR_FILE[]		 = "not a regular file";
+constexpr char NOT_A_FILE_OR_DIRECTORY[] = "not a file or directory";
+constexpr char DISK_FULL[]				 = "disk full"; // write()
 
 
 enum FileOpenMode : uint8 {

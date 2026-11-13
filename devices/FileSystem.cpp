@@ -8,14 +8,15 @@
 #include "FlashBlockDevice.h"
 #include "Preferences.h"
 #include "RsrcFS.h"
-#include "SDCard.h"
 #include "common/Dispatcher.h"
 #include "common/Logger.h"
 #include "common/cdefs.h"
 #include "common/cstrings.h"
 #include "common/trace.h"
 #include "ff15/source/ffconf.h"
-#ifndef PICO
+#ifdef PICO
+  #include "SDCard.h"
+#else
   #include "StdFS.h"
 #endif
 
@@ -129,9 +130,7 @@ FileSystemPtr mountFS(cstr devicename, BlockDevicePtr bdev) throws
 	{
 		try
 		{
-#ifdef PICO
 			if (i == 0) return new FatFS(devicename, bdev);
-#endif
 			if (i == 1) {} //etc.
 			break;
 		}
@@ -506,7 +505,7 @@ static void remove_dir(FileSystem* fs, cstr path, cstr pattern = "") throws
 
 		cstr filepath = catstr(path, &"/"[is_rootdir(path)], pattern);
 		if (isaDirectory(filepath)) remove_dir(fs, filepath, subpattern);
-		else if (sep) throw REGULAR_FILE;
+		else if (sep) throw NOT_A_DIRECTORY;
 		fs->remove(filepath);
 	}
 }
@@ -719,6 +718,146 @@ void FileSystem::setWorkDir(cstr path)
 	delete[] workdir;
 	workdir = nullptr;
 	workdir = newcopy(path);
+}
+
+static FileSystem::WcFlag operator&(FileSystem::WcFlag a, int b) noexcept { return FileSystem::WcFlag(int(a) & b); }
+
+static bool has_wildcard(cptr a) { return strchr(a, '*') || strchr(a, '?'); }
+
+static bool better(FileInfo& a, const FileInfo& b, cstr pattern)
+{
+	// copy b over to a if it is a better match
+	// return true if this is the best possible match
+	// the filename must have already been checked for a successful match, e.g. with getFileType()
+
+#if 0
+	// exact:
+	if (eq(b.fname, pattern)) return a = b; // true
+#endif
+
+#ifdef PICO
+	if (fnmatch(pattern, b.fname, false)) return a = b; // true
+	if (!a) a = b;
+	return false;
+#else
+	if (lceq(b.fname, pattern)) return a = b; // true
+	if (!a || fnmatch(pattern, b.fname, false)) a = b;
+	return false; // not the best possible match
+#endif
+}
+
+cstr FileSystem::resolvedFullPath(cstr path, WcFlag wcflag, FileType* ftype, cstr* fnpattern)
+{
+	str rval = resolved_fullpath(path, wcflag, ftype, fnpattern);
+
+	if (fnpattern && *fnpattern)
+	{
+		// we can xdupstr() only one string, so we had to return path/pattern in one:
+		ptr	 p	   = strrchr(rval, '/');
+		bool dp	   = p[-1] == ':';
+		*fnpattern = dp ? dupstr(p + 1) : p + 1;
+		p[dp]	   = 0;
+	}
+
+	return rval;
+}
+
+str FileSystem::resolved_fullpath(cstr path, WcFlag wcflag, FileType* ftype, cstr* fnpattern)
+{
+	/*	directory path:
+			make_fullpath, resolve all wildcards, create directories if wc_mkdir is set
+
+		returned path:
+			wc_dir:		ftype = DirectoryFile:	path to existing directory			
+			wc_file:	ftype = RegularFile: 	path to existing file				
+						ftype = NoFile:			path to available file name			
+			wc_default:	ftype = DirectoryFile:	path to existing directory			
+												fnpattern = nullptr or pattern
+						ftype = other FileType:	path to any existing file or available file name
+	*/
+
+	assert(path);
+	assert(ftype);
+
+	TempMemSave _;
+	path	   = makeFullPath(path);
+	bool mkdir = wcflag & wc_mkdir;
+	wcflag	   = wcflag & ~wc_mkdir;
+	if (fnpattern) *fnpattern = nullptr;
+	cptr sep0, sep;
+
+	// quick check if path is already valid:
+	if ((*ftype = getFileType(path))) goto check_ftype_and_exit;
+
+	// resolve the directory path:
+	for (sep0 = strchr(path, '/'); (sep = strchr(sep0 + 1, '/')); sep0 = sep)
+	{
+		// check if dirpath is valid:
+		cstr dirpath = substr(path, sep);
+		if (FileType ft = getFileType(dirpath))
+		{
+			if (ft == DirectoryFile) continue;
+			else throw NOT_A_DIRECTORY;
+		}
+		cstr		 pattern = (sep0 + 1) + (dirpath - path); // pattern = substr(sep0 + 1, sep);
+		DirectoryPtr dir	 = openDir(substr(path, sep0 + (sep0[-1] == ':')));
+		FileInfo	 finfo;
+		while (FileInfo next_finfo = dir->next(pattern)) // search case folding
+		{
+			if (!next_finfo.isaDir()) continue;
+			if (better(finfo, next_finfo, sep0)) break; // improve finfo and break if exact match
+		}
+		if (finfo)
+		{
+			path = catstr(substr(path, sep0 + 1), finfo.fname, sep);
+			sep	 = strchr(path, 0) - strlen(sep);
+		}
+		else
+		{
+			if (!mkdir || has_wildcard(pattern)) throw DIRECTORY_NOT_FOUND;
+			makeDir(path);
+		}
+	}
+
+	// check if path is now valid:
+	if ((*ftype = getFileType(path))) goto check_ftype_and_exit;
+
+	// path is not valid: the filename is a pattern, has wrong case or n.ex.
+	// sep0 points to the last '/'
+	{
+		cstr		 pattern = sep0 + 1;
+		DirectoryPtr dir	 = openDir(substr(path, sep0 + (sep0[-1] == ':')));
+		FileInfo	 finfo;
+		while (FileInfo next_finfo = dir->next(pattern)) // search case folding
+		{
+			if (wcflag == wc_dir && !next_finfo.isaDir()) continue;
+			if (wcflag == wc_file && !next_finfo.isaFile()) continue;
+			if (better(finfo, next_finfo, pattern)) break; // improve finfo and break if exact match
+		}
+		if (finfo)
+		{
+			path   = catstr(substr(path, sep0 + 1), finfo.fname);
+			*ftype = finfo.ftype;
+		}
+		else if (wcflag == wc_dir)
+		{
+			if (!mkdir || has_wildcard(pattern)) throw DIRECTORY_NOT_FOUND;
+			makeDir(path);
+			*ftype = DirectoryFile;
+		}
+		else if (wcflag == wc_default && has_wildcard(pattern))
+		{
+			if (fnpattern) *fnpattern = sep0 + 1; // any non-nullptr
+			*ftype = DirectoryFile;
+		}
+	}
+	goto exit;
+
+check_ftype_and_exit:
+	if (wcflag == wc_file && *ftype != RegularFile) throw NOT_A_REGULAR_FILE;
+	if (wcflag == wc_dir && *ftype != DirectoryFile) throw NOT_A_DIRECTORY;
+exit:
+	return xdupstr(path);
 }
 
 } // namespace kilipili
