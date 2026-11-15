@@ -3,7 +3,6 @@
 // https://opensource.org/licenses/BSD-2-Clause
 
 #pragma once
-#include "common/RCPtr.h"
 #include "devices/devices_types.h"
 
 
@@ -18,10 +17,8 @@ public:
 	AudioPlayer(cstr fn_pattern) noexcept; // e.g. "*.mp3"
 	/*virtual*/ ~AudioPlayer() noexcept;
 
-	void play(cstr fpath);
+	void playFile(cstr fpath);
 	void playDirectory(cstr dpath);
-	void play(cstr fpath, bool loop);
-	void playDirectory(cstr dpath, bool loop);
 
 	void stop() noexcept;
 	void stopAfterSong() noexcept;
@@ -33,15 +30,15 @@ public:
 
 	File* nextInputFile();
 
-	const char* fn_pattern; // e.g. "*.mp3"
+	const cstr dflt_pattern; // e.g. "*.mp3"
 
-	// while stopped the current file & dir can be remembered:
-	cstr next_file = nullptr;
-	cstr next_dir  = nullptr;
+	cstr next_file = nullptr; // playFile()
+	cstr next_dir  = nullptr; // playDirectory()
 
-	// the current directory (if any) while playing:
-	RCPtr<Directory> current_dir;
-	RCPtr<File>		 input_file;
+	// current file and directory while playing:
+	DirectoryPtr current_dir;
+	FilePtr		 input_file;
+	cstr		 fn_pattern = nullptr; // e.g. "C*"
 
 	bool paused		 = false;
 	bool repeat_file = false;
