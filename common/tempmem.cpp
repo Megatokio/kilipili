@@ -288,7 +288,13 @@ bool resize_tempstr(str s, uint new_len) noexcept
 	//	if(resize_tempstr(s,strlen(s)+1)==false) s=catstr(s," "); // if resize fails use catstr()
 
 	Pool* pool	  = current_pool;
-	uint  old_len = strlen(s);
+	uint  old_len = uint(strlen(s));
+
+	if (new_len <= old_len)
+	{
+		s[new_len] = 0;
+		return true;
+	}
 
 	// string must be the last string:
 	if (s + old_len + 1 != pool->current_position()) return false;
@@ -304,6 +310,17 @@ bool resize_tempstr(str s, uint new_len) noexcept
 	pool->used += new_len - old_len;
 	s[new_len] = 0;
 	return true;
+}
+
+str growstr(str s, uint new_len)
+{
+	// resize in place or reallocate
+
+	if (resize_tempstr(s, new_len)) return s;
+	assert(new_len > strlen(s));
+	str s2 = tempstr(new_len);
+	strcpy(s2, s);
+	return s2;
 }
 
 } // namespace kilipili

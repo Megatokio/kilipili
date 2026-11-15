@@ -46,6 +46,7 @@ extern ptr	tempmem(uint size);						   // allocate tempmem: aligned, not cleared
 extern void purge_tempmem() noexcept;				   // purge tempmem up to the last save position
 extern str xdupstr(cstr, bool before_save_pos = true); // purge_tempmem (!) and copy string before current save position
 extern bool resize_tempstr(str s, uint new_len) noexcept; // try to resize a string in-place
+extern str	growstr(str s, uint new_len);				  // resize in place or reallocate
 
 /*	save and restore the current allocation position of the tempmem pool.
 	Use this inside or before calling a function which may allocate some temp strings
