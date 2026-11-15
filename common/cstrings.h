@@ -74,7 +74,8 @@ inline bool contains(cstr z, cstr s) noexcept { return find(z, s); }
 extern bool isupperstr(cstr) noexcept;
 extern bool islowerstr(cstr) noexcept;
 extern bool is_ascii(cstr) noexcept;
-
+inline cptr find(cstr s, char a, char b) noexcept;
+inline cptr find_wildcard(cstr s) noexcept;
 
 // ----	allocate with new[] ----
 extern str newstr(uint n); // tempmem.h: allocate memory with new[]
@@ -281,6 +282,13 @@ inline constexpr char hexchar(int n) noexcept
 	return char(((n & 15) >= 10 ? 'A' - 10 : '0') + (n & 15));
 } // masked legal
 
+
+inline cptr find(cstr s, char a, char b) noexcept
+{
+	while (*s && *s != a && *s != b) s++;
+	return *s ? s : nullptr;
+}
+inline cptr find_wildcard(cstr s) noexcept { return find(s, '*', '?'); }
 
 inline ptr	find(str target, cstr search) noexcept { return ptr(find(cstr(target), search)); }
 inline ptr	rfind(str target, cstr search) noexcept { return ptr(rfind(cstr(target), search)); }
