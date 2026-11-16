@@ -125,7 +125,15 @@ YMMusicPlayer::YMMusicPlayer() : super(2000000, Mono, 50, 0.2f), AudioPlayer("*.
 YMMusicPlayer::~YMMusicPlayer()
 {
 	Dispatcher::removeHandler(ymm_callback, this);
-	if (is_live) removeAudioSource(this);
+
+	// when the YMMusicPlayer is destroyed it cannot be in the AudioController's AudioSources list,
+	// because they hold RCPtrs to the AudioSources and therefore to the YMMusicPlayer too!
+	// the only possible case is in exit() in the emulator:
+	//	 if the last RCPtr (in the appl) is destroyed _after_ the AudioSources' RCPtrs are destroyed
+	//	 then we run into infinite recursion if we try to remove ourself.
+	//
+	// => do not call removeAudioSource(this) here!
+
 	delete[] allocated_buffer;
 }
 

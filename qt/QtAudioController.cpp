@@ -134,6 +134,7 @@ static void start_timer()
 			::sleep_us(uint(delay)); //
 		}
 		timer_running = false;
+		__sev();
 	});
 	t.detach();
 }
@@ -175,18 +176,15 @@ void stopAudio(bool remove_audio_sources) noexcept
 	{
 		// this isn't completely water tight:
 		// core0 could startAudio() just right now
-		if (audio_is_running)
-		{
-			audio_is_running = false; // -> fillAudioBuffer() will immediately return
-			sleep_us(500);			  // if fillAudioBuffer() is currently executed
-		}
+		audio_is_running = false;			 // -> fillAudioBuffer() will immediately return
+		while (timer_running) sleep_us(200); // can't use __wfe()
 		return;
 	}
 
 	assert(get_core_num() == 0);
 
 	audio_is_running = false;
-	while (timer_running) { sleep_us(1000); }
+	while (timer_running) __wfe();
 	audio_device = nullptr;
 	if (audio_sink) audio_sink->stop();
 	if (remove_audio_sources) removeAllAudioSources();
